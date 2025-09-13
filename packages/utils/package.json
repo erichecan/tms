@@ -1,0 +1,26 @@
+{
+  "name": "@tms/utils",
+  "version": "1.0.0",
+  "description": "TMS平台共享工具函数库",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.0",
+    "lodash": "^4.17.0",
+    "uuid": "^9.0.0",
+    "@tms/shared-types": "file:../shared-types"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.0",
+    "@types/uuid": "^9.0.0",
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

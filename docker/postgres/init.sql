@@ -1,0 +1,239 @@
+-- TMS平台数据库初始化脚本
+-- 创建时间: 2025-01-27 15:30:45
+
+-- 创建扩展
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- 创建租户管理相关表
+CREATE TABLE IF NOT EXISTS tenants (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    domain VARCHAR(255) UNIQUE NOT NULL,
+    schema_name VARCHAR(63) UNIQUE NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    profile JSONB DEFAULT '{}',
+    status VARCHAR(20) DEFAULT 'active',
+    last_login_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tenant_id, email)
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_tenants_domain ON tenants(domain);
+CREATE INDEX IF NOT EXISTS idx_tenants_schema_name ON tenants(schema_name);
+CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- 插入默认租户（用于开发测试）
+INSERT INTO tenants (id, name, domain, schema_name) 
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'TMS Demo Company',
+    'demo.tms-platform.com',
+    'tenant_demo'
+) ON CONFLICT (domain) DO NOTHING;
+
+-- 插入默认管理员用户
+INSERT INTO users (id, tenant_id, email, password_hash, role)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'admin@demo.tms-platform.com',
+    '$2a$10$GplA4J5iV/b/9gA.Ie3m.OqISjLdC0caN203n4i/TEc2T5.ZDCz/6', -- admin123
+    'admin'
+) ON CONFLICT (tenant_id, email) DO NOTHING;
+
+-- 创建客户表
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    level VARCHAR(50) DEFAULT 'standard',
+    contact_info JSONB DEFAULT '{}',
+    billing_info JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建司机表
+CREATE TABLE IF NOT EXISTS drivers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    license_number VARCHAR(50),
+    vehicle_info JSONB DEFAULT '{}',
+    status VARCHAR(20) DEFAULT 'active',
+    performance JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建运单表
+CREATE TABLE IF NOT EXISTS shipments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    shipment_number VARCHAR(50) UNIQUE NOT NULL,
+    customer_id UUID REFERENCES customers(id),
+    driver_id UUID REFERENCES drivers(id),
+    pickup_address JSONB NOT NULL,
+    delivery_address JSONB NOT NULL,
+    cargo_info JSONB NOT NULL,
+    estimated_cost DECIMAL(10,2),
+    actual_cost DECIMAL(10,2),
+    additional_fees JSONB DEFAULT '[]',
+    applied_rules JSONB DEFAULT '[]',
+    status VARCHAR(50) DEFAULT 'pending',
+    timeline JSONB DEFAULT '{}',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建规则表
+CREATE TABLE IF NOT EXISTS rules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(50) NOT NULL,
+    priority INTEGER NOT NULL,
+    conditions JSONB NOT NULL,
+    actions JSONB NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建规则执行日志表
+CREATE TABLE IF NOT EXISTS rule_executions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    rule_id UUID REFERENCES rules(id),
+    context JSONB NOT NULL,
+    result JSONB NOT NULL,
+    execution_time INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建财务记录表
+CREATE TABLE IF NOT EXISTS financial_records (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    reference_id UUID NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'CNY',
+    status VARCHAR(20) DEFAULT 'pending',
+    due_date DATE,
+    paid_at TIMESTAMP,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建对账单表
+CREATE TABLE IF NOT EXISTS statements (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    reference_id UUID NOT NULL,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    items JSONB NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'draft',
+    generated_at TIMESTAMP NOT NULL,
+    generated_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_customers_tenant_id ON customers(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_customers_level ON customers(level);
+CREATE INDEX IF NOT EXISTS idx_drivers_tenant_id ON drivers(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_drivers_status ON drivers(status);
+CREATE INDEX IF NOT EXISTS idx_shipments_tenant_id ON shipments(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_customer_id ON shipments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_driver_id ON shipments(driver_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
+CREATE INDEX IF NOT EXISTS idx_shipments_shipment_number ON shipments(shipment_number);
+CREATE INDEX IF NOT EXISTS idx_rules_tenant_id ON rules(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_rules_type ON rules(type);
+CREATE INDEX IF NOT EXISTS idx_rules_status ON rules(status);
+CREATE INDEX IF NOT EXISTS idx_rules_priority ON rules(priority);
+CREATE INDEX IF NOT EXISTS idx_rule_executions_tenant_id ON rule_executions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_rule_executions_rule_id ON rule_executions(rule_id);
+CREATE INDEX IF NOT EXISTS idx_financial_records_tenant_id ON financial_records(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_financial_records_type ON financial_records(type);
+CREATE INDEX IF NOT EXISTS idx_financial_records_status ON financial_records(status);
+CREATE INDEX IF NOT EXISTS idx_financial_records_reference_id ON financial_records(reference_id);
+CREATE INDEX IF NOT EXISTS idx_statements_tenant_id ON statements(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_statements_type ON statements(type);
+CREATE INDEX IF NOT EXISTS idx_statements_status ON statements(status);
+CREATE INDEX IF NOT EXISTS idx_statements_reference_id ON statements(reference_id);
+
+-- 插入示例数据
+INSERT INTO customers (id, tenant_id, name, level, contact_info, billing_info)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '示例客户公司',
+    'vip',
+    '{"email": "customer@example.com", "phone": "13800138000", "address": {"street": "示例街道123号", "city": "北京", "state": "北京", "postalCode": "100000", "country": "中国"}, "contactPerson": "张经理"}',
+    '{"companyName": "示例客户公司", "taxId": "91110000000000000X", "billingAddress": {"street": "示例街道123号", "city": "北京", "state": "北京", "postalCode": "100000", "country": "中国"}, "paymentTerms": "月结30天"}'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO drivers (id, tenant_id, name, phone, license_number, vehicle_info, status, performance)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '李司机',
+    '13900139000',
+    'A123456789',
+    '{"type": "truck", "licensePlate": "京A12345", "capacity": 10000, "dimensions": {"length": 6, "width": 2.5, "height": 2.8}, "features": ["尾板", "GPS"]}',
+    'active',
+    '{"rating": 4.8, "totalDeliveries": 150, "onTimeRate": 0.95, "customerSatisfaction": 0.92}'
+) ON CONFLICT (id) DO NOTHING;
+
+-- 插入示例规则
+INSERT INTO rules (id, tenant_id, name, description, type, priority, conditions, actions, status)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'VIP客户长途折扣',
+    'VIP客户运输距离超过500公里时享受15%折扣',
+    'pricing',
+    100,
+    '[{"fact": "customerLevel", "operator": "equal", "value": "vip"}, {"fact": "transportDistance", "operator": "greaterThan", "value": 500}]',
+    '[{"type": "applyDiscount", "params": {"percentage": 15}}]',
+    'active'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO rules (id, tenant_id, name, description, type, priority, conditions, actions, status)
+VALUES (
+    '00000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000001',
+    '司机基础提成',
+    '所有司机基础提成30%',
+    'payroll',
+    300,
+    '[{"fact": "driverId", "operator": "isNotEmpty", "value": ""}]',
+    '[{"type": "setDriverCommission", "params": {"percentage": 30}}]',
+    'active'
+) ON CONFLICT (id) DO NOTHING;

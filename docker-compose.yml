@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres
+    environment:
+      POSTGRES_DB: tms_platform
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tms-network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: tms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tms-network
+
+  # 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: tms-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://tms_user:tms_password@postgres:5432/tms_platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+    networks:
+      - tms-network
+
+  # 前端服务
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: tms-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    networks:
+      - tms-network
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: tms-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - tms-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  tms-network:
+    driver: bridge

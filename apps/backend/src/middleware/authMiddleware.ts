@@ -1,0 +1,208 @@
+// 认证中间件
+// 创建时间: 2025-01-27 15:30:45
+
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { DatabaseService } from '../services/DatabaseService';
+import { logger } from '../utils/logger';
+
+// 扩展Request接口
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        role: string;
+        tenantId: string;
+      };
+    }
+  }
+}
+
+const dbService = new DatabaseService();
+
+/**
+ * JWT认证中间件
+ * @param req 请求对象
+ * @param res 响应对象
+ * @param next 下一个中间件
+ */
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const token = extractToken(req);
+    
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'No token provided' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+      return;
+    }
+
+    // 验证JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    
+    // 从数据库获取用户信息
+    const user = await dbService.getUser(decoded.tenantId, decoded.userId);
+    
+    if (!user || user.status !== 'active') {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Invalid token or user not active' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+      return;
+    }
+
+    // 将用户信息添加到请求对象
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId
+    };
+
+    next();
+  } catch (error) {
+    logger.error('Authentication error:', error);
+    
+    if (error.name === 'TokenExpiredError') {
+      res.status(401).json({
+        success: false,
+        error: { code: 'TOKEN_EXPIRED', message: 'Token has expired' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    } else if (error.name === 'JsonWebTokenError') {
+      res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Invalid token' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Authentication failed' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    }
+  }
+};
+
+/**
+ * 角色权限中间件
+ * @param allowedRoles 允许的角色列表
+ * @returns 中间件函数
+ */
+export const roleMiddleware = (allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+      return;
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Insufficient permissions' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+      return;
+    }
+
+    next();
+  };
+};
+
+/**
+ * 可选认证中间件（用于公开API）
+ * @param req 请求对象
+ * @param res 响应对象
+ * @param next 下一个中间件
+ */
+export const optionalAuthMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const token = extractToken(req);
+    
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const user = await dbService.getUser(decoded.tenantId, decoded.userId);
+      
+      if (user && user.status === 'active') {
+        req.user = {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId
+        };
+      }
+    }
+    
+    next();
+  } catch (error) {
+    // 可选认证失败时不阻止请求继续
+    logger.warn('Optional authentication failed:', error);
+    next();
+  }
+};
+
+/**
+ * 从请求中提取token
+ * @param req 请求对象
+ * @returns token字符串
+ */
+function extractToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  
+  // 也可以从cookie中获取token
+  if (req.cookies && req.cookies.token) {
+    return req.cookies.token;
+  }
+  
+  return null;
+}
+
+/**
+ * 生成JWT token
+ * @param userId 用户ID
+ * @param tenantId 租户ID
+ * @param role 用户角色
+ * @returns JWT token
+ */
+export const generateToken = (userId: string, tenantId: string, role: string): string => {
+  return jwt.sign(
+    { userId, tenantId, role },
+    process.env.JWT_SECRET!,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+};
+
+/**
+ * 生成刷新token
+ * @param userId 用户ID
+ * @param tenantId 租户ID
+ * @returns 刷新token
+ */
+export const generateRefreshToken = (userId: string, tenantId: string): string => {
+  return jwt.sign(
+    { userId, tenantId, type: 'refresh' },
+    process.env.JWT_SECRET!,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
+  );
+};
