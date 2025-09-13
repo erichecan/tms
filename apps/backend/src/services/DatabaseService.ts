@@ -128,7 +128,7 @@ export class DatabaseService {
       connectionString: process.env.DATABASE_URL,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000, // 增加到10秒
     });
 
     this.pool.on('error', (err) => {

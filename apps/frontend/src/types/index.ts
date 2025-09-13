@@ -25,8 +25,14 @@ export interface UserLoginPayload {
 }
 
 export interface AuthResponse {
-  token: string;
-  user: User;
+  success: boolean;
+  data: {
+    token: string;
+    refreshToken: string;
+    user: User;
+  };
+  timestamp: string;
+  requestId: string;
 }
 
 export enum RuleType {

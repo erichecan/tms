@@ -262,6 +262,38 @@ export const customerCreateSchema = Joi.object({
 });
 
 /**
+ * 客户更新验证模式
+ */
+export const customerUpdateSchema = Joi.object({
+  name: Joi.string().min(1).max(255).optional(),
+  level: Joi.string().valid('standard', 'vip', 'premium').optional(),
+  contactInfo: Joi.object({
+    email: Joi.string().email().optional(),
+    phone: Joi.string().pattern(/^1[3-9]\d{9}$/).optional(),
+    address: Joi.object({
+      street: Joi.string().optional(),
+      city: Joi.string().optional(),
+      state: Joi.string().optional(),
+      postalCode: Joi.string().pattern(/^\d{6}$/).optional(),
+      country: Joi.string().optional()
+    }).optional(),
+    contactPerson: Joi.string().max(100).optional()
+  }).optional(),
+  billingInfo: Joi.object({
+    companyName: Joi.string().max(255).optional(),
+    taxId: Joi.string().max(50).optional(),
+    billingAddress: Joi.object({
+      street: Joi.string().optional(),
+      city: Joi.string().optional(),
+      state: Joi.string().optional(),
+      postalCode: Joi.string().pattern(/^\d{6}$/).optional(),
+      country: Joi.string().optional()
+    }).optional(),
+    paymentTerms: Joi.string().max(100).optional()
+  }).optional()
+});
+
+/**
  * 司机创建验证模式
  */
 export const driverCreateSchema = Joi.object({
@@ -279,4 +311,25 @@ export const driverCreateSchema = Joi.object({
     }).required(),
     features: Joi.array().items(Joi.string()).optional()
   }).required()
+});
+
+/**
+ * 司机更新验证模式
+ */
+export const driverUpdateSchema = Joi.object({
+  name: Joi.string().min(1).max(255).optional(),
+  phone: Joi.string().pattern(/^1[3-9]\d{9}$/).optional(),
+  licenseNumber: Joi.string().max(50).optional(),
+  vehicleInfo: Joi.object({
+    type: Joi.string().valid('van', 'truck', 'trailer', 'refrigerated').optional(),
+    licensePlate: Joi.string().max(20).optional(),
+    capacity: Joi.number().min(0).optional(),
+    dimensions: Joi.object({
+      length: Joi.number().min(0).optional(),
+      width: Joi.number().min(0).optional(),
+      height: Joi.number().min(0).optional()
+    }).optional(),
+    features: Joi.array().items(Joi.string()).optional()
+  }).optional(),
+  status: Joi.string().valid('active', 'inactive', 'suspended').optional()
 });

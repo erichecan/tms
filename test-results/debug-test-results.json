@@ -1,0 +1,160 @@
+{
+  "timestamp": "2025-09-13T03:55:03.938Z",
+  "allConsoleMessages": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting...",
+      "timestamp": "2025-09-13T03:54:53.794Z"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected.",
+      "timestamp": "2025-09-13T03:54:53.986Z"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+      "timestamp": "2025-09-13T03:54:54.245Z"
+    },
+    {
+      "type": "error",
+      "text": "Warning: [antd: Spin] `tip` only work in nest or fullscreen pattern.",
+      "timestamp": "2025-09-13T03:54:54.569Z"
+    },
+    {
+      "type": "warning",
+      "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+      "timestamp": "2025-09-13T03:54:54.570Z"
+    },
+    {
+      "type": "warning",
+      "text": "⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.",
+      "timestamp": "2025-09-13T03:54:54.570Z"
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o",
+      "timestamp": "2025-09-13T03:54:54.833Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.161Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load dashboard data: AxiosError",
+      "timestamp": "2025-09-13T03:55:00.164Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.164Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.166Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.168Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.169Z"
+    },
+    {
+      "type": "error",
+      "text": "Token validation failed: AxiosError",
+      "timestamp": "2025-09-13T03:55:00.170Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.171Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load dashboard data: AxiosError",
+      "timestamp": "2025-09-13T03:55:00.172Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.172Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.175Z"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "timestamp": "2025-09-13T03:55:00.178Z"
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o",
+      "timestamp": "2025-09-13T03:55:00.537Z"
+    }
+  ],
+  "pageErrors": [],
+  "networkData": [
+    {
+      "type": "request",
+      "url": "http://localhost:3000/api/v1/auth/login",
+      "method": "POST",
+      "postData": "{\"email\":\"admin@demo.tms-platform.com\",\"password\":\"password\"}",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "http://localhost:3000/login",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "application/json, text/plain, */*",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "content-type": "application/json",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "type": "response",
+      "url": "http://localhost:3000/api/v1/auth/login",
+      "status": 200,
+      "headers": {
+        "etag": "W/\"34c-H2piodnRNyJVIv9LT0zm5HJMLYA\"",
+        "x-permitted-cross-domain-policies": "none",
+        "x-content-type-options": "nosniff",
+        "date": "Sat, 13 Sep 2025 03:54:59 GMT",
+        "content-type": "application/json; charset=utf-8",
+        "vary": "Origin, Accept-Encoding",
+        "x-frame-options": "SAMEORIGIN",
+        "strict-transport-security": "max-age=15552000; includeSubDomains",
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "x-dns-prefetch-control": "off",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "access-control-allow-credentials": "true",
+        "referrer-policy": "no-referrer",
+        "x-download-options": "noopen",
+        "connection": "close",
+        "access-control-allow-origin": "http://localhost:3000",
+        "content-length": "844",
+        "x-xss-protection": "0",
+        "origin-agent-cluster": "?1"
+      },
+      "body": "{\"success\":true,\"data\":{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1NzczNTY5OSwiZXhwIjoxNzU4MzQwNDk5fQ.rJ5fwJXhjBU7U0PeeykYZdWHsNvoHjmelMLvDd7Fg0E\",\"refreshToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzU3NzM1Njk5LCJleHAiOjE3NjAzMjc2OTl9.5pAaeRwNgc9hO6mqDe3BwtHgv57Rpu8agA-bvKBW4WM\",\"user\":{\"id\":\"00000000-0000-0000-0000-000000000001\",\"email\":\"admin@demo.tms-platform.com\",\"name\":\"Admin User\",\"role\":\"admin\",\"tenantId\":\"00000000-0000-0000-0000-000000000001\"}},\"timestamp\":\"2025-09-13T03:54:59.791Z\",\"requestId\":\"\"}"
+    }
+  ],
+  "localStorageBefore": {
+    "current_tenant": "{\"id\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"TMS Demo Company\",\"domain\":\"demo.tms-platform.com\",\"settings\":{\"timezone\":\"Asia/Shanghai\",\"currency\":\"CNY\",\"language\":\"zh-CN\"},\"createdAt\":\"2025-09-13T03:54:54.469Z\",\"updatedAt\":\"2025-09-13T03:54:54.469Z\"}"
+  },
+  "localStorageAfter": {
+    "current_tenant": "{\"id\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"TMS Demo Company\",\"domain\":\"demo.tms-platform.com\",\"settings\":{\"timezone\":\"Asia/Shanghai\",\"currency\":\"CNY\",\"language\":\"zh-CN\"},\"createdAt\":\"2025-09-13T03:54:54.469Z\",\"updatedAt\":\"2025-09-13T03:54:54.469Z\"}"
+  },
+  "currentUrl": "http://localhost:3000/login",
+  "errorMessages": [],
+  "successMessages": []
+}

@@ -79,4 +79,15 @@ router.put('/change-password',
   authController.changePassword.bind(authController)
 );
 
+/**
+ * @route GET /api/v1/auth/profile
+ * @desc 获取用户信息 (别名)
+ * @access Private
+ */
+router.get('/profile',
+  authMiddleware,
+  tenantMiddleware,
+  authController.getCurrentUser.bind(authController)
+);
+
 export default router;

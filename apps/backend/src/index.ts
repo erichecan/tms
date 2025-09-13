@@ -19,6 +19,8 @@ import ruleRoutes from './routes/ruleRoutes';
 import pricingRoutes from './routes/pricingRoutes';
 import shipmentRoutes from './routes/shipmentRoutes';
 import financeRoutes from './routes/financeRoutes';
+import customerRoutes from './routes/customerRoutes';
+import driverRoutes from './routes/driverRoutes';
 
 // 创建Express应用
 const app = express();
@@ -59,6 +61,8 @@ app.use('/api/v1/rules', ruleRoutes);
 app.use('/api/v1/pricing', pricingRoutes);
 app.use('/api/v1/shipments', shipmentRoutes);
 app.use('/api/v1/finance', financeRoutes);
+app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/drivers', driverRoutes);
 
 // 404处理
 app.use('*', (req, res) => {

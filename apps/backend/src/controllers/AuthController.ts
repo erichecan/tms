@@ -3,21 +3,9 @@
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
-
-const generateToken = (payload: any): string => {
-  return jwt.sign(payload, process.env.JWT_SECRET || 'fallback_secret', {
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h'
-  });
-};
-
-const generateRefreshToken = (payload: any): string => {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret', {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
-  });
-};
+import { generateToken, generateRefreshToken } from '../middleware/authMiddleware';
 
 export class AuthController {
   private dbService: DatabaseService;
@@ -45,17 +33,9 @@ export class AuthController {
           tenantId: '00000000-0000-0000-0000-000000000001'
         };
 
-        const token = generateToken({
-          userId: mockUser.id,
-          email: mockUser.email,
-          role: mockUser.role,
-          tenantId: mockUser.tenantId
-        });
+        const token = generateToken(mockUser.id, mockUser.tenantId, mockUser.role);
 
-        const refreshToken = generateRefreshToken({
-          userId: mockUser.id,
-          email: mockUser.email
-        });
+        const refreshToken = generateRefreshToken(mockUser.id, mockUser.tenantId);
 
         res.json({
           success: true,
@@ -313,7 +293,7 @@ export class AuthController {
    */
   async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
-      const tenantId = req.tenant?.id;
+      const tenantId = req.user?.tenantId;
       const userId = req.user?.id;
 
       if (!tenantId || !userId) {
