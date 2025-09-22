@@ -134,7 +134,7 @@ npm run test:frontend
 2. 构建生产版本
 3. 部署到Kubernetes集群
 
-详细部署步骤请参考：[部署文档](./docs/deployment.md)
+详细部署步骤请参考：[部署文档](./docs/DEPLOYMENT_GUIDE.md)
 
 ## 贡献指南
 
