@@ -18,6 +18,7 @@ import authRoutes from './routes/authRoutes';
 import ruleRoutes from './routes/ruleRoutes';
 import pricingRoutes from './routes/pricingRoutes';
 import shipmentRoutes from './routes/shipmentRoutes';
+import mvpShipmentRoutes from './routes/mvpShipmentRoutes'; // MVP 运单路由 // 2025-09-23 10:15:00
 import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
@@ -60,6 +61,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/rules', ruleRoutes);
 app.use('/api/v1/pricing', pricingRoutes);
 app.use('/api/v1/shipments', shipmentRoutes);
+app.use('/api/shipments', mvpShipmentRoutes); // MVP 最小闭环 REST // 2025-09-23 10:15:00
 app.use('/api/v1/finance', financeRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/drivers', driverRoutes);
