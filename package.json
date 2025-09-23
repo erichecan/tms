@@ -8,15 +8,21 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:frontend-mobile\"",
     "dev:frontend": "cd apps/frontend && npm run dev",
+    "dev:frontend-mobile": "cd apps/frontend-mobile && npm run dev",
     "dev:backend": "cd apps/backend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:frontend-mobile",
     "build:frontend": "cd apps/frontend && npm run build",
+    "build:frontend-mobile": "cd apps/frontend-mobile && npm run build",
     "build:backend": "cd apps/backend && npm run build",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd apps/backend && npm run test",
     "test:frontend": "cd apps/frontend && npm run test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:codegen": "playwright codegen http://localhost:3000",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:backend": "cd apps/backend && npm run lint",
     "lint:frontend": "cd apps/frontend && npm run lint",
@@ -27,7 +33,7 @@
     "db:seed": "cd apps/backend && npm run db:seed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.55.1",
     "@types/node": "^20.10.0",
     "concurrently": "^8.2.2",
     "playwright": "^1.55.0",

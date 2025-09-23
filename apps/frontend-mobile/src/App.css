@@ -1,0 +1,5 @@
+/* Mobile app shell styles. Timestamp: 2025-09-23T00:00:00Z */
+:root { --safe-area-inset-top: env(safe-area-inset-top); --safe-area-inset-bottom: env(safe-area-inset-bottom); }
+.app { padding-bottom: var(--safe-area-inset-bottom); }
+
+

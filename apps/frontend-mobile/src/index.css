@@ -1,0 +1,8 @@
+/* Mobile baseline styles. Timestamp: 2025-09-23T00:00:00Z */
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+* { box-sizing: border-box; }
+/* Prevent horizontal scroll on small screens */
+html, body { overflow-x: hidden; }
+
+
