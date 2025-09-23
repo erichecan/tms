@@ -1,8 +1,8 @@
 
 # 智能物流运营平台 (TMS SaaS) - 数据库设计文档
 
-**版本:** 2.0 (基于代码分析)
-**最后更新:** 2025-09-11
+**版本:** 2.1 (与 PRD/TDD 同步)
+**最后更新:** 2025-09-23
 **数据库类型:** PostgreSQL
 
 ## 1. 设计理念
@@ -99,3 +99,67 @@
 - **`users`表:** `tenant_id`, `email`.
 - **`financial_records`表:** `tenant_id`, `reference_id`, `status`, `due_date`.
 - **`rules`表:** `tenant_id`, `type`, `status`.
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:52:00 -->
+## 4. 运单相关表 DDL 草案（与 PRD 第24节一致）
+
+方言：PostgreSQL；金额 NUMERIC(12,2)；时间 TIMESTAMPTZ。
+
+```sql
+-- 仅节选核心字段，完整见 PRD 24
+CREATE TABLE shipment (
+  id UUID PRIMARY KEY,
+  tenant_id UUID NOT NULL,
+  shipment_no VARCHAR(20) NOT NULL UNIQUE,
+  status VARCHAR(20) NOT NULL,
+  driver_id UUID,
+  estimated_cost NUMERIC(12,2),
+  final_cost NUMERIC(12,2),
+  cost_currency CHAR(3) DEFAULT 'CNY',
+  pricing_components JSONB DEFAULT '[]',
+  pricing_rule_trace JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_shipment_tenant_status_created ON shipment(tenant_id, status, created_at DESC);
+
+CREATE TABLE shipment_timeline (
+  id UUID PRIMARY KEY,
+  shipment_id UUID NOT NULL REFERENCES shipment(id) ON DELETE CASCADE,
+  event_type VARCHAR(32) NOT NULL,
+  from_status VARCHAR(20),
+  to_status VARCHAR(20),
+  actor_type VARCHAR(16) NOT NULL,
+  actor_id UUID,
+  ts TIMESTAMPTZ NOT NULL DEFAULT now(),
+  extra JSONB
+);
+CREATE INDEX idx_timeline_shipment_ts ON shipment_timeline(shipment_id, ts DESC);
+
+CREATE TABLE financial_record (
+  id UUID PRIMARY KEY,
+  shipment_id UUID NOT NULL REFERENCES shipment(id) ON DELETE CASCADE,
+  type VARCHAR(16) NOT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'CNY',
+  status VARCHAR(16) NOT NULL DEFAULT 'pending',
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  paid_at TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX uq_financial_shipment_type ON financial_record(shipment_id, type);
+```
+
+一致性与幂等：
+- 状态+时间线同事务提交；完成前校验 `final_cost`。
+- 财务记录唯一约束 `(shipment_id, type)` 确保幂等。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:52:00 -->
+## 5. 约束与数据质量
+
+- 金额与单位：NUMERIC 精度统一；服务层控制银行家舍入。
+- JSONB 字段：对 `pricing_components`、`pricing_rule_trace` 进行 JSON Schema 校验（应用层）。
+- 外键策略：子表 `ON DELETE CASCADE`，便于删除测试数据；生产慎用。
+

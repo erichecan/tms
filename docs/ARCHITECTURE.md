@@ -71,6 +71,36 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
+<!-- Added by assistant @ 2025-09-23 11:00:00 -->
+### 2.1 规则引擎沙箱与调用路径
+
+```
+Client → API Gateway → Shipment Service → (facts) → Rule Engine (Sandbox)
+                                   ↘ audit/trace → PricingTrace Store
+```
+
+- Sandbox：白名单函数/操作符、无 IO、执行步数/时长限制。
+- 失败与超时：不中断主流程（当前阶段仅记录 trace，不改动 final）。
+
+### 2.2 监控/日志/告警拓扑
+
+```
+Services → Prometheus Exporter (/metrics) → Prometheus → Grafana Dashboards
+        ↘ Structured Logs → Loki/ELK → Alertmanager → On-call
+```
+
+- 指标覆盖：API 延迟分位、状态机推进耗时、财务写入延迟、审计落库失败率。
+- 告警收敛：时间窗聚合 + 抖动抑制 + 分级路由。
+
+### 2.3 幂等与数据流
+
+```
+Client(Idempotency-Key) → API → Idempotency Store(DB/Redis) → Check & Lock → Execute → Persist → Return cached
+```
+
+- Key 绑定：tenant + actor + 请求摘要；短期 TTL；返回首个结果。
+- 适用：创建运单、状态更新、完成结算、规则发布等变更型接口。
+
 ## 3. 微服务划分
 
 ### 3.1 规则引擎服务 (Rule Engine Service)
