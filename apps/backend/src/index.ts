@@ -19,9 +19,13 @@ import ruleRoutes from './routes/ruleRoutes';
 import pricingRoutes from './routes/pricingRoutes';
 import shipmentRoutes from './routes/shipmentRoutes';
 import mvpShipmentRoutes from './routes/mvpShipmentRoutes'; // MVP 运单路由 // 2025-09-23 10:15:00
+import mvpAssignmentRoutes from './routes/mvpAssignmentRoutes'; // MVP 分配 // 2025-09-23 10:30:00
+import mvpStatusRoutes from './routes/mvpStatusRoutes'; // MVP 状态 // 2025-09-23 10:30:00
+import mvpPodRoutes from './routes/mvpPodRoutes'; // MVP POD // 2025-09-23 10:30:00
 import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
+import vehicleRoutes from './routes/vehicleRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
 
 // 创建Express应用
 const app = express();
@@ -62,9 +66,13 @@ app.use('/api/v1/rules', ruleRoutes);
 app.use('/api/v1/pricing', pricingRoutes);
 app.use('/api/v1/shipments', shipmentRoutes);
 app.use('/api/shipments', mvpShipmentRoutes); // MVP 最小闭环 REST // 2025-09-23 10:15:00
+app.use('/api/shipments', mvpAssignmentRoutes); // MVP 分配 // 2025-09-23 10:30:00
+app.use('/api/shipments', mvpStatusRoutes); // MVP 状态 // 2025-09-23 10:30:00
+app.use('/api/shipments', mvpPodRoutes); // MVP POD 上传 // 2025-09-23 10:30:00
 app.use('/api/v1/finance', financeRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/drivers', driverRoutes);
+app.use('/api/vehicles', vehicleRoutes); // MVP 车辆列表 // 2025-09-23 10:25:00
 
 // 404处理
 app.use('*', (req, res) => {
