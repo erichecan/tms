@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS drivers (
     phone VARCHAR(20),
     license_number VARCHAR(50),
     vehicle_info JSONB DEFAULT '{}',
-    status VARCHAR(20) DEFAULT 'active',
+    status VARCHAR(20) DEFAULT 'available',
     performance JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -97,12 +97,33 @@ CREATE TABLE IF NOT EXISTS shipments (
     actual_cost DECIMAL(10,2),
     additional_fees JSONB DEFAULT '[]',
     applied_rules JSONB DEFAULT '[]',
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'created',
     timeline JSONB DEFAULT '{}',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- MVP: 扩展运单结构（保持向后兼容） // 2025-09-23 10:05:00
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_name VARCHAR(255);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_phone VARCHAR(50);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_addr_line1 VARCHAR(255);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_city VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_province VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_postal_code VARCHAR(20);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipper_country VARCHAR(100);
+
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_name VARCHAR(255);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_phone VARCHAR(50);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_addr_line1 VARCHAR(255);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_city VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_province VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_postal_code VARCHAR(20);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_country VARCHAR(100);
+
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS weight_kg DECIMAL(10,2);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS dimensions JSONB; -- {lengthCm,widthCm,heightCm}
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS final_cost DECIMAL(10,2);
 
 -- 创建规则表
 CREATE TABLE IF NOT EXISTS rules (
@@ -173,6 +194,71 @@ CREATE INDEX IF NOT EXISTS idx_shipments_customer_id ON shipments(customer_id);
 CREATE INDEX IF NOT EXISTS idx_shipments_driver_id ON shipments(driver_id);
 CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
 CREATE INDEX IF NOT EXISTS idx_shipments_shipment_number ON shipments(shipment_number);
+
+-- 车辆表（MVP） // 2025-09-23 10:05:00
+CREATE TABLE IF NOT EXISTS vehicles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    plate_number VARCHAR(50) UNIQUE NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    capacity_kg DECIMAL(10,2),
+    status VARCHAR(20) DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 司机-车辆简单关联（可选） // 2025-09-23 10:05:00
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id);
+CREATE INDEX IF NOT EXISTS idx_drivers_vehicle_id ON drivers(vehicle_id);
+
+-- 分配表（MVP） // 2025-09-23 10:05:00
+CREATE TABLE IF NOT EXISTS assignments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
+    driver_id UUID REFERENCES drivers(id) ON DELETE SET NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_assignments_shipment_id ON assignments(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_driver_id ON assignments(driver_id);
+
+-- 时间线事件（MVP） // 2025-09-23 10:05:00
+CREATE TABLE IF NOT EXISTS timeline_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL,
+    from_status VARCHAR(50),
+    to_status VARCHAR(50),
+    actor_type VARCHAR(20) NOT NULL, -- system/user/driver
+    actor_id UUID,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    extra JSONB DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_timeline_events_shipment_id ON timeline_events(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_timeline_events_event_type ON timeline_events(event_type);
+
+-- 交付证明（POD）（MVP） // 2025-09-23 10:05:00
+CREATE TABLE IF NOT EXISTS proof_of_delivery (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
+    file_path TEXT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    uploaded_by VARCHAR(20) NOT NULL, -- Driver/User
+    note TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_pod_shipment_id ON proof_of_delivery(shipment_id);
+
+-- 通知（Stub）（MVP） // 2025-09-23 10:05:00
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type VARCHAR(50) NOT NULL, -- ASSIGNMENT|STATUS_CHANGE
+    target_role VARCHAR(50) NOT NULL, -- DRIVER|FLEET_MANAGER
+    shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
+    driver_id UUID REFERENCES drivers(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payload JSONB DEFAULT '{}',
+    delivered BOOLEAN DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notifications_shipment_id ON notifications(shipment_id);
 CREATE INDEX IF NOT EXISTS idx_rules_tenant_id ON rules(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_rules_type ON rules(type);
 CREATE INDEX IF NOT EXISTS idx_rules_status ON rules(status);
