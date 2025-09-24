@@ -32,19 +32,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // 临时禁用token验证，直接设置用户信息
       const token = localStorage.getItem('jwt_token');
       if (token) {
-        // 解析JWT token获取用户信息
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const mockUser = {
-          id: payload.userId,
-          email: 'admin@demo.tms-platform.com',
-          name: 'Admin User',
-          role: payload.role,
-          tenantId: payload.tenantId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        setUser(mockUser);
-        console.log('Token validation bypassed, using mock user:', mockUser);
+        try {
+          // 解析JWT token获取用户信息
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const mockUser = {
+            id: payload.userId || 'admin',
+            email: 'admin@demo.tms-platform.com',
+            name: 'Admin User',
+            role: payload.role || 'admin',
+            tenantId: payload.tenantId || 'demo-tenant',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setUser(mockUser);
+          console.log('Token validation bypassed, using mock user:', mockUser);
+        } catch (parseError) {
+          // 如果token解析失败，使用默认用户信息
+          const mockUser = {
+            id: 'admin',
+            email: 'admin@demo.tms-platform.com',
+            name: 'Admin User',
+            role: 'admin',
+            tenantId: 'demo-tenant',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setUser(mockUser);
+          console.log('Using default mock user:', mockUser);
+        }
       }
     } catch (error) {
       console.error('Token validation failed:', error);

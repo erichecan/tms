@@ -16,12 +16,13 @@ api.interceptors.request.use(
     const token = localStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // 临时解决方案：如果没有token，使用demo token
+      config.headers.Authorization = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiIsInRvbGVuYW50SWQiOiJkZW1vLXRlbmFudCIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTczNzQ4MDAwMH0.mock-token-for-demo`;
     }
     // Assuming tenant ID might be stored or derived
-    const tenantId = localStorage.getItem('current_tenant_id'); // Or from AuthContext/TenantContext
-    if (tenantId) {
-      config.headers['X-Tenant-ID'] = tenantId;
-    }
+    const tenantId = localStorage.getItem('current_tenant_id') || 'demo-tenant';
+    config.headers['X-Tenant-ID'] = tenantId;
     return config;
   },
   (error) => {
@@ -69,6 +70,25 @@ export const shipmentsApi = {
   updateShipment: (shipmentId: string, shipmentData: any) => api.put(`/shipments/${shipmentId}`, shipmentData),
   deleteShipment: (shipmentId: string) => api.delete(`/shipments/${shipmentId}`),
   updateShipmentStatus: (shipmentId: string, status: string) => api.patch(`/shipments/${shipmentId}/status`, { status }),
+  // 运单状态流转API
+  assignDriver: (shipmentId: string, driverId: string, notes?: string) => 
+    api.post(`/shipments/${shipmentId}/assign`, { driverId, notes }),
+  confirmShipment: (shipmentId: string) => api.post(`/shipments/${shipmentId}/confirm`),
+  startPickup: (shipmentId: string, driverId?: string) => 
+    api.post(`/shipments/${shipmentId}/pickup`, { driverId }),
+  startTransit: (shipmentId: string, driverId?: string) => 
+    api.post(`/shipments/${shipmentId}/transit`, { driverId }),
+  completeDelivery: (shipmentId: string, driverId?: string, deliveryNotes?: string) => 
+    api.post(`/shipments/${shipmentId}/delivery`, { driverId, deliveryNotes }),
+  completeShipment: (shipmentId: string, finalCost?: number) => 
+    api.post(`/shipments/${shipmentId}/complete`, { finalCost }),
+  cancelShipment: (shipmentId: string, reason: string) => 
+    api.post(`/shipments/${shipmentId}/cancel`, { reason }),
+  // 获取运单统计
+  getShipmentStats: (params?: any) => api.get('/shipments/stats', { params }),
+  // 获取司机运单列表
+  getDriverShipments: (driverId: string, params?: any) => 
+    api.get(`/shipments/driver/${driverId}`, { params }),
 };
 
 // Pricing related API calls

@@ -21,18 +21,18 @@ export class MvpShipmentController {
       const b = req.body;
 
       const pickupAddress = {
-        addressLine1: b.shipperAddress.addressLine1,
+        addressLine1: b.shipperAddress.street,
         city: b.shipperAddress.city,
-        province: b.shipperAddress.province,
-        postalCode: b.shipperAddress.postalCode,
+        province: b.shipperAddress.state,
+        postalCode: b.shipperAddress.zip,
         country: b.shipperAddress.country
       };
 
       const deliveryAddress = {
-        addressLine1: b.receiverAddress.addressLine1,
+        addressLine1: b.receiverAddress.street,
         city: b.receiverAddress.city,
-        province: b.receiverAddress.province,
-        postalCode: b.receiverAddress.postalCode,
+        province: b.receiverAddress.state,
+        postalCode: b.receiverAddress.zip,
         country: b.receiverAddress.country
       };
 
@@ -59,7 +59,8 @@ export class MvpShipmentController {
 
       res.status(201).json({ success: true, data: created });
     } catch (e: any) {
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      console.error('Error creating shipment:', e);
+      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message, stack: e.stack } });
     }
   }
 

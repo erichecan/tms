@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import Joi from 'joi';
 import { MvpShipmentController } from '../controllers/MvpShipmentController';
 import { DatabaseService } from '../services/DatabaseService';
 import { validateRequest } from '../middleware/validationMiddleware';
@@ -7,23 +8,40 @@ const router = Router();
 const dbService = new DatabaseService(); // 数据库服务 // 2025-09-23 10:15:00
 const controller = new MvpShipmentController(dbService); // 控制器 // 2025-09-23 10:15:00
 
+const createShipmentSchema = Joi.object({
+  shipperName: Joi.string().required(),
+  shipperPhone: Joi.string().required(),
+  shipperAddress: Joi.object({
+    street: Joi.string().required(),
+    city: Joi.string().required(),
+    state: Joi.string().required(),
+    zip: Joi.string().required(),
+    country: Joi.string().required(),
+  }).required(),
+  receiverName: Joi.string().required(),
+  receiverPhone: Joi.string().required(),
+  receiverAddress: Joi.object({
+    street: Joi.string().required(),
+    city: Joi.string().required(),
+    state: Joi.string().required(),
+    zip: Joi.string().required(),
+    country: Joi.string().required(),
+  }).required(),
+  weightKg: Joi.number().required(),
+  dimensions: Joi.object({
+    length: Joi.number().required(),
+    width: Joi.number().required(),
+    height: Joi.number().required(),
+    unit: Joi.string().required(),
+  }).required(),
+  estimatedCost: Joi.number().optional(),
+  finalCost: Joi.number().optional()
+});
+
 // 创建运单 // 2025-09-23 10:15:00
 router.post(
   '/',
-  validateRequest({
-    body: {
-      shipperName: { type: 'string', required: true },
-      shipperPhone: { type: 'string', required: true },
-      shipperAddress: { type: 'object', required: true },
-      receiverName: { type: 'string', required: true },
-      receiverPhone: { type: 'string', required: true },
-      receiverAddress: { type: 'object', required: true },
-      weightKg: { type: 'number', required: true },
-      dimensions: { type: 'object', required: true },
-      estimatedCost: { type: 'number', required: false },
-      finalCost: { type: 'number', required: false }
-    }
-  }),
+  validateRequest({ body: createShipmentSchema }),
   controller.createShipment.bind(controller)
 );
 
