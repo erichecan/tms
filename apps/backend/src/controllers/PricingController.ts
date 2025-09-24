@@ -7,6 +7,12 @@ import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { logger } from '../utils/logger';
 
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  return (Array.isArray(requestId) ? requestId[0] : requestId) || '';
+};
+
 export class PricingController {
   private pricingService: PricingService;
 
@@ -27,7 +33,7 @@ export class PricingController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -43,7 +49,7 @@ export class PricingController {
             message: 'Missing required fields: customerId, pickupAddress, deliveryAddress, cargoInfo' 
           },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -55,7 +61,7 @@ export class PricingController {
         data: quote,
         message: 'Quote generated successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to generate quote:', error);
@@ -65,14 +71,14 @@ export class PricingController {
           success: false,
           error: { code: 'CUSTOMER_NOT_FOUND', message: 'Customer not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to generate quote' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -93,7 +99,7 @@ export class PricingController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -108,7 +114,7 @@ export class PricingController {
             message: 'Missing required fields: type, description, amount, appliedBy' 
           },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -125,7 +131,7 @@ export class PricingController {
         data: shipment,
         message: 'Additional fee added successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to add additional fee:', error);
@@ -135,14 +141,14 @@ export class PricingController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to add additional fee' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -161,12 +167,12 @@ export class PricingController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
 
-      const customerId = req.query.customerId as string;
+      const customerId = req.query.customerId as string || '';
       const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
@@ -176,7 +182,7 @@ export class PricingController {
         success: true,
         data: history,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get quote history:', error);
@@ -184,7 +190,7 @@ export class PricingController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get quote history' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }

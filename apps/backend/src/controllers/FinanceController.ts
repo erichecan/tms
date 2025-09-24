@@ -6,7 +6,13 @@ import { FinanceService } from '../services/FinanceService';
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { logger } from '../utils/logger';
-import { QueryParams } from '../../../packages/shared-types/src/index';
+import { QueryParams } from '@shared/index';
+
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  return Array.isArray(requestId) ? requestId[0] : requestId || '';
+};
 
 export class FinanceController {
   private financeService: FinanceService;
@@ -28,7 +34,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -40,7 +46,7 @@ export class FinanceController {
         success: true,
         data: summary,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get receivables summary:', error);
@@ -48,7 +54,7 @@ export class FinanceController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get receivables summary' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -66,19 +72,19 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
 
-      const driverId = req.query.driverId as string;
+      const driverId = req.query.driverId as string || '';
       const summary = await this.financeService.getPayablesSummary(tenantId, driverId);
       
       res.json({
         success: true,
         data: summary,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get payables summary:', error);
@@ -86,7 +92,7 @@ export class FinanceController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get payables summary' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -104,7 +110,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -119,7 +125,7 @@ export class FinanceController {
             message: 'Missing required fields: customerId, startDate, endDate' 
           },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -137,7 +143,7 @@ export class FinanceController {
         data: statement,
         message: 'Customer statement generated successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to generate customer statement:', error);
@@ -147,21 +153,21 @@ export class FinanceController {
           success: false,
           error: { code: 'CUSTOMER_NOT_FOUND', message: 'Customer not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('No completed shipments found')) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_DATA', message: 'No completed shipments found for the specified period' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to generate customer statement' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -180,7 +186,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -195,7 +201,7 @@ export class FinanceController {
             message: 'Missing required fields: driverId, startDate, endDate' 
           },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -213,7 +219,7 @@ export class FinanceController {
         data: statement,
         message: 'Driver statement generated successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to generate driver statement:', error);
@@ -223,21 +229,21 @@ export class FinanceController {
           success: false,
           error: { code: 'DRIVER_NOT_FOUND', message: 'Driver not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('No completed shipments found')) {
         res.status(400).json({
           success: false,
           error: { code: 'NO_DATA', message: 'No completed shipments found for the specified period' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to generate driver statement' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -258,7 +264,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -270,7 +276,7 @@ export class FinanceController {
         data: statement,
         message: 'Statement marked as sent successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to mark statement as sent:', error);
@@ -280,21 +286,21 @@ export class FinanceController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Statement not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('cannot be marked as sent')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to mark statement as sent' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -315,7 +321,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -327,7 +333,7 @@ export class FinanceController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Paid amount is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -344,7 +350,7 @@ export class FinanceController {
         data: statement,
         message: 'Statement marked as paid successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to mark statement as paid:', error);
@@ -354,21 +360,21 @@ export class FinanceController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Statement not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('already paid')) {
         res.status(400).json({
           success: false,
           error: { code: 'ALREADY_PAID', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to mark statement as paid' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -387,7 +393,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -401,7 +407,7 @@ export class FinanceController {
         success: true,
         data: report,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get financial report:', error);
@@ -409,7 +415,7 @@ export class FinanceController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get financial report' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -427,7 +433,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -449,7 +455,7 @@ export class FinanceController {
       
       res.json({
         ...result,
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get statements:', error);
@@ -457,7 +463,7 @@ export class FinanceController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get statements' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -475,7 +481,7 @@ export class FinanceController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -499,7 +505,7 @@ export class FinanceController {
       
       res.json({
         ...result,
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get financial records:', error);
@@ -507,7 +513,7 @@ export class FinanceController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get financial records' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }

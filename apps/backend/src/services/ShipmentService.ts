@@ -11,7 +11,7 @@ import {
   QueryParams,
   PaginatedResponse,
   AdditionalFee
-} from '../../packages/shared-types/src/index';
+} from '@shared/index';
 
 export interface ShipmentAssignment {
   shipmentId: string;
@@ -436,6 +436,10 @@ export class ShipmentService {
         return;
       }
 
+      const deliveryTime = (shipment.timeline?.delivered && shipment.timeline?.pickedUp)
+        ? shipment.timeline.delivered.getTime() - shipment.timeline.pickedUp.getTime()
+        : 0;
+
       // 构建薪酬计算事实
       const facts = {
         shipmentId: shipment.id,
@@ -444,7 +448,7 @@ export class ShipmentService {
         distance: shipment.transportDistance || 0,
         weight: shipment.cargoInfo.weight,
         volume: shipment.cargoInfo.volume,
-        deliveryTime: shipment.timeline?.delivered?.getTime() - shipment.timeline?.pickedUp?.getTime(),
+        deliveryTime: deliveryTime,
         customerLevel: shipment.customer?.level || 'standard'
       };
 
@@ -453,13 +457,15 @@ export class ShipmentService {
       
       // 计算薪酬
       let commission = 0;
-      for (const event of ruleResult.events) {
-        if (event.type === 'rule-executed') {
-          const actions = event.params?.actions || [];
-          for (const action of actions) {
-            if (action.type === 'setDriverCommission') {
-              commission = facts.finalCost * (action.params.percentage / 100);
-              break;
+      if (facts.finalCost) {
+        for (const event of ruleResult.events) {
+          if (event.type === 'rule-executed') {
+            const actions = event.params?.actions || [];
+            for (const action of actions) {
+              if (action.type === 'setDriverCommission') {
+                commission = facts.finalCost * (action.params.percentage / 100);
+                break;
+              }
             }
           }
         }

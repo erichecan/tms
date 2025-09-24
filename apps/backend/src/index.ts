@@ -51,7 +51,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 健康检查端点
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),

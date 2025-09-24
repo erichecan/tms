@@ -6,7 +6,13 @@ import { ShipmentService, ShipmentAssignment } from '../services/ShipmentService
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { logger } from '../utils/logger';
-import { QueryParams } from '../../../packages/shared-types/src/index';
+import { QueryParams } from '@shared/index';
+
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  return Array.isArray(requestId) ? requestId[0] : requestId || '';
+};
 
 export class ShipmentController {
   private shipmentService: ShipmentService;
@@ -28,7 +34,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -52,7 +58,7 @@ export class ShipmentController {
       
       res.json({
         ...result,
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get shipments:', error);
@@ -60,7 +66,7 @@ export class ShipmentController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get shipments' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -80,7 +86,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -92,7 +98,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -101,7 +107,7 @@ export class ShipmentController {
         success: true,
         data: shipment,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get shipment:', error);
@@ -109,7 +115,7 @@ export class ShipmentController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get shipment' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -129,7 +135,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -142,7 +148,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Shipment updated successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to update shipment:', error);
@@ -152,14 +158,14 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to update shipment' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -178,7 +184,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -195,7 +201,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Driver ID is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -207,7 +213,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Driver assigned successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to assign driver:', error);
@@ -217,28 +223,28 @@ export class ShipmentController {
           success: false,
           error: { code: 'DRIVER_NOT_AVAILABLE', message: 'Driver not available' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('not found')) {
         res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment or driver not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('cannot be assigned')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to assign driver' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -259,7 +265,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -271,7 +277,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Shipment confirmed successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to confirm shipment:', error);
@@ -281,21 +287,21 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('cannot be confirmed')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to confirm shipment' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -317,7 +323,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -327,7 +333,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Driver ID is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -339,7 +345,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Pickup started successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to start pickup:', error);
@@ -349,21 +355,21 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('not assigned') || error.message.includes('must be assigned')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to start pickup' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -385,7 +391,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -395,7 +401,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Driver ID is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -407,7 +413,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Transit started successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to start transit:', error);
@@ -417,21 +423,21 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('not assigned') || error.message.includes('must be picked up')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to start transit' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -454,7 +460,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -464,7 +470,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Driver ID is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -476,7 +482,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Delivery completed successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to complete delivery:', error);
@@ -486,21 +492,21 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('not assigned') || error.message.includes('must be in transit')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to complete delivery' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -522,7 +528,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -534,7 +540,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Shipment completed successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to complete shipment:', error);
@@ -544,21 +550,21 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('must be delivered')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to complete shipment' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -580,7 +586,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -590,7 +596,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Cancellation reason is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -602,7 +608,7 @@ export class ShipmentController {
         data: shipment,
         message: 'Shipment cancelled successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to cancel shipment:', error);
@@ -612,21 +618,21 @@ export class ShipmentController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('cannot be cancelled')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to cancel shipment' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -645,7 +651,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -659,7 +665,7 @@ export class ShipmentController {
         success: true,
         data: stats,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get shipment stats:', error);
@@ -667,7 +673,7 @@ export class ShipmentController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get shipment stats' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -688,7 +694,7 @@ export class ShipmentController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -699,7 +705,7 @@ export class ShipmentController {
         success: true,
         data: shipments,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get driver shipments:', error);
@@ -707,7 +713,7 @@ export class ShipmentController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get driver shipments' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }

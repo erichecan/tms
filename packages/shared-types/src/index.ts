@@ -20,6 +20,7 @@ export interface Tenant extends BaseEntity {
 export interface User extends BaseEntity {
   tenantId: string;
   email: string;
+  passwordHash: string;
   role: UserRole;
   profile: UserProfile;
   status: 'active' | 'inactive' | 'suspended';
@@ -148,6 +149,8 @@ export interface Shipment extends BaseEntity {
   shipmentNumber: string;
   customerId: string;
   driverId?: string;
+  transportDistance?: number;
+  customer?: Customer;
   pickupAddress: Address;
   deliveryAddress: Address;
   cargoInfo: CargoInfo;

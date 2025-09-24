@@ -3,6 +3,7 @@
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
 import { generateToken, generateRefreshToken } from '../middleware/authMiddleware';

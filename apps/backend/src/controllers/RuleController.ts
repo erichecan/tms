@@ -5,7 +5,13 @@ import { Request, Response } from 'express';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
-import { QueryParams } from '../../../packages/shared-types/src/index';
+import { QueryParams } from '@shared/index';
+
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  return (Array.isArray(requestId) ? requestId[0] : requestId) || '';
+};
 
 export class RuleController {
   private ruleEngineService: RuleEngineService;
@@ -29,7 +35,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -50,7 +56,7 @@ export class RuleController {
       
       res.json({
         ...result,
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get rules:', error);
@@ -58,7 +64,7 @@ export class RuleController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get rules' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -78,7 +84,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -90,7 +96,7 @@ export class RuleController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Rule not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -99,7 +105,7 @@ export class RuleController {
         success: true,
         data: rule,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get rule:', error);
@@ -107,7 +113,7 @@ export class RuleController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get rule' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -125,7 +131,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -141,7 +147,7 @@ export class RuleController {
             message: 'Missing required fields: name, type, conditions, actions' 
           },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -153,7 +159,7 @@ export class RuleController {
         data: rule,
         message: 'Rule created successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to create rule:', error);
@@ -163,14 +169,14 @@ export class RuleController {
           success: false,
           error: { code: 'RULE_CONFLICT', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to create rule' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -191,7 +197,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -204,7 +210,7 @@ export class RuleController {
         data: rule,
         message: 'Rule updated successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to update rule:', error);
@@ -214,21 +220,21 @@ export class RuleController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Rule not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else if (error.message.includes('conflicts detected')) {
         res.status(409).json({
           success: false,
           error: { code: 'RULE_CONFLICT', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to update rule' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -249,7 +255,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -260,7 +266,7 @@ export class RuleController {
         success: true,
         message: 'Rule deleted successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to delete rule:', error);
@@ -270,14 +276,14 @@ export class RuleController {
           success: false,
           error: { code: 'NOT_FOUND', message: 'Rule not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to delete rule' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
       }
     }
@@ -296,19 +302,19 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
 
       const ruleData = req.body;
-      const excludeRuleId = req.query.excludeRuleId as string;
+      
       
       // 这里可以添加更详细的验证逻辑
       const validationResult = {
         isValid: true,
-        errors: [],
-        warnings: []
+        errors: [] as string[],
+        warnings: [] as string[]
       };
 
       // 基本验证
@@ -342,7 +348,7 @@ export class RuleController {
         success: true,
         data: validationResult,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to validate rule:', error);
@@ -350,7 +356,7 @@ export class RuleController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to validate rule' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -368,7 +374,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -380,7 +386,7 @@ export class RuleController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Facts are required for testing' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -391,7 +397,7 @@ export class RuleController {
         success: true,
         data: result,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to test rule:', error);
@@ -399,7 +405,7 @@ export class RuleController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to test rule' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
@@ -419,7 +425,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId: getRequestId(req)
         });
         return;
       }
@@ -433,7 +439,7 @@ export class RuleController {
         success: true,
         data: stats,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     } catch (error) {
       logger.error('Failed to get rule stats:', error);
@@ -441,7 +447,7 @@ export class RuleController {
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get rule stats' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId: getRequestId(req)
       });
     }
   }
