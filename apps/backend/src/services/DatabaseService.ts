@@ -285,6 +285,7 @@ export class DatabaseService {
    */
   async getRules(tenantId: string, params: QueryParams): Promise<PaginatedResponse<Rule>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
+    const typedFilters = filters as { type?: string; status?: string; };
     const offset = (page - 1) * limit;
     
     let whereClause = 'WHERE tenant_id = $1';
@@ -292,20 +293,20 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      whereClause += ` AND (name ILIKE ${paramIndex} OR description ILIKE ${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
-    if (filters?.type) {
-      whereClause += ` AND type = $${paramIndex}`;
-      queryParams.push(filters.type);
+    if (typedFilters?.type) {
+      whereClause += ` AND type = ${paramIndex}`;
+      queryParams.push(typedFilters.type);
       paramIndex++;
     }
     
-    if (filters?.status) {
-      whereClause += ` AND status = $${paramIndex}`;
-      queryParams.push(filters.status);
+    if (typedFilters?.status) {
+      whereClause += ` AND status = ${paramIndex}`;
+      queryParams.push(typedFilters.status);
       paramIndex++;
     }
     
@@ -319,23 +320,20 @@ export class DatabaseService {
       SELECT * FROM rules 
       ${whereClause}
       ORDER BY ${sort} ${order.toUpperCase()}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      LIMIT ${paramIndex} OFFSET ${paramIndex + 1}
     `;
     
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
     
     return {
-      success: true,
       data: dataResult.map(row => this.mapRuleFromDb(row)),
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit)
-      },
-      timestamp: new Date().toISOString(),
-      requestId: ''
+      }
     };
   }
 
@@ -575,8 +573,8 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE $${paramIndex} OR contact_info->>'email' ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      whereClause += ` AND (name ILIKE ${paramIndex} OR contact_info->>'email' ILIKE ${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -672,8 +670,8 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      whereClause += ` AND (name ILIKE ${paramIndex} OR phone ILIKE ${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -780,8 +778,8 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (shipment_number ILIKE $${paramIndex} OR cargo_info->>'description' ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      whereClause += ` AND (shipment_number ILIKE ${paramIndex} OR cargo_info->>'description' ILIKE ${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -1027,8 +1025,8 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (reference_id ILIKE $${paramIndex} OR generated_by ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      whereClause += ` AND (reference_id ILIKE ${paramIndex} OR generated_by ILIKE ${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -1145,8 +1143,8 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (description ILIKE $${paramIndex} OR reference_id ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      whereClause += ` AND (description ILIKE ${paramIndex} OR reference_id ILIKE ${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
