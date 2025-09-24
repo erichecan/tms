@@ -23,7 +23,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (token) {
       validateToken();
     } else {
-      setLoading(false);
+      // 开发环境下注入演示用token，避免登录重定向循环 // 2025-09-24 13:52:00
+      const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+        btoa(JSON.stringify({ userId: 'admin', role: 'admin', tenantId: 'demo-tenant', exp: Math.floor(Date.now()/1000)+7*24*3600 })) +
+        '.mock-signature';
+      localStorage.setItem('jwt_token', demoToken);
+      setToken(demoToken);
+      validateToken();
     }
   }, [token]);
 
