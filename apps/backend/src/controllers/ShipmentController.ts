@@ -72,6 +72,90 @@ export class ShipmentController {
   }
 
   /**
+   * 创建运单
+   * @param req 请求对象
+   * @param res 响应对象
+   */
+  async createShipment(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      const body = req.body;
+      
+      // 构建运单数据，适配新的地址字段结构 // 2025-01-27 16:00:00
+      const shipmentData = {
+        shipmentNumber: body.shipmentNumber || `TMS${Date.now()}`,
+        customerId: null, // 暂时设为null，后续可以关联客户
+        driverId: null,
+        pickupAddress: {
+          addressLine1: body.shipper.address.addressLine1,
+          addressLine2: body.shipper.address.addressLine2,
+          city: body.shipper.address.city,
+          province: body.shipper.address.province,
+          postalCode: body.shipper.address.postalCode,
+          country: body.shipper.address.country,
+          isResidential: body.addressType === 'residential'
+        },
+        deliveryAddress: {
+          addressLine1: body.receiver.address.addressLine1,
+          addressLine2: body.receiver.address.addressLine2,
+          city: body.receiver.address.city,
+          province: body.receiver.address.province,
+          postalCode: body.receiver.address.postalCode,
+          country: body.receiver.address.country,
+          isResidential: body.addressType === 'residential'
+        },
+        cargoInfo: {
+          length: body.cargoLength,
+          width: body.cargoWidth,
+          height: body.cargoHeight,
+          weight: body.cargoWeight,
+          quantity: body.cargoQuantity,
+          palletCount: body.cargoPalletCount || 0,
+          description: body.cargoDescription,
+          value: body.cargoValue || 0,
+          isFragile: body.cargoIsFragile || false,
+          isDangerous: body.cargoIsDangerous || false
+        },
+        estimatedCost: body.estimatedCost,
+        actualCost: null,
+        additionalFees: [],
+        appliedRules: [],
+        status: 'created' as any,
+        timeline: {
+          created: new Date().toISOString()
+        }
+      };
+
+      const shipment = await this.shipmentService.createShipment(tenantId, shipmentData);
+      
+      res.status(201).json({
+        success: true,
+        data: shipment,
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    } catch (error) {
+      logger.error('Failed to create shipment:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to create shipment' },
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    }
+  }
+
+  /**
    * 获取单个运单
    * @param req 请求对象
    * @param res 响应对象

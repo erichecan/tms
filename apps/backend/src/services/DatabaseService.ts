@@ -9,11 +9,29 @@ export class DatabaseService {
   private pool: Pool;
 
   constructor() {
+    // 连接配置兼容性处理 // 2025-09-25 23:38:00
+    // 有些环境下仅提供分散的DB_*变量，或DATABASE_URL未定义/类型异常，导致pg解析密码报错
+    // 这里统一构建一个可靠的配置对象，确保password为字符串类型
+    const envUrl = process.env.DATABASE_URL;
+    let poolConfig: any;
+
+    if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
+      poolConfig = { connectionString: envUrl };
+    } else {
+      const host = process.env.DB_HOST || 'localhost';
+      const port = parseInt(process.env.DB_PORT || '5432', 10);
+      const database = process.env.DB_NAME || 'tms_platform';
+      const user = process.env.DB_USER || 'tms_user';
+      const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
+
+      poolConfig = { host, port, database, user, password };
+    }
+
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      ...poolConfig,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000, // 增加到10秒
+      connectionTimeoutMillis: 10000,
     });
 
     this.pool.on('error', (err) => {

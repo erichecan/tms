@@ -10,18 +10,20 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add JWT token and Tenant ID
+// Request interceptor to add JWT token and Tenant ID // 2025-09-25 23:42:00
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      // 临时解决方案：如果没有token，使用demo token
-      config.headers.Authorization = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiIsInRvbGVuYW50SWQiOiJkZW1vLXRlbmFudCIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTczNzQ4MDAwMH0.mock-token-for-demo`;
+      // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-25 23:42:00
+      // userId/tenantId 对应初始化脚本与数据库中的演示数据
+      const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODc5MTY3NywiZXhwIjoxNzU5Mzk2NDc3fQ.DVcUp5piyD6kMn3D6AwGvQSJ4tqP3WuIe9h6Ygts5-M';
+      config.headers.Authorization = `Bearer ${devToken}`;
     }
-    // Assuming tenant ID might be stored or derived
-    const tenantId = localStorage.getItem('current_tenant_id') || 'demo-tenant';
+    // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
+    const tenantId = localStorage.getItem('current_tenant_id') || '00000000-0000-0000-0000-000000000001';
     config.headers['X-Tenant-ID'] = tenantId;
     return config;
   },

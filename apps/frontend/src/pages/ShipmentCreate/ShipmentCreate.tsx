@@ -20,6 +20,7 @@ import {
   Checkbox,
   Collapse,
   Affix,
+  Steps,
 } from 'antd';
 import {
   TruckOutlined,
@@ -30,6 +31,8 @@ import {
   HomeOutlined,
   ShopOutlined,
   QuestionCircleOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi } from '../../services/api';
@@ -38,6 +41,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const { Panel } = Collapse;
+const { Step } = Steps;
 
 interface CargoInfo {
   length: number;
@@ -70,6 +74,12 @@ const ShipmentCreate: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
+  
+  // 提交确认模式 // 2025-09-25 23:10:00
+  const [isConfirmMode, setIsConfirmMode] = useState(false);
+  const [submittedData, setSubmittedData] = useState<any>(null);
+
+  // 移除步骤配置，单页布局 // 2025-09-25 23:10:00
 
   // 从localStorage恢复表单状态
   const CACHE_KEY = 'shipment_form_cache';
@@ -80,7 +90,7 @@ const ShipmentCreate: React.FC = () => {
       try {
         const parsed = JSON.parse(cachedData);
         form.setFieldsValue(parsed.formData);
-        // currentStep removed - single page layout // 2025-09-24 14:00:00
+        // 单页布局缓存恢复 // 2025-09-25 23:10:00
         setUnitSystem(parsed.unitSystem || 'cm');
         setWeightUnit(parsed.weightUnit || 'kg');
       } catch (error) {
@@ -94,7 +104,7 @@ const ShipmentCreate: React.FC = () => {
     const formData = form.getFieldsValue();
     const cacheData = {
       formData,
-      // currentStep removed - single page layout // 2025-09-24 14:00:00
+      // 单页布局缓存 // 2025-09-25 23:10:00
       unitSystem,
       weightUnit,
       timestamp: Date.now()
@@ -147,7 +157,7 @@ const ShipmentCreate: React.FC = () => {
     { label: '加急配送', value: 'express' },
   ];
 
-  // Step navigation removed - single page layout // 2025-09-24 14:00:00
+  // 单页布局，无步骤导航 // 2025-09-25 23:10:00
 
   // 处理单位转换
   const handleUnitChange = (newUnit: 'cm' | 'inch') => {
@@ -221,9 +231,13 @@ const ShipmentCreate: React.FC = () => {
     });
   };
 
-  const onFinish = async (values: any) => {
-    setLoading(true);
+  // 移除步骤导航函数 // 2025-09-25 23:10:00
+
+  // 提交到确认页面
+  const handleSubmitToConfirm = async () => {
     try {
+      const values = await form.validateFields();
+      
       // 确保单位统一为cm和kg
       let finalLength = values.cargoLength;
       let finalWidth = values.cargoWidth;
@@ -240,7 +254,7 @@ const ShipmentCreate: React.FC = () => {
         finalWeight = convertToKg(values.cargoWeight);
       }
 
-      // 处理时间范围（拆分为日期 + 小时段） // 2025-09-24 13:50:00
+      // 处理时间范围
       const pickupDateStr = values.pickupDate?.format('YYYY-MM-DD');
       const deliveryDateStr = values.deliveryDate?.format('YYYY-MM-DD');
       const pickupTime = (pickupDateStr && values.pickupTimeRange)
@@ -253,18 +267,42 @@ const ShipmentCreate: React.FC = () => {
 
       // 构建运单数据
       const shipmentData = {
-        shipmentNumber: `TMS${Date.now()}`, // 生成运单号
+        shipmentNumber: `TMS${Date.now()}`,
         customerName: values.customerName,
         customerPhone: values.customerPhone,
         customerEmail: values.customerEmail,
         priority: values.priority,
-        pickupAddress: values.pickupAddress,
-        pickupContact: values.pickupContact,
-        pickupPhone: values.pickupPhone,
+        shipper: {
+          name: values.shipperName,
+          company: values.shipperCompany,
+          phone: values.shipperPhone,
+          email: values.shipperEmail,
+          address: {
+            addressLine1: values.shipperAddress1,
+            addressLine2: values.shipperAddress2,
+            city: values.shipperCity,
+            province: values.shipperProvince,
+            postalCode: values.shipperPostalCode,
+            country: values.shipperCountry,
+            isResidential: values.addressType === 'residential'
+          }
+        },
+        receiver: {
+          name: values.receiverName,
+          company: values.receiverCompany,
+          phone: values.receiverPhone,
+          email: values.receiverEmail,
+          address: {
+            addressLine1: values.receiverAddress1,
+            addressLine2: values.receiverAddress2,
+            city: values.receiverCity,
+            province: values.receiverProvince,
+            postalCode: values.receiverPostalCode,
+            country: values.receiverCountry,
+            isResidential: values.addressType === 'residential'
+          }
+        },
         pickupDate: pickupTime,
-        deliveryAddress: values.deliveryAddress,
-        deliveryContact: values.deliveryContact,
-        deliveryPhone: values.deliveryPhone,
         deliveryDate: deliveryTime,
         addressType: values.addressType,
         distance: values.distance,
@@ -289,19 +327,26 @@ const ShipmentCreate: React.FC = () => {
         estimatedCost: calculateEstimatedCost(values),
       };
 
-      console.log('Sending shipment data:', shipmentData);
+      setSubmittedData(shipmentData);
+      setIsConfirmMode(true);
+    } catch (error) {
+      console.error('Form validation failed:', error);
+      message.error('请检查表单填写是否完整');
+    }
+  };
+
+  // 最终确认创建运单
+  const handleFinalConfirm = async () => {
+    if (!submittedData) return;
+    
+    setLoading(true);
+    try {
+      console.log('Sending shipment data:', submittedData);
       
-      // 临时解决方案：模拟API调用成功
-      try {
-        await shipmentsApi.createShipment(shipmentData);
-      } catch (error: any) {
-        console.warn('API call failed, using mock success:', error);
-        // 如果API调用失败，模拟成功响应
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      await shipmentsApi.createShipment(submittedData);
       
       message.success('运单创建成功！');
-      clearCache(); // 清除缓存
+      clearCache();
       navigate('/admin/shipments');
     } catch (error: any) {
       console.error('Failed to create shipment:', error);
@@ -309,6 +354,12 @@ const ShipmentCreate: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 返回修改
+  const handleBackToEdit = () => {
+    setIsConfirmMode(false);
+    setSubmittedData(null);
   };
 
   // 计算预估费用（简化版）
@@ -402,35 +453,115 @@ const ShipmentCreate: React.FC = () => {
     </Card>
   );
 
-  // 地址与时间模块 // 2025-09-24 14:05:00
+  // 地址与时间模块 - 修改为左右布局，符合北美地址习惯 // 2025-01-27 15:30:00
   const renderAddressTimeSection = () => (
     <Card title="地址与时间" style={{ marginBottom: 16 }}>
-      <Row gutter={[16, 16]}>
+      <Row gutter={[24, 16]}>
+        {/* 发货人信息 - 左侧 */}
+        <Col span={12}>
+          <Card size="small" title={
+            <span>
+              <EnvironmentOutlined /> 发货人信息 (Shipper)
+            </span>
+          } style={{ height: '100%' }}>
+            <Row gutter={[12, 12]}>
         <Col span={24}>
-          <Title level={5}>
-            <EnvironmentOutlined /> 取货地址
-          </Title>
+                <Form.Item
+                  name="shipperName"
+                  label="发货人姓名"
+                  rules={[{ required: true, message: '请输入发货人姓名' }]}
+                >
+                  <Input placeholder="请输入发货人姓名" />
+                </Form.Item>
         </Col>
         <Col span={24}>
           <Form.Item
-            name="pickupAddress"
-            label="取货地址"
-            rules={[{ required: true, message: '请输入取货地址' }]}
+                  name="shipperCompany"
+                  label="公司名称"
           >
-            <TextArea rows={2} placeholder="请输入详细的取货地址" />
+                  <Input placeholder="请输入公司名称（可选）" />
           </Form.Item>
         </Col>
-        <Col span={8}>
-          <Form.Item name="pickupContact" label="取货联系人" rules={[{ required: true, message: '请输入取货联系人' }]}>
-            <Input placeholder="联系人姓名" />
+              <Col span={24}>
+                <Form.Item
+                  name="shipperAddress1"
+                  label="地址行1 (Address Line 1)"
+                  rules={[{ required: true, message: '请输入地址行1' }]}
+                >
+                  <Input placeholder="请输入街道地址" />
           </Form.Item>
         </Col>
-        <Col span={8}>
-          <Form.Item name="pickupPhone" label="取货电话" rules={[{ required: true, message: '请输入取货电话' }, { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }]}>
-            <Input placeholder="联系电话" />
+              <Col span={24}>
+                <Form.Item
+                  name="shipperAddress2"
+                  label="地址行2 (Address Line 2)"
+                >
+                  <Input placeholder="请输入公寓号、套房号等（可选）" />
           </Form.Item>
         </Col>
-        <Col span={8}>
+              <Col span={12}>
+                <Form.Item
+                  name="shipperCity"
+                  label="城市 (City)"
+                  rules={[{ required: true, message: '请输入城市' }]}
+                >
+                  <Input placeholder="请输入城市" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="shipperProvince"
+                  label="省份/州 (Province/State)"
+                  rules={[{ required: true, message: '请输入省份/州' }]}
+                >
+                  <Input placeholder="请输入省份/州" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="shipperPostalCode"
+                  label="邮政编码 (Postal Code)"
+                  rules={[{ required: true, message: '请输入邮政编码' }]}
+                >
+                  <Input placeholder="请输入邮政编码" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="shipperCountry"
+                  label="国家 (Country)"
+                  rules={[{ required: true, message: '请选择国家' }]}
+                  initialValue="CA"
+                >
+                  <Select>
+                    <Option value="CA">加拿大 (Canada)</Option>
+                    <Option value="US">美国 (United States)</Option>
+                    <Option value="CN">中国 (China)</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="shipperPhone"
+                  label="联系电话"
+                  rules={[
+                    { required: true, message: '请输入联系电话' },
+                    { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
+                  ]}
+                >
+                  <Input placeholder="如：+1-555-123-4567" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="shipperEmail"
+                  label="邮箱地址"
+                  rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}
+                >
+                  <Input placeholder="请输入邮箱地址（可选）" />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
           <Form.Item name="pickupDate" label="取货日期" rules={[{ required: true, message: '请选择取货日期' }]}>
             <DatePicker 
               format="YYYY-MM-DD"
@@ -439,7 +570,7 @@ const ShipmentCreate: React.FC = () => {
             />
           </Form.Item>
         </Col>
-        <Col span={8}>
+              <Col span={24}>
           <Form.Item name="pickupTimeRange" label="取货时间段(小时)" rules={[{ required: true, message: '请选择取货时间段' }]}>
             <TimePicker.RangePicker
               style={{ width: '100%' }}
@@ -448,34 +579,116 @@ const ShipmentCreate: React.FC = () => {
               hourStep={1}
             />
           </Form.Item>
+              </Col>
+            </Row>
+          </Card>
         </Col>
             
+        {/* 收货人信息 - 右侧 */}
+        <Col span={12}>
+          <Card size="small" title={
+            <span>
+              <EnvironmentOutlined /> 收货人信息 (Receiver)
+            </span>
+          } style={{ height: '100%' }}>
+            <Row gutter={[12, 12]}>
         <Col span={24}>
-          <Divider />
-          <Title level={5}>
-            <EnvironmentOutlined /> 送达地址
-          </Title>
+                <Form.Item
+                  name="receiverName"
+                  label="收货人姓名"
+                  rules={[{ required: true, message: '请输入收货人姓名' }]}
+                >
+                  <Input placeholder="请输入收货人姓名" />
+                </Form.Item>
         </Col>
         <Col span={24}>
           <Form.Item
-            name="deliveryAddress"
-            label="送达地址"
-            rules={[{ required: true, message: '请输入送达地址' }]}
+                  name="receiverCompany"
+                  label="公司名称"
           >
-            <TextArea rows={2} placeholder="请输入详细的送达地址" />
+                  <Input placeholder="请输入公司名称（可选）" />
           </Form.Item>
         </Col>
-        <Col span={8}>
-          <Form.Item name="deliveryContact" label="收货联系人" rules={[{ required: true, message: '请输入收货联系人' }]}>
-            <Input placeholder="联系人姓名" />
+              <Col span={24}>
+                <Form.Item
+                  name="receiverAddress1"
+                  label="地址行1 (Address Line 1)"
+                  rules={[{ required: true, message: '请输入地址行1' }]}
+                >
+                  <Input placeholder="请输入街道地址" />
           </Form.Item>
         </Col>
-        <Col span={8}>
-          <Form.Item name="deliveryPhone" label="收货电话" rules={[{ required: true, message: '请输入收货电话' }, { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }]}>
-            <Input placeholder="联系电话" />
+              <Col span={24}>
+                <Form.Item
+                  name="receiverAddress2"
+                  label="地址行2 (Address Line 2)"
+                >
+                  <Input placeholder="请输入公寓号、套房号等（可选）" />
           </Form.Item>
         </Col>
-        <Col span={8}>
+              <Col span={12}>
+                <Form.Item
+                  name="receiverCity"
+                  label="城市 (City)"
+                  rules={[{ required: true, message: '请输入城市' }]}
+                >
+                  <Input placeholder="请输入城市" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="receiverProvince"
+                  label="省份/州 (Province/State)"
+                  rules={[{ required: true, message: '请输入省份/州' }]}
+                >
+                  <Input placeholder="请输入省份/州" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="receiverPostalCode"
+                  label="邮政编码 (Postal Code)"
+                  rules={[{ required: true, message: '请输入邮政编码' }]}
+                >
+                  <Input placeholder="请输入邮政编码" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="receiverCountry"
+                  label="国家 (Country)"
+                  rules={[{ required: true, message: '请选择国家' }]}
+                  initialValue="CA"
+                >
+                  <Select>
+                    <Option value="CA">加拿大 (Canada)</Option>
+                    <Option value="US">美国 (United States)</Option>
+                    <Option value="CN">中国 (China)</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="receiverPhone"
+                  label="联系电话"
+                  rules={[
+                    { required: true, message: '请输入联系电话' },
+                    { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
+                  ]}
+                >
+                  <Input placeholder="如：+1-555-123-4567" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="receiverEmail"
+                  label="邮箱地址"
+                  rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}
+                >
+                  <Input placeholder="请输入邮箱地址（可选）" />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
           <Form.Item name="deliveryDate" label="送达日期" rules={[{ required: true, message: '请选择送达日期' }]}>
             <DatePicker 
               format="YYYY-MM-DD"
@@ -484,7 +697,7 @@ const ShipmentCreate: React.FC = () => {
             />
           </Form.Item>
         </Col>
-        <Col span={8}>
+              <Col span={24}>
           <Form.Item name="deliveryTimeRange" label="送达时间段(小时)" rules={[{ required: true, message: '请选择送达时间段' }]}>
             <TimePicker.RangePicker
               style={{ width: '100%' }}
@@ -494,6 +707,14 @@ const ShipmentCreate: React.FC = () => {
             />
           </Form.Item>
         </Col>
+            </Row>
+          </Card>
+        </Col>
+
+        {/* 地址类型和距离 - 底部 */}
+        <Col span={24}>
+          <Divider />
+          <Row gutter={[16, 16]}>
         <Col span={12}>
           <Form.Item name="addressType" label="地址类型" initialValue="residential">
             <Radio.Group>
@@ -515,6 +736,8 @@ const ShipmentCreate: React.FC = () => {
               precision={1}
             />
           </Form.Item>
+            </Col>
+          </Row>
         </Col>
       </Row>
     </Card>
@@ -762,82 +985,141 @@ const ShipmentCreate: React.FC = () => {
     </Card>
   );
 
-  // 确认与提交模块 // 2025-09-24 14:05:00
-  const renderConfirmationSection = () => {
-    const formValues = form.getFieldsValue();
+  // 确认页面组件 // 2025-01-27 16:20:00
+  const renderConfirmationPage = () => {
+    if (!submittedData) return null;
+
     return (
-      <Card title="确认信息" style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
-            <Title level={5}>基本信息</Title>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Text strong>客户姓名：</Text>
-                <div>{formValues.customerName || '未填写'}</div>
-              </Col>
-              <Col span={8}>
-                <Text strong>联系电话：</Text>
-                <div>{formValues.customerPhone || '未填写'}</div>
-              </Col>
-              <Col span={8}>
-                <Text strong>优先级：</Text>
-                <div>{formValues.priority || '普通'}</div>
-              </Col>
-            </Row>
-          </Col>
-          <Col span={24}>
-            <Title level={5}>地址信息</Title>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Text strong>取货地址：</Text>
-                <div>{formValues.pickupAddress || '未填写'}</div>
-                <Text strong style={{ display: 'block', marginTop: 4 }}>联系人：</Text>
-                <div>{formValues.pickupContact || '未填写'} ({formValues.pickupPhone || '未填写'})</div>
-                <Text strong style={{ display: 'block', marginTop: 4 }}>取货时间：</Text>
-                <div>{formValues.pickupDate && formValues.pickupTimeRange
-                  ? `${formValues.pickupDate.format('YYYY-MM-DD')} ${formValues.pickupTimeRange[0].format('HH')}:00 - ${formValues.pickupDate.format('YYYY-MM-DD')} ${formValues.pickupTimeRange[1].format('HH')}:00`
-                  : (formValues.pickupDate ? `${formValues.pickupDate.format('YYYY-MM-DD')} 00:00 - ${formValues.pickupDate.format('YYYY-MM-DD')} 23:59` : '未选择')}
-                </div>
-              </Col>
-              <Col span={12}>
-                <Text strong>送达地址：</Text>
-                <div>{formValues.deliveryAddress || '未填写'}</div>
-                <Text strong style={{ display: 'block', marginTop: 4 }}>联系人：</Text>
-                <div>{formValues.deliveryContact || '未填写'} ({formValues.deliveryPhone || '未填写'})</div>
-                <Text strong style={{ display: 'block', marginTop: 4 }}>送达时间：</Text>
-                <div>{formValues.deliveryDate && formValues.deliveryTimeRange
-                  ? `${formValues.deliveryDate.format('YYYY-MM-DD')} ${formValues.deliveryTimeRange[0].format('HH')}:00 - ${formValues.deliveryDate.format('YYYY-MM-DD')} ${formValues.deliveryTimeRange[1].format('HH')}:00`
-                  : (formValues.deliveryDate ? `${formValues.deliveryDate.format('YYYY-MM-DD')} 00:00 - ${formValues.deliveryDate.format('YYYY-MM-DD')} 23:59` : '未选择')}
-                </div>
-              </Col>
-            </Row>
-            <Row gutter={16} style={{ marginTop: 8 }}>
-              <Col span={6}>
-                <Text strong>货物规格：</Text>
-                <div>{formValues.cargoLength || 0}×{formValues.cargoWidth || 0}×{formValues.cargoHeight || 0} {unitSystem}</div>
-              </Col>
-              <Col span={6}>
-                <Text strong>重量：</Text>
-                <div>{formValues.cargoWeight || 0} {weightUnit}</div>
-              </Col>
-              <Col span={6}>
-                <Text strong>数量：</Text>
-                <div>{formValues.cargoQuantity || 0} 件</div>
-              </Col>
-              <Col span={6}>
-                <Text strong>价值：</Text>
-                <div>¥{formValues.cargoValue || 0}</div>
-              </Col>
-            </Row>
-          </Col>
-          <Col span={24}>
-            <Title level={5}>费用预估</Title>
-            <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>
-              ¥{calculateEstimatedCost(formValues)}
-            </Text>
-          </Col>
-        </Row>
-      </Card>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <Title level={2}>
+            <CheckCircleOutlined /> 确认运单信息
+          </Title>
+          <Text type="secondary">请仔细核对运单信息，确认无误后点击"创建运单"</Text>
+        </div>
+
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Title level={5}>基本信息</Title>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Text strong>客户姓名：</Text>
+                  <div>{submittedData.customerName}</div>
+                </Col>
+                <Col span={8}>
+                  <Text strong>联系电话：</Text>
+                  <div>{submittedData.customerPhone}</div>
+                </Col>
+                <Col span={8}>
+                  <Text strong>优先级：</Text>
+                  <div>{submittedData.priority}</div>
+                </Col>
+              </Row>
+            </Col>
+            <Col span={24}>
+              <Title level={5}>发货人信息</Title>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Text strong>发货人：</Text>
+                  <div>{submittedData.shipper.name}</div>
+                  {submittedData.shipper.company && (
+                    <>
+                      <Text strong style={{ display: 'block', marginTop: 4 }}>公司：</Text>
+                      <div>{submittedData.shipper.company}</div>
+                    </>
+                  )}
+                  <Text strong style={{ display: 'block', marginTop: 4 }}>地址：</Text>
+                  <div>
+                    {submittedData.shipper.address.addressLine1}
+                    {submittedData.shipper.address.addressLine2 && <><br />{submittedData.shipper.address.addressLine2}</>}
+                    <br />
+                    {submittedData.shipper.address.city} {submittedData.shipper.address.province} {submittedData.shipper.address.postalCode}
+                    <br />
+                    {submittedData.shipper.address.country === 'CA' ? '加拿大' : submittedData.shipper.address.country === 'US' ? '美国' : submittedData.shipper.address.country === 'CN' ? '中国' : submittedData.shipper.address.country}
+                  </div>
+                  <Text strong style={{ display: 'block', marginTop: 4 }}>联系电话：</Text>
+                  <div>{submittedData.shipper.phone}</div>
+                  {submittedData.shipper.email && (
+                    <>
+                      <Text strong style={{ display: 'block', marginTop: 4 }}>邮箱：</Text>
+                      <div>{submittedData.shipper.email}</div>
+                    </>
+                  )}
+                </Col>
+                <Col span={12}>
+                  <Text strong>收货人：</Text>
+                  <div>{submittedData.receiver.name}</div>
+                  {submittedData.receiver.company && (
+                    <>
+                      <Text strong style={{ display: 'block', marginTop: 4 }}>公司：</Text>
+                      <div>{submittedData.receiver.company}</div>
+                    </>
+                  )}
+                  <Text strong style={{ display: 'block', marginTop: 4 }}>地址：</Text>
+                  <div>
+                    {submittedData.receiver.address.addressLine1}
+                    {submittedData.receiver.address.addressLine2 && <><br />{submittedData.receiver.address.addressLine2}</>}
+                    <br />
+                    {submittedData.receiver.address.city} {submittedData.receiver.address.province} {submittedData.receiver.address.postalCode}
+                    <br />
+                    {submittedData.receiver.address.country === 'CA' ? '加拿大' : submittedData.receiver.address.country === 'US' ? '美国' : submittedData.receiver.address.country === 'CN' ? '中国' : submittedData.receiver.address.country}
+                  </div>
+                  <Text strong style={{ display: 'block', marginTop: 4 }}>联系电话：</Text>
+                  <div>{submittedData.receiver.phone}</div>
+                  {submittedData.receiver.email && (
+                    <>
+                      <Text strong style={{ display: 'block', marginTop: 4 }}>邮箱：</Text>
+                      <div>{submittedData.receiver.email}</div>
+                    </>
+                  )}
+                </Col>
+              </Row>
+              <Row gutter={16} style={{ marginTop: 8 }}>
+                <Col span={6}>
+                  <Text strong>货物规格：</Text>
+                  <div>{submittedData.cargoLength}×{submittedData.cargoWidth}×{submittedData.cargoHeight} cm</div>
+                </Col>
+                <Col span={6}>
+                  <Text strong>重量：</Text>
+                  <div>{submittedData.cargoWeight} kg</div>
+                </Col>
+                <Col span={6}>
+                  <Text strong>数量：</Text>
+                  <div>{submittedData.cargoQuantity} 件</div>
+                </Col>
+                <Col span={6}>
+                  <Text strong>价值：</Text>
+                  <div>¥{submittedData.cargoValue || 0}</div>
+                </Col>
+              </Row>
+            </Col>
+            <Col span={24}>
+              <Title level={5}>费用预估</Title>
+              <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>
+                ¥{submittedData.estimatedCost}
+              </Text>
+            </Col>
+          </Row>
+
+          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+            <Space size="large">
+              <Button onClick={handleBackToEdit} size="large">
+                返回修改
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleFinalConfirm}
+                loading={loading}
+                size="large"
+                icon={<CheckCircleOutlined />}
+              >
+                确认创建运单
+              </Button>
+            </Space>
+          </div>
+        </Card>
+      </div>
     );
   };
 
@@ -845,62 +1127,108 @@ const ShipmentCreate: React.FC = () => {
 
   // 移除步骤导航 - 单页布局 // 2025-09-24 14:05:00
 
+  // 如果是确认模式，显示确认页面
+  if (isConfirmMode) {
+    return renderConfirmationPage();
+  }
+
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '40px', position: 'relative' }}>
-        <Title level={2}>
-          <TruckOutlined /> 创建运单
-        </Title>
-        <Text type="secondary">请填写运单信息，我们将为您提供最优质的运输服务</Text>
-        <Button 
-          type="text" 
-          onClick={clearCache}
-          style={{ position: 'absolute', right: 0, top: 0, color: '#999' }}
-        >
-          清除缓存
-        </Button>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* 左侧步骤导航 // 2025-01-27 16:25:00 */}
+      <div style={{ 
+        width: '280px', 
+        backgroundColor: '#f5f5f5', 
+        padding: '20px',
+        borderRight: '1px solid #d9d9d9'
+      }}>
+        <div style={{ marginBottom: '30px' }}>
+          <Title level={3}>
+            <TruckOutlined /> 创建运单
+          </Title>
+          <Text type="secondary">请按步骤填写运单信息</Text>
+        </div>
+        
+        <Steps
+          direction="vertical"
+          current={currentStep}
+          onChange={goToStep}
+          items={steps.map((step, index) => ({
+            title: step.title,
+            description: step.description,
+            icon: step.icon,
+            status: index <= currentStep ? 'process' : 'wait'
+          }))}
+        />
+        
+        <div style={{ marginTop: '30px', padding: '16px', backgroundColor: '#fff', borderRadius: '8px' }}>
+          <Text strong>当前进度</Text>
+          <div style={{ marginTop: '8px' }}>
+            <Text type="secondary">
+              第 {currentStep + 1} 步，共 {steps.length} 步
+            </Text>
+          </div>
+          <div style={{ marginTop: '8px' }}>
+            <Text type="secondary">
+              完成度：{Math.round(((currentStep + 1) / steps.length) * 100)}%
+            </Text>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        {/* 单页模块化布局 - 移除步骤导航 // 2025-09-24 14:05:00 */}
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{
-            priority: 'normal',
-            addressType: 'residential',
-            insurance: false,
-            requiresTailgate: false,
-            requiresAppointment: false,
-            cargoIsFragile: false,
-            cargoIsDangerous: false,
-          }}
-        >
-          {renderBasicInfoSection()}
-          {renderAddressTimeSection()}
-          {renderCargoSection()}
-          {renderServicesSection()}
-          {renderConfirmationSection()}
+      {/* 右侧内容区域 */}
+      <div style={{ flex: 1, padding: '20px', backgroundColor: '#fff' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={{
+              priority: 'normal',
+              addressType: 'residential',
+              shipperCountry: 'CA',
+              receiverCountry: 'CA',
+              insurance: false,
+              requiresTailgate: false,
+              requiresAppointment: false,
+              cargoIsFragile: false,
+              cargoIsDangerous: false,
+            }}
+          >
+            {/* 根据当前步骤显示对应内容 */}
+            {currentStep === 0 && renderBasicInfoSection()}
+            {currentStep === 1 && renderAddressTimeSection()}
+            {currentStep === 2 && renderCargoSection()}
+            {currentStep === 3 && renderServicesSection()}
 
-          <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <Space size="large">
-              <Button onClick={() => navigate('/admin/shipments')} size="large">
-                返回列表
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                size="large"
-                icon={<TruckOutlined />}
-              >
-                创建运单
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </Card>
+            {/* 步骤导航按钮 */}
+            <div style={{ textAlign: 'center', marginTop: '40px' }}>
+              <Space size="large">
+                {currentStep > 0 && (
+                  <Button onClick={prevStep} size="large">
+                    上一步
+                  </Button>
+                )}
+                {currentStep < steps.length - 1 ? (
+                  <Button type="primary" onClick={nextStep} size="large">
+                    下一步
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    onClick={handleSubmitToConfirm}
+                    size="large"
+                    icon={<CheckCircleOutlined />}
+                  >
+                    提交确认
+                  </Button>
+                )}
+                <Button onClick={() => navigate('/admin/shipments')} size="large">
+                  返回列表
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 };

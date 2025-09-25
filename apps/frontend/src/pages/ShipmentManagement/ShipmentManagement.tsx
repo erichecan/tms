@@ -6,11 +6,6 @@ import {
   Space,
   Tag,
   Modal,
-  Form,
-  Input,
-  Select,
-  InputNumber,
-  DatePicker,
   message,
   Popconfirm,
   Tooltip,
@@ -18,45 +13,32 @@ import {
   Col,
   Typography,
   Divider,
-  Descriptions,
   Steps,
-  Timeline,
 } from 'antd';
 import {
   PlusOutlined,
-  EditOutlined,
   DeleteOutlined,
   EyeOutlined,
   ExclamationCircleOutlined,
   TruckOutlined,
-  DollarOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import { shipmentsApi, customersApi, driversApi } from '../../services/api';
+import { shipmentsApi } from '../../services/api';
 import { Shipment, ShipmentStatus } from '../../types/index';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-const { TextArea } = Input;
-const { RangePicker } = DatePicker;
 const { Step } = Steps;
 
 const ShipmentManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [editingShipment, setEditingShipment] = useState<Shipment | null>(null);
-  const [isFormVisible, setIsFormVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [form] = Form.useForm();
+  
 
   useEffect(() => {
     loadShipments();
-    loadCustomers();
-    loadDrivers();
   }, []);
 
   const loadShipments = async () => {
@@ -72,39 +54,7 @@ const ShipmentManagement: React.FC = () => {
     }
   };
 
-  const loadCustomers = async () => {
-    try {
-      const response = await customersApi.getCustomers();
-      setCustomers(response.data?.data || []);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-    }
-  };
-
-  const loadDrivers = async () => {
-    try {
-      const response = await driversApi.getDrivers();
-      setDrivers(response.data?.data || []);
-    } catch (error) {
-      console.error('Failed to load drivers:', error);
-    }
-  };
-
-  const handleCreateShipment = () => {
-    setEditingShipment(null);
-    form.resetFields();
-    setIsFormVisible(true);
-  };
-
-  const handleEditShipment = (shipment: Shipment) => {
-    setEditingShipment(shipment);
-    form.setFieldsValue({
-      ...shipment,
-      pickupDate: shipment.pickupDate ? new Date(shipment.pickupDate) : null,
-      deliveryDate: shipment.deliveryDate ? new Date(shipment.deliveryDate) : null,
-    });
-    setIsFormVisible(true);
-  };
+  // 移除弹窗创建/编辑逻辑 // 2025-09-25 23:42:00
 
   const handleViewShipment = (shipment: Shipment) => {
     setViewingShipment(shipment);
@@ -122,23 +72,7 @@ const ShipmentManagement: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async (values: any) => {
-    try {
-      if (editingShipment) {
-        await shipmentsApi.updateShipment(editingShipment.id, values);
-        message.success('运单更新成功');
-      } else {
-        await shipmentsApi.createShipment(values);
-        message.success('运单创建成功');
-      }
-      setIsFormVisible(false);
-      setEditingShipment(null);
-      loadShipments();
-    } catch (error) {
-      console.error('Failed to save shipment:', error);
-      message.error('保存运单失败');
-    }
-  };
+  // 移除保存逻辑 // 2025-09-25 23:42:00
 
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string; icon: React.ReactNode }> = {
@@ -225,13 +159,7 @@ const ShipmentManagement: React.FC = () => {
               onClick={() => handleViewShipment(record)}
             />
           </Tooltip>
-          <Tooltip title="编辑运单">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleEditShipment(record)}
-            />
-          </Tooltip>
+          {/* 移除编辑按钮：编辑改由详情页或单独页面处理 // 2025-09-25 23:42:00 */}
           <Popconfirm
             title="确定要删除这个运单吗？"
             description="删除后无法恢复，请谨慎操作。"
@@ -269,7 +197,7 @@ const ShipmentManagement: React.FC = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={handleCreateShipment}
+            onClick={() => window.open('/create-shipment', '_blank')}
           >
             新建运单
           </Button>
@@ -291,158 +219,7 @@ const ShipmentManagement: React.FC = () => {
       </Card>
 
       {/* 运单表单 */}
-      <Modal
-        title={editingShipment ? '编辑运单' : '新建运单'}
-        open={isFormVisible}
-        onCancel={() => setIsFormVisible(false)}
-        onOk={() => form.submit()}
-        width={800}
-        destroyOnClose
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleFormSubmit}
-        >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="shipmentNumber"
-                label="运单号"
-                rules={[{ required: true, message: '请输入运单号' }]}
-              >
-                <Input placeholder="请输入运单号" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="status"
-                label="状态"
-                rules={[{ required: true, message: '请选择状态' }]}
-              >
-                <Select placeholder="请选择状态">
-                  <Option value={ShipmentStatus.PENDING}>待处理</Option>
-                  <Option value={ShipmentStatus.IN_TRANSIT}>运输中</Option>
-                  <Option value={ShipmentStatus.COMPLETED}>已完成</Option>
-                  <Option value={ShipmentStatus.CANCELLED}>已取消</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="customerId"
-                label="客户"
-                rules={[{ required: true, message: '请选择客户' }]}
-              >
-                <Select placeholder="请选择客户">
-                  {customers.map(customer => (
-                    <Option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="driverId"
-                label="司机"
-                rules={[{ required: true, message: '请选择司机' }]}
-              >
-                <Select placeholder="请选择司机">
-                  {drivers.map(driver => (
-                    <Option key={driver.id} value={driver.id}>
-                      {driver.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="pickupDate"
-                label="取货日期"
-                rules={[{ required: true, message: '请选择取货日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="deliveryDate"
-                label="送达日期"
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="pickupAddress"
-                label="取货地址"
-                rules={[{ required: true, message: '请输入取货地址' }]}
-              >
-                <Input placeholder="请输入取货地址" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="deliveryAddress"
-                label="送达地址"
-                rules={[{ required: true, message: '请输入送达地址' }]}
-              >
-                <Input placeholder="请输入送达地址" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="estimatedCost"
-                label="预估费用"
-                rules={[{ required: true, message: '请输入预估费用' }]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  placeholder="请输入预估费用"
-                  min={0}
-                  precision={2}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="weight"
-                label="重量 (kg)"
-                rules={[{ required: true, message: '请输入重量' }]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  placeholder="请输入重量"
-                  min={0}
-                  precision={2}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            name="description"
-            label="备注"
-          >
-            <TextArea rows={3} placeholder="请输入备注信息" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* 移除弹窗创建方式，统一跳转到新建页面 */}
 
       {/* 运单详情查看 */}
       <Modal

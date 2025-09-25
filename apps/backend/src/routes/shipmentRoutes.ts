@@ -28,6 +28,48 @@ router.use(tenantMiddleware);
 router.get('/', shipmentController.getShipments.bind(shipmentController));
 
 /**
+ * @route POST /api/v1/shipments
+ * @desc 创建运单
+ * @access Private
+ */
+router.post('/',
+  validateRequest({
+    body: {
+      shipmentNumber: { type: 'string', required: false },
+      customerName: { type: 'string', required: true },
+      customerPhone: { type: 'string', required: true },
+      customerEmail: { type: 'string', required: false },
+      priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'], required: false },
+      shipper: { type: 'object', required: true },
+      receiver: { type: 'object', required: true },
+      pickupDate: { type: 'string', required: false },
+      deliveryDate: { type: 'string', required: false },
+      addressType: { type: 'string', enum: ['residential', 'commercial'], required: false },
+      distance: { type: 'number', required: false },
+      cargoLength: { type: 'number', required: true },
+      cargoWidth: { type: 'number', required: true },
+      cargoHeight: { type: 'number', required: true },
+      cargoWeight: { type: 'number', required: true },
+      cargoQuantity: { type: 'number', required: true },
+      cargoPalletCount: { type: 'number', required: false },
+      cargoValue: { type: 'number', required: false },
+      cargoDescription: { type: 'string', required: false },
+      cargoIsFragile: { type: 'boolean', required: false },
+      cargoIsDangerous: { type: 'boolean', required: false },
+      insurance: { type: 'boolean', required: false },
+      insuranceValue: { type: 'number', required: false },
+      requiresTailgate: { type: 'boolean', required: false },
+      requiresAppointment: { type: 'boolean', required: false },
+      waitingTime: { type: 'number', required: false },
+      deliveryInstructions: { type: 'string', required: false },
+      specialRequirements: { type: 'array', required: false },
+      estimatedCost: { type: 'number', required: false }
+    }
+  }),
+  shipmentController.createShipment.bind(shipmentController)
+);
+
+/**
  * @route GET /api/v1/shipments/:id
  * @desc 获取单个运单
  * @access Private
