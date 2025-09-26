@@ -212,10 +212,10 @@ const CustomerManagement: React.FC = () => {
           <Form.Item
             name="level"
             label="客户等级"
-            initialValue="normal"
+            initialValue="standard"
           >
             <Select>
-              <Select.Option value="normal">普通</Select.Option>
+              <Select.Option value="standard">普通</Select.Option>
               <Select.Option value="premium">高级</Select.Option>
               <Select.Option value="vip">VIP</Select.Option>
             </Select>
