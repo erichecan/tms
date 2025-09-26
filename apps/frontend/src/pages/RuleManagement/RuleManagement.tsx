@@ -6,11 +6,6 @@ import {
   Space,
   Tag,
   Modal,
-  Form,
-  Input,
-  Select,
-  InputNumber,
-  Switch,
   message,
   Popconfirm,
   Tooltip,
@@ -33,7 +28,7 @@ import { rulesApi } from '../../services/api';
 import { Rule, RuleType, RuleStatus } from '../../types/index';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
+
 
 const RuleManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -42,7 +37,7 @@ const RuleManagement: React.FC = () => {
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingRule, setViewingRule] = useState<Rule | null>(null);
-  const [form] = Form.useForm();
+
 
   useEffect(() => {
     loadRules();

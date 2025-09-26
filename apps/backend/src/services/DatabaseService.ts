@@ -2,7 +2,7 @@
 // 创建时间: 2025-01-27 15:30:45
 
 import { Pool, PoolClient } from 'pg';
-import { Rule, RuleExecution, Tenant, User, Customer, Driver, Shipment, FinancialRecord, QueryParams, PaginatedResponse, Statement } from '@shared/index';
+import { Rule, RuleExecution, Tenant, User, Customer, Driver, Shipment, FinancialRecord, QueryParams, PaginatedResponse, Statement } from '@tms/shared-types';
 import { logger } from '../utils/logger';
 
 export class DatabaseService {
@@ -20,7 +20,7 @@ export class DatabaseService {
     } else {
       const host = process.env.DB_HOST || 'localhost';
       const port = parseInt(process.env.DB_PORT || '5432', 10);
-      const database = process.env.DB_NAME || 'tms_platform';
+      const database = process.env.DB_NAME || 'tms';
       const user = process.env.DB_USER || 'tms_user';
       const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
 
@@ -311,19 +311,19 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE ${paramIndex} OR description ILIKE ${paramIndex})`;
+      whereClause += ` AND (name ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
     if (typedFilters?.type) {
-      whereClause += ` AND type = ${paramIndex}`;
+      whereClause += ` AND type = $${paramIndex}`;
       queryParams.push(typedFilters.type);
       paramIndex++;
     }
     
     if (typedFilters?.status) {
-      whereClause += ` AND status = ${paramIndex}`;
+      whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(typedFilters.status);
       paramIndex++;
     }
@@ -338,20 +338,23 @@ export class DatabaseService {
       SELECT * FROM rules 
       ${whereClause}
       ORDER BY ${sort} ${order.toUpperCase()}
-      LIMIT ${paramIndex} OFFSET ${paramIndex + 1}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
     
     return {
+      success: true,
       data: dataResult.map(row => this.mapRuleFromDb(row)),
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit)
-      }
+      },
+      timestamp: new Date().toISOString(),
+      requestId: ''
     };
   }
 
@@ -591,7 +594,7 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE ${paramIndex} OR contact_info->>'email' ILIKE ${paramIndex})`;
+      whereClause += ` AND (name ILIKE $${paramIndex} OR contact_info->>'email' ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
@@ -688,7 +691,7 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE ${paramIndex} OR phone ILIKE ${paramIndex})`;
+      whereClause += ` AND (name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
@@ -796,7 +799,7 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (shipment_number ILIKE ${paramIndex} OR cargo_info->>'description' ILIKE ${paramIndex})`;
+      whereClause += ` AND (shipment_number ILIKE $${paramIndex} OR cargo_info->>'description' ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
@@ -1043,7 +1046,7 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (reference_id ILIKE ${paramIndex} OR generated_by ILIKE ${paramIndex})`;
+      whereClause += ` AND (reference_id ILIKE $${paramIndex} OR generated_by ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
@@ -1114,8 +1117,9 @@ export class DatabaseService {
           setClause.push(`${key} = $${paramIndex}`);
           queryParams.push(JSON.stringify(value));
         } else if (key === 'period') {
+          const periodValue = value as any;
           setClause.push(`period_start = $${paramIndex}`, `period_end = $${paramIndex + 1}`);
-          queryParams.push(value.start, value.end);
+          queryParams.push(periodValue.start, periodValue.end);
           paramIndex++;
         } else {
           setClause.push(`${key} = $${paramIndex}`);
@@ -1161,7 +1165,7 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (description ILIKE ${paramIndex} OR reference_id ILIKE ${paramIndex})`;
+      whereClause += ` AND (description ILIKE $${paramIndex} OR reference_id ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }

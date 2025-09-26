@@ -11,7 +11,28 @@ import { logger, requestLogger, errorLogger } from './utils/logger';
 import { DatabaseService } from './services/DatabaseService';
 
 // 加载环境变量
-dotenv.config();
+import fs from 'fs';
+import path from 'path';
+
+// 手动加载.env文件
+const envPath = path.resolve(__dirname, '../.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  const envLines = envContent.split('\n');
+  
+  for (const line of envLines) {
+    if (line.trim() && !line.startsWith('#')) {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim();
+        process.env[key.trim()] = value;
+      }
+    }
+  }
+  console.log('Environment variables loaded manually from .env file');
+} else {
+  console.log('.env file not found at:', envPath);
+}
 
 // 导入路由
 import authRoutes from './routes/authRoutes';
@@ -91,7 +112,7 @@ app.use('*', (req, res) => {
 app.use(errorLogger);
 
 // 全局错误处理
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
   
   res.status(500).json({

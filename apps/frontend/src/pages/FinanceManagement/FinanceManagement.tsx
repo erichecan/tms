@@ -7,7 +7,6 @@ import {
   Tag,
   Modal,
   Form,
-  Input,
   Select,
   DatePicker,
   message,
@@ -15,11 +14,8 @@ import {
   Row,
   Col,
   Typography,
-  Divider,
-  Descriptions,
   Tabs,
   Statistic,
-  Progress,
 } from 'antd';
 import {
   DollarOutlined,
@@ -46,11 +42,7 @@ const FinanceManagement: React.FC = () => {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [isStatementModalVisible, setIsStatementModalVisible] = useState(false);
   const [statementType, setStatementType] = useState<StatementType>(StatementType.CUSTOMER);
-  const [selectedEntity, setSelectedEntity] = useState<string>('');
-  const [statementPeriod, setStatementPeriod] = useState<{ start: string; end: string }>({
-    start: '',
-    end: '',
-  });
+
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -235,7 +227,7 @@ const FinanceManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Statement) => (
+      render: (_: any) => (
         <Space size="middle">
           <Tooltip title="查看详情">
             <Button

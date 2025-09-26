@@ -188,7 +188,7 @@ export class AuthController {
       }
 
       // 验证刷新token
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as any;
+      const decoded = jwt.verify(refreshToken, 'your-super-secret-jwt-key-change-this-in-production') as any;
       
       if (decoded.type !== 'refresh') {
         res.status(401).json({

@@ -147,7 +147,7 @@ export interface DriverPerformance {
 export interface Shipment extends BaseEntity {
   tenantId: string;
   shipmentNumber: string;
-  customerId: string;
+  customerId?: string;
   driverId?: string;
   transportDistance?: number;
   customer?: Customer;

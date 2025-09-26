@@ -17,7 +17,7 @@ import {
   Customer,
   QueryParams,
   PaginatedResponse
-} from '../../packages/shared-types/src/index';
+} from '@shared/index';
 
 export interface ReceivableSummary {
   customerId: string;

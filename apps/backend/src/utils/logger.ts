@@ -78,7 +78,7 @@ export const requestLogger = (req: any, res: any, next: any) => {
 };
 
 // 创建错误日志中间件
-export const errorLogger = (error: Error, req: any, res: any, next: any) => {
+export const errorLogger = (error: Error, req: any, _res: any, next: any) => {
   logger.error('Unhandled Error', {
     error: error.message,
     stack: error.stack,

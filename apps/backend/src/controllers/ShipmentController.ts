@@ -6,12 +6,12 @@ import { ShipmentService, ShipmentAssignment } from '../services/ShipmentService
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { logger } from '../utils/logger';
-import { QueryParams } from '@shared/index';
+import { Shipment, QueryParams } from '@shared/index';
 
 // Helper to get request ID safely
 const getRequestId = (req: Request): string => {
   const requestId = req.headers['x-request-id'];
-  return Array.isArray(requestId) ? requestId[0] : requestId || '';
+  return (Array.isArray(requestId) ? requestId[0] : requestId) || '';
 };
 
 export class ShipmentController {
@@ -92,49 +92,47 @@ export class ShipmentController {
       const body = req.body;
       
       // 构建运单数据，适配新的地址字段结构 // 2025-01-27 16:00:00
-      const shipmentData = {
+      const shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {
         shipmentNumber: body.shipmentNumber || `TMS${Date.now()}`,
-        customerId: null, // 暂时设为null，后续可以关联客户
-        driverId: null,
         pickupAddress: {
-          addressLine1: body.shipper.address.addressLine1,
-          addressLine2: body.shipper.address.addressLine2,
+          street: body.shipper.address.street,
           city: body.shipper.address.city,
-          province: body.shipper.address.province,
+          state: body.shipper.address.province,
           postalCode: body.shipper.address.postalCode,
           country: body.shipper.address.country,
-          isResidential: body.addressType === 'residential'
         },
         deliveryAddress: {
-          addressLine1: body.receiver.address.addressLine1,
-          addressLine2: body.receiver.address.addressLine2,
+          street: body.receiver.address.street,
           city: body.receiver.address.city,
-          province: body.receiver.address.province,
+          state: body.receiver.address.province,
           postalCode: body.receiver.address.postalCode,
           country: body.receiver.address.country,
-          isResidential: body.addressType === 'residential'
         },
         cargoInfo: {
-          length: body.cargoLength,
-          width: body.cargoWidth,
-          height: body.cargoHeight,
-          weight: body.cargoWeight,
-          quantity: body.cargoQuantity,
-          palletCount: body.cargoPalletCount || 0,
           description: body.cargoDescription,
+          weight: body.cargoWeight,
+          volume: body.cargoVolume,
+          dimensions: body.dimensions,
           value: body.cargoValue || 0,
-          isFragile: body.cargoIsFragile || false,
-          isDangerous: body.cargoIsDangerous || false
+          specialRequirements: body.specialRequirements || [],
+          hazardous: body.cargoIsDangerous || false
         },
         estimatedCost: body.estimatedCost,
-        actualCost: null,
         additionalFees: [],
         appliedRules: [],
         status: 'created' as any,
         timeline: {
-          created: new Date().toISOString()
+          created: new Date()
         }
       };
+
+      if (body.customerId) {
+        shipmentData.customerId = body.customerId;
+      }
+
+      if (body.driverId) {
+        shipmentData.driverId = body.driverId;
+      }
 
       const shipment = await this.shipmentService.createShipment(tenantId, shipmentData);
       
@@ -165,10 +163,10 @@ export class ShipmentController {
       const tenantId = req.tenant?.id;
       const shipmentId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -214,10 +212,10 @@ export class ShipmentController {
       const tenantId = req.tenant?.id;
       const shipmentId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -263,10 +261,12 @@ export class ShipmentController {
   async assignDriver(req: Request, res: Response): Promise<void> {
     try {
       const tenantId = req.tenant?.id;
-      if (!tenantId) {
+      const shipmentId = req.params.id;
+
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -274,7 +274,7 @@ export class ShipmentController {
       }
 
       const assignment: ShipmentAssignment = {
-        shipmentId: req.params.id,
+        shipmentId: shipmentId,
         driverId: req.body.driverId,
         assignedBy: req.user?.id || '',
         notes: req.body.notes
@@ -344,10 +344,10 @@ export class ShipmentController {
       const tenantId = req.tenant?.id;
       const shipmentId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -402,10 +402,10 @@ export class ShipmentController {
       const shipmentId = req.params.id;
       const driverId = req.body.driverId || req.user?.id;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -470,10 +470,10 @@ export class ShipmentController {
       const shipmentId = req.params.id;
       const driverId = req.body.driverId || req.user?.id;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -539,10 +539,10 @@ export class ShipmentController {
       const driverId = req.body.driverId || req.user?.id;
       const deliveryNotes = req.body.deliveryNotes;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -607,10 +607,10 @@ export class ShipmentController {
       const shipmentId = req.params.id;
       const finalCost = req.body.finalCost;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -665,10 +665,10 @@ export class ShipmentController {
       const shipmentId = req.params.id;
       const reason = req.body.reason;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -773,10 +773,10 @@ export class ShipmentController {
       const driverId = req.params.driverId;
       const status = req.query.status as string;
 
-      if (!tenantId) {
+      if (!tenantId || !driverId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Driver ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });

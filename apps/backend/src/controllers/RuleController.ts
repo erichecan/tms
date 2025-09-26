@@ -79,10 +79,10 @@ export class RuleController {
       const tenantId = req.tenant?.id;
       const ruleId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !ruleId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Rule ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -192,10 +192,10 @@ export class RuleController {
       const tenantId = req.tenant?.id;
       const ruleId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !ruleId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Rule ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -260,7 +260,7 @@ export class RuleController {
         return;
       }
 
-      await this.ruleEngineService.deleteRule(tenantId, ruleId);
+      await this.ruleEngineService.deleteRule(tenantId, ruleId!);
       
       res.json({
         success: true,
@@ -433,7 +433,7 @@ export class RuleController {
       const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
-      const stats = await this.ruleEngineService.getRuleExecutionStats(tenantId, ruleId, startDate, endDate);
+      const stats = await this.ruleEngineService.getRuleExecutionStats(tenantId, ruleId!, startDate, endDate);
       
       res.json({
         success: true,

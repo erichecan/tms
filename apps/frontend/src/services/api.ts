@@ -19,11 +19,11 @@ api.interceptors.request.use(
     } else {
       // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-25 23:42:00
       // userId/tenantId 对应初始化脚本与数据库中的演示数据
-      const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODc5MTY3NywiZXhwIjoxNzU5Mzk2NDc3fQ.DVcUp5piyD6kMn3D6AwGvQSJ4tqP3WuIe9h6Ygts5-M';
+      const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4NGUxODIyMy0xYWRiLTRkNGUtYTRjZC02YTIxZTRjMDZiYWMiLCJ0ZW5hbnRJZCI6IjI5OTZmNWQwLTJmZmEtNGFhOC1hY2I1LTZjMjNmYmYzOGUwZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODc5MTY3NywiZXhwIjoxNzU5Mzk2NDc3fQ.DVcUp5piyD6kMn3D6AwGvQSJ4tqP3WuIe9h6Ygts5-M';
       config.headers.Authorization = `Bearer ${devToken}`;
     }
     // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
-    const tenantId = localStorage.getItem('current_tenant_id') || '00000000-0000-0000-0000-000000000001';
+    const tenantId = localStorage.getItem('current_tenant_id') || '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e';
     config.headers['X-Tenant-ID'] = tenantId;
     return config;
   },

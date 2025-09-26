@@ -27,7 +27,7 @@ import {
 import { rulesApi } from '../../services/api';
 import { Rule, RuleType, RuleStatus, RuleCondition, RuleAction } from '../../types/index';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
@@ -295,7 +295,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
                       renderItem={(item) => (
                         <List.Item>
                           <Text>{item.name}</Text>
-                          <Tag color="orange">相似度: {item.similarity}%</Tag>
+                          <Tag color="orange">相似度: {(item as any).similarity}%</Tag>
                         </List.Item>
                       )}
                     />

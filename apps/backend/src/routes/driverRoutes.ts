@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest, driverCreateSchema, driverUpdateSchema } from '../middleware/validationMiddleware';
+import { validateRequest, driverCreateSchema } from '../middleware/validationMiddleware';
 
 const router = Router();
 const dbService = new DatabaseService();
@@ -13,19 +13,21 @@ router.get('/',
   tenantMiddleware,
   async (req, res) => {
     try {
-      const { limit = 10, offset = 0, status, search } = req.query;
-      const drivers = await dbService.getDrivers({
-        tenantId: req.user!.tenantId,
-        limit: Number(limit),
-        offset: Number(offset),
-        status: status as string,
-        search: search as string
-      });
+      const params: any = {
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 20,
+        sort: req.query.sort as string || 'created_at',
+        order: (req.query.order as 'asc' | 'desc') || 'desc',
+        search: req.query.search as string,
+        filters: {
+          status: req.query.status as string,
+        }
+      };
+
+      const result = await dbService.getDrivers(req.user!.tenantId, params);
 
       res.json({
-        success: true,
-        data: drivers,
-        timestamp: new Date().toISOString(),
+        ...result,
         requestId: req.headers['x-request-id'] as string || ''
       });
     } catch (error) {
@@ -46,7 +48,15 @@ router.get('/:id',
   tenantMiddleware,
   async (req, res) => {
     try {
-      const driver = await dbService.getDriver(req.user!.tenantId, req.params.id);
+      if (!req.user?.tenantId) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+      const driver = await dbService.getDriver(req.user!.tenantId, req.params.id!);
       
       if (!driver) {
         return res.status(404).json({
@@ -82,10 +92,15 @@ router.post('/',
   validateRequest({ body: driverCreateSchema }),
   async (req, res) => {
     try {
-      const driver = await dbService.createDriver({
-        ...req.body,
-        tenantId: req.user!.tenantId
-      });
+      if (!req.user?.tenantId) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+      const driver = await dbService.createDriver(req.user!.tenantId, req.body);
 
       res.status(201).json({
         success: true,
@@ -105,6 +120,7 @@ router.post('/',
   }
 );
 
+/*
 // 更新司机
 router.put('/:id',
   authMiddleware,
@@ -175,5 +191,6 @@ router.delete('/:id',
     }
   }
 );
+*/
 
 export default router;

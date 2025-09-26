@@ -11,7 +11,7 @@ import { QueryParams } from '@shared/index';
 // Helper to get request ID safely
 const getRequestId = (req: Request): string => {
   const requestId = req.headers['x-request-id'];
-  return Array.isArray(requestId) ? requestId[0] : requestId || '';
+  return (Array.isArray(requestId) ? requestId[0] : requestId) || '';
 };
 
 export class FinanceController {
@@ -259,10 +259,10 @@ export class FinanceController {
       const tenantId = req.tenant?.id;
       const statementId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !statementId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Statement ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -316,10 +316,10 @@ export class FinanceController {
       const tenantId = req.tenant?.id;
       const statementId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !statementId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Statement ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });

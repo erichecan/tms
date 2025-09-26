@@ -11,7 +11,7 @@ import {
   AdditionalFee, 
   FeeType,
   CustomerLevel 
-} from '../../packages/shared-types/src/index';
+} from '@shared/index';
 
 export interface QuoteRequest {
   customerId: string;

@@ -23,33 +23,33 @@ export const validateRequest = (schema: ValidationSchema) => {
 
     // 验证请求体
     if (schema.body) {
-      const { error } = schema.body.validate(req.body);
-      if (error) {
-        errors.push(`Body: ${error.details.map(d => d.message).join(', ')}`);
+      const result = schema.body.validate(req.body);
+      if (result.error) {
+        errors.push(`Body: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
     // 验证查询参数
     if (schema.query) {
-      const { error } = schema.query.validate(req.query);
-      if (error) {
-        errors.push(`Query: ${error.details.map(d => d.message).join(', ')}`);
+      const result = schema.query.validate(req.query);
+      if (result.error) {
+        errors.push(`Query: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
     // 验证路径参数
     if (schema.params) {
-      const { error } = schema.params.validate(req.params);
-      if (error) {
-        errors.push(`Params: ${error.details.map(d => d.message).join(', ')}`);
+      const result = schema.params.validate(req.params);
+      if (result.error) {
+        errors.push(`Params: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
     // 验证请求头
     if (schema.headers) {
-      const { error } = schema.headers.validate(req.headers);
-      if (error) {
-        errors.push(`Headers: ${error.details.map(d => d.message).join(', ')}`);
+      const result = schema.headers.validate(req.headers);
+      if (result.error) {
+        errors.push(`Headers: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 

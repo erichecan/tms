@@ -94,10 +94,10 @@ export class PricingController {
       const tenantId = req.tenant?.id;
       const shipmentId = req.params.id;
 
-      if (!tenantId) {
+      if (!tenantId || !shipmentId) {
         res.status(401).json({
           success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });

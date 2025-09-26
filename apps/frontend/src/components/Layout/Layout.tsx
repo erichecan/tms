@@ -40,25 +40,25 @@ const AppLayout: React.FC = () => {
               key: '1',
               icon: <DashboardOutlined />,
               label: 'Dashboard',
-              onClick: () => navigate('/'),
+              onClick: () => navigate('/admin'),
             },
             {
               key: '2',
               icon: <SettingOutlined />,
               label: '规则管理',
-              onClick: () => navigate('/rules'),
+              onClick: () => navigate('/admin/rules'),
             },
             {
               key: '3',
               icon: <CarOutlined />,
               label: '运单管理',
-              onClick: () => navigate('/shipments'),
+              onClick: () => navigate('/admin/shipments'),
             },
             {
               key: '4',
               icon: <DollarOutlined />,
               label: '财务结算',
-              onClick: () => navigate('/finance'),
+              onClick: () => navigate('/admin/finance'),
             },
           ]}
         />

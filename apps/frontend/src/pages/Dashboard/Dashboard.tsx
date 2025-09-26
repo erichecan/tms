@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Table, Tag, Space, Button, DatePicker } from 'antd';
+import { Row, Col, Card, Statistic, Table, Tag, Space, Button } from 'antd';
 import {
   DollarOutlined,
   TruckOutlined,
@@ -11,7 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, rulesApi, customersApi, driversApi } from '../../services/api';
 
-const { RangePicker } = DatePicker;
+
 
 interface DashboardStats {
   totalShipments: number;

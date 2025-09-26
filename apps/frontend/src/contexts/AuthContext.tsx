@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { authApi } from '../services/api';
 import { UserLoginPayload, User } from '../types/index';
 
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       // 开发环境下注入演示用token，避免登录重定向循环 // 2025-09-24 13:52:00
       const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
-        btoa(JSON.stringify({ userId: 'admin', role: 'admin', tenantId: 'demo-tenant', exp: Math.floor(Date.now()/1000)+7*24*3600 })) +
+        btoa(JSON.stringify({ userId: '84e18223-1adb-4d4e-a4cd-6a21e4c06bac', role: 'admin', tenantId: '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e', exp: Math.floor(Date.now()/1000)+7*24*3600 })) +
         '.mock-signature';
       localStorage.setItem('jwt_token', demoToken);
       setToken(demoToken);
@@ -42,11 +42,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // 解析JWT token获取用户信息
           const payload = JSON.parse(atob(token.split('.')[1]));
           const mockUser = {
-            id: payload.userId || 'admin',
-            email: 'admin@demo.tms-platform.com',
+            id: payload.userId || '84e18223-1adb-4d4e-a4cd-6a21e4c06bac',
+            email: 'admin@tms.com',
             name: 'Admin User',
             role: payload.role || 'admin',
-            tenantId: payload.tenantId || 'demo-tenant',
+            tenantId: payload.tenantId || '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -55,11 +55,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (parseError) {
           // 如果token解析失败，使用默认用户信息
           const mockUser = {
-            id: 'admin',
-            email: 'admin@demo.tms-platform.com',
+            id: '84e18223-1adb-4d4e-a4cd-6a21e4c06bac',
+            email: 'admin@tms.com',
             name: 'Admin User',
             role: 'admin',
-            tenantId: 'demo-tenant',
+            tenantId: '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };

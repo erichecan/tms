@@ -129,7 +129,7 @@ function extractSubdomain(host: string): string | null {
   }
   
   // 返回第一个部分作为子域名
-  return parts[0];
+  return parts[0] ? parts[0] : null;
 }
 
 /**

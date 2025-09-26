@@ -17,6 +17,15 @@ export class MvpShipmentController {
 
   async createShipment(req: Request, res: Response) {
     try {
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+        });
+        return;
+      }
+
       const shipmentNo = this.generateShipmentNo();
       const b = req.body;
 
@@ -42,10 +51,10 @@ export class MvpShipmentController {
         items: b.items || []
       };
 
-      const created = await this.db.createShipment(req.tenant?.id || '00000000-0000-0000-0000-000000000001', {
+      const created = await this.db.createShipment(tenantId, {
         shipmentNumber: shipmentNo,
-        customerId: null as any,
-        driverId: null as any,
+        customerId: undefined,
+        driverId: undefined,
         pickupAddress,
         deliveryAddress,
         cargoInfo,
@@ -66,12 +75,21 @@ export class MvpShipmentController {
 
   async listShipments(req: Request, res: Response) {
     try {
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+        });
+        return;
+      }
+
       const params: any = {
         page: parseInt((req.query.page as string) || '1'),
         limit: parseInt((req.query.limit as string) || '20'),
         status: req.query.status as string
       };
-      const result = await this.db.getShipments(req.tenant?.id || '00000000-0000-0000-0000-000000000001', params);
+      const result = await this.db.getShipments(tenantId, params);
       res.json(result);
     } catch (e: any) {
       res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
@@ -80,7 +98,16 @@ export class MvpShipmentController {
 
   async getShipmentDetail(req: Request, res: Response) {
     try {
-      const shipment = await this.db.getShipment(req.tenant?.id || '00000000-0000-0000-0000-000000000001', req.params.id);
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+        });
+        return;
+      }
+
+      const shipment = await this.db.getShipment(tenantId, req.params.id!);
       if (!shipment) {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
         return;

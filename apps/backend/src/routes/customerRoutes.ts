@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest, customerCreateSchema, customerUpdateSchema } from '../middleware/validationMiddleware';
+import { validateRequest, customerCreateSchema } from '../middleware/validationMiddleware';
+
 
 const router = Router();
 const dbService = new DatabaseService();
@@ -13,21 +14,24 @@ router.get('/',
   tenantMiddleware,
   async (req, res) => {
     try {
-      const { limit = 10, offset = 0, level, search } = req.query;
-      const customers = await dbService.getCustomers({
-        tenantId: req.user!.tenantId,
-        limit: Number(limit),
-        offset: Number(offset),
-        level: level as string,
-        search: search as string
-      });
+      const params: any = {
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 20,
+        sort: req.query.sort as string || 'created_at',
+        order: (req.query.order as 'asc' | 'desc') || 'desc',
+        search: req.query.search as string,
+        filters: {
+          level: req.query.level as string,
+        }
+      };
+
+      const result = await dbService.getCustomers(req.user!.tenantId, params);
 
       res.json({
-        success: true,
-        data: customers,
-        timestamp: new Date().toISOString(),
+        ...result,
         requestId: req.headers['x-request-id'] as string || ''
       });
+      return;
     } catch (error) {
       console.error('Get customers error:', error);
       res.status(500).json({
@@ -46,7 +50,15 @@ router.get('/:id',
   tenantMiddleware,
   async (req, res) => {
     try {
-      const customer = await dbService.getCustomer(req.user!.tenantId, req.params.id);
+      if (!req.user?.tenantId) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+      const customer = await dbService.getCustomer(req.user!.tenantId, req.params.id!);
       
       if (!customer) {
         return res.status(404).json({
@@ -82,10 +94,15 @@ router.post('/',
   validateRequest({ body: customerCreateSchema }),
   async (req, res) => {
     try {
-      const customer = await dbService.createCustomer({
-        ...req.body,
-        tenantId: req.user!.tenantId
-      });
+      if (!req.user?.tenantId) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+      const customer = await dbService.createCustomer(req.user!.tenantId, req.body);
 
       res.status(201).json({
         success: true,
@@ -105,6 +122,7 @@ router.post('/',
   }
 );
 
+/*
 // 更新客户
 router.put('/:id',
   authMiddleware,
@@ -175,5 +193,6 @@ router.delete('/:id',
     }
   }
 );
+*/
 
 export default router;

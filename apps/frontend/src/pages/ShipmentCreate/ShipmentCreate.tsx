@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Form,
@@ -15,23 +15,17 @@ import {
   Divider,
   message,
   Space,
-  Tooltip,
   Radio,
   Checkbox,
-  Collapse,
-  Affix,
-  Steps,
 } from 'antd';
 import {
   TruckOutlined,
   EnvironmentOutlined,
   InboxOutlined,
   SafetyOutlined,
-  ClockCircleOutlined,
   HomeOutlined,
   ShopOutlined,
   QuestionCircleOutlined,
-  UserOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -40,33 +34,8 @@ import { shipmentsApi } from '../../services/api';
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
-const { Panel } = Collapse;
-const { Step } = Steps;
 
-interface CargoInfo {
-  length: number;
-  width: number;
-  height: number;
-  weight: number;
-  volume: number;
-  quantity: number;
-  palletCount: number;
-  description: string;
-  value: number;
-  isFragile: boolean;
-  isDangerous: boolean;
-}
 
-interface ShippingOptions {
-  insurance: boolean;
-  insuranceValue?: number;
-  requiresTailgate: boolean;
-  requiresAppointment: boolean;
-  waitingTime: number;
-  addressType: 'residential' | 'commercial';
-  deliveryInstructions: string;
-  specialRequirements: string[];
-}
 
 const ShipmentCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -75,11 +44,9 @@ const ShipmentCreate: React.FC = () => {
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   
-  // 提交确认模式 // 2025-09-25 23:10:00
+  // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
-
-  // 移除步骤配置，单页布局 // 2025-09-25 23:10:00
 
   // 从localStorage恢复表单状态
   const CACHE_KEY = 'shipment_form_cache';
@@ -90,7 +57,6 @@ const ShipmentCreate: React.FC = () => {
       try {
         const parsed = JSON.parse(cachedData);
         form.setFieldsValue(parsed.formData);
-        // 单页布局缓存恢复 // 2025-09-25 23:10:00
         setUnitSystem(parsed.unitSystem || 'cm');
         setWeightUnit(parsed.weightUnit || 'kg');
       } catch (error) {
@@ -100,17 +66,16 @@ const ShipmentCreate: React.FC = () => {
   }, [form]);
 
   // 缓存表单数据
-  const cacheFormData = useCallback(() => {
+  const cacheFormData = () => {
     const formData = form.getFieldsValue();
     const cacheData = {
       formData,
-      // 单页布局缓存 // 2025-09-25 23:10:00
       unitSystem,
       weightUnit,
       timestamp: Date.now()
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-  }, [form, unitSystem, weightUnit]); // Dependencies for useCallback
+  };
 
   // 监听表单变化，自动缓存
   useEffect(() => {
@@ -120,7 +85,7 @@ const ShipmentCreate: React.FC = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [cacheFormData]); // Now cacheFormData is a stable dependency
+  }, [form, unitSystem, weightUnit]); // Dependencies for useEffect
 
   // 清除缓存
   const clearCache = () => {
@@ -398,8 +363,8 @@ const ShipmentCreate: React.FC = () => {
 
   // 单页模块化布局 - 基础信息模块 // 2025-09-24 14:05:00
   const renderBasicInfoSection = () => (
-    <Card title="基础信息" style={{ marginBottom: 16 }}>
-      <Row gutter={[16, 16]}>
+    <Card title="基础信息" style={{ marginBottom: 12 }}>
+      <Row gutter={[12, 8]}>
         <Col span={12}>
           <Form.Item
             name="customerName"
@@ -455,8 +420,8 @@ const ShipmentCreate: React.FC = () => {
 
   // 地址与时间模块 - 修改为左右布局，符合北美地址习惯 // 2025-01-27 15:30:00
   const renderAddressTimeSection = () => (
-    <Card title="地址与时间" style={{ marginBottom: 16 }}>
-      <Row gutter={[24, 16]}>
+    <Card title="地址与时间" style={{ marginBottom: 12 }}>
+      <Row gutter={[16, 8]}>
         {/* 发货人信息 - 左侧 */}
         <Col span={12}>
           <Card size="small" title={
@@ -464,7 +429,7 @@ const ShipmentCreate: React.FC = () => {
               <EnvironmentOutlined /> 发货人信息 (Shipper)
             </span>
           } style={{ height: '100%' }}>
-            <Row gutter={[12, 12]}>
+            <Row gutter={[8, 6]}>
         <Col span={24}>
                 <Form.Item
                   name="shipperName"
@@ -575,7 +540,7 @@ const ShipmentCreate: React.FC = () => {
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
-              minuteStep={60}
+              minuteStep={30}
               hourStep={1}
             />
           </Form.Item>
@@ -702,7 +667,7 @@ const ShipmentCreate: React.FC = () => {
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
-              minuteStep={60}
+              minuteStep={30}
               hourStep={1}
             />
           </Form.Item>
@@ -713,8 +678,8 @@ const ShipmentCreate: React.FC = () => {
 
         {/* 地址类型和距离 - 底部 */}
         <Col span={24}>
-          <Divider />
-          <Row gutter={[16, 16]}>
+          <Divider style={{ margin: '8px 0' }} />
+          <Row gutter={[12, 8]}>
         <Col span={12}>
           <Form.Item name="addressType" label="地址类型" initialValue="residential">
             <Radio.Group>
@@ -745,10 +710,10 @@ const ShipmentCreate: React.FC = () => {
 
   // 货物信息模块 // 2025-09-24 14:05:00
   const renderCargoSection = () => (
-    <Card title="货物信息" style={{ marginBottom: 16 }}>
-      <Row gutter={[16, 16]}>
+    <Card title="货物信息" style={{ marginBottom: 12 }}>
+      <Row gutter={[12, 8]}>
         <Col span={24}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <Title level={5} style={{ margin: 0 }}>
               <InboxOutlined /> 货物规格
             </Title>
@@ -876,7 +841,7 @@ const ShipmentCreate: React.FC = () => {
               placeholder="从商品库中选择常用商品"
               allowClear
               onSelect={handleProductSelect}
-              style={{ marginBottom: '16px' }}
+              style={{ marginBottom: '12px' }}
             >
               {productLibrary.map(product => (
                 <Option key={product.id} value={product.id}>
@@ -910,8 +875,8 @@ const ShipmentCreate: React.FC = () => {
 
   // 服务与保险模块 // 2025-09-24 14:05:00
   const renderServicesSection = () => (
-    <Card title="服务与保险" style={{ marginBottom: 16 }}>
-      <Row gutter={[16, 16]}>
+    <Card title="服务与保险" style={{ marginBottom: 12 }}>
+      <Row gutter={[12, 8]}>
         <Col span={24}>
           <Title level={5}>
             <SafetyOutlined /> 保险服务
@@ -939,7 +904,7 @@ const ShipmentCreate: React.FC = () => {
         </Col>
         
         <Col span={24}>
-          <Divider />
+          <Divider style={{ margin: '8px 0' }} />
           <Title level={5}>
             <TruckOutlined /> 运输服务
           </Title>
@@ -1102,7 +1067,7 @@ const ShipmentCreate: React.FC = () => {
             </Col>
           </Row>
 
-          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
             <Space size="large">
               <Button onClick={handleBackToEdit} size="large">
                 返回修改
@@ -1123,95 +1088,47 @@ const ShipmentCreate: React.FC = () => {
     );
   };
 
-  // 移除孤立的case语句 - 单页布局 // 2025-09-24 14:10:00
-
-  // 移除步骤导航 - 单页布局 // 2025-09-24 14:05:00
-
   // 如果是确认模式，显示确认页面
   if (isConfirmMode) {
     return renderConfirmationPage();
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* 左侧步骤导航 // 2025-01-27 16:25:00 */}
-      <div style={{ 
-        width: '280px', 
-        backgroundColor: '#f5f5f5', 
-        padding: '20px',
-        borderRight: '1px solid #d9d9d9'
-      }}>
-        <div style={{ marginBottom: '30px' }}>
-          <Title level={3}>
-            <TruckOutlined /> 创建运单
-          </Title>
-          <Text type="secondary">请按步骤填写运单信息</Text>
-        </div>
-        
-        <Steps
-          direction="vertical"
-          current={currentStep}
-          onChange={goToStep}
-          items={steps.map((step, index) => ({
-            title: step.title,
-            description: step.description,
-            icon: step.icon,
-            status: index <= currentStep ? 'process' : 'wait'
-          }))}
-        />
-        
-        <div style={{ marginTop: '30px', padding: '16px', backgroundColor: '#fff', borderRadius: '8px' }}>
-          <Text strong>当前进度</Text>
-          <div style={{ marginTop: '8px' }}>
-            <Text type="secondary">
-              第 {currentStep + 1} 步，共 {steps.length} 步
-            </Text>
+    <div style={{ minHeight: '100vh', padding: '16px', backgroundColor: '#f5f5f5' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <Card>
+          <div style={{ marginBottom: '16px' }}>
+            <Title level={2}>
+              <TruckOutlined /> 创建运单
+            </Title>
+            <Text type="secondary">请填写运单信息</Text>
           </div>
-          <div style={{ marginTop: '8px' }}>
-            <Text type="secondary">
-              完成度：{Math.round(((currentStep + 1) / steps.length) * 100)}%
-            </Text>
-          </div>
-        </div>
-      </div>
 
-      {/* 右侧内容区域 */}
-      <div style={{ flex: 1, padding: '20px', backgroundColor: '#fff' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{
-              priority: 'normal',
-              addressType: 'residential',
-              shipperCountry: 'CA',
-              receiverCountry: 'CA',
-              insurance: false,
-              requiresTailgate: false,
-              requiresAppointment: false,
-              cargoIsFragile: false,
-              cargoIsDangerous: false,
-            }}
-          >
-            {/* 根据当前步骤显示对应内容 */}
-            {currentStep === 0 && renderBasicInfoSection()}
-            {currentStep === 1 && renderAddressTimeSection()}
-            {currentStep === 2 && renderCargoSection()}
-            {currentStep === 3 && renderServicesSection()}
+          <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 8px' }}>
+            <Form
+              form={form}
+              layout="vertical"
+              initialValues={{
+                priority: 'normal',
+                addressType: 'residential',
+                shipperCountry: 'CA',
+                receiverCountry: 'CA',
+                insurance: false,
+                requiresTailgate: false,
+                requiresAppointment: false,
+                cargoIsFragile: false,
+                cargoIsDangerous: false,
+              }}
+            >
+              {/* 单页布局 - 显示所有模块 */}
+              {renderBasicInfoSection()}
+              {renderAddressTimeSection()}
+              {renderCargoSection()}
+              {renderServicesSection()}
 
-            {/* 步骤导航按钮 */}
-            <div style={{ textAlign: 'center', marginTop: '40px' }}>
-              <Space size="large">
-                {currentStep > 0 && (
-                  <Button onClick={prevStep} size="large">
-                    上一步
-                  </Button>
-                )}
-                {currentStep < steps.length - 1 ? (
-                  <Button type="primary" onClick={nextStep} size="large">
-                    下一步
-                  </Button>
-                ) : (
+              {/* 提交按钮 */}
+              <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                <Space size="large">
                   <Button
                     type="primary"
                     onClick={handleSubmitToConfirm}
@@ -1220,14 +1137,14 @@ const ShipmentCreate: React.FC = () => {
                   >
                     提交确认
                   </Button>
-                )}
-                <Button onClick={() => navigate('/admin/shipments')} size="large">
-                  返回列表
-                </Button>
-              </Space>
-            </div>
-          </Form>
-        </div>
+                  <Button onClick={() => navigate('/admin/shipments')} size="large">
+                    返回列表
+                  </Button>
+                </Space>
+              </div>
+            </Form>
+          </div>
+        </Card>
       </div>
     </div>
   );
