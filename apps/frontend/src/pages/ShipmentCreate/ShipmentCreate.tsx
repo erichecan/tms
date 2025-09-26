@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi } from '../../services/api';
+import dayjs from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -56,11 +57,41 @@ const ShipmentCreate: React.FC = () => {
     if (cachedData) {
       try {
         const parsed = JSON.parse(cachedData);
-        form.setFieldsValue(parsed.formData);
-        setUnitSystem(parsed.unitSystem || 'cm');
-        setWeightUnit(parsed.weightUnit || 'kg');
+        // Add a check here to ensure parsed is an object and has expected properties
+        if (typeof parsed === 'object' && parsed !== null && parsed.formData) { // Ensure parsed.formData exists
+          // 处理日期字段，确保使用 dayjs 对象 // 2025-09-26 03:35:00
+          const processedFormData = { ...parsed.formData };
+          
+          // 转换日期字符串为 dayjs 对象
+          if (processedFormData.pickupDate && typeof processedFormData.pickupDate === 'string') {
+            processedFormData.pickupDate = dayjs(processedFormData.pickupDate);
+          }
+          if (processedFormData.deliveryDate && typeof processedFormData.deliveryDate === 'string') {
+            processedFormData.deliveryDate = dayjs(processedFormData.deliveryDate);
+          }
+          
+          // 转换时间范围
+          if (processedFormData.pickupTimeRange && Array.isArray(processedFormData.pickupTimeRange)) {
+            processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map(time => 
+              typeof time === 'string' ? dayjs(time) : time
+            );
+          }
+          if (processedFormData.deliveryTimeRange && Array.isArray(processedFormData.deliveryTimeRange)) {
+            processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map(time => 
+              typeof time === 'string' ? dayjs(time) : time
+            );
+          }
+          
+          form.setFieldsValue(processedFormData);
+          setUnitSystem(parsed.unitSystem || 'cm');
+          setWeightUnit(parsed.weightUnit || 'kg');
+        } else {
+          console.warn('Cached data is malformed or incomplete, clearing cache.');
+          clearCache(); // Clear invalid cache to prevent future issues
+        }
       } catch (error) {
         console.error('Failed to parse cached form data:', error);
+        clearCache(); // Clear cache on parse error
       }
     }
   }, [form]);
@@ -68,8 +99,32 @@ const ShipmentCreate: React.FC = () => {
   // 缓存表单数据
   const cacheFormData = () => {
     const formData = form.getFieldsValue();
+    
+    // 处理日期对象，转换为字符串以便序列化 // 2025-09-26 03:35:00
+    const processedFormData = { ...formData };
+    
+    // 转换 dayjs 对象为字符串
+    if (processedFormData.pickupDate && dayjs.isDayjs(processedFormData.pickupDate)) {
+      processedFormData.pickupDate = processedFormData.pickupDate.format('YYYY-MM-DD');
+    }
+    if (processedFormData.deliveryDate && dayjs.isDayjs(processedFormData.deliveryDate)) {
+      processedFormData.deliveryDate = processedFormData.deliveryDate.format('YYYY-MM-DD');
+    }
+    
+    // 转换时间范围
+    if (processedFormData.pickupTimeRange && Array.isArray(processedFormData.pickupTimeRange)) {
+      processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map(time => 
+        dayjs.isDayjs(time) ? time.format('HH:mm') : time
+      );
+    }
+    if (processedFormData.deliveryTimeRange && Array.isArray(processedFormData.deliveryTimeRange)) {
+      processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map(time => 
+        dayjs.isDayjs(time) ? time.format('HH:mm') : time
+      );
+    }
+    
     const cacheData = {
-      formData,
+      formData: processedFormData,
       unitSystem,
       weightUnit,
       timestamp: Date.now()
@@ -91,6 +146,11 @@ const ShipmentCreate: React.FC = () => {
   const clearCache = () => {
     localStorage.removeItem(CACHE_KEY);
   };
+
+  // 组件挂载时清除可能损坏的缓存 // 2025-09-26 03:35:00
+  useEffect(() => {
+    clearCache();
+  }, []);
 
   // 单位转换函数
   const convertToCm = (inch: number) => inch * 2.54;
@@ -404,7 +464,6 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="priority"
             label="优先级"
-            initialValue="normal"
           >
             <Select>
               <Option value="low">低</Option>
@@ -496,7 +555,6 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperCountry"
                   label="国家 (Country)"
                   rules={[{ required: true, message: '请选择国家' }]}
-                  initialValue="CA"
                 >
                   <Select>
                     <Option value="CA">加拿大 (Canada)</Option>
@@ -532,6 +590,7 @@ const ShipmentCreate: React.FC = () => {
               format="YYYY-MM-DD"
               style={{ width: '100%' }} 
               placeholder="选择取货日期"
+              disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
             />
           </Form.Item>
         </Col>
@@ -623,7 +682,6 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverCountry"
                   label="国家 (Country)"
                   rules={[{ required: true, message: '请选择国家' }]}
-                  initialValue="CA"
                 >
                   <Select>
                     <Option value="CA">加拿大 (Canada)</Option>
@@ -659,6 +717,7 @@ const ShipmentCreate: React.FC = () => {
               format="YYYY-MM-DD"
               style={{ width: '100%' }} 
               placeholder="选择送达日期"
+              disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
             />
           </Form.Item>
         </Col>
@@ -681,7 +740,7 @@ const ShipmentCreate: React.FC = () => {
           <Divider style={{ margin: '8px 0' }} />
           <Row gutter={[12, 8]}>
         <Col span={12}>
-          <Form.Item name="addressType" label="地址类型" initialValue="residential">
+          <Form.Item name="addressType" label="地址类型">
             <Radio.Group>
               <Radio.Button value="residential">
                 <HomeOutlined /> 住宅地址
@@ -892,14 +951,17 @@ const ShipmentCreate: React.FC = () => {
             name="insuranceValue"
             label="保险金额 (元)"
             dependencies={['insurance']}
+            shouldUpdate={(prevValues, currentValues) => prevValues.insurance !== currentValues.insurance}
           >
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder="保险金额"
-              min={0}
-              precision={2}
-              disabled={!form.getFieldValue('insurance')}
-            />
+            {({ getFieldValue }) => (
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="保险金额"
+                min={0}
+                precision={2}
+                disabled={!getFieldValue('insurance')}
+              />
+            )}
           </Form.Item>
         </Col>
         

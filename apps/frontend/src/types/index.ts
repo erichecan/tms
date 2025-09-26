@@ -77,16 +77,23 @@ export enum ShipmentStatus {
   CANCELLED = 'cancelled',
 }
 
+export interface ShipmentAddress {
+  city: string;
+  state: string;
+  street: string;
+  postalCode: string;
+}
+
 export interface Shipment {
   id: string;
   shipmentNumber: string;
-  customerId: string;
+  customerId: string | null;
   customerName: string;
-  driverId: string;
+  driverId: string | null;
   driverName: string;
   status: ShipmentStatus;
-  pickupAddress: string;
-  deliveryAddress: string;
+  pickupAddress: ShipmentAddress;
+  deliveryAddress: ShipmentAddress;
   pickupDate: string;
   deliveryDate?: string;
   estimatedCost: number;

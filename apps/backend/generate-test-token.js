@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 
 // 使用与后端相同的JWT密钥
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = 'your-super-secret-jwt-key-change-this-in-production';
 
 // 从数据库获取的用户和租户信息
 const tenantId = '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e';

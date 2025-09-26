@@ -119,11 +119,13 @@ const ShipmentManagement: React.FC = () => {
       title: '客户',
       dataIndex: 'customerName',
       key: 'customerName',
+      render: (text: string) => text || '未指定',
     },
     {
       title: '司机',
       dataIndex: 'driverName',
       key: 'driverName',
+      render: (text: string) => text || '未分配',
     },
     {
       title: '状态',
@@ -135,9 +137,9 @@ const ShipmentManagement: React.FC = () => {
       title: '预估费用',
       dataIndex: 'estimatedCost',
       key: 'estimatedCost',
-      render: (cost: number) => (
+      render: (cost: number | string) => (
         <Text strong style={{ color: '#1890ff' }}>
-          ¥{cost.toFixed(2)}
+          ¥{cost ? (typeof cost === 'number' ? cost.toFixed(2) : parseFloat(cost).toFixed(2)) : '0.00'}
         </Text>
       ),
     },
@@ -159,7 +161,6 @@ const ShipmentManagement: React.FC = () => {
               onClick={() => handleViewShipment(record)}
             />
           </Tooltip>
-          {/* 移除编辑按钮：编辑改由详情页或单独页面处理 // 2025-09-25 23:42:00 */}
           <Popconfirm
             title="确定要删除这个运单吗？"
             description="删除后无法恢复，请谨慎操作。"
@@ -260,11 +261,15 @@ const ShipmentManagement: React.FC = () => {
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>取货地址：</Text>
-                <div>{viewingShipment.pickupAddress}</div>
+                <div>
+                  {viewingShipment.pickupAddress.street}, {viewingShipment.pickupAddress.city}, {viewingShipment.pickupAddress.state} {viewingShipment.pickupAddress.postalCode}
+                </div>
               </Col>
               <Col span={12}>
                 <Text strong>送达地址：</Text>
-                <div>{viewingShipment.deliveryAddress}</div>
+                <div>
+                  {viewingShipment.deliveryAddress.street}, {viewingShipment.deliveryAddress.city}, {viewingShipment.deliveryAddress.state} {viewingShipment.deliveryAddress.postalCode}
+                </div>
               </Col>
             </Row>
             <Divider />
@@ -272,12 +277,12 @@ const ShipmentManagement: React.FC = () => {
               <Col span={12}>
                 <Text strong>预估费用：</Text>
                 <div style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                  ¥{viewingShipment.estimatedCost?.toFixed(2) || '0.00'}
+                  ¥{viewingShipment.estimatedCost ? parseFloat(viewingShipment.estimatedCost).toFixed(2) : '0.00'}
                 </div>
               </Col>
               <Col span={12}>
                 <Text strong>重量：</Text>
-                <div>{viewingShipment.weight} kg</div>
+                <div>{viewingShipment.weight || 0} kg</div>
               </Col>
             </Row>
             <Divider />

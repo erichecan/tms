@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { UserLoginPayload, AuthResponse } from '../types/index';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -17,9 +17,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-25 23:42:00
-      // userId/tenantId 对应初始化脚本与数据库中的演示数据
-      const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4NGUxODIyMy0xYWRiLTRkNGUtYTRjZC02YTIxZTRjMDZiYWMiLCJ0ZW5hbnRJZCI6IjI5OTZmNWQwLTJmZmEtNGFhOC1hY2I1LTZjMjNmYmYzOGUwZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODc5MTY3NywiZXhwIjoxNzU5Mzk2NDc3fQ.DVcUp5piyD6kMn3D6AwGvQSJ4tqP3WuIe9h6Ygts5-M';
+      // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-26 03:50:00
+      // 使用后端生成的真正JWT token
+      const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4NGUxODIyMy0xYWRiLTRkNGUtYTRjZC02YTIxZTRjMDZiYWMiLCJ0ZW5hbnRJZCI6IjI5OTZmNWQwLTJmZmEtNGFhOC1hY2I1LTZjMjNmYmYzOGUwZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg1ODQ3OSwiZXhwIjoxNzU5NDYzMjc5fQ.lH7MI7gAQbOsxaq-F2P5iFRK8PSP3HghJI8K0DoT4lI';
       config.headers.Authorization = `Bearer ${devToken}`;
     }
     // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
