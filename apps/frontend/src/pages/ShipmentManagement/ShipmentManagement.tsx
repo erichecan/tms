@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { shipmentsApi, driversApi } from '../../services/api';
 import { Shipment, ShipmentStatus, Driver } from '../../types';
+import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails';
 
 const { Title, Text } = Typography;
 
@@ -65,11 +66,8 @@ const ShipmentManagement: React.FC = () => {
     if (!assigningShipment) return;
     
     try {
-      // 更新运单的司机信息
-      await shipmentsApi.updateShipment(assigningShipment.id, {
-        driverId: driverId,
-        status: ShipmentStatus.ASSIGNED
-      });
+      // 使用专门的指派司机 API，修复 500 错误 // 2025-09-26 17:40:00
+      await shipmentsApi.assignDriver(assigningShipment.id, driverId, '系统指派');
       
       message.success('司机指派成功');
       setIsAssignModalVisible(false);
@@ -219,7 +217,7 @@ const ShipmentManagement: React.FC = () => {
           setViewingShipment(null);
         }}
         footer={null}
-        width={800}
+        width={1000}
       >
         {viewingShipment && (
           <div>
