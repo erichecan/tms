@@ -27,6 +27,10 @@ import {
   ShopOutlined,
   QuestionCircleOutlined,
   CheckCircleOutlined,
+  PlusOutlined,
+  UploadOutlined,
+  DownloadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi } from '../../services/api';
@@ -46,6 +50,14 @@ const ShipmentCreate: React.FC = () => {
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [customers, setCustomers] = useState<any[]>([]);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [cargoItems, setCargoItems] = useState<any[]>([
+    { id: 1, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
+    { id: 2, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
+    { id: 3, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
+    { id: 4, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
+    { id: 5, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
+  ]);
+  const [fileList, setFileList] = useState<any[]>([]);
   
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
@@ -300,6 +312,7 @@ const ShipmentCreate: React.FC = () => {
         customerPhone: values.customerPhone,
         customerEmail: values.customerEmail,
         priority: values.priority,
+        cargoItems: cargoItems.filter(item => item.description), // 只包含有描述的货物
         shipper: {
           name: values.shipperName,
           company: values.shipperCompany,
