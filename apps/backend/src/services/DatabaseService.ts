@@ -1424,6 +1424,37 @@ export class DatabaseService {
     return result[0];
   }
 
+  /**
+   * 删除车辆
+   * @param id 车辆ID
+   */
+  async deleteVehicle(id: string): Promise<void> {
+    const query = 'DELETE FROM vehicles WHERE id = $1';
+    await this.query(query, [id]);
+  }
+
+  /**
+   * 删除司机
+   * @param tenantId 租户ID
+   * @param driverId 司机ID
+   */
+  async deleteDriver(tenantId: string, driverId: string): Promise<boolean> {
+    const query = 'DELETE FROM drivers WHERE id = $1 AND tenant_id = $2';
+    const result = await this.query(query, [driverId, tenantId]);
+    return result.length > 0;
+  }
+
+  /**
+   * 删除客户
+   * @param tenantId 租户ID
+   * @param customerId 客户ID
+   */
+  async deleteCustomer(tenantId: string, customerId: string): Promise<boolean> {
+    const query = 'DELETE FROM customers WHERE id = $1 AND tenant_id = $2';
+    const result = await this.query(query, [customerId, tenantId]);
+    return result.length > 0;
+  }
+
   // ==================== 连接管理 ====================
 
   /**

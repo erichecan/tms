@@ -48,7 +48,36 @@ const CustomerManagement: React.FC = () => {
   const handleConfirmAdd = async () => {
     try {
       const values = await form.validateFields();
-      await customersApi.createCustomer(values);
+      
+      // 转换表单数据为后端API期望的格式
+      const customerData = {
+        name: values.name,
+        level: values.level,
+        contactInfo: {
+          email: values.email,
+          phone: values.phone,
+          address: {
+            street: values.address || '测试街道',
+            city: '测试城市',
+            state: '测试省份',
+            postalCode: '100000',
+            country: '中国'
+          }
+        },
+        billingInfo: {
+          companyName: values.name,
+          taxId: 'TEST001',
+          billingAddress: {
+            street: values.address || '测试街道',
+            city: '测试城市',
+            state: '测试省份',
+            postalCode: '100000',
+            country: '中国'
+          }
+        }
+      };
+      
+      await customersApi.createCustomer(customerData);
       message.success('客户添加成功');
       setIsAddModalVisible(false);
       form.resetFields();

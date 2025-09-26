@@ -48,7 +48,25 @@ const DriverManagement: React.FC = () => {
   const handleConfirmAdd = async () => {
     try {
       const values = await form.validateFields();
-      await driversApi.createDriver(values);
+      
+      // 转换表单数据为后端API期望的格式
+      const driverData = {
+        name: values.name,
+        phone: values.phone,
+        licenseNumber: values.licenseNumber,
+        vehicleInfo: {
+          type: values.vehicleType,
+          licensePlate: values.licensePlate || 'TEMP001', // 临时车牌号
+          capacity: values.capacity || 1000, // 默认载重
+          dimensions: {
+            length: values.length || 4,
+            width: values.width || 2,
+            height: values.height || 2
+          }
+        }
+      };
+      
+      await driversApi.createDriver(driverData);
       message.success('司机添加成功');
       setIsAddModalVisible(false);
       form.resetFields();

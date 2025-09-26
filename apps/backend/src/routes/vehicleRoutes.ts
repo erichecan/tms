@@ -64,4 +64,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/v1/vehicles/:id - 删除车辆
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 检查车辆是否存在
+    const vehicle = await dbService.getVehicleById(id);
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: '车辆不存在' }
+      });
+    }
+
+    // 删除车辆
+    await dbService.deleteVehicle(id);
+
+    res.json({ success: true, message: '车辆删除成功' });
+  } catch (e: any) {
+    console.error('Delete vehicle error:', e);
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+  }
+});
+
 export default router;

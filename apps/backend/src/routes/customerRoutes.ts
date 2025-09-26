@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest, customerCreateSchema } from '../middleware/validationMiddleware';
+import { validateRequest, customerCreateSchema, customerUpdateSchema } from '../middleware/validationMiddleware';
 
 
 const router = Router();
@@ -122,7 +122,6 @@ router.post('/',
   }
 );
 
-/*
 // 更新客户
 router.put('/:id',
   authMiddleware,
@@ -193,6 +192,5 @@ router.delete('/:id',
     }
   }
 );
-*/
 
 export default router;

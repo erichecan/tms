@@ -42,7 +42,7 @@ const AppLayout: React.FC = () => {
             {
               key: '1',
               icon: <DashboardOutlined />,
-              label: 'Dashboard',
+              label: '仪表板',
               onClick: () => navigate('/admin'),
             },
             {
@@ -78,7 +78,7 @@ const AppLayout: React.FC = () => {
             {
               key: '7',
               icon: <DollarOutlined />,
-              label: '财务结算',
+              label: '财务管理',
               onClick: () => navigate('/admin/finance'),
             },
             {

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest, driverCreateSchema } from '../middleware/validationMiddleware';
+import { validateRequest, driverCreateSchema, driverUpdateSchema } from '../middleware/validationMiddleware';
 
 const router = Router();
 const dbService = new DatabaseService();
@@ -120,7 +120,6 @@ router.post('/',
   }
 );
 
-/*
 // 更新司机
 router.put('/:id',
   authMiddleware,
@@ -191,6 +190,5 @@ router.delete('/:id',
     }
   }
 );
-*/
 
 export default router;
