@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, Table, Typography, message, Tag, Space, Tooltip } from 'antd';
+import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select } from 'antd';
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { driversApi } from '../../services/api';
 import { Driver } from '../../types';
@@ -9,6 +9,8 @@ const { Title } = Typography;
 const DriverManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     loadDrivers();
@@ -35,6 +37,25 @@ const DriverManagement: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete driver:', error);
       message.error('删除司机失败');
+    }
+  };
+
+  const handleAddDriver = () => {
+    setIsAddModalVisible(true);
+    form.resetFields();
+  };
+
+  const handleConfirmAdd = async () => {
+    try {
+      const values = await form.validateFields();
+      await driversApi.createDriver(values);
+      message.success('司机添加成功');
+      setIsAddModalVisible(false);
+      form.resetFields();
+      loadDrivers();
+    } catch (error) {
+      console.error('Failed to add driver:', error);
+      message.error('添加司机失败');
     }
   };
 
@@ -99,7 +120,7 @@ const DriverManagement: React.FC = () => {
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>司机管理</Title>
-        <Button type="primary" icon={<PlusOutlined />}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleAddDriver}>
           新增司机
         </Button>
       </div>
@@ -118,6 +139,81 @@ const DriverManagement: React.FC = () => {
           }}
         />
       </Card>
+
+      {/* 新增司机弹窗 */}
+      <Modal
+        title="新增司机"
+        open={isAddModalVisible}
+        onOk={handleConfirmAdd}
+        onCancel={() => {
+          setIsAddModalVisible(false);
+          form.resetFields();
+        }}
+        okText="确认"
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="司机姓名"
+            rules={[{ required: true, message: '请输入司机姓名' }]}
+          >
+            <Input placeholder="请输入司机姓名" />
+          </Form.Item>
+          
+          <Form.Item
+            name="email"
+            label="邮箱"
+            rules={[
+              { required: true, message: '请输入邮箱' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
+          >
+            <Input placeholder="请输入邮箱" />
+          </Form.Item>
+          
+          <Form.Item
+            name="phone"
+            label="电话"
+            rules={[{ required: true, message: '请输入电话号码' }]}
+          >
+            <Input placeholder="请输入电话号码" />
+          </Form.Item>
+          
+          <Form.Item
+            name="licenseNumber"
+            label="驾照号"
+            rules={[{ required: true, message: '请输入驾照号' }]}
+          >
+            <Input placeholder="请输入驾照号" />
+          </Form.Item>
+          
+          <Form.Item
+            name="vehicleType"
+            label="车辆类型"
+            rules={[{ required: true, message: '请选择车辆类型' }]}
+          >
+            <Select placeholder="请选择车辆类型">
+              <Select.Option value="小型货车">小型货车</Select.Option>
+              <Select.Option value="中型货车">中型货车</Select.Option>
+              <Select.Option value="大型货车">大型货车</Select.Option>
+              <Select.Option value="厢式货车">厢式货车</Select.Option>
+              <Select.Option value="冷藏车">冷藏车</Select.Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="status"
+            label="状态"
+            initialValue="active"
+          >
+            <Select>
+              <Select.Option value="active">活跃</Select.Option>
+              <Select.Option value="inactive">非活跃</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
