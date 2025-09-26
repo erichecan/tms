@@ -3,7 +3,20 @@
 
 import React from 'react';
 import { Typography, Space, Tooltip } from 'antd';
-import { CURRENCY_SYMBOLS, CURRENCY_NAMES } from '@shared/constants';
+// 临时常量定义
+const CURRENCY_SYMBOLS = {
+  CNY: '¥',
+  USD: '$',
+  CAD: 'C$',
+  EUR: '€'
+} as const;
+
+const CURRENCY_NAMES = {
+  CNY: '人民币',
+  USD: '美元',
+  CAD: '加元',
+  EUR: '欧元'
+} as const;
 
 const { Text } = Typography;
 

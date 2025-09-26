@@ -1,7 +1,7 @@
 // 币种相关API服务
 // 创建时间: 2025-09-26 16:40:00
 
-import { api } from './api';
+import api from './api';
 
 export interface ExchangeRate {
   id: string;

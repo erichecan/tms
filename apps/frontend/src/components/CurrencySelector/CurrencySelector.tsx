@@ -3,7 +3,22 @@
 
 import React from 'react';
 import { Select, Space, Typography } from 'antd';
-import { SUPPORTED_CURRENCIES, CURRENCY_SYMBOLS, CURRENCY_NAMES } from '@shared/constants';
+// 临时常量定义
+const SUPPORTED_CURRENCIES = ['CNY', 'USD', 'CAD', 'EUR'] as const;
+
+const CURRENCY_SYMBOLS = {
+  CNY: '¥',
+  USD: '$',
+  CAD: 'C$',
+  EUR: '€'
+} as const;
+
+const CURRENCY_NAMES = {
+  CNY: '人民币',
+  USD: '美元',
+  CAD: '加元',
+  EUR: '欧元'
+} as const;
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -52,11 +67,15 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       style={style}
       optionFilterProp="children"
       showSearch
-      filterOption={(input, option) =>
-        (option?.children as string)?.toLowerCase().includes(input.toLowerCase()) ?? false
-      }
+      filterOption={(input, option) => {
+        const children = option?.children;
+        if (typeof children === 'string') {
+          return children.toLowerCase().includes(input.toLowerCase());
+        }
+        return false;
+      }}
     >
-      {SUPPORTED_CURRENCIES.map(currency => (
+      {SUPPORTED_CURRENCIES.map((currency: string) => (
         <Option key={currency} value={currency}>
           {renderOption(currency)}
         </Option>

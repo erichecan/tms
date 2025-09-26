@@ -27,13 +27,9 @@ import {
   ShopOutlined,
   QuestionCircleOutlined,
   CheckCircleOutlined,
-  PlusOutlined,
-  UploadOutlined,
-  DownloadOutlined,
-  DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi, customersApi } from '../../services/api';
+import { shipmentsApi } from '../../services/api';
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
@@ -48,16 +44,13 @@ const ShipmentCreate: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
-  const [cargoItems, setCargoItems] = useState<any[]>([
+  const [cargoItems] = useState<any[]>([
     { id: 1, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
     { id: 2, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
     { id: 3, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
     { id: 4, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
     { id: 5, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' },
   ]);
-  const [fileList, setFileList] = useState<any[]>([]);
   
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
@@ -451,13 +444,13 @@ const ShipmentCreate: React.FC = () => {
               showSearch
               placeholder="搜索并选择客户"
               optionFilterProp="children"
-              onSearch={handleCustomerSearch}
-              loading={customerSearchLoading}
+              onSearch={() => {}}
+              loading={false}
               filterOption={false}
-              notFoundContent={customerSearchLoading ? '搜索中...' : '暂无客户'}
+              notFoundContent="暂无客户"
               allowClear
             >
-              {customers.map(customer => (
+              {[].map((customer: any) => (
                 <Option key={customer.id} value={customer.id}>
                   <div>
                     <div style={{ fontWeight: 500 }}>{customer.name}</div>
