@@ -8,6 +8,9 @@ import {
   CarOutlined,
   DollarOutlined,
   LogoutOutlined,
+  UserOutlined,
+  TeamOutlined,
+  TruckOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,6 +59,24 @@ const AppLayout: React.FC = () => {
             },
             {
               key: '4',
+              icon: <UserOutlined />,
+              label: '客户管理',
+              onClick: () => navigate('/admin/customers'),
+            },
+            {
+              key: '5',
+              icon: <TeamOutlined />,
+              label: '司机管理',
+              onClick: () => navigate('/admin/drivers'),
+            },
+            {
+              key: '6',
+              icon: <TruckOutlined />,
+              label: '车辆管理',
+              onClick: () => navigate('/admin/vehicles'),
+            },
+            {
+              key: '7',
               icon: <DollarOutlined />,
               label: '财务结算',
               onClick: () => navigate('/admin/finance'),

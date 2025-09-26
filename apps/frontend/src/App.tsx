@@ -11,6 +11,9 @@ import RuleManagement from './pages/RuleManagement/RuleManagement';
 import ShipmentManagement from './pages/ShipmentManagement/ShipmentManagement';
 import ShipmentCreate from './pages/ShipmentCreate/ShipmentCreate';
 import FinanceManagement from './pages/FinanceManagement/FinanceManagement';
+import CustomerManagement from './pages/CustomerManagement/CustomerManagement';
+import DriverManagement from './pages/DriverManagement/DriverManagement';
+import VehicleManagement from './pages/VehicleManagement/VehicleManagement';
 import './App.css';
 
 function App() {
@@ -35,6 +38,9 @@ function App() {
               <Route path="rules" element={<RuleManagement />} />
               <Route path="shipments" element={<ShipmentManagement />} />
               <Route path="finance" element={<FinanceManagement />} />
+              <Route path="customers" element={<CustomerManagement />} />
+              <Route path="drivers" element={<DriverManagement />} />
+              <Route path="vehicles" element={<VehicleManagement />} />
               {/* Add other protected routes here */}
             </Route>
           </Routes>
