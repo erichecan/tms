@@ -29,7 +29,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi } from '../../services/api';
+import { shipmentsApi, customersApi } from '../../services/api';
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
@@ -42,6 +42,8 @@ const ShipmentCreate: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [cargoItems] = useState<any[]>([
@@ -445,18 +447,20 @@ const ShipmentCreate: React.FC = () => {
               showSearch
               placeholder="搜索并选择客户"
               optionFilterProp="children"
-              onSearch={() => {}}
-              loading={false}
-              filterOption={false}
-              notFoundContent="暂无客户"
+              loading={customersLoading}
+              filterOption={(input, option) => {
+                const customer = customers.find(c => c.id === option?.value);
+                return customer?.name.toLowerCase().includes(input.toLowerCase()) || false;
+              }}
+              notFoundContent={customersLoading ? "加载中..." : "暂无客户"}
               allowClear
             >
-              {[].map((customer: any) => (
+              {customers.map((customer: any) => (
                 <Option key={customer.id} value={customer.id}>
                   <div>
                     <div style={{ fontWeight: 500 }}>{customer.name}</div>
                     <div style={{ fontSize: '12px', color: '#666' }}>
-                      {customer.contactInfo?.phone} • {customer.email}
+                      {customer.contactInfo?.phone} • {customer.contactInfo?.email}
                     </div>
                   </div>
                 </Option>

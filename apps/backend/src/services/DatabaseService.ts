@@ -69,6 +69,22 @@ export class DatabaseService {
   }
 
   /**
+   * 执行删除操作
+   * @param query SQL查询语句
+   * @param params 查询参数
+   * @returns 删除结果
+   */
+  public async delete(query: string, params: any[] = []): Promise<{ rowCount: number }> {
+    const client = await this.getConnection();
+    try {
+      const result = await client.query(query, params);
+      return { rowCount: result.rowCount };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * 开始事务
    * @returns 事务客户端
    */
@@ -1440,8 +1456,51 @@ export class DatabaseService {
    */
   async deleteDriver(tenantId: string, driverId: string): Promise<boolean> {
     const query = 'DELETE FROM drivers WHERE id = $1 AND tenant_id = $2';
-    const result = await this.query(query, [driverId, tenantId]);
-    return result.length > 0;
+    const result = await this.delete(query, [driverId, tenantId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * 更新客户
+   * @param tenantId 租户ID
+   * @param customerId 客户ID
+   * @param updates 更新数据
+   * @returns 更新后的客户
+   */
+  async updateCustomer(tenantId: string, customerId: string, updates: any): Promise<any | null> {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updates).forEach(key => {
+      if (updates[key] !== undefined) {
+        if (key === 'contactInfo' || key === 'billingInfo') {
+          fields.push(`${key} = $${paramIndex}`);
+          values.push(JSON.stringify(updates[key]));
+        } else {
+          fields.push(`${key} = $${paramIndex}`);
+          values.push(updates[key]);
+        }
+        paramIndex++;
+      }
+    });
+
+    if (fields.length === 0) {
+      return await this.getCustomer(tenantId, customerId);
+    }
+
+    fields.push(`updated_at = NOW()`);
+    values.push(customerId, tenantId);
+
+    const query = `
+      UPDATE customers 
+      SET ${fields.join(', ')} 
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.length > 0 ? result[0] : null;
   }
 
   /**
@@ -1451,8 +1510,138 @@ export class DatabaseService {
    */
   async deleteCustomer(tenantId: string, customerId: string): Promise<boolean> {
     const query = 'DELETE FROM customers WHERE id = $1 AND tenant_id = $2';
-    const result = await this.query(query, [customerId, tenantId]);
-    return result.length > 0;
+    const result = await this.delete(query, [customerId, tenantId]);
+    return result.rowCount > 0;
+  }
+
+  // ==================== 货币管理 ====================
+
+  /**
+   * 获取货币列表
+   * @param tenantId 租户ID
+   * @returns 货币列表
+   */
+  async getCurrencies(tenantId: string): Promise<any[]> {
+    const query = `
+      SELECT * FROM currencies 
+      WHERE tenant_id = $1 
+      ORDER BY is_default DESC, created_at ASC
+    `;
+    const result = await this.query(query, [tenantId]);
+    return result;
+  }
+
+  /**
+   * 根据ID获取货币
+   * @param tenantId 租户ID
+   * @param id 货币ID
+   * @returns 货币信息
+   */
+  async getCurrencyById(tenantId: string, id: string): Promise<any | null> {
+    const query = 'SELECT * FROM currencies WHERE id = $1 AND tenant_id = $2';
+    const result = await this.query(query, [id, tenantId]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 创建货币
+   * @param tenantId 租户ID
+   * @param currency 货币数据
+   * @returns 创建的货币
+   */
+  async createCurrency(tenantId: string, currency: {
+    code: string;
+    name: string;
+    symbol: string;
+    exchangeRate: number;
+    isDefault: boolean;
+    isActive: boolean;
+  }): Promise<any> {
+    const query = `
+      INSERT INTO currencies (id, tenant_id, code, name, symbol, exchange_rate, is_default, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const id = `currency_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const result = await this.query(query, [
+      id,
+      tenantId,
+      currency.code,
+      currency.name,
+      currency.symbol,
+      currency.exchangeRate,
+      currency.isDefault,
+      currency.isActive
+    ]);
+    
+    return result[0];
+  }
+
+  /**
+   * 更新货币
+   * @param tenantId 租户ID
+   * @param id 货币ID
+   * @param updates 更新数据
+   * @returns 更新后的货币
+   */
+  async updateCurrency(tenantId: string, id: string, updates: any): Promise<any | null> {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updates).forEach(key => {
+      if (updates[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex}`);
+        values.push(updates[key]);
+        paramIndex++;
+      }
+    });
+
+    if (fields.length === 0) {
+      return await this.getCurrencyById(tenantId, id);
+    }
+
+    fields.push(`updated_at = NOW()`);
+    values.push(id, tenantId);
+
+    const query = `
+      UPDATE currencies 
+      SET ${fields.join(', ')} 
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 删除货币
+   * @param tenantId 租户ID
+   * @param id 货币ID
+   */
+  async deleteCurrency(tenantId: string, id: string): Promise<void> {
+    const query = 'DELETE FROM currencies WHERE id = $1 AND tenant_id = $2';
+    await this.query(query, [id, tenantId]);
+  }
+
+  /**
+   * 更新默认货币
+   * @param tenantId 租户ID
+   * @param excludeId 排除的货币ID（设为null时取消所有默认货币）
+   */
+  async updateDefaultCurrency(tenantId: string, excludeId: string | null): Promise<void> {
+    let query = 'UPDATE currencies SET is_default = false WHERE tenant_id = $1';
+    const values = [tenantId];
+
+    if (excludeId) {
+      query += ' AND id != $2';
+      values.push(excludeId);
+    }
+
+    await this.query(query, values);
   }
 
   // ==================== 连接管理 ====================

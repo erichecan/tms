@@ -46,7 +46,8 @@ import mvpPodRoutes from './routes/mvpPodRoutes'; // MVP POD // 2025-09-23 10:30
 import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
-import vehicleRoutes from './routes/vehicleRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
+import vehicleRoutes from './routes/vehicleRoutes';
+import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
 
 // 创建Express应用
 const app = express();
