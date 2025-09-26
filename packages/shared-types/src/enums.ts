@@ -100,6 +100,13 @@ export enum FinancialStatus {
   CANCELLED = 'cancelled'
 }
 
+export enum Currency {
+  CNY = 'CNY',
+  USD = 'USD',
+  CAD = 'CAD',
+  EUR = 'EUR'
+}
+
 // 对账单类型枚举
 export enum StatementType {
   CUSTOMER = 'customer',

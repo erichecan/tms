@@ -3,7 +3,9 @@
 
 import { DatabaseService } from './DatabaseService';
 import { RuleEngineService } from './RuleEngineService';
+import { CurrencyService } from './CurrencyService';
 import { logger } from '../utils/logger';
+import { DEFAULT_CURRENCY } from '@shared/constants';
 import { 
   FinancialRecord, 
   Statement, 
@@ -62,10 +64,12 @@ export interface FinancialReport {
 export class FinanceService {
   private dbService: DatabaseService;
   private ruleEngineService: RuleEngineService;
+  private currencyService: CurrencyService;
 
-  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService) {
+  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService, currencyService: CurrencyService) {
     this.dbService = dbService;
     this.ruleEngineService = ruleEngineService;
+    this.currencyService = currencyService;
   }
 
   /**
@@ -223,7 +227,7 @@ export class FinanceService {
         type: 'receivable',
         referenceId: customerId,
         amount: totalAmount,
-        currency: 'CNY',
+        currency: DEFAULT_CURRENCY,
         status: 'pending',
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30天后到期
         description: `对账单 ${createdStatement.id} - ${customer.name}`
@@ -337,7 +341,7 @@ export class FinanceService {
         type: 'payable',
         referenceId: driverId,
         amount: totalCommission,
-        currency: 'CNY',
+        currency: DEFAULT_CURRENCY,
         status: 'pending',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7天后到期
         description: `结算单 ${createdStatement.id} - ${driver.name}`

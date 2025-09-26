@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS shipments (
     cargo_info JSONB NOT NULL,
     estimated_cost DECIMAL(10,2),
     actual_cost DECIMAL(10,2),
+    currency VARCHAR(3) NOT NULL DEFAULT 'CNY' CHECK (currency IN ('CNY', 'USD', 'CAD', 'EUR')),
     additional_fees JSONB DEFAULT '[]',
     applied_rules JSONB DEFAULT '[]',
     status VARCHAR(50) DEFAULT 'created',
@@ -158,13 +159,25 @@ CREATE TABLE IF NOT EXISTS financial_records (
     type VARCHAR(50) NOT NULL,
     reference_id UUID NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
-    currency VARCHAR(3) DEFAULT 'CNY',
+    currency VARCHAR(3) NOT NULL DEFAULT 'CNY' CHECK (currency IN ('CNY', 'USD', 'CAD', 'EUR')),
     status VARCHAR(20) DEFAULT 'pending',
     due_date DATE,
     paid_at TIMESTAMP,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建汇率表
+CREATE TABLE IF NOT EXISTS exchange_rates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    from_currency VARCHAR(3) NOT NULL CHECK (from_currency IN ('CNY', 'USD', 'CAD', 'EUR')),
+    to_currency VARCHAR(3) NOT NULL CHECK (to_currency IN ('CNY', 'USD', 'CAD', 'EUR')),
+    rate DECIMAL(10,6) NOT NULL,
+    source VARCHAR(50) NOT NULL DEFAULT 'manual',
+    effective_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(from_currency, to_currency, effective_date)
 );
 
 -- 创建对账单表
@@ -323,3 +336,18 @@ VALUES (
     '[{"type": "setDriverCommission", "params": {"percentage": 30}}]',
     'active'
 ) ON CONFLICT (id) DO NOTHING;
+
+-- 插入初始汇率数据
+INSERT INTO exchange_rates (from_currency, to_currency, rate, source, effective_date) VALUES
+('CNY', 'USD', 0.140000, 'initial', CURRENT_TIMESTAMP),
+('CNY', 'CAD', 0.190000, 'initial', CURRENT_TIMESTAMP),
+('CNY', 'EUR', 0.130000, 'initial', CURRENT_TIMESTAMP),
+('USD', 'CNY', 7.200000, 'initial', CURRENT_TIMESTAMP),
+('USD', 'CAD', 1.350000, 'initial', CURRENT_TIMESTAMP),
+('USD', 'EUR', 0.920000, 'initial', CURRENT_TIMESTAMP),
+('CAD', 'CNY', 5.300000, 'initial', CURRENT_TIMESTAMP),
+('CAD', 'USD', 0.740000, 'initial', CURRENT_TIMESTAMP),
+('CAD', 'EUR', 0.680000, 'initial', CURRENT_TIMESTAMP),
+('EUR', 'CNY', 7.800000, 'initial', CURRENT_TIMESTAMP),
+('EUR', 'USD', 1.090000, 'initial', CURRENT_TIMESTAMP),
+('EUR', 'CAD', 1.470000, 'initial', CURRENT_TIMESTAMP);

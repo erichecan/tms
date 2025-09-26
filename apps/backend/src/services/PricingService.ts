@@ -3,6 +3,7 @@
 
 import { RuleEngineService } from './RuleEngineService';
 import { DatabaseService } from './DatabaseService';
+import { CurrencyService } from './CurrencyService';
 import { logger } from '../utils/logger';
 import { 
   Shipment, 
@@ -10,7 +11,8 @@ import {
   Driver, 
   AdditionalFee, 
   FeeType,
-  CustomerLevel 
+  CustomerLevel,
+  DEFAULT_CURRENCY
 } from '@shared/index';
 
 export interface QuoteRequest {
@@ -40,6 +42,7 @@ export interface QuoteRequest {
     specialRequirements?: string[];
     hazardous: boolean;
   };
+  currency?: string;
   deliveryTime?: string;
   weekendDelivery?: boolean;
   needsTailgate?: boolean;
@@ -50,6 +53,7 @@ export interface QuoteResponse {
   baseRate: number;
   distance: number;
   estimatedCost: number;
+  currency: string;
   breakdown: {
     baseFee: number;
     distanceFee: number;
@@ -66,6 +70,7 @@ export interface QuoteResponse {
 export class PricingService {
   private ruleEngineService: RuleEngineService;
   private dbService: DatabaseService;
+  private currencyService: CurrencyService;
 
   // 基础费率配置
   private readonly BASE_RATES = {
@@ -91,9 +96,10 @@ export class PricingService {
     extraLarge: { max: 100, rate: 2 }   // 60立方米以上 2元/立方米
   };
 
-  constructor(ruleEngineService: RuleEngineService, dbService: DatabaseService) {
+  constructor(ruleEngineService: RuleEngineService, dbService: DatabaseService, currencyService: CurrencyService) {
     this.ruleEngineService = ruleEngineService;
     this.dbService = dbService;
+    this.currencyService = currencyService;
   }
 
   /**
@@ -109,6 +115,9 @@ export class PricingService {
       if (!customer) {
         throw new Error('Customer not found');
       }
+
+      // 确定币种
+      const currency = request.currency || DEFAULT_CURRENCY;
 
       // 计算基础信息
       const distance = await this.calculateDistance(request.pickupAddress, request.deliveryAddress);
@@ -135,7 +144,7 @@ export class PricingService {
       );
 
       // 创建运单记录
-      const shipment = await this.createShipment(tenantId, request, finalCost, appliedRules);
+      const shipment = await this.createShipment(tenantId, request, finalCost, appliedRules, currency);
 
       // 生成报价响应
       const response: QuoteResponse = {
@@ -143,6 +152,7 @@ export class PricingService {
         baseRate,
         distance,
         estimatedCost: finalCost,
+        currency,
         breakdown: {
           baseFee,
           distanceFee,
@@ -439,7 +449,8 @@ export class PricingService {
     tenantId: string, 
     request: QuoteRequest, 
     estimatedCost: number, 
-    appliedRules: string[]
+    appliedRules: string[],
+    currency: string
   ): Promise<Shipment> {
     const shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {
       customerId: request.customerId,
@@ -450,6 +461,7 @@ export class PricingService {
         specialRequirements: request.cargoInfo.specialRequirements || []
       },
       estimatedCost,
+      currency,
       appliedRules,
       status: 'quoted' as const,
       shipmentNumber: `TMP${Date.now()}`,
