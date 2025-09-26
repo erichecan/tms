@@ -437,9 +437,9 @@ const ShipmentCreate: React.FC = () => {
         <Col span={12}>
           <Form.Item
             name="customerId"
-            label="客户选择"
+            label="客户选择 (Customer Selection)"
             rules={[{ required: true, message: '请选择客户' }]}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 8 }}
           >
             <Select
               showSearch
@@ -467,9 +467,9 @@ const ShipmentCreate: React.FC = () => {
         <Col span={12}>
           <Form.Item
             name="customerName"
-            label="客户姓名"
+            label="客户姓名 (Customer Name)"
             rules={[{ required: true, message: '请输入客户姓名' }]}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入客户姓名" />
           </Form.Item>
@@ -477,7 +477,7 @@ const ShipmentCreate: React.FC = () => {
         <Col span={12}>
           <Form.Item
             name="customerPhone"
-            label="联系电话"
+            label="联系电话 (Contact Phone)"
             rules={[
               { required: true, message: '请输入联系电话' },
               { 
@@ -485,7 +485,7 @@ const ShipmentCreate: React.FC = () => {
                 message: '请输入有效的手机号码（支持北美和中国格式）' 
               }
             ]}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入联系电话（如：+1-555-123-4567 或 13812345678）" />
           </Form.Item>
@@ -493,11 +493,11 @@ const ShipmentCreate: React.FC = () => {
         <Col span={12}>
           <Form.Item
             name="customerEmail"
-            label="邮箱地址"
+            label="邮箱地址 (Email Address)"
             rules={[
               { type: 'email', message: '请输入有效的邮箱地址' }
             ]}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入邮箱地址" />
           </Form.Item>
@@ -505,8 +505,8 @@ const ShipmentCreate: React.FC = () => {
         <Col span={12}>
           <Form.Item
             name="priority"
-            label="优先级"
-            style={{ marginBottom: 16 }}
+            label="优先级 (Priority)"
+            style={{ marginBottom: 8 }}
           >
             <Select placeholder="普通">
               <Option value="low">低</Option>
@@ -535,7 +535,7 @@ const ShipmentCreate: React.FC = () => {
         <Col span={24}>
                 <Form.Item
                   name="shipperName"
-                  label="发货人姓名"
+                  label="发货人姓名 (Shipper Name)"
                   rules={[{ required: true, message: '请输入发货人姓名' }]}
                 >
                   <Input placeholder="请输入发货人姓名" />
@@ -544,7 +544,7 @@ const ShipmentCreate: React.FC = () => {
         <Col span={24}>
           <Form.Item
                   name="shipperCompany"
-                  label="公司名称"
+                  label="公司名称 (Company Name)"
           >
                   <Input placeholder="请输入公司名称（可选）" />
           </Form.Item>
@@ -609,7 +609,7 @@ const ShipmentCreate: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="shipperPhone"
-                  label="联系电话"
+                  label="联系电话 (Contact Phone)"
                   rules={[
                     { required: true, message: '请输入联系电话' },
                     { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
@@ -621,14 +621,14 @@ const ShipmentCreate: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="shipperEmail"
-                  label="邮箱地址"
+                  label="邮箱地址 (Email Address)"
                   rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}
                 >
                   <Input placeholder="请输入邮箱地址（可选）" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-          <Form.Item name="pickupDate" label="取货日期" rules={[{ required: true, message: '请选择取货日期' }]}>
+          <Form.Item name="pickupDate" label="取货日期 (Pickup Date)" rules={[{ required: true, message: '请选择取货日期' }]}>
             <DatePicker 
               format="YYYY-MM-DD"
               style={{ width: '100%' }} 
@@ -638,7 +638,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="pickupTimeRange" label="取货时间段(小时)" rules={[{ required: true, message: '请选择取货时间段' }]}>
+          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" rules={[{ required: true, message: '请选择取货时间段' }]}>
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
@@ -662,7 +662,7 @@ const ShipmentCreate: React.FC = () => {
         <Col span={24}>
                 <Form.Item
                   name="receiverName"
-                  label="收货人姓名"
+                  label="收货人姓名 (Receiver Name)"
                   rules={[{ required: true, message: '请输入收货人姓名' }]}
                 >
                   <Input placeholder="请输入收货人姓名" />
@@ -671,7 +671,7 @@ const ShipmentCreate: React.FC = () => {
         <Col span={24}>
           <Form.Item
                   name="receiverCompany"
-                  label="公司名称"
+                  label="公司名称 (Company Name)"
           >
                   <Input placeholder="请输入公司名称（可选）" />
           </Form.Item>
@@ -736,7 +736,7 @@ const ShipmentCreate: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="receiverPhone"
-                  label="联系电话"
+                  label="联系电话 (Contact Phone)"
                   rules={[
                     { required: true, message: '请输入联系电话' },
                     { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
@@ -748,14 +748,14 @@ const ShipmentCreate: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="receiverEmail"
-                  label="邮箱地址"
+                  label="邮箱地址 (Email Address)"
                   rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}
                 >
                   <Input placeholder="请输入邮箱地址（可选）" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-          <Form.Item name="deliveryDate" label="送达日期" rules={[{ required: true, message: '请选择送达日期' }]}>
+          <Form.Item name="deliveryDate" label="送达日期 (Delivery Date)" rules={[{ required: true, message: '请选择送达日期' }]}>
             <DatePicker 
               format="YYYY-MM-DD"
               style={{ width: '100%' }} 
@@ -765,7 +765,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="deliveryTimeRange" label="送达时间段(小时)" rules={[{ required: true, message: '请选择送达时间段' }]}>
+          <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)" rules={[{ required: true, message: '请选择送达时间段' }]}>
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
@@ -783,7 +783,7 @@ const ShipmentCreate: React.FC = () => {
           <Divider style={{ margin: '8px 0' }} />
           <Row gutter={[12, 8]}>
         <Col span={12}>
-          <Form.Item name="addressType" label="地址类型">
+          <Form.Item name="addressType" label="地址类型 (Address Type)">
             <Radio.Group>
               <Radio.Button value="residential">
                 <HomeOutlined /> 住宅地址
@@ -795,7 +795,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="distance" label="预估距离 (公里)">
+          <Form.Item name="distance" label="预估距离 (Estimated Distance - km)">
             <InputNumber
               style={{ width: '100%' }}
               placeholder="请输入距离"
@@ -908,7 +908,7 @@ const ShipmentCreate: React.FC = () => {
         <Col span={8}>
           <Form.Item
             name="cargoQuantity"
-            label="箱数/件数"
+            label="箱数/件数 (Package Count)"
             rules={[{ required: true, message: '请输入数量' }]}
           >
             <InputNumber
@@ -919,7 +919,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item name="cargoPalletCount" label="托盘数">
+          <Form.Item name="cargoPalletCount" label="托盘数 (Pallet Count)">
             <InputNumber
               style={{ width: '100%' }}
               placeholder="托盘数"
@@ -928,7 +928,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item name="cargoValue" label="货物价值 (元)">
+          <Form.Item name="cargoValue" label="货物价值 (Cargo Value - CNY)">
             <InputNumber
               style={{ width: '100%' }}
               placeholder="货物价值"
@@ -938,7 +938,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={24}>
-          <Form.Item label="快速选择商品">
+          <Form.Item label="快速选择商品 (Quick Product Selection)">
             <Select
               placeholder="从商品库中选择常用商品"
               allowClear
@@ -954,7 +954,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={24}>
-          <Form.Item name="cargoDescription" label="货物描述">
+          <Form.Item name="cargoDescription" label="货物描述 (Cargo Description)">
             <TextArea
               rows={3}
               placeholder="请详细描述货物内容、包装方式等"
@@ -962,12 +962,12 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="cargoIsFragile" label="易碎品" valuePropName="checked">
+          <Form.Item name="cargoIsFragile" label="易碎品 (Fragile)" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="cargoIsDangerous" label="危险品" valuePropName="checked">
+          <Form.Item name="cargoIsDangerous" label="危险品 (Dangerous Goods)" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Col>
@@ -985,13 +985,13 @@ const ShipmentCreate: React.FC = () => {
           </Title>
         </Col>
         <Col span={12}>
-          <Form.Item name="insurance" label="购买保险" valuePropName="checked">
+          <Form.Item name="insurance" label="购买保险 (Purchase Insurance)" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Col>
         <Col span={12}>
           <Form.Item
-            label="保险金额 (元)"
+            label="保险金额 (Insurance Amount - CNY)"
             shouldUpdate={(prevValues, currentValues) => prevValues.insurance !== currentValues.insurance}
           >
             {({ getFieldValue, setFieldValue }) => (
@@ -1015,17 +1015,17 @@ const ShipmentCreate: React.FC = () => {
           </Title>
         </Col>
         <Col span={12}>
-          <Form.Item name="requiresTailgate" label="需要尾板" valuePropName="checked">
+          <Form.Item name="requiresTailgate" label="需要尾板 (Requires Tailgate)" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="requiresAppointment" label="需要预约" valuePropName="checked">
+          <Form.Item name="requiresAppointment" label="需要预约 (Requires Appointment)" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="waitingTime" label="等候时间 (分钟)">
+          <Form.Item name="waitingTime" label="等候时间 (Waiting Time - minutes)">
             <InputNumber
               style={{ width: '100%' }}
               placeholder="等候时间"
@@ -1035,7 +1035,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="deliveryInstructions" label="配送说明">
+          <Form.Item name="deliveryInstructions" label="配送说明 (Delivery Instructions)">
             <Input placeholder="特殊配送要求" />
           </Form.Item>
         </Col>
@@ -1047,7 +1047,7 @@ const ShipmentCreate: React.FC = () => {
           </Title>
         </Col>
         <Col span={24}>
-          <Form.Item name="specialRequirements" label="选择特殊需求">
+          <Form.Item name="specialRequirements" label="选择特殊需求 (Special Requirements)">
             <Checkbox.Group options={specialRequirementsOptions} />
           </Form.Item>
         </Col>
