@@ -5,8 +5,8 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your-super-secret-jwt-key-change-this-in-production';
 
 // 从数据库获取的用户和租户信息
-const tenantId = '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e';
-const userId = '84e18223-1adb-4d4e-a4cd-6a21e4c06bac';
+const tenantId = '00000000-0000-0000-0000-000000000001';
+const userId = '00000000-0000-0000-0000-000000000001';
 
 // 生成token
 const token = jwt.sign(

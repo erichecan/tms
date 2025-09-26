@@ -23,9 +23,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('Clearing old tokens and setting new valid token...');
     localStorage.removeItem('jwt_token');
     
-    // 开发环境下注入演示用token，避免登录重定向循环
-    // 使用后端生成的真正JWT token
-    const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4NGUxODIyMy0xYWRiLTRkNGUtYTRjZC02YTIxZTRjMDZiYWMiLCJ0ZW5hbnRJZCI6IjI5OTZmNWQwLTJmZmEtNGFhOC1hY2I1LTZjMjNmYmYzOGUwZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg1ODQ3OSwiZXhwIjoxNzU5NDYzMjc5fQ.lH7MI7gAQbOsxaq-F2P5iFRK8PSP3HghJI8K0DoT4lI';
+        // 开发环境下注入演示用token，避免登录重定向循环
+        // 使用后端生成的真正JWT token
+        const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg2MDc5MiwiZXhwIjoxNzU5NDY1NTkyfQ.37h-2GpnC9eb48GtVXxdi90_SuNQdmuVwFyccJdzXDc';
     localStorage.setItem('jwt_token', demoToken);
     setToken(demoToken);
     validateToken();
@@ -40,11 +40,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // 解析JWT token获取用户信息 // 2025-09-26 03:50:00
           const payload = JSON.parse(atob(token.split('.')[1]));
           const mockUser = {
-            id: payload.userId || '84e18223-1adb-4d4e-a4cd-6a21e4c06bac',
+            id: payload.userId || '00000000-0000-0000-0000-000000000001',
             email: 'admin@tms.com',
             name: 'Admin User',
             role: payload.role || 'admin',
-            tenantId: payload.tenantId || '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e',
+            tenantId: payload.tenantId || '00000000-0000-0000-0000-000000000001',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -53,11 +53,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (parseError) {
           // 如果token解析失败，使用默认用户信息
           const mockUser = {
-            id: '84e18223-1adb-4d4e-a4cd-6a21e4c06bac',
+            id: '00000000-0000-0000-0000-000000000001',
             email: 'admin@tms.com',
             name: 'Admin User',
             role: 'admin',
-            tenantId: '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e',
+            tenantId: '00000000-0000-0000-0000-000000000001',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };

@@ -230,6 +230,70 @@ export const shipmentCreateSchema = Joi.object({
 });
 
 /**
+ * 运单创建验证模式（前端表单格式）
+ */
+export const shipmentCreateFormSchema = Joi.object({
+  shipmentNumber: Joi.string().optional(),
+  customerName: Joi.string().required(),
+  customerPhone: Joi.string().required(),
+  customerEmail: Joi.string().email().optional(),
+  priority: Joi.string().valid('low', 'normal', 'high', 'urgent').default('normal'),
+  shipper: Joi.object({
+    name: Joi.string().required(),
+    company: Joi.string().optional(),
+    phone: Joi.string().required(),
+    email: Joi.string().email().optional(),
+    address: Joi.object({
+      addressLine1: Joi.string().required(),
+      addressLine2: Joi.string().optional(),
+      city: Joi.string().required(),
+      province: Joi.string().required(),
+      postalCode: Joi.string().required(),
+      country: Joi.string().required(),
+      isResidential: Joi.boolean().optional()
+    }).required()
+  }).required(),
+  receiver: Joi.object({
+    name: Joi.string().required(),
+    company: Joi.string().optional(),
+    phone: Joi.string().required(),
+    email: Joi.string().email().optional(),
+    address: Joi.object({
+      addressLine1: Joi.string().required(),
+      addressLine2: Joi.string().optional(),
+      city: Joi.string().required(),
+      province: Joi.string().required(),
+      postalCode: Joi.string().required(),
+      country: Joi.string().required(),
+      isResidential: Joi.boolean().optional()
+    }).required()
+  }).required(),
+  pickupDate: Joi.string().optional(),
+  deliveryDate: Joi.string().optional(),
+  addressType: Joi.string().valid('residential', 'commercial').default('residential'),
+  distance: Joi.number().min(0).optional(),
+  cargoLength: Joi.number().min(0).required(),
+  cargoWidth: Joi.number().min(0).required(),
+  cargoHeight: Joi.number().min(0).required(),
+  cargoWeight: Joi.number().min(0).required(),
+  cargoQuantity: Joi.number().min(1).required(),
+  cargoPalletCount: Joi.number().min(0).optional(),
+  cargoValue: Joi.number().min(0).optional(),
+  cargoDescription: Joi.string().optional(),
+  cargoIsFragile: Joi.boolean().default(false),
+  cargoIsDangerous: Joi.boolean().default(false),
+  insurance: Joi.boolean().default(false),
+  insuranceValue: Joi.number().min(0).optional(),
+  requiresTailgate: Joi.boolean().default(false),
+  requiresAppointment: Joi.boolean().default(false),
+  waitingTime: Joi.number().min(0).optional(),
+  deliveryInstructions: Joi.string().optional(),
+  specialRequirements: Joi.array().items(Joi.string()).optional(),
+  status: Joi.string().valid('pending', 'created', 'in_transit', 'delivered', 'cancelled').optional(),
+  estimatedCost: Joi.number().min(0).optional()
+});
+
+/**
  * 客户创建验证模式
  */
 export const customerCreateSchema = Joi.object({

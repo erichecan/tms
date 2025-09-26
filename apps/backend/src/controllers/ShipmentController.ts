@@ -16,8 +16,10 @@ const getRequestId = (req: Request): string => {
 
 export class ShipmentController {
   private shipmentService: ShipmentService;
+  private dbService: DatabaseService;
 
   constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService) {
+    this.dbService = dbService;
     this.shipmentService = new ShipmentService(dbService, ruleEngineService);
   }
 
@@ -91,28 +93,53 @@ export class ShipmentController {
 
       const body = req.body;
       
-      // 构建运单数据，适配新的地址字段结构 // 2025-01-27 16:00:00
+      // 如果没有提供customerId，创建一个默认客户 // 2025-09-26 04:00:00
+      let customerId = body.customerId;
+      if (!customerId) {
+        const defaultCustomer = await this.dbService.createCustomer(tenantId, {
+          name: body.customerName || 'Default Customer',
+          level: 'standard',
+          contactInfo: {
+            email: body.customerEmail || 'default@example.com',
+            phone: body.customerPhone || '0000000000',
+            address: {
+              street: 'Default Street',
+              city: 'Default City',
+              state: 'Default State',
+              postalCode: '000000',
+              country: 'Default Country'
+            }
+          }
+        });
+        customerId = defaultCustomer.id;
+      }
+
       const shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {
         shipmentNumber: body.shipmentNumber || `TMS${Date.now()}`,
+        customerId: customerId,
         pickupAddress: {
-          street: body.shipper.address.street,
+          street: body.shipper.address.addressLine1,
           city: body.shipper.address.city,
           state: body.shipper.address.province,
           postalCode: body.shipper.address.postalCode,
           country: body.shipper.address.country,
         },
         deliveryAddress: {
-          street: body.receiver.address.street,
+          street: body.receiver.address.addressLine1,
           city: body.receiver.address.city,
           state: body.receiver.address.province,
           postalCode: body.receiver.address.postalCode,
           country: body.receiver.address.country,
         },
         cargoInfo: {
-          description: body.cargoDescription,
+          description: body.cargoDescription || '',
           weight: body.cargoWeight,
-          volume: body.cargoVolume,
-          dimensions: body.dimensions,
+          volume: (body.cargoLength || 0) * (body.cargoWidth || 0) * (body.cargoHeight || 0),
+          dimensions: {
+            length: body.cargoLength,
+            width: body.cargoWidth,
+            height: body.cargoHeight
+          },
           value: body.cargoValue || 0,
           specialRequirements: body.specialRequirements || [],
           hazardous: body.cargoIsDangerous || false
@@ -126,14 +153,11 @@ export class ShipmentController {
         }
       };
 
-      if (body.customerId) {
-        shipmentData.customerId = body.customerId;
-      }
-
       if (body.driverId) {
         shipmentData.driverId = body.driverId;
       }
 
+      console.log('Creating shipment with data:', JSON.stringify(shipmentData, null, 2));
       const shipment = await this.shipmentService.createShipment(tenantId, shipmentData);
       
       res.status(201).json({
@@ -143,10 +167,15 @@ export class ShipmentController {
         requestId: getRequestId(req)
       });
     } catch (error) {
+      console.error('Failed to create shipment:', error);
       logger.error('Failed to create shipment:', error);
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to create shipment' },
+        error: { 
+          code: 'INTERNAL_ERROR', 
+          message: error instanceof Error ? error.message : 'Failed to create shipment',
+          details: error instanceof Error ? error.stack : error
+        },
         timestamp: new Date().toISOString(),
         requestId: getRequestId(req)
       });

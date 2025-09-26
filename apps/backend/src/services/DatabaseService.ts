@@ -9,6 +9,9 @@ export class DatabaseService {
   private pool: Pool;
 
   constructor() {
+    console.log('DatabaseService constructor - DATABASE_URL:', process.env.DATABASE_URL); // 调试信息
+    console.log('DatabaseService constructor - DB_HOST:', process.env.DB_HOST); // 调试信息
+    console.log('DatabaseService constructor - DB_NAME:', process.env.DB_NAME); // 调试信息
     // 连接配置兼容性处理 // 2025-09-25 23:38:00
     // 有些环境下仅提供分散的DB_*变量，或DATABASE_URL未定义/类型异常，导致pg解析密码报错
     // 这里统一构建一个可靠的配置对象，确保password为字符串类型
@@ -17,6 +20,7 @@ export class DatabaseService {
 
     if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
       poolConfig = { connectionString: envUrl };
+      console.log('Using DATABASE_URL connection string:', envUrl); // 调试信息
     } else {
       const host = process.env.DB_HOST || 'localhost';
       const port = parseInt(process.env.DB_PORT || '5432', 10);
@@ -25,6 +29,7 @@ export class DatabaseService {
       const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
 
       poolConfig = { host, port, database, user, password };
+      console.log('Using individual DB config:', { host, port, database, user, password: '***' }); // 调试信息
     }
 
     this.pool = new Pool({

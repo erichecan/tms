@@ -7,7 +7,7 @@ import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest } from '../middleware/validationMiddleware';
+import { validateRequest, shipmentCreateFormSchema } from '../middleware/validationMiddleware';
 
 const router = Router();
 
@@ -34,37 +34,7 @@ router.get('/', shipmentController.getShipments.bind(shipmentController));
  */
 router.post('/',
   validateRequest({
-    body: {
-      shipmentNumber: { type: 'string', required: false },
-      customerName: { type: 'string', required: true },
-      customerPhone: { type: 'string', required: true },
-      customerEmail: { type: 'string', required: false },
-      priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'], required: false },
-      shipper: { type: 'object', required: true },
-      receiver: { type: 'object', required: true },
-      pickupDate: { type: 'string', required: false },
-      deliveryDate: { type: 'string', required: false },
-      addressType: { type: 'string', enum: ['residential', 'commercial'], required: false },
-      distance: { type: 'number', required: false },
-      cargoLength: { type: 'number', required: true },
-      cargoWidth: { type: 'number', required: true },
-      cargoHeight: { type: 'number', required: true },
-      cargoWeight: { type: 'number', required: true },
-      cargoQuantity: { type: 'number', required: true },
-      cargoPalletCount: { type: 'number', required: false },
-      cargoValue: { type: 'number', required: false },
-      cargoDescription: { type: 'string', required: false },
-      cargoIsFragile: { type: 'boolean', required: false },
-      cargoIsDangerous: { type: 'boolean', required: false },
-      insurance: { type: 'boolean', required: false },
-      insuranceValue: { type: 'number', required: false },
-      requiresTailgate: { type: 'boolean', required: false },
-      requiresAppointment: { type: 'boolean', required: false },
-      waitingTime: { type: 'number', required: false },
-      deliveryInstructions: { type: 'string', required: false },
-      specialRequirements: { type: 'array', required: false },
-      estimatedCost: { type: 'number', required: false }
-    }
+    body: shipmentCreateFormSchema
   }),
   shipmentController.createShipment.bind(shipmentController)
 );

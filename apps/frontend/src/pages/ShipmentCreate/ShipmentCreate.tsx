@@ -948,18 +948,18 @@ const ShipmentCreate: React.FC = () => {
         </Col>
         <Col span={12}>
           <Form.Item
-            name="insuranceValue"
             label="保险金额 (元)"
-            dependencies={['insurance']}
             shouldUpdate={(prevValues, currentValues) => prevValues.insurance !== currentValues.insurance}
           >
-            {({ getFieldValue }) => (
+            {({ getFieldValue, setFieldValue }) => (
               <InputNumber
                 style={{ width: '100%' }}
                 placeholder="保险金额"
                 min={0}
                 precision={2}
                 disabled={!getFieldValue('insurance')}
+                value={getFieldValue('insuranceValue')}
+                onChange={(value) => setFieldValue('insuranceValue', value)}
               />
             )}
           </Form.Item>

@@ -17,13 +17,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-26 03:50:00
-      // 使用后端生成的真正JWT token
-      const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4NGUxODIyMy0xYWRiLTRkNGUtYTRjZC02YTIxZTRjMDZiYWMiLCJ0ZW5hbnRJZCI6IjI5OTZmNWQwLTJmZmEtNGFhOC1hY2I1LTZjMjNmYmYzOGUwZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg1ODQ3OSwiZXhwIjoxNzU5NDYzMjc5fQ.lH7MI7gAQbOsxaq-F2P5iFRK8PSP3HghJI8K0DoT4lI';
+        // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-26 03:50:00
+        // 使用后端生成的真正JWT token
+        const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg2MDc5MiwiZXhwIjoxNzU5NDY1NTkyfQ.37h-2GpnC9eb48GtVXxdi90_SuNQdmuVwFyccJdzXDc';
       config.headers.Authorization = `Bearer ${devToken}`;
     }
     // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
-    const tenantId = localStorage.getItem('current_tenant_id') || '2996f5d0-2ffa-4aa8-acb5-6c23fbf38e0e';
+    const tenantId = localStorage.getItem('current_tenant_id') || '00000000-0000-0000-0000-000000000001';
     config.headers['X-Tenant-ID'] = tenantId;
     return config;
   },
