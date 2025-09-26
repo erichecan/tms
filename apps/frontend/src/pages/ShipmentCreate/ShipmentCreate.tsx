@@ -433,7 +433,7 @@ const ShipmentCreate: React.FC = () => {
   // 单页模块化布局 - 基础信息模块 // 2025-09-24 14:05:00
   const renderBasicInfoSection = () => (
     <Card title="基础信息" style={{ marginBottom: 12 }}>
-      <Row gutter={[16, 16]}>
+      <Row gutter={[8, 8]}>
         <Col span={12}>
           <Form.Item
             name="customerId"
