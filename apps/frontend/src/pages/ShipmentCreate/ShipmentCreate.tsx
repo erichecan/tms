@@ -29,7 +29,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi } from '../../services/api';
+import { shipmentsApi, customersApi } from '../../services/api';
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
@@ -44,6 +44,8 @@ const ShipmentCreate: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
@@ -293,6 +295,7 @@ const ShipmentCreate: React.FC = () => {
       // 构建运单数据
       const shipmentData = {
         shipmentNumber: `TMS${Date.now()}`,
+        customerId: values.customerId,
         customerName: values.customerName,
         customerPhone: values.customerPhone,
         customerEmail: values.customerEmail,
@@ -425,6 +428,35 @@ const ShipmentCreate: React.FC = () => {
   const renderBasicInfoSection = () => (
     <Card title="基础信息" style={{ marginBottom: 12 }}>
       <Row gutter={[12, 8]}>
+        <Col span={12}>
+          <Form.Item
+            name="customerId"
+            label="客户选择"
+            rules={[{ required: true, message: '请选择客户' }]}
+          >
+            <Select
+              showSearch
+              placeholder="搜索并选择客户"
+              optionFilterProp="children"
+              onSearch={handleCustomerSearch}
+              loading={customerSearchLoading}
+              filterOption={false}
+              notFoundContent={customerSearchLoading ? '搜索中...' : '暂无客户'}
+              allowClear
+            >
+              {customers.map(customer => (
+                <Option key={customer.id} value={customer.id}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{customer.name}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {customer.contactInfo?.phone} • {customer.email}
+                    </div>
+                  </div>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Col>
         <Col span={12}>
           <Form.Item
             name="customerName"

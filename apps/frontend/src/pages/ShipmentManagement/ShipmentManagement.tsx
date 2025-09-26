@@ -23,9 +23,10 @@ import {
   TruckOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
-import { shipmentsApi } from '../../services/api';
-import { Shipment, ShipmentStatus } from '../../types/index';
+import { shipmentsApi, driversApi } from '../../services/api';
+import { Shipment, ShipmentStatus, Driver } from '../../types/index';
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
@@ -33,12 +34,16 @@ const { Step } = Steps;
 const ShipmentManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
+  const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
+  const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
   
 
   useEffect(() => {
     loadShipments();
+    loadDrivers();
   }, []);
 
   const loadShipments = async () => {
@@ -51,6 +56,16 @@ const ShipmentManagement: React.FC = () => {
       message.error('加载运单失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDrivers = async () => {
+    try {
+      const response = await driversApi.getDrivers();
+      setDrivers(response.data?.data || []);
+    } catch (error) {
+      console.error('Failed to load drivers:', error);
+      message.error('加载司机列表失败');
     }
   };
 
@@ -69,6 +84,26 @@ const ShipmentManagement: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete shipment:', error);
       message.error('删除运单失败');
+    }
+  };
+
+  const handleAssignDriver = (shipment: Shipment) => {
+    setAssigningShipment(shipment);
+    setIsAssignModalVisible(true);
+  };
+
+  const handleConfirmAssign = async (driverId: string) => {
+    if (!assigningShipment) return;
+    
+    try {
+      await shipmentsApi.assignDriver(assigningShipment.id, driverId);
+      message.success('司机指派成功');
+      setIsAssignModalVisible(false);
+      setAssigningShipment(null);
+      loadShipments();
+    } catch (error) {
+      console.error('Failed to assign driver:', error);
+      message.error('司机指派失败');
     }
   };
 
@@ -125,7 +160,21 @@ const ShipmentManagement: React.FC = () => {
       title: '司机',
       dataIndex: 'driverName',
       key: 'driverName',
-      render: (text: string) => text || '未分配',
+      render: (text: string, record: Shipment) => (
+        <div>
+          {text ? (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <CheckCircleOutlined style={{ marginRight: 4, color: '#52c41a', fontSize: '12px' }} />
+              <Text style={{ fontSize: '12px' }}>{text}</Text>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <ClockCircleOutlined style={{ marginRight: 4, color: '#ff4d4f', fontSize: '12px' }} />
+              <Text type="secondary" style={{ fontSize: '12px' }}>未分配</Text>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       title: '状态',
@@ -303,6 +352,63 @@ const ShipmentManagement: React.FC = () => {
                   <Step title="已完成" description="货物已送达" />
                 </Steps>
               </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 司机指派弹窗 */}
+      <Modal
+        title="指派司机"
+        open={isAssignModalVisible}
+        onCancel={() => {
+          setIsAssignModalVisible(false);
+          setAssigningShipment(null);
+        }}
+        footer={null}
+        width={500}
+      >
+        {assigningShipment && (
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>运单号：</Text>
+              <Text code>{assigningShipment.shipmentNumber}</Text>
+            </div>
+            <Divider />
+            <div>
+              <Text strong style={{ marginBottom: 8, display: 'block' }}>
+                选择司机：
+              </Text>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {drivers
+                  .filter(driver => driver.status === 'active')
+                  .map(driver => (
+                    <Card
+                      key={driver.id}
+                      size="small"
+                      hoverable
+                      onClick={() => handleConfirmAssign(driver.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 500 }}>{driver.name}</div>
+                          <Text type="secondary" style={{ fontSize: '12px' }}>
+                            {driver.phone} • {driver.vehicleType}
+                          </Text>
+                        </div>
+                        <Button type="primary" size="small">
+                          指派
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                {drivers.filter(driver => driver.status === 'active').length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <Text type="secondary">暂无可用的司机</Text>
+                  </div>
+                )}
+              </Space>
             </div>
           </div>
         )}

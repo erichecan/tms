@@ -119,6 +119,7 @@ export const customersApi = {
   updateCustomer: (customerId: string, customerData: any) => api.put(`/customers/${customerId}`, customerData),
   deleteCustomer: (customerId: string) => api.delete(`/customers/${customerId}`),
   getCustomerDetails: (customerId: string) => api.get(`/customers/${customerId}`),
+  searchCustomers: (query: string) => api.get('/customers/search', { params: { q: query } }),
 };
 
 // Driver related API calls
