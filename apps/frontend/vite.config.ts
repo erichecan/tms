@@ -12,7 +12,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3001, // 修改端口避免冲突 // 2025-09-26 17:35:00
+    host: true, // 允许外部访问
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
