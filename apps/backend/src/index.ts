@@ -93,7 +93,7 @@ app.use('/api/shipments', mvpPodRoutes); // MVP POD 上传 // 2025-09-23 10:30:0
 app.use('/api/v1/finance', financeRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/drivers', driverRoutes);
-app.use('/api/vehicles', vehicleRoutes); // MVP 车辆列表 // 2025-09-23 10:25:00
+app.use('/api/v1/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:00
 
 // 404处理
 app.use('*', (req, res) => {

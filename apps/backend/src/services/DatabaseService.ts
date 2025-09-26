@@ -1367,6 +1367,63 @@ export class DatabaseService {
     };
   }
 
+  // ==================== 车辆管理 ====================
+
+  /**
+   * 获取车辆列表
+   * @param limit 限制数量
+   * @param offset 偏移量
+   * @returns 车辆列表
+   */
+  async getVehicles(limit: number = 50, offset: number = 0): Promise<any[]> {
+    const query = `
+      SELECT * FROM vehicles 
+      ORDER BY created_at DESC 
+      LIMIT $1 OFFSET $2
+    `;
+    
+    const result = await this.query(query, [limit, offset]);
+    return result;
+  }
+
+  /**
+   * 根据ID获取车辆
+   * @param id 车辆ID
+   * @returns 车辆信息
+   */
+  async getVehicleById(id: string): Promise<any | null> {
+    const query = 'SELECT * FROM vehicles WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 创建车辆
+   * @param vehicle 车辆数据
+   * @returns 创建的车辆
+   */
+  async createVehicle(vehicle: {
+    plateNumber: string;
+    vehicleType: string;
+    capacity: number;
+    status: string;
+  }): Promise<any> {
+    const query = `
+      INSERT INTO vehicles (plate_number, type, capacity_kg, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const result = await this.query(query, [
+      vehicle.plateNumber,
+      vehicle.vehicleType,
+      vehicle.capacity,
+      vehicle.status
+    ]);
+    
+    return result[0];
+  }
+
   // ==================== 连接管理 ====================
 
   /**
