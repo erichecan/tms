@@ -25,7 +25,7 @@ const Home: React.FC = () => {
           <Card
             hoverable
             style={{ textAlign: 'center', height: '100%' }}
-            bodyStyle={{ padding: '40px 20px' }}
+            styles={{ body: { padding: '40px 20px' } }}
           >
             <div style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }}>
               <PlusOutlined />
@@ -50,7 +50,7 @@ const Home: React.FC = () => {
           <Card
             hoverable
             style={{ textAlign: 'center', height: '100%' }}
-            bodyStyle={{ padding: '40px 20px' }}
+            styles={{ body: { padding: '40px 20px' } }}
           >
             <div style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}>
               <UnorderedListOutlined />
@@ -74,7 +74,7 @@ const Home: React.FC = () => {
           <Card
             hoverable
             style={{ textAlign: 'center', height: '100%' }}
-            bodyStyle={{ padding: '40px 20px' }}
+            styles={{ body: { padding: '40px 20px' } }}
           >
             <div style={{ fontSize: '48px', color: '#722ed1', marginBottom: '16px' }}>
               <SettingOutlined />

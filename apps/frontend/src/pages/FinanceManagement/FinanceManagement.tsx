@@ -400,7 +400,7 @@ const FinanceManagement: React.FC = () => {
         onCancel={() => setIsStatementModalVisible(false)}
         onOk={() => form.submit()}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={form}

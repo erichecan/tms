@@ -11,17 +11,17 @@ export default defineConfig({
       '@shared-types': path.resolve(__dirname, '../../packages/shared-types/src'),
     },
   },
-  server: {
-    port: 3001, // 修改端口避免冲突 // 2025-09-26 17:35:00
-    host: true, // 允许外部访问
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
+    server: {
+      port: 3000, // 恢复使用端口 3000 // 2025-09-26 17:50:00
+      host: true, // 允许外部访问
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
-  },
   build: {
     outDir: 'dist',
     sourcemap: true,

@@ -262,7 +262,7 @@ const RuleManagement: React.FC = () => {
         onCancel={handleEditorCancel}
         footer={null}
         width={1200}
-        destroyOnClose
+        destroyOnHidden
       >
         <RuleEditor
           rule={editingRule}
