@@ -67,6 +67,40 @@ npm run dev:frontend  # 启动前端 (http://localhost:3000)
 npm run dev:backend   # 启动后端 (http://localhost:8000)
 ```
 
+## 最小运单管理闭环（MVP）
+
+> 更新时间：2025-09-23 10:00:00
+
+本分支 `feature/minimal-shipment-flow` 将交付“最小运单管理闭环”，范围包含：创建运单 → 分配司机 → 通知 → 司机执行并更新状态 → 上传POD → 运单完成。暂不实现智能报价，仅保留 `estimatedCost` 与 `finalCost` 字段。
+
+### 后端端口与环境
+
+- 后端默认端口：`8000`
+- 前端默认端口：`3000`
+- 环境变量：参见 `.env.example`（新增 `UPLOAD_DIR`, `DATABASE_URL`）
+
+### 基本命令
+
+```bash
+# 启动开发（前后端并行）
+npm run dev
+
+# 数据库迁移与种子
+npm run db:migrate
+npm run db:seed
+
+# 运行测试
+npm run test
+# 端到端测试（Playwright）
+npm run test:e2e
+```
+
+### 文档
+
+- docs/API.md：MVP 接口列表
+- docs/TEST_PLAN.md：测试覆盖与用例
+- docs/STATE_MACHINE.md：状态机与合法转换
+
 ### 数据库设置
 
 ```bash

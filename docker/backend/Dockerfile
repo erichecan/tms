@@ -20,13 +20,16 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# 从builder阶段复制构建产物和生产依赖
-COPY --from=builder /app/apps/backend/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/backend/package.json ./
+# 从builder阶段复制构建产物和生产依赖到与源码一致的路径结构 // 2025-09-26 09:38:40
+RUN mkdir -p /app
+# 拷贝编译产物到 /app/dist，沿用工作目录启动方式
+COPY --from=builder /app/apps/backend/dist /app/dist
+# 使用根 workspace 的生产依赖
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/apps/backend/package.json /app/package.json
 
 # 暴露端口
 EXPOSE 8000
 
 # 启动应用
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/apps/backend/src/index.js"]

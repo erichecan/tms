@@ -1,8 +1,8 @@
 
 # 智能物流运营平台 (TMS SaaS) - 技术总体设计文档 (TDD)
 
-**版本:** 2.0 (基于代码分析)
-**最后更新:** 2025-09-11
+**版本:** 2.1 (与 PRD 2.1 同步)
+**最后更新:** 2025-09-23
 
 ## 1. 概述
 
@@ -107,3 +107,120 @@
 ## 6. 数据库设计
 
 设计细节将在 `DATABASE_SCHEMA_DESIGN.md` 中详述, 但其核心是基于 `shared-types` 中定义的接口. `DatabaseService` 的存在表明所有SQL查询都被抽象和封装起来, 控制器和服务层不直接编写SQL.
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 7. 权限与角色落地方案（与 PRD 16 同步）
+
+实现要点：
+- 身份来源：JWT → `authMiddleware` 解码 `userId, role, tenantId`。
+- 租户隔离：`tenantMiddleware` 强制 `WHERE tenant_id = ?`。
+- 资源授权：在路由层定义 `requireRole([..])` 和 `requirePermission(resource, action)`。
+- 字段级脱敏：在序列化层按角色隐藏/脱敏 `phone/email/priceBreakdown`。
+
+示例（伪代码）：
+```ts
+// Added by assistant @ 2025-09-23 10:40:00
+router.post('/shipments', requireRole(['ADMIN','OPERATOR']), createShipment)
+router.post('/shipments/:id/complete', requireRole(['FINANCE','ADMIN']), completeShipment)
+```
+
+审计挂钩：在控制器成功返回前写入 `audit_log`（新旧值 diff）。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 8. 规则引擎与 DSL 白名单（与 PRD 17,25 同步）
+
+架构：
+- Parser：JSON Schema 静态校验（见 PRD 25）。
+- Evaluator：只读 facts（shipment/customer/env），纯函数库白名单。
+- Action 执行器：仅内存对象变更（费用组件、折扣、税率），禁止 IO。
+- 执行沙箱：超时/步数/栈深限制；每请求规则命中数限额。
+
+关键接口：
+```ts
+// Added by assistant @ 2025-09-23 10:40:00
+type Facts = { shipment: Shipment; customer?: Customer; env: Env }
+type Rule = { conditions: Group; actions: Action[]; priority: number }
+evaluateRules(facts: Facts, rules: Rule[]): EvalResult
+```
+
+审计：输出 `pricingRuleTrace[]`（ruleId, version, appliedActions, latencyMs）。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 9. 运单模型与验证/DDL 锚点（与 PRD 18,24 同步）
+
+模型：`shipment`, `shipment_party`, `shipment_package`, `shipment_item`, `shipment_timeline`。
+
+验证：
+- DTO 层使用 `validationMiddleware`：长度/范围/正则（E.164、ISO 4217、HS Code）。
+- 服务层进行业务校验（如包裹至少 1 件、finalCost ≥ 0）。
+
+DDL：采用 PostgreSQL，金额 NUMERIC(12,2)，见 PRD 第 24 节草案；建立 `(tenant_id, status, created_at)` 复合索引。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 10. 状态机与异常恢复（与 PRD 19 同步）
+
+状态集合：created → assigned → picked_up → in_transit → delivered → completed；分支：exception/canceled。
+
+实现：
+- 在 `ShipmentService` 中定义 `assertTransition(from, to)`，非法则抛 `RULE_3002`。
+- 所有状态更新带 `idempotencyKey`，在 DB 侧落表（或 Redis）做去重。
+- `timeline` 仅追加，采用事务写入状态与时间线。
+
+恢复：exception → 恢复上一正常状态；补偿策略对费用不生效（仅在 completed 才生成财务）。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 11. 财务流水线与幂等（与 PRD 20 同步）
+
+流程：delivered → 运营核对 → complete() → 写 receivable/payable → 写 component 明细。
+
+幂等：`UNIQUE(shipment_id, type)`；计算幂等键（pricingVersion+paramsHash）用于将来定价。
+
+舍入：统一银行家舍入至 2 位；记录舍入前/后值与顺序。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 12. 审计与幂等实现（与 PRD 21 同步）
+
+审计中间件：封装 `recordAudit(entityType, id, changes, actor)`；对敏感字段做脱敏。
+
+幂等实现：
+- HTTP 层读取 `Idempotency-Key`，计算操作指纹（URL+Body+Tenant）。
+- 存储：`idempotency_store`（可用 Postgres or Redis）；同键重复返回第一次结果。
+
+留存：≥365 天；导出链路异步生成并做权限校验。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 13. 监控指标与告警（与 PRD 22 同步）
+
+埋点：
+- 指标：`dispatch_wait_time`, `pickup_delay_rate`, `completion_latency`, `financial_gen_delay`, API 延迟分位。
+- 日志：结构化 JSON；traceId 贯穿。
+
+实现：选择 Prometheus + Grafana；Node 侧用 prom-client 暴露 /metrics；Nginx 导出基础指标。
+
+阈值：P95 < 300ms，成功率 > 99.5%，计费失败率 < 0.5%，审计落库失败率 < 0.1%。
+
+---
+
+<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+## 14. 司机移动端与权限校验（与 PRD 27 同步）
+
+接口：仅允许司机获取/更新属于自己的运单；在查询与更新时校验 `shipment.driverId === user.id`。
+
+离线：前端本地缓存待同步事件；后端按 `idempotencyKey` 去重。
+
+数据最小化：隐藏客户私密信息，按需返回地址与联系电话（脱敏）。
+

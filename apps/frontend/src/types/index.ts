@@ -72,21 +72,34 @@ export interface Rule {
 
 export enum ShipmentStatus {
   PENDING = 'pending',
+  QUOTED = 'quoted',
+  CONFIRMED = 'confirmed',
+  ASSIGNED = 'assigned',
+  PICKED_UP = 'picked_up',
   IN_TRANSIT = 'in_transit',
+  DELIVERED = 'delivered',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  EXCEPTION = 'exception',
+}
+
+export interface ShipmentAddress {
+  city: string;
+  state: string;
+  street: string;
+  postalCode: string;
 }
 
 export interface Shipment {
   id: string;
   shipmentNumber: string;
-  customerId: string;
+  customerId: string | null;
   customerName: string;
-  driverId: string;
+  driverId: string | null;
   driverName: string;
   status: ShipmentStatus;
-  pickupAddress: string;
-  deliveryAddress: string;
+  pickupAddress: ShipmentAddress;
+  deliveryAddress: ShipmentAddress;
   pickupDate: string;
   deliveryDate?: string;
   estimatedCost: number;
@@ -151,6 +164,7 @@ export interface Driver {
   phone: string;
   licenseNumber: string;
   vehicleType: string;
+  status: string;
   tenantId: string;
   createdAt: string;
   updatedAt: string;

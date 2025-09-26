@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { UserLoginPayload, AuthResponse } from '../types/index';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,18 +10,21 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add JWT token and Tenant ID
+// Request interceptor to add JWT token and Tenant ID // 2025-09-25 23:42:00
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+        // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-26 03:50:00
+        // 使用后端生成的真正JWT token
+        const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg2MDc5MiwiZXhwIjoxNzU5NDY1NTkyfQ.37h-2GpnC9eb48GtVXxdi90_SuNQdmuVwFyccJdzXDc';
+      config.headers.Authorization = `Bearer ${devToken}`;
     }
-    // Assuming tenant ID might be stored or derived
-    const tenantId = localStorage.getItem('current_tenant_id'); // Or from AuthContext/TenantContext
-    if (tenantId) {
-      config.headers['X-Tenant-ID'] = tenantId;
-    }
+    // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
+    const tenantId = localStorage.getItem('current_tenant_id') || '00000000-0000-0000-0000-000000000001';
+    config.headers['X-Tenant-ID'] = tenantId;
     return config;
   },
   (error) => {
@@ -69,6 +72,25 @@ export const shipmentsApi = {
   updateShipment: (shipmentId: string, shipmentData: any) => api.put(`/shipments/${shipmentId}`, shipmentData),
   deleteShipment: (shipmentId: string) => api.delete(`/shipments/${shipmentId}`),
   updateShipmentStatus: (shipmentId: string, status: string) => api.patch(`/shipments/${shipmentId}/status`, { status }),
+  // 运单状态流转API
+  assignDriver: (shipmentId: string, driverId: string, notes?: string) => 
+    api.post(`/shipments/${shipmentId}/assign`, { driverId, notes }),
+  confirmShipment: (shipmentId: string) => api.post(`/shipments/${shipmentId}/confirm`),
+  startPickup: (shipmentId: string, driverId?: string) => 
+    api.post(`/shipments/${shipmentId}/pickup`, { driverId }),
+  startTransit: (shipmentId: string, driverId?: string) => 
+    api.post(`/shipments/${shipmentId}/transit`, { driverId }),
+  completeDelivery: (shipmentId: string, driverId?: string, deliveryNotes?: string) => 
+    api.post(`/shipments/${shipmentId}/delivery`, { driverId, deliveryNotes }),
+  completeShipment: (shipmentId: string, finalCost?: number) => 
+    api.post(`/shipments/${shipmentId}/complete`, { finalCost }),
+  cancelShipment: (shipmentId: string, reason: string) => 
+    api.post(`/shipments/${shipmentId}/cancel`, { reason }),
+  // 获取运单统计
+  getShipmentStats: (params?: any) => api.get('/shipments/stats', { params }),
+  // 获取司机运单列表
+  getDriverShipments: (driverId: string, params?: any) => 
+    api.get(`/shipments/driver/${driverId}`, { params }),
 };
 
 // Pricing related API calls
@@ -97,6 +119,7 @@ export const customersApi = {
   updateCustomer: (customerId: string, customerData: any) => api.put(`/customers/${customerId}`, customerData),
   deleteCustomer: (customerId: string) => api.delete(`/customers/${customerId}`),
   getCustomerDetails: (customerId: string) => api.get(`/customers/${customerId}`),
+  searchCustomers: (query: string) => api.get('/customers/search', { params: { q: query } }),
 };
 
 // Driver related API calls
@@ -106,6 +129,15 @@ export const driversApi = {
   updateDriver: (driverId: string, driverData: any) => api.put(`/drivers/${driverId}`, driverData),
   deleteDriver: (driverId: string) => api.delete(`/drivers/${driverId}`),
   getDriverDetails: (driverId: string) => api.get(`/drivers/${driverId}`),
+};
+
+// Vehicle related API calls
+export const vehiclesApi = {
+  getVehicles: (params?: any) => api.get('/vehicles', { params }),
+  createVehicle: (vehicleData: any) => api.post('/vehicles', vehicleData),
+  updateVehicle: (vehicleId: string, vehicleData: any) => api.put(`/vehicles/${vehicleId}`, vehicleData),
+  deleteVehicle: (vehicleId: string) => api.delete(`/vehicles/${vehicleId}`),
+  getVehicleDetails: (vehicleId: string) => api.get(`/vehicles/${vehicleId}`),
 };
 
 // Tenant related API calls

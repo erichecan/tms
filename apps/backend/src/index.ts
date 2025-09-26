@@ -11,16 +11,43 @@ import { logger, requestLogger, errorLogger } from './utils/logger';
 import { DatabaseService } from './services/DatabaseService';
 
 // 加载环境变量
-dotenv.config();
+import fs from 'fs';
+import path from 'path';
+
+// 手动加载.env文件
+const envPath = path.resolve(__dirname, '../../.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  const envLines = envContent.split('\n');
+  
+  for (const line of envLines) {
+    if (line.trim() && !line.startsWith('#')) {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim();
+        process.env[key.trim()] = value;
+      }
+    }
+  }
+  console.log('Environment variables loaded manually from .env file');
+} else {
+  console.log('.env file not found at:', envPath);
+}
 
 // 导入路由
 import authRoutes from './routes/authRoutes';
 import ruleRoutes from './routes/ruleRoutes';
 import pricingRoutes from './routes/pricingRoutes';
 import shipmentRoutes from './routes/shipmentRoutes';
+import mvpShipmentRoutes from './routes/mvpShipmentRoutes'; // MVP 运单路由 // 2025-09-23 10:15:00
+import mvpAssignmentRoutes from './routes/mvpAssignmentRoutes'; // MVP 分配 // 2025-09-23 10:30:00
+import mvpStatusRoutes from './routes/mvpStatusRoutes'; // MVP 状态 // 2025-09-23 10:30:00
+import mvpPodRoutes from './routes/mvpPodRoutes'; // MVP POD // 2025-09-23 10:30:00
 import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
+import vehicleRoutes from './routes/vehicleRoutes';
+import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
 
 // 创建Express应用
 const app = express();
@@ -33,7 +60,7 @@ const dbService = new DatabaseService();
 app.use(helmet()); // 安全头
 app.use(compression()); // 响应压缩
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
 
@@ -46,7 +73,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 健康检查端点
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -60,9 +87,14 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/rules', ruleRoutes);
 app.use('/api/v1/pricing', pricingRoutes);
 app.use('/api/v1/shipments', shipmentRoutes);
+app.use('/api/shipments', mvpShipmentRoutes); // MVP 最小闭环 REST // 2025-09-23 10:15:00
+app.use('/api/shipments', mvpAssignmentRoutes); // MVP 分配 // 2025-09-23 10:30:00
+app.use('/api/shipments', mvpStatusRoutes); // MVP 状态 // 2025-09-23 10:30:00
+app.use('/api/shipments', mvpPodRoutes); // MVP POD 上传 // 2025-09-23 10:30:00
 app.use('/api/v1/finance', financeRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/drivers', driverRoutes);
+app.use('/api/v1/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:00
 
 // 404处理
 app.use('*', (req, res) => {
@@ -81,7 +113,7 @@ app.use('*', (req, res) => {
 app.use(errorLogger);
 
 // 全局错误处理
-app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
   
   res.status(500).json({

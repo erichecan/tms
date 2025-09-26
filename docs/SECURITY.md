@@ -182,4 +182,29 @@ This security policy may be updated periodically. Significant changes will be an
 - Email notifications
 - GitHub security advisories
 
-Last updated: September 12, 2025
+Last updated: September 23, 2025
+
+<!-- Added by assistant @ 2025-09-23 10:55:00 -->
+## 🔎 Data Minimization & Field-level Masking
+
+- PII fields (phone/email) are masked by default in responses based on role.
+- Sensitive financial breakdown is visible to FINANCE/ADMIN only; others get aggregated totals.
+- Masking applied at serialization layer; auditing stores both masked and raw values with access control.
+
+## 🗂️ Audit Retention & Access Control
+
+- Retention: ≥ 365 days for audit logs; export requires AUDITOR role and approval.
+- Audit entries record who/when/where/what with before/after diffs; PII redaction applied.
+- Access is logged; suspicious access triggers alerts.
+
+## ♻️ Idempotency & Anti-Replay
+
+- All mutating endpoints accept `Idempotency-Key`; server deduplicates and returns first result.
+- Signature of request = URL + tenantId + normalized body; stored in durable store (DB/Redis) with TTL.
+- Prevent replay by binding key to actor and short validity window.
+
+## 🔐 RBAC/ABAC Enforcement
+
+- Route guards enforce role checks; object-level checks verify ownership (`driverId` matches actor for driver flows).
+- Field-level policies applied post-controller pre-serialization.
+- High-risk ops (rule publish, financial posting, bulk export) require dual approval and full audit.

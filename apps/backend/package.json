@@ -4,7 +4,8 @@
   "description": "TMS SaaS平台后端服务",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch -r dotenv/config src/index.ts",
+    "prebuild": "npm run --prefix ../../packages/shared-types build",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",

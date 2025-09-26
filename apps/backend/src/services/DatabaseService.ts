@@ -2,133 +2,41 @@
 // 创建时间: 2025-01-27 15:30:45
 
 import { Pool, PoolClient } from 'pg';
-// 临时类型定义，替代shared-types包
-interface Rule {
-  id: string;
-  name: string;
-  description: string;
-  type: string;
-  priority: number;
-  status: string;
-  conditions: any[];
-  actions: any[];
-  tenantId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface RuleExecution {
-  id: string;
-  ruleId: string;
-  shipmentId: string;
-  facts: any;
-  result: any;
-  executedAt: string;
-}
-
-interface Tenant {
-  id: string;
-  name: string;
-  domain: string;
-  schemaName: string;
-  status: string;
-  settings: any;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface User {
-  id: string;
-  tenantId: string;
-  email: string;
-  passwordHash: string;
-  role: string;
-  profile: any;
-  status: string;
-  lastLoginAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Customer {
-  id: string;
-  tenantId: string;
-  name: string;
-  level: string;
-  contactInfo: any;
-  billingInfo?: any;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Driver {
-  id: string;
-  tenantId: string;
-  name: string;
-  phone: string;
-  licenseNumber: string;
-  vehicleInfo: any;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Shipment {
-  id: string;
-  tenantId: string;
-  customerId: string;
-  driverId?: string;
-  status: string;
-  pickupAddress: any;
-  deliveryAddress: any;
-  cargoInfo: any;
-  estimatedCost?: number;
-  actualCost?: number;
-  appliedRules: any[];
-  timeline: any[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface FinancialRecord {
-  id: string;
-  tenantId: string;
-  type: string;
-  amount: number;
-  description: string;
-  shipmentId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface QueryParams {
-  page?: number;
-  limit?: number;
-  sort?: string;
-  order?: string;
-  search?: string;
-}
-
-interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+import { Rule, RuleExecution, Tenant, User, Customer, Driver, Shipment, FinancialRecord, QueryParams, PaginatedResponse, Statement } from '@tms/shared-types';
 import { logger } from '../utils/logger';
 
 export class DatabaseService {
   private pool: Pool;
 
   constructor() {
+    console.log('DatabaseService constructor - DATABASE_URL:', process.env.DATABASE_URL); // 调试信息
+    console.log('DatabaseService constructor - DB_HOST:', process.env.DB_HOST); // 调试信息
+    console.log('DatabaseService constructor - DB_NAME:', process.env.DB_NAME); // 调试信息
+    // 连接配置兼容性处理 // 2025-09-25 23:38:00
+    // 有些环境下仅提供分散的DB_*变量，或DATABASE_URL未定义/类型异常，导致pg解析密码报错
+    // 这里统一构建一个可靠的配置对象，确保password为字符串类型
+    const envUrl = process.env.DATABASE_URL;
+    let poolConfig: any;
+
+    if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
+      poolConfig = { connectionString: envUrl };
+      console.log('Using DATABASE_URL connection string:', envUrl); // 调试信息
+    } else {
+      const host = process.env.DB_HOST || 'localhost';
+      const port = parseInt(process.env.DB_PORT || '5432', 10);
+      const database = process.env.DB_NAME || 'tms';
+      const user = process.env.DB_USER || 'tms_user';
+      const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
+
+      poolConfig = { host, port, database, user, password };
+      console.log('Using individual DB config:', { host, port, database, user, password: '***' }); // 调试信息
+    }
+
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      ...poolConfig,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000, // 增加到10秒
+      connectionTimeoutMillis: 10000,
     });
 
     this.pool.on('error', (err) => {
@@ -150,11 +58,27 @@ export class DatabaseService {
    * @param params 查询参数
    * @returns 查询结果
    */
-  private async query(query: string, params: any[] = []): Promise<any> {
+  public async query(query: string, params: any[] = []): Promise<any> {
     const client = await this.getConnection();
     try {
       const result = await client.query(query, params);
       return result.rows;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * 执行删除操作
+   * @param query SQL查询语句
+   * @param params 查询参数
+   * @returns 删除结果
+   */
+  public async delete(query: string, params: any[] = []): Promise<{ rowCount: number }> {
+    const client = await this.getConnection();
+    try {
+      const result = await client.query(query, params);
+      return { rowCount: result.rowCount };
     } finally {
       client.release();
     }
@@ -400,6 +324,7 @@ export class DatabaseService {
    */
   async getRules(tenantId: string, params: QueryParams): Promise<PaginatedResponse<Rule>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
+    const typedFilters = filters as { type?: string; status?: string; };
     const offset = (page - 1) * limit;
     
     let whereClause = 'WHERE tenant_id = $1';
@@ -408,19 +333,19 @@ export class DatabaseService {
     
     if (search) {
       whereClause += ` AND (name ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
-    if (filters?.type) {
+    if (typedFilters?.type) {
       whereClause += ` AND type = $${paramIndex}`;
-      queryParams.push(filters.type);
+      queryParams.push(typedFilters.type);
       paramIndex++;
     }
     
-    if (filters?.status) {
+    if (typedFilters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
-      queryParams.push(filters.status);
+      queryParams.push(typedFilters.status);
       paramIndex++;
     }
     
@@ -691,7 +616,7 @@ export class DatabaseService {
     
     if (search) {
       whereClause += ` AND (name ILIKE $${paramIndex} OR contact_info->>'email' ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -788,7 +713,7 @@ export class DatabaseService {
     
     if (search) {
       whereClause += ` AND (name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -896,7 +821,7 @@ export class DatabaseService {
     
     if (search) {
       whereClause += ` AND (shipment_number ILIKE $${paramIndex} OR cargo_info->>'description' ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -1143,7 +1068,7 @@ export class DatabaseService {
     
     if (search) {
       whereClause += ` AND (reference_id ILIKE $${paramIndex} OR generated_by ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -1213,8 +1138,9 @@ export class DatabaseService {
           setClause.push(`${key} = $${paramIndex}`);
           queryParams.push(JSON.stringify(value));
         } else if (key === 'period') {
+          const periodValue = value as any;
           setClause.push(`period_start = $${paramIndex}`, `period_end = $${paramIndex + 1}`);
-          queryParams.push(value.start, value.end);
+          queryParams.push(periodValue.start, periodValue.end);
           paramIndex++;
         } else {
           setClause.push(`${key} = $${paramIndex}`);
@@ -1261,7 +1187,7 @@ export class DatabaseService {
     
     if (search) {
       whereClause += ` AND (description ILIKE $${paramIndex} OR reference_id ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
@@ -1455,6 +1381,267 @@ export class DatabaseService {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  // ==================== 车辆管理 ====================
+
+  /**
+   * 获取车辆列表
+   * @param limit 限制数量
+   * @param offset 偏移量
+   * @returns 车辆列表
+   */
+  async getVehicles(limit: number = 50, offset: number = 0): Promise<any[]> {
+    const query = `
+      SELECT * FROM vehicles 
+      ORDER BY created_at DESC 
+      LIMIT $1 OFFSET $2
+    `;
+    
+    const result = await this.query(query, [limit, offset]);
+    return result;
+  }
+
+  /**
+   * 根据ID获取车辆
+   * @param id 车辆ID
+   * @returns 车辆信息
+   */
+  async getVehicleById(id: string): Promise<any | null> {
+    const query = 'SELECT * FROM vehicles WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 创建车辆
+   * @param vehicle 车辆数据
+   * @returns 创建的车辆
+   */
+  async createVehicle(vehicle: {
+    plateNumber: string;
+    vehicleType: string;
+    capacity: number;
+    status: string;
+  }): Promise<any> {
+    const query = `
+      INSERT INTO vehicles (plate_number, type, capacity_kg, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const result = await this.query(query, [
+      vehicle.plateNumber,
+      vehicle.vehicleType,
+      vehicle.capacity,
+      vehicle.status
+    ]);
+    
+    return result[0];
+  }
+
+  /**
+   * 删除车辆
+   * @param id 车辆ID
+   */
+  async deleteVehicle(id: string): Promise<void> {
+    const query = 'DELETE FROM vehicles WHERE id = $1';
+    await this.query(query, [id]);
+  }
+
+  /**
+   * 删除司机
+   * @param tenantId 租户ID
+   * @param driverId 司机ID
+   */
+  async deleteDriver(tenantId: string, driverId: string): Promise<boolean> {
+    const query = 'DELETE FROM drivers WHERE id = $1 AND tenant_id = $2';
+    const result = await this.delete(query, [driverId, tenantId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * 更新客户
+   * @param tenantId 租户ID
+   * @param customerId 客户ID
+   * @param updates 更新数据
+   * @returns 更新后的客户
+   */
+  async updateCustomer(tenantId: string, customerId: string, updates: any): Promise<any | null> {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updates).forEach(key => {
+      if (updates[key] !== undefined) {
+        if (key === 'contactInfo' || key === 'billingInfo') {
+          fields.push(`${key} = $${paramIndex}`);
+          values.push(JSON.stringify(updates[key]));
+        } else {
+          fields.push(`${key} = $${paramIndex}`);
+          values.push(updates[key]);
+        }
+        paramIndex++;
+      }
+    });
+
+    if (fields.length === 0) {
+      return await this.getCustomer(tenantId, customerId);
+    }
+
+    fields.push(`updated_at = NOW()`);
+    values.push(customerId, tenantId);
+
+    const query = `
+      UPDATE customers 
+      SET ${fields.join(', ')} 
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 删除客户
+   * @param tenantId 租户ID
+   * @param customerId 客户ID
+   */
+  async deleteCustomer(tenantId: string, customerId: string): Promise<boolean> {
+    const query = 'DELETE FROM customers WHERE id = $1 AND tenant_id = $2';
+    const result = await this.delete(query, [customerId, tenantId]);
+    return result.rowCount > 0;
+  }
+
+  // ==================== 货币管理 ====================
+
+  /**
+   * 获取货币列表
+   * @param tenantId 租户ID
+   * @returns 货币列表
+   */
+  async getCurrencies(tenantId: string): Promise<any[]> {
+    const query = `
+      SELECT * FROM currencies 
+      WHERE tenant_id = $1 
+      ORDER BY is_default DESC, created_at ASC
+    `;
+    const result = await this.query(query, [tenantId]);
+    return result;
+  }
+
+  /**
+   * 根据ID获取货币
+   * @param tenantId 租户ID
+   * @param id 货币ID
+   * @returns 货币信息
+   */
+  async getCurrencyById(tenantId: string, id: string): Promise<any | null> {
+    const query = 'SELECT * FROM currencies WHERE id = $1 AND tenant_id = $2';
+    const result = await this.query(query, [id, tenantId]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 创建货币
+   * @param tenantId 租户ID
+   * @param currency 货币数据
+   * @returns 创建的货币
+   */
+  async createCurrency(tenantId: string, currency: {
+    code: string;
+    name: string;
+    symbol: string;
+    exchangeRate: number;
+    isDefault: boolean;
+    isActive: boolean;
+  }): Promise<any> {
+    const query = `
+      INSERT INTO currencies (id, tenant_id, code, name, symbol, exchange_rate, is_default, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const id = `currency_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const result = await this.query(query, [
+      id,
+      tenantId,
+      currency.code,
+      currency.name,
+      currency.symbol,
+      currency.exchangeRate,
+      currency.isDefault,
+      currency.isActive
+    ]);
+    
+    return result[0];
+  }
+
+  /**
+   * 更新货币
+   * @param tenantId 租户ID
+   * @param id 货币ID
+   * @param updates 更新数据
+   * @returns 更新后的货币
+   */
+  async updateCurrency(tenantId: string, id: string, updates: any): Promise<any | null> {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updates).forEach(key => {
+      if (updates[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex}`);
+        values.push(updates[key]);
+        paramIndex++;
+      }
+    });
+
+    if (fields.length === 0) {
+      return await this.getCurrencyById(tenantId, id);
+    }
+
+    fields.push(`updated_at = NOW()`);
+    values.push(id, tenantId);
+
+    const query = `
+      UPDATE currencies 
+      SET ${fields.join(', ')} 
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 删除货币
+   * @param tenantId 租户ID
+   * @param id 货币ID
+   */
+  async deleteCurrency(tenantId: string, id: string): Promise<void> {
+    const query = 'DELETE FROM currencies WHERE id = $1 AND tenant_id = $2';
+    await this.query(query, [id, tenantId]);
+  }
+
+  /**
+   * 更新默认货币
+   * @param tenantId 租户ID
+   * @param excludeId 排除的货币ID（设为null时取消所有默认货币）
+   */
+  async updateDefaultCurrency(tenantId: string, excludeId: string | null): Promise<void> {
+    let query = 'UPDATE currencies SET is_default = false WHERE tenant_id = $1';
+    const values = [tenantId];
+
+    if (excludeId) {
+      query += ' AND id != $2';
+      values.push(excludeId);
+    }
+
+    await this.query(query, values);
   }
 
   // ==================== 连接管理 ====================

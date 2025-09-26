@@ -27,6 +27,19 @@ export const MAX_SHIPMENT_VOLUME = 100; // 100立方米
 
 // 财务相关常量
 export const DEFAULT_CURRENCY = 'CNY';
+export const SUPPORTED_CURRENCIES = ['CNY', 'USD', 'CAD', 'EUR'] as const;
+export const CURRENCY_SYMBOLS = {
+  CNY: '¥',
+  USD: '$',
+  CAD: 'C$',
+  EUR: '€'
+} as const;
+export const CURRENCY_NAMES = {
+  CNY: '人民币',
+  USD: '美元',
+  CAD: '加元',
+  EUR: '欧元'
+} as const;
 export const PAYMENT_TERMS = {
   NET_15: 15,
   NET_30: 30,

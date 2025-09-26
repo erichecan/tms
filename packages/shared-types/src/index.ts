@@ -20,6 +20,7 @@ export interface Tenant extends BaseEntity {
 export interface User extends BaseEntity {
   tenantId: string;
   email: string;
+  passwordHash: string;
   role: UserRole;
   profile: UserProfile;
   status: 'active' | 'inactive' | 'suspended';
@@ -146,8 +147,10 @@ export interface DriverPerformance {
 export interface Shipment extends BaseEntity {
   tenantId: string;
   shipmentNumber: string;
-  customerId: string;
+  customerId?: string;
   driverId?: string;
+  transportDistance?: number;
+  customer?: Customer;
   pickupAddress: Address;
   deliveryAddress: Address;
   cargoInfo: CargoInfo;
@@ -246,6 +249,8 @@ export interface Statement {
   status: StatementStatus;
   generatedAt: Date;
   generatedBy: string;
+  createdAt: Date; // 2025-09-26 08:55:00 补充后端映射字段
+  updatedAt: Date; // 2025-09-26 08:55:00 补充后端映射字段
 }
 
 export type StatementType = 'customer' | 'driver';

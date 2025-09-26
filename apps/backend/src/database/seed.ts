@@ -21,7 +21,7 @@ async function seedDatabase() {
       return;
     }
     
-    // 插入更多示例数据
+    // 插入更多示例数据 // 2025-09-23 10:35:00
     const seedData = `
       -- 插入更多客户
       INSERT INTO customers (tenant_id, name, level, contact_info, billing_info) VALUES
@@ -32,14 +32,19 @@ async function seedDatabase() {
        '{"email": "shanghai@transport.com", "phone": "021-87654321", "address": {"street": "浦东新区运输路88号", "city": "上海", "state": "上海", "postalCode": "200000", "country": "中国"}, "contactPerson": "李经理"}',
        '{"companyName": "上海运输集团有限公司", "taxId": "91310000000000002X", "billingAddress": {"street": "浦东新区运输路88号", "city": "上海", "state": "上海", "postalCode": "200000", "country": "中国"}, "paymentTerms": "月结30天"}');
       
-      -- 插入更多司机
+      -- 插入车辆
+      INSERT INTO vehicles (id, plate_number, type, capacity_kg, status) VALUES
+      (uuid_generate_v4(), '京C10001', 'van', 1200, 'available'),
+      (uuid_generate_v4(), '沪B20002', 'truck', 8000, 'available');
+
+      -- 插入更多司机（默认 available）
       INSERT INTO drivers (tenant_id, name, phone, license_number, vehicle_info, status, performance) VALUES
       ('00000000-0000-0000-0000-000000000001', '王司机', '13800138001', 'B987654321', 
        '{"type": "van", "licensePlate": "京B67890", "capacity": 3000, "dimensions": {"length": 4.2, "width": 1.8, "height": 2.0}, "features": ["GPS"]}',
-       'active', '{"rating": 4.5, "totalDeliveries": 89, "onTimeRate": 0.88, "customerSatisfaction": 0.85}'),
+       'available', '{"rating": 4.5, "totalDeliveries": 89, "onTimeRate": 0.88, "customerSatisfaction": 0.85}'),
       ('00000000-0000-0000-0000-000000000001', '张司机', '13900139001', 'C111111111', 
        '{"type": "trailer", "licensePlate": "沪A99999", "capacity": 20000, "dimensions": {"length": 12, "width": 2.5, "height": 3.5}, "features": ["尾板", "GPS", "冷藏"]}',
-       'active', '{"rating": 4.9, "totalDeliveries": 203, "onTimeRate": 0.96, "customerSatisfaction": 0.94}');
+       'available', '{"rating": 4.9, "totalDeliveries": 203, "onTimeRate": 0.96, "customerSatisfaction": 0.94}');
       
       -- 插入更多规则
       INSERT INTO rules (tenant_id, name, description, type, priority, conditions, actions, status) VALUES

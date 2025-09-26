@@ -8,6 +8,9 @@ import {
   CarOutlined,
   DollarOutlined,
   LogoutOutlined,
+  UserOutlined,
+  TeamOutlined,
+  TruckOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -39,26 +42,50 @@ const AppLayout: React.FC = () => {
             {
               key: '1',
               icon: <DashboardOutlined />,
-              label: 'Dashboard',
-              onClick: () => navigate('/'),
+              label: '仪表板',
+              onClick: () => navigate('/admin'),
             },
             {
               key: '2',
               icon: <SettingOutlined />,
               label: '规则管理',
-              onClick: () => navigate('/rules'),
+              onClick: () => navigate('/admin/rules'),
             },
             {
               key: '3',
               icon: <CarOutlined />,
               label: '运单管理',
-              onClick: () => navigate('/shipments'),
+              onClick: () => navigate('/admin/shipments'),
             },
             {
               key: '4',
+              icon: <UserOutlined />,
+              label: '客户管理',
+              onClick: () => navigate('/admin/customers'),
+            },
+            {
+              key: '5',
+              icon: <TeamOutlined />,
+              label: '司机管理',
+              onClick: () => navigate('/admin/drivers'),
+            },
+            {
+              key: '6',
+              icon: <TruckOutlined />,
+              label: '车辆管理',
+              onClick: () => navigate('/admin/vehicles'),
+            },
+            {
+              key: '7',
               icon: <DollarOutlined />,
-              label: '财务结算',
-              onClick: () => navigate('/finance'),
+              label: '财务管理',
+              onClick: () => navigate('/admin/finance'),
+            },
+            {
+              key: '8',
+              icon: <DollarOutlined />,
+              label: '货币管理',
+              onClick: () => navigate('/admin/currencies'),
             },
           ]}
         />

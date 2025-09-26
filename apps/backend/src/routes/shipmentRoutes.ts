@@ -7,7 +7,7 @@ import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest } from '../middleware/validationMiddleware';
+import { validateRequest, shipmentCreateFormSchema } from '../middleware/validationMiddleware';
 
 const router = Router();
 
@@ -26,6 +26,18 @@ router.use(tenantMiddleware);
  * @access Private
  */
 router.get('/', shipmentController.getShipments.bind(shipmentController));
+
+/**
+ * @route POST /api/v1/shipments
+ * @desc 创建运单
+ * @access Private
+ */
+router.post('/',
+  validateRequest({
+    body: shipmentCreateFormSchema
+  }),
+  shipmentController.createShipment.bind(shipmentController)
+);
 
 /**
  * @route GET /api/v1/shipments/:id

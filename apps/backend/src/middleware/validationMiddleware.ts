@@ -6,11 +6,72 @@ import Joi from 'joi';
 import { logger } from '../utils/logger';
 
 interface ValidationSchema {
-  body?: Joi.ObjectSchema;
-  query?: Joi.ObjectSchema;
-  params?: Joi.ObjectSchema;
-  headers?: Joi.ObjectSchema;
+  // 允许直接传入Joi.ObjectSchema或简化描述对象
+  body?: Joi.ObjectSchema | Record<string, any>;
+  query?: Joi.ObjectSchema | Record<string, any>;
+  params?: Joi.ObjectSchema | Record<string, any>;
+  headers?: Joi.ObjectSchema | Record<string, any>;
 }
+
+/**
+ * 将简化描述对象转换为Joi.ObjectSchema
+ * 支持的字段描述：{ type: 'string'|'number'|'boolean'|'object'|'array', required?: boolean, enum?: any[], properties?: {}, items?: any }
+ * @param input 简化对象或Joi对象
+ * @returns Joi.ObjectSchema
+ */
+const ensureObjectSchema = (input?: Joi.ObjectSchema | Record<string, any>): Joi.ObjectSchema | undefined => {
+  if (!input) return undefined;
+  if (Joi.isSchema(input)) {
+    return input as Joi.ObjectSchema;
+  }
+  const desc = input as Record<string, any>;
+  const convert = (node: any): Joi.Schema => {
+    if (Joi.isSchema(node)) return node as Joi.Schema;
+    if (node && typeof node === 'object' && 'type' in node) {
+      const { type, required, enum: enumVals, properties, items } = node as { type: string; required?: boolean; enum?: any[]; properties?: Record<string, any>; items?: any };
+      let schema: Joi.Schema;
+      switch (type) {
+        case 'string':
+          schema = Joi.string();
+          if (Array.isArray(enumVals) && enumVals.length > 0) schema = (schema as Joi.StringSchema).valid(...enumVals);
+          break;
+        case 'number':
+          schema = Joi.number();
+          break;
+        case 'boolean':
+          schema = Joi.boolean();
+          break;
+        case 'array':
+          schema = Joi.array();
+          if (items) schema = (schema as Joi.ArraySchema).items(convert(items));
+          break;
+        case 'object':
+          schema = Joi.object(convertProperties(properties));
+          break;
+        default:
+          schema = Joi.any();
+      }
+      if (required) schema = (schema as any).required(); else schema = (schema as any).optional();
+      return schema;
+    }
+    // 普通对象，递归为object
+    if (node && typeof node === 'object') {
+      return Joi.object(convertProperties(node as Record<string, any>));
+    }
+    return Joi.any();
+  };
+
+  const convertProperties = (props?: Record<string, any>): Record<string, Joi.Schema> => {
+    const result: Record<string, Joi.Schema> = {};
+    if (!props) return result;
+    for (const [key, value] of Object.entries(props)) {
+      result[key] = convert(value);
+    }
+    return result;
+  };
+
+  return Joi.object(convertProperties(desc));
+};
 
 /**
  * 请求验证中间件
@@ -22,34 +83,38 @@ export const validateRequest = (schema: ValidationSchema) => {
     const errors: string[] = [];
 
     // 验证请求体
-    if (schema.body) {
-      const { error } = schema.body.validate(req.body);
-      if (error) {
-        errors.push(`Body: ${error.details.map(d => d.message).join(', ')}`);
+    const bodySchema = ensureObjectSchema(schema.body);
+    if (bodySchema) {
+      const result = bodySchema.validate(req.body);
+      if (result.error) {
+        errors.push(`Body: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
     // 验证查询参数
-    if (schema.query) {
-      const { error } = schema.query.validate(req.query);
-      if (error) {
-        errors.push(`Query: ${error.details.map(d => d.message).join(', ')}`);
+    const querySchema = ensureObjectSchema(schema.query);
+    if (querySchema) {
+      const result = querySchema.validate(req.query);
+      if (result.error) {
+        errors.push(`Query: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
     // 验证路径参数
-    if (schema.params) {
-      const { error } = schema.params.validate(req.params);
-      if (error) {
-        errors.push(`Params: ${error.details.map(d => d.message).join(', ')}`);
+    const paramsSchema = ensureObjectSchema(schema.params);
+    if (paramsSchema) {
+      const result = paramsSchema.validate(req.params);
+      if (result.error) {
+        errors.push(`Params: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
     // 验证请求头
-    if (schema.headers) {
-      const { error } = schema.headers.validate(req.headers);
-      if (error) {
-        errors.push(`Headers: ${error.details.map(d => d.message).join(', ')}`);
+    const headersSchema = ensureObjectSchema(schema.headers);
+    if (headersSchema) {
+      const result = headersSchema.validate(req.headers);
+      if (result.error) {
+        errors.push(`Headers: ${result.error.details.map(d => d.message).join(', ')}`);
       }
     }
 
@@ -227,6 +292,70 @@ export const shipmentCreateSchema = Joi.object({
     specialRequirements: Joi.array().items(Joi.string()).optional(),
     hazardous: Joi.boolean().default(false)
   }).required()
+});
+
+/**
+ * 运单创建验证模式（前端表单格式）
+ */
+export const shipmentCreateFormSchema = Joi.object({
+  shipmentNumber: Joi.string().optional(),
+  customerName: Joi.string().required(),
+  customerPhone: Joi.string().required(),
+  customerEmail: Joi.string().email().optional(),
+  priority: Joi.string().valid('low', 'normal', 'high', 'urgent').default('normal'),
+  shipper: Joi.object({
+    name: Joi.string().required(),
+    company: Joi.string().optional(),
+    phone: Joi.string().required(),
+    email: Joi.string().email().optional(),
+    address: Joi.object({
+      addressLine1: Joi.string().required(),
+      addressLine2: Joi.string().optional(),
+      city: Joi.string().required(),
+      province: Joi.string().required(),
+      postalCode: Joi.string().required(),
+      country: Joi.string().required(),
+      isResidential: Joi.boolean().optional()
+    }).required()
+  }).required(),
+  receiver: Joi.object({
+    name: Joi.string().required(),
+    company: Joi.string().optional(),
+    phone: Joi.string().required(),
+    email: Joi.string().email().optional(),
+    address: Joi.object({
+      addressLine1: Joi.string().required(),
+      addressLine2: Joi.string().optional(),
+      city: Joi.string().required(),
+      province: Joi.string().required(),
+      postalCode: Joi.string().required(),
+      country: Joi.string().required(),
+      isResidential: Joi.boolean().optional()
+    }).required()
+  }).required(),
+  pickupDate: Joi.string().optional(),
+  deliveryDate: Joi.string().optional(),
+  addressType: Joi.string().valid('residential', 'commercial').default('residential'),
+  distance: Joi.number().min(0).optional(),
+  cargoLength: Joi.number().min(0).required(),
+  cargoWidth: Joi.number().min(0).required(),
+  cargoHeight: Joi.number().min(0).required(),
+  cargoWeight: Joi.number().min(0).required(),
+  cargoQuantity: Joi.number().min(1).required(),
+  cargoPalletCount: Joi.number().min(0).optional(),
+  cargoValue: Joi.number().min(0).optional(),
+  cargoDescription: Joi.string().optional(),
+  cargoIsFragile: Joi.boolean().default(false),
+  cargoIsDangerous: Joi.boolean().default(false),
+  insurance: Joi.boolean().default(false),
+  insuranceValue: Joi.number().min(0).optional(),
+  requiresTailgate: Joi.boolean().default(false),
+  requiresAppointment: Joi.boolean().default(false),
+  waitingTime: Joi.number().min(0).optional(),
+  deliveryInstructions: Joi.string().optional(),
+  specialRequirements: Joi.array().items(Joi.string()).optional(),
+  status: Joi.string().valid('pending', 'created', 'in_transit', 'delivered', 'cancelled').optional(),
+  estimatedCost: Joi.number().min(0).optional()
 });
 
 /**
