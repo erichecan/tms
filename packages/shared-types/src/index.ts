@@ -249,6 +249,8 @@ export interface Statement {
   status: StatementStatus;
   generatedAt: Date;
   generatedBy: string;
+  createdAt: Date; // 2025-09-26 08:55:00 补充后端映射字段
+  updatedAt: Date; // 2025-09-26 08:55:00 补充后端映射字段
 }
 
 export type StatementType = 'customer' | 'driver';

@@ -277,7 +277,7 @@ const ShipmentManagement: React.FC = () => {
               <Col span={12}>
                 <Text strong>预估费用：</Text>
                 <div style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                  ¥{viewingShipment.estimatedCost ? parseFloat(viewingShipment.estimatedCost).toFixed(2) : '0.00'}
+                  ¥{viewingShipment.estimatedCost ? Number(viewingShipment.estimatedCost).toFixed(2) : '0.00'}
                 </div>
               </Col>
               <Col span={12}>

@@ -30,7 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi } from '../../services/api';
-import dayjs from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
+import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -72,12 +72,12 @@ const ShipmentCreate: React.FC = () => {
           
           // 转换时间范围
           if (processedFormData.pickupTimeRange && Array.isArray(processedFormData.pickupTimeRange)) {
-            processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map(time => 
+            processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map((time: string | Dayjs) => 
               typeof time === 'string' ? dayjs(time) : time
             );
           }
           if (processedFormData.deliveryTimeRange && Array.isArray(processedFormData.deliveryTimeRange)) {
-            processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map(time => 
+            processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map((time: string | Dayjs) => 
               typeof time === 'string' ? dayjs(time) : time
             );
           }
@@ -113,12 +113,12 @@ const ShipmentCreate: React.FC = () => {
     
     // 转换时间范围
     if (processedFormData.pickupTimeRange && Array.isArray(processedFormData.pickupTimeRange)) {
-      processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map(time => 
+      processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map((time: string | Dayjs) => 
         dayjs.isDayjs(time) ? time.format('HH:mm') : time
       );
     }
     if (processedFormData.deliveryTimeRange && Array.isArray(processedFormData.deliveryTimeRange)) {
-      processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map(time => 
+      processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map((time: string | Dayjs) => 
         dayjs.isDayjs(time) ? time.format('HH:mm') : time
       );
     }

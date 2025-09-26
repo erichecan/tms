@@ -15,8 +15,8 @@ RUN npm run build:frontend
 # ---- Final Stage ----
 FROM nginx:alpine
 
-# 复制Nginx配置文件
-COPY docker/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+# 复制前端Nginx站点配置（仅server块） // 2025-09-26 09:14:00
+COPY docker/frontend/site.conf /etc/nginx/conf.d/default.conf
 
 # 从builder阶段复制构建好的静态文件
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html

@@ -45,9 +45,7 @@ services:
     depends_on:
       - postgres
       - redis
-    volumes:
-      - ./apps/backend:/app
-      - /app/node_modules
+    # 不挂载源码，使用构建产物运行 // 2025-09-26 09:14:30
     networks:
       - tms-network
 
@@ -60,12 +58,10 @@ services:
     environment:
       VITE_API_URL: http://localhost:8000
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       - backend
-    volumes:
-      - ./apps/frontend:/app
-      - /app/node_modules
+    # 不挂载源码，使用镜像中静态资源 // 2025-09-26 09:14:30
     networks:
       - tms-network
 

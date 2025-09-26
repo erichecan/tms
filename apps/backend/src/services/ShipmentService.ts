@@ -10,7 +10,8 @@ import {
   ShipmentStatus, 
   QueryParams,
   PaginatedResponse,
-  AdditionalFee
+  AdditionalFee,
+  ShipmentTimeline
 } from '@shared/index';
 
 export interface ShipmentAssignment {
@@ -25,7 +26,7 @@ export interface ShipmentUpdate {
   driverId?: string;
   actualCost?: number;
   additionalFees?: AdditionalFee[];
-  timeline?: Partial<Record<ShipmentStatus, Date>>;
+  timeline?: ShipmentTimeline;
   notes?: string;
 }
 
@@ -135,7 +136,7 @@ export class ShipmentService {
         updates.timeline = timeline;
       }
 
-      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
+      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
       
       logger.info(`Shipment updated: ${shipmentId} - Status: ${updates.status || shipment.status}`);
       return updatedShipment;
@@ -214,7 +215,7 @@ export class ShipmentService {
         }
       };
 
-      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
+      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
       
       logger.info(`Shipment confirmed: ${shipmentId}`);
       return updatedShipment;
@@ -254,7 +255,7 @@ export class ShipmentService {
         }
       };
 
-      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
+      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
       
       logger.info(`Pickup started for shipment: ${shipmentId}`);
       return updatedShipment;
@@ -294,7 +295,7 @@ export class ShipmentService {
         }
       };
 
-      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
+      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
       
       logger.info(`Transit started for shipment: ${shipmentId}`);
       return updatedShipment;
@@ -341,7 +342,7 @@ export class ShipmentService {
         notes: deliveryNotes
       };
 
-      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
+      const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
       
       logger.info(`Delivery completed for shipment: ${shipmentId}`);
       return updatedShipment;
@@ -437,7 +438,7 @@ export class ShipmentService {
       }
 
       const deliveryTime = (shipment.timeline?.delivered && shipment.timeline?.pickedUp)
-        ? shipment.timeline.delivered.getTime() - shipment.timeline.pickedUp.getTime()
+        ? new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickedUp).getTime()
         : 0;
 
       // 构建薪酬计算事实
@@ -476,6 +477,7 @@ export class ShipmentService {
         type: 'payable',
         referenceId: shipment.driverId,
         amount: commission,
+        currency: 'CNY',
         status: 'pending',
         description: `运单 ${shipment.shipmentNumber} 司机薪酬`
       });
@@ -502,8 +504,7 @@ export class ShipmentService {
     const todayEnd = new Date(year, date.getMonth(), date.getDate() + 1);
     
     const shipments = await this.dbService.getShipments(tenantId, {
-      startDate: todayStart,
-      endDate: todayEnd
+      filters: { startDate: todayStart, endDate: todayEnd }
     });
     
     const sequence = (shipments.data?.length || 0) + 1;
@@ -546,10 +547,9 @@ export class ShipmentService {
   ): Promise<Shipment[]> {
     try {
       const params: QueryParams = {
-        driverId,
-        status,
         sort: 'created_at',
-        order: 'desc'
+        order: 'desc',
+        filters: { driverId, status }
       };
       
       const result = await this.dbService.getShipments(tenantId, params);

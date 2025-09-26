@@ -185,10 +185,7 @@ export class FinanceService {
 
       // 获取该客户在指定期间的已完成运单
       const shipments = await this.dbService.getShipments(tenantId, {
-        customerId,
-        startDate,
-        endDate,
-        status: 'completed'
+        filters: { customerId, startDate, endDate, status: 'completed' }
       });
 
       if (!shipments.data || shipments.data.length === 0) {
@@ -226,6 +223,7 @@ export class FinanceService {
         type: 'receivable',
         referenceId: customerId,
         amount: totalAmount,
+        currency: 'CNY',
         status: 'pending',
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30天后到期
         description: `对账单 ${createdStatement.id} - ${customer.name}`
@@ -264,10 +262,7 @@ export class FinanceService {
 
       // 获取该司机在指定期间的已完成运单
       const shipments = await this.dbService.getShipments(tenantId, {
-        driverId,
-        startDate,
-        endDate,
-        status: 'completed'
+        filters: { driverId, startDate, endDate, status: 'completed' }
       });
 
       if (!shipments.data || shipments.data.length === 0) {
@@ -342,6 +337,7 @@ export class FinanceService {
         type: 'payable',
         referenceId: driverId,
         amount: totalCommission,
+        currency: 'CNY',
         status: 'pending',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7天后到期
         description: `结算单 ${createdStatement.id} - ${driver.name}`
@@ -412,8 +408,10 @@ export class FinanceService {
 
       // 更新财务记录
       const financialRecords = await this.dbService.getFinancialRecords(tenantId, {
-        referenceId: statement.referenceId,
-        type: statement.type === 'customer' ? 'receivable' : 'payable'
+        filters: {
+          referenceId: statement.referenceId,
+          type: statement.type === 'customer' ? 'receivable' : 'payable'
+        }
       });
 
       for (const record of financialRecords.data || []) {

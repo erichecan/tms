@@ -441,14 +441,20 @@ export class PricingService {
     estimatedCost: number, 
     appliedRules: string[]
   ): Promise<Shipment> {
-    const shipmentData = {
+    const shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {
       customerId: request.customerId,
       pickupAddress: request.pickupAddress,
       deliveryAddress: request.deliveryAddress,
-      cargoInfo: request.cargoInfo,
+      cargoInfo: {
+        ...request.cargoInfo,
+        specialRequirements: request.cargoInfo.specialRequirements || []
+      },
       estimatedCost,
       appliedRules,
-      status: 'quoted' as const
+      status: 'quoted' as const,
+      shipmentNumber: `TMP${Date.now()}`,
+      additionalFees: [],
+      timeline: { created: new Date() }
     };
 
     return await this.dbService.createShipment(tenantId, shipmentData);
@@ -509,12 +515,10 @@ export class PricingService {
     endDate?: Date
   ): Promise<Shipment[]> {
     try {
-      return await this.dbService.getShipments(tenantId, {
-        customerId,
-        startDate,
-        endDate,
-        status: 'quoted'
+      const result = await this.dbService.getShipments(tenantId, {
+        filters: { customerId, startDate, endDate, status: 'quoted' }
       });
+      return result.data || [];
     } catch (error) {
       logger.error('Failed to get quote history:', error);
       throw error;

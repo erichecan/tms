@@ -58,7 +58,7 @@ export class DatabaseService {
    * @param params 查询参数
    * @returns 查询结果
    */
-  private async query(query: string, params: any[] = []): Promise<any> {
+  public async query(query: string, params: any[] = []): Promise<any> {
     const client = await this.getConnection();
     try {
       const result = await client.query(query, params);
