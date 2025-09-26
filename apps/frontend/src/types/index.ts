@@ -72,9 +72,15 @@ export interface Rule {
 
 export enum ShipmentStatus {
   PENDING = 'pending',
+  QUOTED = 'quoted',
+  CONFIRMED = 'confirmed',
+  ASSIGNED = 'assigned',
+  PICKED_UP = 'picked_up',
   IN_TRANSIT = 'in_transit',
+  DELIVERED = 'delivered',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  EXCEPTION = 'exception',
 }
 
 export interface ShipmentAddress {
@@ -158,6 +164,7 @@ export interface Driver {
   phone: string;
   licenseNumber: string;
   vehicleType: string;
+  status: string;
   tenantId: string;
   createdAt: string;
   updatedAt: string;

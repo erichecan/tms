@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, rulesApi, customersApi, driversApi } from '../../services/api';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 
 
@@ -27,7 +28,7 @@ interface RecentShipment {
   shipmentNumber: string;
   customerName: string;
   status: string;
-  estimatedCost: number;
+  estimatedCost: number | null | undefined;
   createdAt: string;
 }
 
@@ -81,6 +82,12 @@ const Dashboard: React.FC = () => {
 
       // 设置最近运单数据
       if (shipmentsRes.data?.data) {
+        // 调试：检查 estimatedCost 的数据类型 // 2025-01-27 15:35:00
+        console.log('Shipment data types:', shipmentsRes.data.data.map((shipment: any) => ({
+          id: shipment.id,
+          estimatedCost: shipment.estimatedCost,
+          estimatedCostType: typeof shipment.estimatedCost
+        })));
         setRecentShipments(shipmentsRes.data.data);
       }
     } catch (error) {
@@ -123,7 +130,10 @@ const Dashboard: React.FC = () => {
       title: '预估费用',
       dataIndex: 'estimatedCost',
       key: 'estimatedCost',
-      render: (cost: number) => `¥${cost.toFixed(2)}`,
+      render: (cost: number | string | null | undefined) => {
+        // 使用安全的货币格式化函数，彻底解决 toFixed 错误 // 2025-01-27 15:36:00
+        return formatCurrency(cost, 2, '¥');
+      },
     },
     {
       title: '创建时间',

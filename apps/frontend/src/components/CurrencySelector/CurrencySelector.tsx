@@ -68,7 +68,7 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       optionFilterProp="children"
       showSearch
       filterOption={(input, option) => {
-        const children = option?.children;
+        const children = option?.children as any;
         if (typeof children === 'string') {
           return children.toLowerCase().includes(input.toLowerCase());
         }

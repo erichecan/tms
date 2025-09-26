@@ -1,45 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Tag,
-  Modal,
-  message,
-  Popconfirm,
-  Tooltip,
-  Row,
-  Col,
-  Typography,
-  Divider,
-  Steps,
-} from 'antd';
-import {
-  PlusOutlined,
+import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Row, Col, Divider } from 'antd';
+import { 
+  EyeOutlined, 
+  EditOutlined, 
   DeleteOutlined,
-  EyeOutlined,
-  ExclamationCircleOutlined,
-  TruckOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-  UserAddOutlined,
+  PlusOutlined,
+  UserAddOutlined
 } from '@ant-design/icons';
-import { shipmentsApi } from '../../services/api';
-import { Shipment, ShipmentStatus, Driver } from '../../types/index';
+import { shipmentsApi, driversApi } from '../../services/api';
+import { Shipment, ShipmentStatus, Driver } from '../../types';
 
 const { Title, Text } = Typography;
-const { Step } = Steps;
 
 const ShipmentManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [drivers] = useState<Driver[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
-  const [isAssignModalVisible] = useState(false);
-  const [assigningShipment] = useState<Shipment | null>(null);
-  
+  const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
+  const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
 
   useEffect(() => {
     loadShipments();
@@ -50,7 +32,7 @@ const ShipmentManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await shipmentsApi.getShipments();
-      setShipments(response.data?.data || []);
+      setShipments(response.data.data || []);
     } catch (error) {
       console.error('Failed to load shipments:', error);
       message.error('加载运单失败');
@@ -60,20 +42,49 @@ const ShipmentManagement: React.FC = () => {
   };
 
   const loadDrivers = async () => {
-    // 暂时简化，不加载司机数据
+    try {
+      const response = await driversApi.getDrivers();
+      setDrivers(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load drivers:', error);
+      message.error('加载司机失败');
+    }
   };
 
-  // 移除弹窗创建/编辑逻辑 // 2025-09-25 23:42:00
-
-  const handleViewShipment = (shipment: Shipment) => {
+  const handleView = (shipment: Shipment) => {
     setViewingShipment(shipment);
     setIsViewModalVisible(true);
   };
 
-  const handleDeleteShipment = async (shipmentId: string) => {
+  const handleAssignDriver = (shipment: Shipment) => {
+    setAssigningShipment(shipment);
+    setIsAssignModalVisible(true);
+  };
+
+  const handleConfirmAssign = async (driverId: string) => {
+    if (!assigningShipment) return;
+    
     try {
-      await shipmentsApi.deleteShipment(shipmentId);
-      message.success('运单删除成功');
+      // 更新运单的司机信息
+      await shipmentsApi.updateShipment(assigningShipment.id, {
+        driverId: driverId,
+        status: ShipmentStatus.ASSIGNED
+      });
+      
+      message.success('司机指派成功');
+      setIsAssignModalVisible(false);
+      setAssigningShipment(null);
+      loadShipments(); // 重新加载运单列表
+    } catch (error) {
+      console.error('Failed to assign driver:', error);
+      message.error('司机指派失败');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await shipmentsApi.deleteShipment(id);
+      message.success('删除成功');
       loadShipments();
     } catch (error) {
       console.error('Failed to delete shipment:', error);
@@ -81,43 +92,20 @@ const ShipmentManagement: React.FC = () => {
     }
   };
 
-  const handleAssignDriver = () => {
-    // 暂时简化，不实现司机指派
-    message.info('司机指派功能暂未实现');
-  };
-
-  const handleConfirmAssign = async () => {
-    // 暂时简化，不实现司机指派
-    message.info('司机指派功能暂未实现');
-  };
-
-  // 移除保存逻辑 // 2025-09-25 23:42:00
-
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string; icon: React.ReactNode }> = {
       [ShipmentStatus.PENDING]: { color: 'orange', text: '待处理', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.IN_TRANSIT]: { color: 'blue', text: '运输中', icon: <TruckOutlined /> },
+      [ShipmentStatus.QUOTED]: { color: 'blue', text: '已报价', icon: <ClockCircleOutlined /> },
+      [ShipmentStatus.CONFIRMED]: { color: 'cyan', text: '已确认', icon: <ClockCircleOutlined /> },
+      [ShipmentStatus.ASSIGNED]: { color: 'purple', text: '已分配', icon: <ClockCircleOutlined /> },
+      [ShipmentStatus.PICKED_UP]: { color: 'geekblue', text: '已取货', icon: <ClockCircleOutlined /> },
+      [ShipmentStatus.IN_TRANSIT]: { color: 'blue', text: '运输中', icon: <ClockCircleOutlined /> },
+      [ShipmentStatus.DELIVERED]: { color: 'green', text: '已送达', icon: <CheckCircleOutlined /> },
       [ShipmentStatus.COMPLETED]: { color: 'green', text: '已完成', icon: <CheckCircleOutlined /> },
-      [ShipmentStatus.CANCELLED]: { color: 'red', text: '已取消', icon: <ExclamationCircleOutlined /> },
+      [ShipmentStatus.CANCELLED]: { color: 'red', text: '已取消', icon: <ClockCircleOutlined /> },
+      [ShipmentStatus.EXCEPTION]: { color: 'red', text: '异常', icon: <ClockCircleOutlined /> },
     };
-    
-    const statusInfo = statusMap[status] || { color: 'default', text: status, icon: null };
-    return (
-      <Tag color={statusInfo.color} icon={statusInfo.icon}>
-        {statusInfo.text}
-      </Tag>
-    );
-  };
-
-  const getStatusStep = (status: ShipmentStatus) => {
-    const statusSteps = [
-      { key: ShipmentStatus.PENDING, title: '待处理', description: '运单已创建，等待处理' },
-      { key: ShipmentStatus.IN_TRANSIT, title: '运输中', description: '货物正在运输途中' },
-      { key: ShipmentStatus.COMPLETED, title: '已完成', description: '货物已送达，运单完成' },
-    ];
-    
-    const currentStep = statusSteps.findIndex(step => step.key === status);
-    return currentStep >= 0 ? currentStep : 0;
+    return statusMap[status] || { color: 'default', text: '未知', icon: <ClockCircleOutlined /> };
   };
 
   const columns = [
@@ -125,14 +113,7 @@ const ShipmentManagement: React.FC = () => {
       title: '运单号',
       dataIndex: 'shipmentNumber',
       key: 'shipmentNumber',
-      render: (text: string, record: Shipment) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{text}</div>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            ID: {record.id.slice(0, 8)}...
-          </Text>
-        </div>
-      ),
+      render: (text: string) => <Text code>{text}</Text>,
     },
     {
       title: '客户',
@@ -144,7 +125,7 @@ const ShipmentManagement: React.FC = () => {
       title: '司机',
       dataIndex: 'driverName',
       key: 'driverName',
-      render: (text: string, record: Shipment) => (
+      render: (text: string, _: Shipment) => (
         <div>
           {text ? (
             <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -164,52 +145,42 @@ const ShipmentManagement: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: ShipmentStatus) => getStatusTag(status),
-    },
-    {
-      title: '预估费用',
-      dataIndex: 'estimatedCost',
-      key: 'estimatedCost',
-      render: (cost: number | string) => (
-        <Text strong style={{ color: '#1890ff' }}>
-          ¥{cost ? (typeof cost === 'number' ? cost.toFixed(2) : parseFloat(cost).toFixed(2)) : '0.00'}
-        </Text>
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (status: ShipmentStatus) => {
+        const statusInfo = getStatusTag(status);
+        return (
+          <Tag color={statusInfo.color} icon={statusInfo.icon}>
+            {statusInfo.text}
+          </Tag>
+        );
+      },
     },
     {
       title: '操作',
       key: 'action',
-          render: (_: any, record: Shipment) => (
-        <Space size="middle">
+      render: (_: any, record: Shipment) => (
+        <Space size="small">
           <Tooltip title="查看详情">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewShipment(record)}
-            />
+            <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
           </Tooltip>
-          <Popconfirm
-            title="确定要删除这个运单吗？"
-            description="删除后无法恢复，请谨慎操作。"
-            onConfirm={() => handleDeleteShipment(record.id)}
-            okText="确定"
-            cancelText="取消"
-            icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
-          >
-            <Tooltip title="删除运单">
+          <Tooltip title="编辑">
+            <Button type="text" icon={<EditOutlined />} />
+          </Tooltip>
+          {!record.driverId && (
+            <Tooltip title="指派司机">
               <Button
                 type="text"
-                danger
-                icon={<DeleteOutlined />}
+                icon={<UserAddOutlined />}
+                onClick={() => handleAssignDriver(record)}
               />
             </Tooltip>
-          </Popconfirm>
+          )}
+          <Tooltip title="删除">
+            <Button 
+              type="text" 
+              icon={<DeleteOutlined />} 
+              onClick={() => handleDelete(record.id)}
+            />
+          </Tooltip>
         </Space>
       ),
     },
@@ -217,126 +188,80 @@ const ShipmentManagement: React.FC = () => {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">运单管理</h1>
-        <p className="page-description">管理运输订单和跟踪状态</p>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Title level={3}>运单管理</Title>
+        <Button type="primary" icon={<PlusOutlined />}>
+          创建运单
+        </Button>
       </div>
-
-      <Card className="content-card">
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Title level={4} style={{ margin: 0 }}>运单列表</Title>
-            <Text type="secondary">共 {shipments.length} 个运单</Text>
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => window.open('/create-shipment', '_blank')}
-          >
-            新建运单
-          </Button>
-        </div>
-
+      
+      <Card>
         <Table
           columns={columns}
           dataSource={shipments}
           rowKey="id"
           loading={loading}
           pagination={{
-            total: shipments.length,
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+            showTotal: (total) => `共 ${total} 条记录`,
           }}
         />
       </Card>
 
-      {/* 运单表单 */}
-      {/* 移除弹窗创建方式，统一跳转到新建页面 */}
-
-      {/* 运单详情查看 */}
+      {/* 运单详情弹窗 */}
       <Modal
         title="运单详情"
         open={isViewModalVisible}
-        onCancel={() => setIsViewModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsViewModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={1000}
+        onCancel={() => {
+          setIsViewModalVisible(false);
+          setViewingShipment(null);
+        }}
+        footer={null}
+        width={800}
       >
         {viewingShipment && (
           <div>
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>运单号：</Text>
-                <div>{viewingShipment.shipmentNumber}</div>
+                <Text code>{viewingShipment.shipmentNumber}</Text>
               </Col>
               <Col span={12}>
                 <Text strong>状态：</Text>
-                <div>{getStatusTag(viewingShipment.status)}</div>
+                {(() => {
+                  const statusInfo = getStatusTag(viewingShipment.status);
+                  return (
+                    <Tag color={statusInfo.color} icon={statusInfo.icon}>
+                      {statusInfo.text}
+                    </Tag>
+                  );
+                })()}
               </Col>
             </Row>
             <Divider />
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>客户：</Text>
-                <div>{viewingShipment.customerName}</div>
+                <Text>{viewingShipment.customerName || '未指定'}</Text>
               </Col>
               <Col span={12}>
                 <Text strong>司机：</Text>
-                <div>{viewingShipment.driverName}</div>
-              </Col>
-            </Row>
-            <Divider />
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Text strong>取货地址：</Text>
-                <div>
-                  {viewingShipment.pickupAddress.street}, {viewingShipment.pickupAddress.city}, {viewingShipment.pickupAddress.state} {viewingShipment.pickupAddress.postalCode}
-                </div>
-              </Col>
-              <Col span={12}>
-                <Text strong>送达地址：</Text>
-                <div>
-                  {viewingShipment.deliveryAddress.street}, {viewingShipment.deliveryAddress.city}, {viewingShipment.deliveryAddress.state} {viewingShipment.deliveryAddress.postalCode}
-                </div>
+                <Text>{viewingShipment.driverName || '未分配'}</Text>
               </Col>
             </Row>
             <Divider />
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>预估费用：</Text>
-                <div style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                  ¥{viewingShipment.estimatedCost ? Number(viewingShipment.estimatedCost).toFixed(2) : '0.00'}
-                </div>
+                <Text>¥{viewingShipment.estimatedCost || 0}</Text>
               </Col>
               <Col span={12}>
-                <Text strong>重量：</Text>
-                <div>{viewingShipment.weight || 0} kg</div>
+                <Text strong>实际费用：</Text>
+                <Text>¥{viewingShipment.actualCost || 0}</Text>
               </Col>
             </Row>
-            <Divider />
-            <div>
-              <Text strong>备注：</Text>
-              <div>{viewingShipment.description || '无'}</div>
-            </div>
-            <Divider />
-            <div>
-              <Text strong>状态进度：</Text>
-              <div style={{ marginTop: 16 }}>
-                <Steps
-                  current={getStatusStep(viewingShipment.status)}
-                  size="small"
-                >
-                  <Step title="待处理" description="运单已创建" />
-                  <Step title="运输中" description="货物运输中" />
-                  <Step title="已完成" description="货物已送达" />
-                </Steps>
-              </div>
-            </div>
           </div>
         )}
       </Modal>
@@ -345,9 +270,10 @@ const ShipmentManagement: React.FC = () => {
       <Modal
         title="指派司机"
         open={isAssignModalVisible}
-          onCancel={() => {
-            // 暂时简化
-          }}
+        onCancel={() => {
+          setIsAssignModalVisible(false);
+          setAssigningShipment(null);
+        }}
         footer={null}
         width={500}
       >
@@ -364,7 +290,7 @@ const ShipmentManagement: React.FC = () => {
               </Text>
               <Space direction="vertical" style={{ width: '100%' }}>
                 {drivers
-                    .filter(() => true)
+                  .filter(driver => driver.status === 'active')
                   .map(driver => (
                     <Card
                       key={driver.id}
@@ -386,7 +312,7 @@ const ShipmentManagement: React.FC = () => {
                       </div>
                     </Card>
                   ))}
-                  {drivers.length === 0 && (
+                {drivers.filter(driver => driver.status === 'active').length === 0 && (
                   <div style={{ textAlign: 'center', padding: '20px' }}>
                     <Text type="secondary">暂无可用的司机</Text>
                   </div>

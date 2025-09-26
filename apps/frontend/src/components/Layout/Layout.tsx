@@ -81,6 +81,12 @@ const AppLayout: React.FC = () => {
               label: '财务结算',
               onClick: () => navigate('/admin/finance'),
             },
+            {
+              key: '8',
+              icon: <DollarOutlined />,
+              label: '货币管理',
+              onClick: () => navigate('/admin/currencies'),
+            },
           ]}
         />
       </Sider>

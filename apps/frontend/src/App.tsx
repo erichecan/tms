@@ -14,6 +14,7 @@ import FinanceManagement from './pages/FinanceManagement/FinanceManagement';
 import CustomerManagement from './pages/CustomerManagement/CustomerManagement';
 import DriverManagement from './pages/DriverManagement/DriverManagement';
 import VehicleManagement from './pages/VehicleManagement/VehicleManagement';
+import CurrencyManagement from './pages/CurrencyManagement/CurrencyManagement';
 import './App.css';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
               <Route path="customers" element={<CustomerManagement />} />
               <Route path="drivers" element={<DriverManagement />} />
               <Route path="vehicles" element={<VehicleManagement />} />
+              <Route path="currencies" element={<CurrencyManagement />} />
               {/* Add other protected routes here */}
             </Route>
           </Routes>

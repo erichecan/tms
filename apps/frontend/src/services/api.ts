@@ -131,6 +131,15 @@ export const driversApi = {
   getDriverDetails: (driverId: string) => api.get(`/drivers/${driverId}`),
 };
 
+// Vehicle related API calls
+export const vehiclesApi = {
+  getVehicles: (params?: any) => api.get('/vehicles', { params }),
+  createVehicle: (vehicleData: any) => api.post('/vehicles', vehicleData),
+  updateVehicle: (vehicleId: string, vehicleData: any) => api.put(`/vehicles/${vehicleId}`, vehicleData),
+  deleteVehicle: (vehicleId: string) => api.delete(`/vehicles/${vehicleId}`),
+  getVehicleDetails: (vehicleId: string) => api.get(`/vehicles/${vehicleId}`),
+};
+
 // Tenant related API calls
 export const tenantsApi = {
   getTenants: (params?: any) => api.get('/tenants', { params }),

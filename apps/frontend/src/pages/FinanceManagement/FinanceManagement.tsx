@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import { financeApi, customersApi, driversApi } from '../../services/api';
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -166,11 +167,15 @@ const FinanceManagement: React.FC = () => {
       title: '金额',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount: number, record: FinancialRecord) => (
-        <Text strong style={{ color: record.type === 'revenue' ? '#52c41a' : '#ff4d4f' }}>
-          {record.type === 'revenue' ? '+' : '-'}¥{amount.toFixed(2)}
-        </Text>
-      ),
+      render: (amount: number | string, record: FinancialRecord) => {
+        // 使用安全的货币格式化函数，彻底解决 toFixed 错误 // 2025-01-27 15:36:00
+        const prefix = record.type === 'revenue' ? '+¥' : '-¥';
+        return (
+          <Text strong style={{ color: record.type === 'revenue' ? '#52c41a' : '#ff4d4f' }}>
+            {formatCurrency(amount, 2, prefix)}
+          </Text>
+        );
+      },
     },
     {
       title: '描述',
@@ -206,11 +211,14 @@ const FinanceManagement: React.FC = () => {
       title: '总金额',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
-      render: (amount: number) => (
-        <Text strong style={{ color: '#1890ff' }}>
-          ¥{amount.toFixed(2)}
-        </Text>
-      ),
+      render: (amount: number | string) => {
+        // 使用安全的货币格式化函数，彻底解决 toFixed 错误 // 2025-01-27 15:36:00
+        return (
+          <Text strong style={{ color: '#1890ff' }}>
+            {formatCurrency(amount, 2, '¥')}
+          </Text>
+        );
+      },
     },
     {
       title: '状态',
