@@ -25,6 +25,7 @@ import {
   DollarOutlined,
   SettingOutlined
 } from '@ant-design/icons';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const { Title, Text } = Typography;
 
@@ -224,7 +225,7 @@ const CurrencyManagement: React.FC = () => {
       dataIndex: 'exchangeRate',
       key: 'exchangeRate',
       render: (rate: number) => (
-        <Text>{rate.toFixed(4)}</Text>
+        <Text>{formatCurrency(rate, 4, '')}</Text>
       ),
     },
     {
