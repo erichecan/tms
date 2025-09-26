@@ -15,7 +15,7 @@ import fs from 'fs';
 import path from 'path';
 
 // 手动加载.env文件
-const envPath = path.resolve(__dirname, '../.env');
+const envPath = path.resolve(__dirname, '../../.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   const envLines = envContent.split('\n');
@@ -59,7 +59,7 @@ const dbService = new DatabaseService();
 app.use(helmet()); // 安全头
 app.use(compression()); // 响应压缩
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
 
