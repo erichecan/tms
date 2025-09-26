@@ -433,12 +433,13 @@ const ShipmentCreate: React.FC = () => {
   // 单页模块化布局 - 基础信息模块 // 2025-09-24 14:05:00
   const renderBasicInfoSection = () => (
     <Card title="基础信息" style={{ marginBottom: 12 }}>
-      <Row gutter={[12, 8]}>
+      <Row gutter={[16, 16]}>
         <Col span={12}>
           <Form.Item
             name="customerId"
             label="客户选择"
             rules={[{ required: true, message: '请选择客户' }]}
+            style={{ marginBottom: 16 }}
           >
             <Select
               showSearch
@@ -468,6 +469,7 @@ const ShipmentCreate: React.FC = () => {
             name="customerName"
             label="客户姓名"
             rules={[{ required: true, message: '请输入客户姓名' }]}
+            style={{ marginBottom: 16 }}
           >
             <Input placeholder="请输入客户姓名" />
           </Form.Item>
@@ -483,6 +485,7 @@ const ShipmentCreate: React.FC = () => {
                 message: '请输入有效的手机号码（支持北美和中国格式）' 
               }
             ]}
+            style={{ marginBottom: 16 }}
           >
             <Input placeholder="请输入联系电话（如：+1-555-123-4567 或 13812345678）" />
           </Form.Item>
@@ -494,6 +497,7 @@ const ShipmentCreate: React.FC = () => {
             rules={[
               { type: 'email', message: '请输入有效的邮箱地址' }
             ]}
+            style={{ marginBottom: 16 }}
           >
             <Input placeholder="请输入邮箱地址" />
           </Form.Item>
@@ -502,8 +506,9 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="priority"
             label="优先级"
+            style={{ marginBottom: 16 }}
           >
-            <Select>
+            <Select placeholder="普通">
               <Option value="low">低</Option>
               <Option value="normal">普通</Option>
               <Option value="high">高</Option>
