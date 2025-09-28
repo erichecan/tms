@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select, Tabs } from 'antd';
+import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select } from 'antd';
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
 import { customersApi, shipmentsApi } from '../../services/api';
 import { Customer, Shipment } from '../../types';
@@ -59,9 +59,9 @@ const CustomerManagement: React.FC = () => {
     // 填充表单数据
     form.setFieldsValue({
       name: customer.name,
-      email: customer.contactInfo?.email,
-      phone: customer.contactInfo?.phone,
-      address: customer.contactInfo?.address?.street,
+      email: customer.contactInfo.email, // 2025-09-27 03:15:00 修复数据结构
+      phone: customer.contactInfo.phone,
+      address: customer.contactInfo.address.street,
       level: customer.level
     });
   };
@@ -182,12 +182,12 @@ const CustomerManagement: React.FC = () => {
     },
     {
       title: '邮箱',
-      dataIndex: 'email',
+      dataIndex: ['contactInfo', 'email'],
       key: 'email',
     },
     {
       title: '电话',
-      dataIndex: 'phone',
+      dataIndex: ['contactInfo', 'phone'],
       key: 'phone',
     },
     {
@@ -435,7 +435,7 @@ const CustomerManagement: React.FC = () => {
               dataIndex: ['pickupAddress', 'street'],
               key: 'pickupAddress',
               width: 150,
-              render: (text: string, record: Shipment) => 
+              render: (_text: string, record: Shipment) => // 2025-09-26 22:35:00 修复未使用参数
                 record.pickupAddress ? `${record.pickupAddress.city} ${record.pickupAddress.street}` : '-',
             },
             {
@@ -443,7 +443,7 @@ const CustomerManagement: React.FC = () => {
               dataIndex: ['deliveryAddress', 'street'],
               key: 'deliveryAddress',
               width: 150,
-              render: (text: string, record: Shipment) => 
+              render: (_text: string, record: Shipment) => // 2025-09-26 22:35:00 修复未使用参数
                 record.deliveryAddress ? `${record.deliveryAddress.city} ${record.deliveryAddress.street}` : '-',
             },
             {
@@ -471,7 +471,7 @@ const CustomerManagement: React.FC = () => {
               title: '操作',
               key: 'action',
               width: 100,
-              render: (_: any, record: Shipment) => (
+              render: (_: any, _record: Shipment) => ( // 2025-09-26 22:35:00 修复未使用参数
                 <Space size="small">
                   <Tooltip title="查看详情">
                     <Button type="text" icon={<EyeOutlined />} size="small" />

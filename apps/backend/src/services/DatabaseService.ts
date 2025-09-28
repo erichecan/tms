@@ -685,6 +685,66 @@ export class DatabaseService {
   }
 
   /**
+   * 更新司机信息
+   * @param tenantId 租户ID
+   * @param driverId 司机ID
+   * @param updates 更新数据
+   * @returns 更新后的司机信息
+   */
+  async updateDriver(tenantId: string, driverId: string, updates: Partial<Omit<Driver, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>>): Promise<Driver | null> {
+    const updateFields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      values.push(updates.name);
+    }
+    if (updates.phone !== undefined) {
+      updateFields.push(`phone = $${paramIndex++}`);
+      values.push(updates.phone);
+    }
+    if (updates.licenseNumber !== undefined) {
+      updateFields.push(`license_number = $${paramIndex++}`);
+      values.push(updates.licenseNumber);
+    }
+    if (updates.vehicleInfo !== undefined) {
+      updateFields.push(`vehicle_info = $${paramIndex++}`);
+      values.push(JSON.stringify(updates.vehicleInfo));
+    }
+    if (updates.status !== undefined) {
+      updateFields.push(`status = $${paramIndex++}`);
+      values.push(updates.status);
+    }
+    if (updates.performance !== undefined) {
+      updateFields.push(`performance = $${paramIndex++}`);
+      values.push(JSON.stringify(updates.performance));
+    }
+
+    if (updateFields.length === 0) {
+      return this.getDriver(tenantId, driverId);
+    }
+
+    updateFields.push(`updated_at = NOW()`);
+    values.push(tenantId, driverId);
+
+    const query = `
+      UPDATE drivers 
+      SET ${updateFields.join(', ')}
+      WHERE tenant_id = $${paramIndex++} AND id = $${paramIndex++}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    
+    if (result.length === 0) {
+      return null;
+    }
+
+    return this.mapDriverFromDb(result[0]);
+  }
+
+  /**
    * 获取司机
    * @param tenantId 租户ID
    * @param driverId 司机ID
@@ -897,13 +957,29 @@ export class DatabaseService {
     const queryParams: any[] = [];
     let paramIndex = 1;
     
+    // 字段名映射：TypeScript字段名 -> 数据库列名 // 2025-09-27 03:05:00
+    const fieldMapping: Record<string, string> = {
+      shipmentNumber: 'shipment_number',
+      customerId: 'customer_id',
+      driverId: 'driver_id',
+      pickupAddress: 'pickup_address',
+      deliveryAddress: 'delivery_address',
+      cargoInfo: 'cargo_info',
+      estimatedCost: 'estimated_cost',
+      actualCost: 'actual_cost',
+      additionalFees: 'additional_fees',
+      appliedRules: 'applied_rules'
+    };
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
+        const dbFieldName = fieldMapping[key] || key;
+        
         if (['pickupAddress', 'deliveryAddress', 'cargoInfo', 'additionalFees', 'appliedRules', 'timeline'].includes(key)) {
-          setClause.push(`${key} = $${paramIndex}`);
+          setClause.push(`${dbFieldName} = $${paramIndex}`);
           queryParams.push(JSON.stringify(value));
         } else {
-          setClause.push(`${key} = $${paramIndex}`);
+          setClause.push(`${dbFieldName} = $${paramIndex}`);
           queryParams.push(value);
         }
         paramIndex++;
@@ -1393,7 +1469,15 @@ export class DatabaseService {
    */
   async getVehicles(limit: number = 50, offset: number = 0): Promise<any[]> {
     const query = `
-      SELECT * FROM vehicles 
+      SELECT 
+        id,
+        plate_number as "plateNumber",
+        type as "vehicleType", 
+        capacity_kg as "capacity",
+        status,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM vehicles 
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
     `;
@@ -1427,7 +1511,14 @@ export class DatabaseService {
     const query = `
       INSERT INTO vehicles (plate_number, type, capacity_kg, status, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NOW(), NOW())
-      RETURNING *
+      RETURNING 
+        id,
+        plate_number as "plateNumber",
+        type as "vehicleType",
+        capacity_kg as "capacity", 
+        status,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
     `;
     
     const result = await this.query(query, [
@@ -1436,6 +1527,52 @@ export class DatabaseService {
       vehicle.capacity,
       vehicle.status
     ]);
+    
+    return result[0];
+  }
+
+  /**
+   * 更新车辆
+   * @param id 车辆ID
+   * @param vehicle 车辆数据
+   * @returns 更新后的车辆
+   */
+  async updateVehicle(id: string, vehicle: {
+    plateNumber: string;
+    vehicleType: string;
+    capacity: number;
+    status: string;
+  }): Promise<any> {
+    const query = `
+      UPDATE vehicles 
+      SET 
+        plate_number = $1,
+        type = $2,
+        capacity_kg = $3,
+        status = $4,
+        updated_at = NOW()
+      WHERE id = $5
+      RETURNING 
+        id,
+        plate_number as "plateNumber",
+        type as "vehicleType",
+        capacity_kg as "capacity", 
+        status,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+    `;
+    
+    const result = await this.query(query, [
+      vehicle.plateNumber,
+      vehicle.vehicleType,
+      vehicle.capacity,
+      vehicle.status,
+      id
+    ]);
+    
+    if (result.length === 0) {
+      throw new Error('Vehicle not found');
+    }
     
     return result[0];
   }

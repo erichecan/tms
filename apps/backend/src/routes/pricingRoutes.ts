@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { PricingController } from '../controllers/PricingController';
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
+import { CurrencyService } from '../services/CurrencyService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { validateRequest } from '../middleware/validationMiddleware';
@@ -14,7 +15,8 @@ const router = Router();
 // 初始化服务
 const dbService = new DatabaseService();
 const ruleEngineService = new RuleEngineService(dbService);
-const pricingController = new PricingController(dbService, ruleEngineService);
+const currencyService = new CurrencyService(dbService);
+const pricingController = new PricingController(dbService, ruleEngineService, currencyService);
 
 // 应用中间件
 router.use(authMiddleware);

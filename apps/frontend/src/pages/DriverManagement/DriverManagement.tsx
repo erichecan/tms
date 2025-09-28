@@ -95,7 +95,7 @@ const DriverManagement: React.FC = () => {
     },
     {
       title: '车辆类型',
-      dataIndex: 'vehicleType',
+      dataIndex: ['vehicleInfo', 'type'],
       key: 'vehicleType',
       render: (type: string) => (
         <Tag color="blue">{type}</Tag>

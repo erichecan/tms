@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { FinanceService } from '../services/FinanceService';
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
+import { CurrencyService } from '../services/CurrencyService';
 import { logger } from '../utils/logger';
 import { QueryParams } from '@shared/index';
 
@@ -17,8 +18,8 @@ const getRequestId = (req: Request): string => {
 export class FinanceController {
   private financeService: FinanceService;
 
-  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService) {
-    this.financeService = new FinanceService(dbService, ruleEngineService);
+  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService, currencyService: CurrencyService) {
+    this.financeService = new FinanceService(dbService, ruleEngineService, currencyService);
   }
 
   /**

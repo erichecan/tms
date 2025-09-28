@@ -29,7 +29,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi, customersApi } from '../../services/api';
+import { shipmentsApi } from '../../services/api'; // 2025-09-26 22:35:00 暂时移除未使用的customersApi
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
@@ -42,8 +42,8 @@ const ShipmentCreate: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customers] = useState<any[]>([]); // 2025-09-26 22:35:00 暂时移除未使用的setter
+  const [customersLoading] = useState(false); // 2025-09-26 22:35:00 暂时移除未使用的setter
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [cargoItems] = useState<any[]>([

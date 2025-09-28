@@ -17,7 +17,7 @@ interface ShipmentDetailsProps {
 
 const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({ 
   shipment, 
-  onPrint, 
+  onPrint: _onPrint, // 2025-09-26 22:35:00 暂时未使用的参数
   onDownloadPDF 
 }) => {
   const getStatusTag = (status: ShipmentStatus) => {

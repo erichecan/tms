@@ -156,6 +156,7 @@ export interface Shipment extends BaseEntity {
   cargoInfo: CargoInfo;
   estimatedCost: number;
   actualCost?: number;
+  currency?: string; // 货币类型 // 2025-09-26 22:30:00
   additionalFees: AdditionalFee[];
   appliedRules: string[];
   status: ShipmentStatus;

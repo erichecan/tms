@@ -166,8 +166,9 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      if (shipment.status !== 'quoted' && shipment.status !== 'confirmed') {
-        throw new Error('Shipment cannot be assigned in current status');
+      // 允许从 pending、quoted、confirmed 状态分配司机 // 2025-09-27 03:20:00
+      if (!['pending', 'quoted', 'confirmed'].includes(shipment.status)) {
+        throw new Error(`Shipment cannot be assigned in current status: ${shipment.status}`);
       }
 
       // 更新运单

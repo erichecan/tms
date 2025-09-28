@@ -147,25 +147,61 @@ export interface Statement {
 
 export interface Customer {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  level: string;
   tenantId: string;
+  name: string;
+  level: 'standard' | 'vip' | 'premium';
+  contactInfo: {
+    email: string;
+    phone: string;
+    address: {
+      street: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+    };
+    contactPerson?: string;
+  };
+  billingInfo?: {
+    companyName: string;
+    taxId: string;
+    billingAddress: {
+      street: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+    };
+    paymentTerms: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Driver {
   id: string;
+  tenantId: string;
   name: string;
-  email: string;
   phone: string;
   licenseNumber: string;
-  vehicleType: string;
-  status: string;
-  tenantId: string;
+  vehicleInfo: {
+    type: 'van' | 'truck' | 'trailer' | 'refrigerated';
+    licensePlate: string;
+    capacity: number;
+    dimensions: {
+      length: number;
+      width: number;
+      height: number;
+    };
+    features: string[];
+  };
+  status: 'active' | 'inactive' | 'suspended';
+  performance: {
+    rating: number;
+    totalDeliveries: number;
+    onTimeRate: number;
+    customerSatisfaction: number;
+  };
   createdAt: string;
   updatedAt: string;
 }

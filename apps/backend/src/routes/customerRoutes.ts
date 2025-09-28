@@ -44,6 +44,46 @@ router.get('/',
   }
 );
 
+// 搜索客户
+router.get('/search',
+  authMiddleware,
+  tenantMiddleware,
+  async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Search query is required' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+
+      const params = {
+        page: 1,
+        limit: 50,
+        search: query
+      };
+
+      const result = await dbService.getCustomers(req.user!.tenantId, params);
+
+      res.json({
+        ...result,
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    } catch (error) {
+      console.error('Search customers error:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to search customers' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    }
+  }
+);
+
 // 获取单个客户
 router.get('/:id',
   authMiddleware,

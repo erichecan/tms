@@ -20,6 +20,8 @@ const VehicleManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -52,7 +54,19 @@ const VehicleManagement: React.FC = () => {
 
   const handleAddVehicle = () => {
     setIsAddModalVisible(true);
+    setEditingVehicle(null);
     form.resetFields();
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setIsEditModalVisible(true);
+    form.setFieldsValue({
+      plateNumber: vehicle.plateNumber,
+      vehicleType: vehicle.vehicleType,
+      capacity: vehicle.capacity,
+      status: vehicle.status
+    });
   };
 
   const handleConfirmAdd = async () => {
@@ -66,6 +80,23 @@ const VehicleManagement: React.FC = () => {
     } catch (error) {
       console.error('Failed to add vehicle:', error);
       message.error('添加车辆失败');
+    }
+  };
+
+  const handleConfirmEdit = async () => {
+    try {
+      const values = await form.validateFields();
+      if (!editingVehicle) return;
+      
+      await vehiclesApi.updateVehicle(editingVehicle.id, values);
+      message.success('车辆更新成功');
+      setIsEditModalVisible(false);
+      setEditingVehicle(null);
+      form.resetFields();
+      loadVehicles();
+    } catch (error) {
+      console.error('Failed to update vehicle:', error);
+      message.error('更新车辆失败');
     }
   };
 
@@ -108,7 +139,11 @@ const VehicleManagement: React.FC = () => {
             <Button type="text" icon={<EyeOutlined />} />
           </Tooltip>
           <Tooltip title="编辑">
-            <Button type="text" icon={<EditOutlined />} />
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => handleEditVehicle(record)}
+            />
           </Tooltip>
           <Tooltip title="删除">
             <Button 
@@ -201,6 +236,70 @@ const VehicleManagement: React.FC = () => {
             initialValue="active"
           >
             <Select>
+              <Select.Option value="active">可用</Select.Option>
+              <Select.Option value="inactive">不可用</Select.Option>
+              <Select.Option value="maintenance">维护中</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 编辑车辆弹窗 */}
+      <Modal
+        title="编辑车辆"
+        open={isEditModalVisible}
+        onOk={handleConfirmEdit}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setEditingVehicle(null);
+          form.resetFields();
+        }}
+        okText="确认"
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="plateNumber"
+            label="车牌号"
+            rules={[{ required: true, message: '请输入车牌号' }]}
+          >
+            <Input placeholder="请输入车牌号" />
+          </Form.Item>
+          
+          <Form.Item
+            name="vehicleType"
+            label="车辆类型"
+            rules={[{ required: true, message: '请选择车辆类型' }]}
+          >
+            <Select placeholder="请选择车辆类型">
+              <Select.Option value="小型货车">小型货车</Select.Option>
+              <Select.Option value="中型货车">中型货车</Select.Option>
+              <Select.Option value="大型货车">大型货车</Select.Option>
+              <Select.Option value="厢式货车">厢式货车</Select.Option>
+              <Select.Option value="冷藏车">冷藏车</Select.Option>
+              <Select.Option value="平板车">平板车</Select.Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="capacity"
+            label="载重容量 (kg)"
+            rules={[{ required: true, message: '请输入载重容量' }]}
+          >
+            <InputNumber 
+              placeholder="请输入载重容量" 
+              min={0}
+              max={50000}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="status"
+            label="状态"
+            rules={[{ required: true, message: '请选择状态' }]}
+          >
+            <Select placeholder="请选择状态">
               <Select.Option value="active">可用</Select.Option>
               <Select.Option value="inactive">不可用</Select.Option>
               <Select.Option value="maintenance">维护中</Select.Option>

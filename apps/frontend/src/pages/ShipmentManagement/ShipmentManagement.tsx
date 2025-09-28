@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Row, Col, Divider } from 'antd';
+import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider } from 'antd'; // 2025-09-27 03:25:00 移除未使用的Row, Col
 import { 
   EyeOutlined, 
   EditOutlined, 
@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import { shipmentsApi, driversApi } from '../../services/api';
 import { Shipment, ShipmentStatus, Driver } from '../../types';
-import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails';
+import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; // 2025-09-27 03:10:00 恢复运单详情组件
 
 const { Title, Text } = Typography;
 
@@ -220,47 +220,16 @@ const ShipmentManagement: React.FC = () => {
         width={1000}
       >
         {viewingShipment && (
-          <div>
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Text strong>运单号：</Text>
-                <Text code>{viewingShipment.shipmentNumber}</Text>
-              </Col>
-              <Col span={12}>
-                <Text strong>状态：</Text>
-                {(() => {
-                  const statusInfo = getStatusTag(viewingShipment.status);
-                  return (
-                    <Tag color={statusInfo.color} icon={statusInfo.icon}>
-                      {statusInfo.text}
-                    </Tag>
-                  );
-                })()}
-              </Col>
-            </Row>
-            <Divider />
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Text strong>客户：</Text>
-                <Text>{viewingShipment.customerName || '未指定'}</Text>
-              </Col>
-              <Col span={12}>
-                <Text strong>司机：</Text>
-                <Text>{viewingShipment.driverName || '未分配'}</Text>
-              </Col>
-            </Row>
-            <Divider />
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Text strong>预估费用：</Text>
-                <Text>¥{viewingShipment.estimatedCost || 0}</Text>
-              </Col>
-              <Col span={12}>
-                <Text strong>实际费用：</Text>
-                <Text>¥{viewingShipment.actualCost || 0}</Text>
-              </Col>
-            </Row>
-          </div>
+          <ShipmentDetails 
+            shipment={viewingShipment}
+            onPrint={() => {
+              window.print();
+            }}
+            onDownloadPDF={() => {
+              // TODO: 实现PDF下载功能 // 2025-09-27 03:10:00
+              console.log('Download PDF for shipment:', viewingShipment.id);
+            }}
+          />
         )}
       </Modal>
 
@@ -301,7 +270,7 @@ const ShipmentManagement: React.FC = () => {
                         <div>
                           <div style={{ fontWeight: 500 }}>{driver.name}</div>
                           <Text type="secondary" style={{ fontSize: '12px' }}>
-                            {driver.phone} • {driver.vehicleType}
+                            {driver.phone} • {driver.vehicleInfo.type}
                           </Text>
                         </div>
                         <Button type="primary" size="small">

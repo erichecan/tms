@@ -1,15 +1,18 @@
 // 状态机服务（MVP） // 2025-09-23 10:25:00
 
-export type ShipmentStatus = 'created' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'completed' | 'canceled';
+export type ShipmentStatus = 'pending' | 'quoted' | 'confirmed' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'completed' | 'cancelled' | 'exception';
 
 const allowedTransitions: Record<ShipmentStatus, ShipmentStatus[]> = {
-  created: ['assigned', 'canceled'],
-  assigned: ['picked_up', 'canceled'],
-  picked_up: ['in_transit'],
-  in_transit: ['delivered'],
-  delivered: ['completed'],
+  pending: ['quoted', 'confirmed', 'assigned', 'cancelled'],
+  quoted: ['confirmed', 'assigned', 'cancelled'],
+  confirmed: ['assigned', 'cancelled'],
+  assigned: ['picked_up', 'cancelled'],
+  picked_up: ['in_transit', 'exception'],
+  in_transit: ['delivered', 'exception'],
+  delivered: ['completed', 'exception'],
   completed: [],
-  canceled: []
+  cancelled: [],
+  exception: ['assigned', 'cancelled'] // 异常状态可以重新分配或取消
 };
 
 export class StatusService {

@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { PricingService, QuoteRequest } from '../services/PricingService';
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
+import { CurrencyService } from '../services/CurrencyService';
 import { logger } from '../utils/logger';
 
 // Helper to get request ID safely
@@ -16,8 +17,8 @@ const getRequestId = (req: Request): string => {
 export class PricingController {
   private pricingService: PricingService;
 
-  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService) {
-    this.pricingService = new PricingService(ruleEngineService, dbService);
+  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService, currencyService: CurrencyService) {
+    this.pricingService = new PricingService(ruleEngineService, dbService, currencyService);
   }
 
   /**

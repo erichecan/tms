@@ -64,6 +64,44 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// PUT /api/v1/vehicles/:id - 更新车辆
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { plateNumber, vehicleType, capacity, status } = req.body;
+    
+    // 验证必填字段
+    if (!plateNumber || !vehicleType || !capacity) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: '车牌号、车辆类型和载重能力是必填字段' }
+      });
+    }
+
+    // 检查车辆是否存在
+    const existingVehicle = await dbService.getVehicleById(id);
+    if (!existingVehicle) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: '车辆不存在' }
+      });
+    }
+
+    // 更新车辆
+    const vehicle = await dbService.updateVehicle(id, {
+      plateNumber,
+      vehicleType,
+      capacity: Number(capacity),
+      status
+    });
+
+    res.json({ success: true, data: vehicle });
+  } catch (e: any) {
+    console.error('Update vehicle error:', e);
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+  }
+});
+
 // DELETE /api/v1/vehicles/:id - 删除车辆
 router.delete('/:id', async (req, res) => {
   try {

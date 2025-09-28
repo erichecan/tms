@@ -22,7 +22,7 @@ import {
   PlusOutlined, 
   EditOutlined, 
   DeleteOutlined, 
-  DollarOutlined,
+  // DollarOutlined, // 2025-09-26 22:35:00 暂时未使用
   SettingOutlined
 } from '@ant-design/icons';
 import { formatCurrency } from '../../utils/formatCurrency';
