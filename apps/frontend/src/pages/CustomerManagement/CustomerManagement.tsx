@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select } from 'antd';
-import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select, Row, Col, Divider } from 'antd';
+import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { customersApi, shipmentsApi } from '../../services/api';
-import { Customer, Shipment } from '../../types';
+import { Customer, Shipment, ShipmentAddress } from '../../types';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const { Title } = Typography;
@@ -13,6 +13,8 @@ const CustomerManagement: React.FC = () => {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isFinanceModalVisible, setIsFinanceModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [customerShipments, setCustomerShipments] = useState<Shipment[]>([]);
@@ -70,6 +72,21 @@ const CustomerManagement: React.FC = () => {
     setSelectedCustomer(customer);
     setIsHistoryModalVisible(true);
     await loadCustomerShipments(customer.id);
+  };
+
+  const handleViewDetail = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDetailModalVisible(true);
+  };
+
+  const handleViewFinance = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsFinanceModalVisible(true);
+  };
+
+  const handleCreateShipment = (customer: Customer) => {
+    // 跳转到创建运单页面，并传递客户信息
+    window.location.href = `/create-shipment?customerId=${customer.id}`;
   };
 
   const loadCustomerShipments = async (customerId: string) => {
@@ -182,23 +199,27 @@ const CustomerManagement: React.FC = () => {
     },
     {
       title: '邮箱',
-      dataIndex: ['contactInfo', 'email'],
+      dataIndex: 'email',
       key: 'email',
     },
     {
       title: '电话',
-      dataIndex: ['contactInfo', 'phone'],
+      dataIndex: 'phone',
       key: 'phone',
     },
     {
-      title: '等级',
-      dataIndex: 'level',
-      key: 'level',
-      render: (level: string) => (
-        <Tag color={level === 'vip' ? 'gold' : level === 'premium' ? 'purple' : 'blue'}>
-          {level === 'vip' ? 'VIP' : level === 'premium' ? '高级' : '普通'}
-        </Tag>
-      ),
+      title: '默认取货地址',
+      dataIndex: 'defaultPickupAddress',
+      key: 'defaultPickupAddress',
+      render: (address: ShipmentAddress) => 
+        address ? `${address.city} ${address.addressLine1}` : '-',
+    },
+    {
+      title: '默认送货地址',
+      dataIndex: 'defaultDeliveryAddress',
+      key: 'defaultDeliveryAddress',
+      render: (address: ShipmentAddress) => 
+        address ? `${address.city} ${address.addressLine1}` : '-',
     },
     {
       title: '操作',
@@ -206,13 +227,31 @@ const CustomerManagement: React.FC = () => {
       render: (_: any, record: Customer) => (
         <Space size="small">
           <Tooltip title="查看详情">
-            <Button type="text" icon={<EyeOutlined />} />
+            <Button 
+              type="text" 
+              icon={<EyeOutlined />} 
+              onClick={() => handleViewDetail(record)}
+            />
           </Tooltip>
           <Tooltip title="运单历史">
             <Button 
               type="text" 
               icon={<HistoryOutlined />} 
               onClick={() => handleViewHistory(record)}
+            />
+          </Tooltip>
+          <Tooltip title="财务记录">
+            <Button 
+              type="text" 
+              icon={<DollarOutlined />} 
+              onClick={() => handleViewFinance(record)}
+            />
+          </Tooltip>
+          <Tooltip title="快速创建运单">
+            <Button 
+              type="text" 
+              icon={<PlusOutlined />} 
+              onClick={() => handleCreateShipment(record)}
             />
           </Tooltip>
           <Tooltip title="编辑">
@@ -258,7 +297,7 @@ const CustomerManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 新增客户弹窗 */}
+      {/* 新增客户弹窗 - 符合PRD v3.0-PC设计 */}
       <Modal
         title="新增客户"
         open={isAddModalVisible}
@@ -269,6 +308,7 @@ const CustomerManagement: React.FC = () => {
         }}
         okText="确认"
         cancelText="取消"
+        width={800}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -283,11 +323,10 @@ const CustomerManagement: React.FC = () => {
             name="email"
             label="邮箱"
             rules={[
-              { required: true, message: '请输入邮箱' },
               { type: 'email', message: '请输入有效的邮箱地址' }
             ]}
           >
-            <Input placeholder="请输入邮箱" />
+            <Input placeholder="请输入邮箱（可选）" />
           </Form.Item>
           
           <Form.Item
@@ -298,24 +337,60 @@ const CustomerManagement: React.FC = () => {
             <Input placeholder="请输入电话号码" />
           </Form.Item>
           
+          <Divider>默认地址设置</Divider>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="pickupCountry"
+                label="取货地址-国家"
+                initialValue="中国"
+              >
+                <Input placeholder="国家" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="pickupProvince"
+                label="取货地址-省份"
+              >
+                <Input placeholder="省份" />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="pickupCity"
+                label="取货地址-城市"
+              >
+                <Input placeholder="城市" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="pickupPostalCode"
+                label="取货地址-邮编"
+              >
+                <Input placeholder="邮编" />
+              </Form.Item>
+            </Col>
+          </Row>
+          
           <Form.Item
-            name="address"
-            label="地址"
-            rules={[{ required: true, message: '请输入地址' }]}
+            name="pickupAddressLine1"
+            label="取货地址-详细地址"
           >
-            <Input placeholder="请输入地址" />
+            <Input placeholder="详细地址" />
           </Form.Item>
           
           <Form.Item
-            name="level"
-            label="客户等级"
-            initialValue="standard"
+            name="pickupIsResidential"
+            label="取货地址类型"
+            valuePropName="checked"
           >
-            <Select>
-              <Select.Option value="standard">普通</Select.Option>
-              <Select.Option value="premium">高级</Select.Option>
-              <Select.Option value="vip">VIP</Select.Option>
-            </Select>
+            <input type="checkbox" /> 住宅地址
           </Form.Item>
         </Form>
       </Modal>
@@ -481,6 +556,99 @@ const CustomerManagement: React.FC = () => {
             },
           ]}
         />
+      </Modal>
+
+      {/* 客户详情模态框 - 符合PRD v3.0-PC设计 */}
+      <Modal
+        title={`${selectedCustomer?.name} - 客户详情`}
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        {selectedCustomer && (
+          <div>
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card size="small" title="基本信息">
+                  <p><strong>姓名:</strong> {selectedCustomer.name}</p>
+                  <p><strong>电话:</strong> {selectedCustomer.phone}</p>
+                  <p><strong>邮箱:</strong> {selectedCustomer.email || '-'}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card size="small" title="默认地址">
+                  <p><strong>取货地址:</strong></p>
+                  {selectedCustomer.defaultPickupAddress ? (
+                    <p style={{ marginLeft: 16, fontSize: '12px' }}>
+                      {selectedCustomer.defaultPickupAddress.country} {selectedCustomer.defaultPickupAddress.province} {selectedCustomer.defaultPickupAddress.city}<br/>
+                      {selectedCustomer.defaultPickupAddress.addressLine1}
+                    </p>
+                  ) : (
+                    <p style={{ marginLeft: 16, color: '#999' }}>未设置</p>
+                  )}
+                  <p><strong>送货地址:</strong></p>
+                  {selectedCustomer.defaultDeliveryAddress ? (
+                    <p style={{ marginLeft: 16, fontSize: '12px' }}>
+                      {selectedCustomer.defaultDeliveryAddress.country} {selectedCustomer.defaultDeliveryAddress.province} {selectedCustomer.defaultDeliveryAddress.city}<br/>
+                      {selectedCustomer.defaultDeliveryAddress.addressLine1}
+                    </p>
+                  ) : (
+                    <p style={{ marginLeft: 16, color: '#999' }}>未设置</p>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <Space>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                  onClick={() => handleCreateShipment(selectedCustomer)}
+                >
+                  快速创建运单
+                </Button>
+                <Button 
+                  icon={<HistoryOutlined />}
+                  onClick={() => {
+                    setIsDetailModalVisible(false);
+                    handleViewHistory(selectedCustomer);
+                  }}
+                >
+                  查看运单历史
+                </Button>
+                <Button 
+                  icon={<DollarOutlined />}
+                  onClick={() => {
+                    setIsDetailModalVisible(false);
+                    handleViewFinance(selectedCustomer);
+                  }}
+                >
+                  查看财务记录
+                </Button>
+              </Space>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 财务记录模态框 - 符合PRD v3.0-PC设计 */}
+      <Modal
+        title={`${selectedCustomer?.name} - 财务记录`}
+        open={isFinanceModalVisible}
+        onCancel={() => setIsFinanceModalVisible(false)}
+        footer={null}
+        width={1000}
+      >
+        <Card>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <DollarOutlined style={{ fontSize: '48px', color: '#fa8c16', marginBottom: '16px' }} />
+            <p>财务记录功能开发中...</p>
+            <p style={{ color: '#666', fontSize: '14px' }}>
+              将显示按客户聚合的应收/应付记录，支持导出和详情查看
+            </p>
+          </div>
+        </Card>
       </Modal>
     </div>
   );

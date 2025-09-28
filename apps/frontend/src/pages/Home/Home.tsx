@@ -1,6 +1,13 @@
 import React from 'react';
 import { Card, Button, Typography, Row, Col, Divider } from 'antd';
-import { TruckOutlined, PlusOutlined, UnorderedListOutlined, SettingOutlined } from '@ant-design/icons';
+import { 
+  TruckOutlined, 
+  PlusOutlined, 
+  TeamOutlined, 
+  DollarOutlined,
+  UserOutlined,
+  SettingOutlined 
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph } = Typography;
@@ -20,6 +27,7 @@ const Home: React.FC = () => {
         </Paragraph>
       </div>
 
+      {/* 首页三大模块入口 - 符合PRD v3.0-PC设计 */}
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} sm={12} md={8}>
           <Card
@@ -32,7 +40,7 @@ const Home: React.FC = () => {
             </div>
             <Title level={3}>创建运单</Title>
             <Paragraph style={{ marginBottom: '24px' }}>
-              快速创建新的运输订单，包含详细的货物信息、地址信息和附加服务
+              快速创建新的运输订单，客户选择后自动填充默认地址，支持货物信息和附加服务
             </Paragraph>
             <Button
               type="primary"
@@ -53,19 +61,19 @@ const Home: React.FC = () => {
             styles={{ body: { padding: '40px 20px' } }}
           >
             <div style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}>
-              <UnorderedListOutlined />
+              <TeamOutlined />
             </div>
-            <Title level={3}>运单管理</Title>
+            <Title level={3}>车队管理</Title>
             <Paragraph style={{ marginBottom: '24px' }}>
-              查看和管理所有运单，跟踪运输状态，分配司机，处理异常情况
+              管理在途司机车辆、空闲资源列表、地图轨迹显示，支持行程调度和历史回放
             </Paragraph>
             <Button
               size="large"
-              icon={<UnorderedListOutlined />}
-              onClick={() => navigate('/admin/shipments')}
+              icon={<TeamOutlined />}
+              onClick={() => navigate('/fleet-management')}
               block
             >
-              进入管理后台
+              进入车队管理
             </Button>
           </Card>
         </Col>
@@ -76,21 +84,70 @@ const Home: React.FC = () => {
             style={{ textAlign: 'center', height: '100%' }}
             styles={{ body: { padding: '40px 20px' } }}
           >
-            <div style={{ fontSize: '48px', color: '#722ed1', marginBottom: '16px' }}>
-              <SettingOutlined />
+            <div style={{ fontSize: '48px', color: '#fa8c16', marginBottom: '16px' }}>
+              <DollarOutlined />
             </div>
-            <Title level={3}>系统设置</Title>
+            <Title level={3}>财务结算</Title>
             <Paragraph style={{ marginBottom: '24px' }}>
-              配置规则引擎、定价策略、用户权限等系统参数
+              查看应收应付记录，按客户聚合的财务数据，支持导出和详情查看
             </Paragraph>
             <Button
               size="large"
-              icon={<SettingOutlined />}
-              onClick={() => navigate('/admin/rules')}
+              icon={<DollarOutlined />}
+              onClick={() => navigate('/finance-settlement')}
               block
             >
-              系统配置
+              进入财务结算
             </Button>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 快速操作区域 */}
+      <Divider style={{ margin: '40px 0' }} />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            size="small"
+            onClick={() => navigate('/customers')}
+            style={{ textAlign: 'center' }}
+          >
+            <UserOutlined style={{ fontSize: '24px', color: '#1890ff', marginBottom: '8px' }} />
+            <div>客户管理</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            size="small"
+            onClick={() => navigate('/admin/shipments')}
+            style={{ textAlign: 'center' }}
+          >
+            <TruckOutlined style={{ fontSize: '24px', color: '#52c41a', marginBottom: '8px' }} />
+            <div>运单管理</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            size="small"
+            onClick={() => navigate('/admin/drivers')}
+            style={{ textAlign: 'center' }}
+          >
+            <TeamOutlined style={{ fontSize: '24px', color: '#722ed1', marginBottom: '8px' }} />
+            <div>司机管理</div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            hoverable
+            size="small"
+            onClick={() => navigate('/admin/rules')}
+            style={{ textAlign: 'center' }}
+          >
+            <SettingOutlined style={{ fontSize: '24px', color: '#fa8c16', marginBottom: '8px' }} />
+            <div>系统设置</div>
           </Card>
         </Col>
       </Row>
@@ -100,49 +157,49 @@ const Home: React.FC = () => {
       <Row gutter={[24, 24]}>
         <Col span={24}>
           <Card>
-            <Title level={3}>功能特色</Title>
+            <Title level={3}>TMS v3.0-PC 核心功能</Title>
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12} md={6}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', color: '#1890ff', marginBottom: '8px' }}>
                     📦
                   </div>
-                  <Title level={5}>详细货物信息</Title>
+                  <Title level={5}>运单生命周期</Title>
                   <Paragraph style={{ fontSize: '14px' }}>
-                    支持长宽高、重量、箱数、托盘数等详细信息录入
+                    创建→调度→执行→POD→完成，完整的状态机流转
                   </Paragraph>
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', color: '#52c41a', marginBottom: '8px' }}>
-                    🚚
+                    🚛
                   </div>
-                  <Title level={5}>智能状态管理</Title>
+                  <Title level={5}>行程管理</Title>
                   <Paragraph style={{ fontSize: '14px' }}>
-                    从创建到完成的完整状态流转，实时跟踪运输进度
+                    支持多运单挂载，联程/多段运输，降低空驶率
                   </Paragraph>
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', color: '#fa8c16', marginBottom: '8px' }}>
-                    🛡️
+                    👥
                   </div>
-                  <Title level={5}>附加服务</Title>
+                  <Title level={5}>客户管理</Title>
                   <Paragraph style={{ fontSize: '14px' }}>
-                    保险、尾板、预约、等候等多样化服务选项
+                    默认地址自动填充，历史运单和财务记录查看
                   </Paragraph>
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', color: '#722ed1', marginBottom: '8px' }}>
-                    🏠
+                    🗺️
                   </div>
-                  <Title level={5}>地址类型识别</Title>
+                  <Title level={5}>车队可视化</Title>
                   <Paragraph style={{ fontSize: '14px' }}>
-                    自动识别住宅地址和商业地址，优化配送策略
+                    在途列表、空闲资源、地图轨迹、历史回放
                   </Paragraph>
                 </div>
               </Col>
