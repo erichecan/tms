@@ -1,22 +1,97 @@
 import React from 'react';
-import { Card, Button, Typography, Row, Col, Divider } from 'antd';
+import { Card, Button, Typography, Row, Col, Divider, Space, Dropdown, Avatar } from 'antd';
 import { 
   TruckOutlined, 
   PlusOutlined, 
   TeamOutlined, 
   DollarOutlined,
   UserOutlined,
-  SettingOutlined 
+  SettingOutlined,
+  DownOutlined,
+  LogoutOutlined,
+  DashboardOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import type { MenuProps } from 'antd';
 
 const { Title, Paragraph } = Typography;
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: '个人资料',
+    },
+    {
+      key: 'admin',
+      icon: <DashboardOutlined />,
+      label: '管理后台',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+    },
+  ];
+
+  const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
+    switch (key) {
+      case 'profile':
+        // TODO: 实现个人资料页面
+        console.log('个人资料');
+        break;
+      case 'admin':
+        navigate('/admin');
+        break;
+      case 'logout':
+        // TODO: 实现退出登录
+        console.log('退出登录');
+        break;
+    }
+  };
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
+      {/* 顶部导航栏 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <TruckOutlined style={{ color: '#1890ff', fontSize: '24px', marginRight: '12px' }} />
+          <Title level={4} style={{ margin: 0 }}>TMS v3.0-PC</Title>
+        </div>
+        
+        <Space>
+          <Button 
+            type="primary" 
+            icon={<DashboardOutlined />}
+            onClick={() => navigate('/admin')}
+          >
+            管理后台
+          </Button>
+          
+          <Dropdown 
+            menu={{ 
+              items: userMenuItems, 
+              onClick: handleUserMenuClick 
+            }} 
+            placement="bottomRight"
+          >
+            <Button type="text" style={{ padding: '4px 8px' }}>
+              <Space>
+                <Avatar size="small" icon={<UserOutlined />} />
+                <span>管理员</span>
+                <DownOutlined />
+              </Space>
+            </Button>
+          </Dropdown>
+        </Space>
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: '60px' }}>
         <Title level={1}>
           <TruckOutlined style={{ color: '#1890ff', marginRight: '16px' }} />

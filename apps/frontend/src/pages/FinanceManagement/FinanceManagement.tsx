@@ -274,9 +274,21 @@ const FinanceManagement: React.FC = () => {
 
   return (
     <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
-      <div className="page-header">
-        <h1 className="page-title">财务结算</h1>
-        <p className="page-description">管理财务记录和生成结算单</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="page-title">财务结算</h1>
+          <p className="page-description">管理财务记录和生成结算单</p>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<FileTextOutlined />}
+          onClick={() => {
+            // TODO: 实现生成结算单功能
+            console.log('生成结算单');
+          }}
+        >
+          生成结算单
+        </Button>
       </div>
 
       {/* 财务概览 */}

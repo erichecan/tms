@@ -281,6 +281,52 @@ const CustomerManagement: React.FC = () => {
           新增客户
         </Button>
       </div>
+
+      {/* 搜索和筛选区域 - 2025-01-27 16:45:00 新增 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Input.Search
+              placeholder="搜索客户姓名、电话、邮箱"
+              onSearch={(value) => {
+                // TODO: 实现客户搜索功能
+                console.log('搜索客户:', value);
+              }}
+              enterButton
+            />
+          </Col>
+          <Col span={6}>
+            <Select
+              placeholder="筛选状态"
+              style={{ width: '100%' }}
+              allowClear
+              onChange={(value) => {
+                // TODO: 实现客户状态筛选
+                console.log('筛选状态:', value);
+              }}
+            >
+              <Select.Option value="active">活跃客户</Select.Option>
+              <Select.Option value="inactive">非活跃客户</Select.Option>
+            </Select>
+          </Col>
+          <Col span={6}>
+            <Select
+              placeholder="排序方式"
+              style={{ width: '100%' }}
+              defaultValue="name_asc"
+              onChange={(value) => {
+                // TODO: 实现客户排序
+                console.log('排序方式:', value);
+              }}
+            >
+              <Select.Option value="name_asc">姓名升序</Select.Option>
+              <Select.Option value="name_desc">姓名降序</Select.Option>
+              <Select.Option value="created_desc">创建时间降序</Select.Option>
+              <Select.Option value="created_asc">创建时间升序</Select.Option>
+            </Select>
+          </Col>
+        </Row>
+      </Card>
       
       <Card style={{ width: '100%' }}>
         <Table

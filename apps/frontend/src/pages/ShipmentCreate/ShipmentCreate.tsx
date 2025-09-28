@@ -17,6 +17,7 @@ import {
   Space,
   Radio,
   Checkbox,
+  Modal,
 } from 'antd';
 import {
   TruckOutlined,
@@ -29,7 +30,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi } from '../../services/api'; // 2025-09-26 22:35:00 暂时移除未使用的customersApi
+import { shipmentsApi, customersApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 
 const { Title, Text } = Typography;
@@ -42,8 +43,8 @@ const ShipmentCreate: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [customers] = useState<any[]>([]); // 2025-09-26 22:35:00 暂时移除未使用的setter
-  const [customersLoading] = useState(false); // 2025-09-26 22:35:00 暂时移除未使用的setter
+  const [customers, setCustomers] = useState<any[]>([]); // 2025-01-27 16:45:00 恢复客户列表状态
+  const [customersLoading, setCustomersLoading] = useState(false); // 2025-01-27 16:45:00 恢复客户加载状态
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [cargoItems] = useState<any[]>([
@@ -58,8 +59,96 @@ const ShipmentCreate: React.FC = () => {
   const [isConfirmMode, setIsConfirmMode] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
 
+  // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
+  const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+
   // 从localStorage恢复表单状态
   const CACHE_KEY = 'shipment_form_cache';
+  
+  // 加载客户数据 - 2025-01-27 16:45:00 新增客户数据加载
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const loadCustomers = async () => {
+    try {
+      setCustomersLoading(true);
+      const response = await customersApi.getCustomers();
+      setCustomers(response.data || []);
+    } catch (error) {
+      console.error('加载客户列表失败:', error);
+      message.error('加载客户列表失败');
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  // 客户选择处理 - 2025-01-27 16:45:00 新增客户选择自动填充地址功能
+  const handleCustomerSelect = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setSelectedCustomer(customer);
+      
+      // 自动填充客户信息
+      form.setFieldsValue({
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
+      });
+
+      // 自动填充默认地址
+      if (customer.defaultPickupAddress) {
+        form.setFieldsValue({
+          shipperName: customer.name,
+          shipperPhone: customer.phone,
+          shipperEmail: customer.email,
+          shipperCountry: customer.defaultPickupAddress.country || 'CA',
+          shipperProvince: customer.defaultPickupAddress.province || '',
+          shipperCity: customer.defaultPickupAddress.city || '',
+          shipperPostalCode: customer.defaultPickupAddress.postalCode || '',
+          shipperAddress1: customer.defaultPickupAddress.addressLine1 || '',
+          shipperAddress2: customer.defaultPickupAddress.addressLine2 || '',
+        });
+      }
+
+      if (customer.defaultDeliveryAddress) {
+        form.setFieldsValue({
+          receiverCountry: customer.defaultDeliveryAddress.country || 'CA',
+          receiverProvince: customer.defaultDeliveryAddress.province || '',
+          receiverCity: customer.defaultDeliveryAddress.city || '',
+          receiverPostalCode: customer.defaultDeliveryAddress.postalCode || '',
+          receiverAddress1: customer.defaultDeliveryAddress.addressLine1 || '',
+          receiverAddress2: customer.defaultDeliveryAddress.addressLine2 || '',
+        });
+      }
+    }
+  };
+
+  // 快速创建客户 - 2025-01-27 16:45:00 新增快速创建客户功能
+  const handleQuickCreateCustomer = () => {
+    setIsAddCustomerModalVisible(true);
+  };
+
+  const handleAddCustomer = async (customerData: any) => {
+    try {
+      const response = await customersApi.createCustomer(customerData);
+      const newCustomer = response.data;
+      
+      // 添加到客户列表
+      setCustomers([...customers, newCustomer]);
+      
+      // 自动选择新创建的客户
+      form.setFieldsValue({ customerId: newCustomer.id });
+      handleCustomerSelect(newCustomer.id);
+      
+      setIsAddCustomerModalVisible(false);
+      message.success('客户创建成功');
+    } catch (error) {
+      console.error('创建客户失败:', error);
+      message.error('创建客户失败');
+    }
+  };
   
   useEffect(() => {
     const cachedData = localStorage.getItem(CACHE_KEY);
@@ -448,19 +537,35 @@ const ShipmentCreate: React.FC = () => {
               placeholder="搜索并选择客户"
               optionFilterProp="children"
               loading={customersLoading}
+              onChange={handleCustomerSelect}
               filterOption={(input, option) => {
                 const customer = customers.find(c => c.id === option?.value);
                 return customer?.name.toLowerCase().includes(input.toLowerCase()) || false;
               }}
               notFoundContent={customersLoading ? "加载中..." : "暂无客户"}
               allowClear
+              dropdownRender={(menu) => (
+                <div>
+                  {menu}
+                  <div style={{ padding: '8px 12px', borderTop: '1px solid #f0f0f0' }}>
+                    <Button 
+                      type="link" 
+                      size="small" 
+                      onClick={handleQuickCreateCustomer}
+                      style={{ width: '100%' }}
+                    >
+                      + 快速创建新客户
+                    </Button>
+                  </div>
+                </div>
+              )}
             >
               {customers.map((customer: any) => (
                 <Option key={customer.id} value={customer.id}>
                   <div>
                     <div style={{ fontWeight: 500 }}>{customer.name}</div>
                     <div style={{ fontSize: '12px', color: '#666' }}>
-                      {customer.contactInfo?.phone} • {customer.contactInfo?.email}
+                      {customer.phone} • {customer.email}
                     </div>
                   </div>
                 </Option>
@@ -1255,6 +1360,87 @@ const ShipmentCreate: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* 快速创建客户模态框 - 2025-01-27 16:45:00 新增 */}
+      <Modal
+        title="快速创建客户"
+        open={isAddCustomerModalVisible}
+        onCancel={() => setIsAddCustomerModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form
+          layout="vertical"
+          onFinish={handleAddCustomer}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label="客户姓名"
+                rules={[{ required: true, message: '请输入客户姓名' }]}
+              >
+                <Input placeholder="请输入客户姓名" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="联系电话"
+                rules={[{ required: true, message: '请输入联系电话' }]}
+              >
+                <Input placeholder="请输入联系电话" />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="邮箱地址"
+                rules={[
+                  { type: 'email', message: '请输入有效的邮箱地址' }
+                ]}
+              >
+                <Input placeholder="请输入邮箱地址" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider>默认地址（可选）</Divider>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="defaultPickupAddress" label="默认取货地址">
+                <TextArea 
+                  rows={3} 
+                  placeholder="请输入默认取货地址（格式：省/市/区 详细地址）" 
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="defaultDeliveryAddress" label="默认送货地址">
+                <TextArea 
+                  rows={3} 
+                  placeholder="请输入默认送货地址（格式：省/市/区 详细地址）" 
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <div style={{ textAlign: 'right', marginTop: '24px' }}>
+            <Space>
+              <Button onClick={() => setIsAddCustomerModalVisible(false)}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit">
+                创建客户
+              </Button>
+            </Space>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };
