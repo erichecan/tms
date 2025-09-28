@@ -15,6 +15,9 @@ import CustomerManagement from './pages/CustomerManagement/CustomerManagement';
 import DriverManagement from './pages/DriverManagement/DriverManagement';
 import VehicleManagement from './pages/VehicleManagement/VehicleManagement';
 import CurrencyManagement from './pages/CurrencyManagement/CurrencyManagement';
+// 新增页面导入 - 符合PRD v3.0-PC设计
+import FleetManagement from './pages/FleetManagement/FleetManagement';
+import TripManagement from './pages/TripManagement/TripManagement';
 import './App.css';
 
 function App() {
@@ -27,6 +30,11 @@ function App() {
             <Route path="/test" element={<TestPage />} />
             <Route path="/" element={<Home />} />
             <Route path="/create-shipment" element={<ShipmentCreate />} />
+            {/* 新增路由 - 符合PRD v3.0-PC设计 */}
+            <Route path="/fleet-management" element={<FleetManagement />} />
+            <Route path="/trip-management" element={<TripManagement />} />
+            <Route path="/customers" element={<CustomerManagement />} />
+            <Route path="/finance-settlement" element={<FinanceManagement />} />
             <Route
               path="/admin"
               element={
