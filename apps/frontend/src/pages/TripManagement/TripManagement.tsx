@@ -332,7 +332,7 @@ const TripManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>行程管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddTrip}>
@@ -340,12 +340,13 @@ const TripManagement: React.FC = () => {
         </Button>
       </div>
       
-      <Card>
+      <Card style={{ width: '100%' }}>
         <Table
           columns={columns}
           dataSource={trips}
           rowKey="id"
           loading={loading}
+          scroll={{ x: 800 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

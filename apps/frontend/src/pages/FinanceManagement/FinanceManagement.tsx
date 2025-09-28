@@ -273,7 +273,7 @@ const FinanceManagement: React.FC = () => {
   const netProfit = totalRevenue - totalExpenses;
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
       <div className="page-header">
         <h1 className="page-title">财务结算</h1>
         <p className="page-description">管理财务记录和生成结算单</p>

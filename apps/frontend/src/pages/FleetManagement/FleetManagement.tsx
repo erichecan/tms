@@ -344,16 +344,17 @@ const FleetManagement: React.FC = () => {
       key: 'inTransit',
       label: '在途管理',
       children: (
-        <Card>
-          <Table
-            columns={inTransitColumns}
-            dataSource={inTransitTrips}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            size="small"
-          />
-        </Card>
+      <Card style={{ width: '100%' }}>
+        <Table
+          columns={inTransitColumns}
+          dataSource={inTransitTrips}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+          size="small"
+          scroll={{ x: 800 }}
+        />
+      </Card>
       )
     },
     {
@@ -408,7 +409,7 @@ const FleetManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
       <div style={{ marginBottom: 16 }}>
         <Title level={3}>车队管理</Title>
         <Text type="secondary">
