@@ -571,8 +571,12 @@ export class DatabaseService {
    */
   async createCustomer(tenantId: string, customer: Omit<Customer, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
     const query = `
-      INSERT INTO customers (tenant_id, name, level, contact_info, billing_info)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO customers (
+        tenant_id, name, level, phone, email, 
+        contact_info, billing_info, 
+        default_pickup_address, default_delivery_address
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
     
@@ -580,8 +584,12 @@ export class DatabaseService {
       tenantId,
       customer.name,
       customer.level,
+      customer.phone || '',
+      customer.email || '',
       JSON.stringify(customer.contactInfo),
-      customer.billingInfo ? JSON.stringify(customer.billingInfo) : null
+      customer.billingInfo ? JSON.stringify(customer.billingInfo) : null,
+      customer.defaultPickupAddress ? JSON.stringify(customer.defaultPickupAddress) : null,
+      customer.defaultDeliveryAddress ? JSON.stringify(customer.defaultDeliveryAddress) : null
     ]);
     
     return this.mapCustomerFromDb(result[0]);
@@ -1366,6 +1374,246 @@ export class DatabaseService {
     return this.mapFinancialRecordFromDb(result[0]);
   }
 
+  // ==================== 行程管理 ====================
+
+  /**
+   * 创建行程
+   * @param tenantId 租户ID
+   * @param trip 行程数据
+   * @returns 创建的行程
+   */
+  async createTrip(tenantId: string, trip: any): Promise<any> {
+    const query = `
+      INSERT INTO trips (
+        tenant_id, trip_no, status, driver_id, vehicle_id,
+        legs, shipments, start_time_planned, end_time_planned, route_path
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+    
+    const result = await this.query(query, [
+      tenantId,
+      trip.tripNo,
+      trip.status || 'planning',
+      trip.driverId,
+      trip.vehicleId,
+      JSON.stringify(trip.legs || []),
+      JSON.stringify(trip.shipments || []),
+      trip.startTimePlanned,
+      trip.endTimePlanned,
+      trip.routePath ? JSON.stringify(trip.routePath) : null
+    ]);
+    
+    return this.mapTripFromDb(result[0]);
+  }
+
+  /**
+   * 获取行程
+   * @param tenantId 租户ID
+   * @param tripId 行程ID
+   * @returns 行程信息
+   */
+  async getTrip(tenantId: string, tripId: string): Promise<any | null> {
+    const query = 'SELECT * FROM trips WHERE tenant_id = $1 AND id = $2';
+    const result = await this.query(query, [tenantId, tripId]);
+    
+    return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
+  }
+
+  /**
+   * 获取行程列表
+   * @param tenantId 租户ID
+   * @param params 查询参数
+   * @returns 分页行程列表
+   */
+  async getTrips(tenantId: string, params: any): Promise<any> {
+    const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
+    const offset = (page - 1) * limit;
+    
+    let whereClause = 'WHERE tenant_id = $1';
+    const queryParams: any[] = [tenantId];
+    let paramIndex = 2;
+    
+    if (search) {
+      whereClause += ` AND (trip_no ILIKE $${paramIndex} OR status ILIKE $${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
+      paramIndex++;
+    }
+    
+    if (filters?.status) {
+      whereClause += ` AND status = $${paramIndex}`;
+      queryParams.push(filters.status);
+      paramIndex++;
+    }
+    
+    if (filters?.driverId) {
+      whereClause += ` AND driver_id = $${paramIndex}`;
+      queryParams.push(filters.driverId);
+      paramIndex++;
+    }
+    
+    if (filters?.vehicleId) {
+      whereClause += ` AND vehicle_id = $${paramIndex}`;
+      queryParams.push(filters.vehicleId);
+      paramIndex++;
+    }
+    
+    // 获取总数
+    const countQuery = `SELECT COUNT(*) FROM trips ${whereClause}`;
+    const countResult = await this.query(countQuery, queryParams);
+    const total = parseInt(countResult[0].count);
+    
+    // 获取数据
+    const dataQuery = `
+      SELECT * FROM trips 
+      ${whereClause}
+      ORDER BY ${sort} ${order.toUpperCase()}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    queryParams.push(limit, offset);
+    const dataResult = await this.query(dataQuery, queryParams);
+    
+    return {
+      success: true,
+      data: dataResult.map(row => this.mapTripFromDb(row)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      },
+      timestamp: new Date().toISOString(),
+      requestId: ''
+    };
+  }
+
+  /**
+   * 更新行程
+   * @param tenantId 租户ID
+   * @param tripId 行程ID
+   * @param updates 更新数据
+   * @returns 更新的行程
+   */
+  async updateTrip(tenantId: string, tripId: string, updates: any): Promise<any | null> {
+    const setClause = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updates).forEach(key => {
+      if (updates[key] !== undefined) {
+        if (['legs', 'shipments', 'routePath'].includes(key)) {
+          setClause.push(`${key.replace(/([A-Z])/g, '_$1').toLowerCase()} = $${paramIndex}`);
+          values.push(JSON.stringify(updates[key]));
+        } else {
+          const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+          setClause.push(`${dbKey} = $${paramIndex}`);
+          values.push(updates[key]);
+        }
+        paramIndex++;
+      }
+    });
+
+    if (setClause.length === 0) {
+      return null;
+    }
+
+    setClause.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(tenantId, tripId);
+
+    const query = `
+      UPDATE trips 
+      SET ${setClause.join(', ')}
+      WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
+  }
+
+  /**
+   * 删除行程
+   * @param tenantId 租户ID
+   * @param tripId 行程ID
+   * @returns 是否删除成功
+   */
+  async deleteTrip(tenantId: string, tripId: string): Promise<boolean> {
+    const query = 'DELETE FROM trips WHERE tenant_id = $1 AND id = $2';
+    const result = await this.query(query, [tenantId, tripId]);
+    return result.length > 0;
+  }
+
+  /**
+   * 将运单挂载到行程
+   * @param tenantId 租户ID
+   * @param tripId 行程ID
+   * @param shipmentIds 运单ID列表
+   * @returns 更新后的行程
+   */
+  async mountShipmentsToTrip(tenantId: string, tripId: string, shipmentIds: string[]): Promise<any> {
+    const client = await this.getConnection();
+    try {
+      await client.query('BEGIN');
+
+      // 获取当前行程
+      const tripQuery = 'SELECT * FROM trips WHERE tenant_id = $1 AND id = $2';
+      const tripResult = await client.query(tripQuery, [tenantId, tripId]);
+      
+      if (tripResult.length === 0) {
+        throw new Error('Trip not found');
+      }
+
+      const currentTrip = tripResult[0];
+      const currentShipments = currentTrip.shipments || [];
+      
+      // 合并运单ID
+      const updatedShipments = [...new Set([...currentShipments, ...shipmentIds])];
+
+      // 更新行程
+      const updateQuery = `
+        UPDATE trips 
+        SET shipments = $3, updated_at = CURRENT_TIMESTAMP
+        WHERE tenant_id = $1 AND id = $2
+        RETURNING *
+      `;
+      
+      const updateResult = await client.query(updateQuery, [
+        tenantId,
+        tripId,
+        JSON.stringify(updatedShipments)
+      ]);
+
+      await client.query('COMMIT');
+      return this.mapTripFromDb(updateResult[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * 更新行程状态
+   * @param tenantId 租户ID
+   * @param tripId 行程ID
+   * @param status 新状态
+   * @returns 更新的行程
+   */
+  async updateTripStatus(tenantId: string, tripId: string, status: string): Promise<any | null> {
+    const query = `
+      UPDATE trips 
+      SET status = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE tenant_id = $1 AND id = $2
+      RETURNING *
+    `;
+    
+    const result = await this.query(query, [tenantId, tripId, status]);
+    return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
+  }
+
   // ==================== 数据映射方法 ====================
 
   private mapCustomerFromDb(row: any): Customer {
@@ -1374,8 +1622,12 @@ export class DatabaseService {
       tenantId: row.tenant_id,
       name: row.name,
       level: row.level,
+      phone: row.phone || '',
+      email: row.email || '',
       contactInfo: row.contact_info || {},
       billingInfo: row.billing_info,
+      defaultPickupAddress: row.default_pickup_address,
+      defaultDeliveryAddress: row.default_delivery_address,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
@@ -1396,6 +1648,26 @@ export class DatabaseService {
         onTimeRate: 0,
         customerSatisfaction: 0
       },
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  private mapTripFromDb(row: any): any {
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      tripNo: row.trip_no,
+      status: row.status,
+      driverId: row.driver_id,
+      vehicleId: row.vehicle_id,
+      legs: row.legs || [],
+      shipments: row.shipments || [],
+      startTimePlanned: row.start_time_planned,
+      endTimePlanned: row.end_time_planned,
+      startTimeActual: row.start_time_actual,
+      endTimeActual: row.end_time_actual,
+      routePath: row.route_path,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };

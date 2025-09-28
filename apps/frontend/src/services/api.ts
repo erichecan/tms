@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { UserLoginPayload, AuthResponse } from '../types/index';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -110,6 +110,19 @@ export const financeApi = {
   getStatements: (params?: any) => api.get('/finance/statements', { params }),
   getStatementDetails: (statementId: string) => api.get(`/finance/statements/${statementId}`),
   downloadStatement: (statementId: string) => api.get(`/finance/statements/${statementId}/download`),
+};
+
+// Trip related API calls - 2025-01-27 16:45:00 新增行程管理API
+export const tripsApi = {
+  getTrips: (params?: any) => api.get('/trips', { params }),
+  getTrip: (id: string) => api.get(`/trips/${id}`),
+  createTrip: (data: any) => api.post('/trips', data),
+  updateTrip: (id: string, data: any) => api.put(`/trips/${id}`, data),
+  deleteTrip: (id: string) => api.delete(`/trips/${id}`),
+  mountShipmentsToTrip: (id: string, shipmentIds: string[]) => 
+    api.post(`/trips/${id}/shipments`, { shipmentIds }),
+  updateTripStatus: (id: string, status: string) => 
+    api.patch(`/trips/${id}/status`, { status }),
 };
 
 // Customer related API calls

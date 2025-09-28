@@ -47,6 +47,7 @@ import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
 import vehicleRoutes from './routes/vehicleRoutes';
+import tripRoutes from './routes/tripRoutes'; // 行程管理路由 // 2025-01-27 16:45:00
 import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
 
 // 创建Express应用
@@ -82,19 +83,20 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// API路由
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/rules', ruleRoutes);
-app.use('/api/v1/pricing', pricingRoutes);
-app.use('/api/v1/shipments', shipmentRoutes);
+// API路由 - 2025-01-27 16:45:00 更新路由以支持v3.0-PC
+app.use('/api/auth', authRoutes);
+app.use('/api/rules', ruleRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/shipments', shipmentRoutes);
 app.use('/api/shipments', mvpShipmentRoutes); // MVP 最小闭环 REST // 2025-09-23 10:15:00
 app.use('/api/shipments', mvpAssignmentRoutes); // MVP 分配 // 2025-09-23 10:30:00
 app.use('/api/shipments', mvpStatusRoutes); // MVP 状态 // 2025-09-23 10:30:00
 app.use('/api/shipments', mvpPodRoutes); // MVP POD 上传 // 2025-09-23 10:30:00
-app.use('/api/v1/finance', financeRoutes);
-app.use('/api/v1/customers', customerRoutes);
-app.use('/api/v1/drivers', driverRoutes);
-app.use('/api/v1/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:00
+app.use('/api/finance', financeRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:00
+app.use('/api/trips', tripRoutes); // 行程管理API // 2025-01-27 16:45:00
 
 // 404处理
 app.use('*', (req, res) => {

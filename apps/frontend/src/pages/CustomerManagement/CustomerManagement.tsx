@@ -3,6 +3,7 @@ import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, F
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { customersApi, shipmentsApi } from '../../services/api';
 import { Customer, Shipment, ShipmentAddress } from '../../types';
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const { Title } = Typography;
@@ -274,7 +275,8 @@ const CustomerManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+    <PageLayout>
+      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>客户管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCustomer}>
@@ -697,7 +699,8 @@ const CustomerManagement: React.FC = () => {
           </div>
         </Card>
       </Modal>
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

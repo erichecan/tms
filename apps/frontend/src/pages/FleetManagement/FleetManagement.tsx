@@ -29,6 +29,7 @@ import {
   HistoryOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 
 const { Title, Text } = Typography;
 
@@ -409,7 +410,8 @@ const FleetManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+    <PageLayout>
+      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ marginBottom: 16 }}>
         <Title level={3}>车队管理</Title>
         <Text type="secondary">
@@ -465,7 +467,8 @@ const FleetManagement: React.FC = () => {
           </div>
         </Card>
       )}
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

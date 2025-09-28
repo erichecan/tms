@@ -30,6 +30,7 @@ import {
   CheckCircleOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment } from '../../types';
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 
 const { Title, Text } = Typography;
 
@@ -332,7 +333,8 @@ const TripManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+    <PageLayout>
+      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>行程管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddTrip}>
@@ -480,7 +482,8 @@ const TripManagement: React.FC = () => {
           </div>
         )}
       </Modal>
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

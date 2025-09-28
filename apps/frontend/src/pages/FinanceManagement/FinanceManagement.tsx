@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import { financeApi, customersApi, driversApi } from '../../services/api';
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const { Title, Text } = Typography;
@@ -273,7 +274,8 @@ const FinanceManagement: React.FC = () => {
   const netProfit = totalRevenue - totalExpenses;
 
   return (
-    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+    <PageLayout>
+      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">财务结算</h1>
@@ -442,7 +444,8 @@ const FinanceManagement: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

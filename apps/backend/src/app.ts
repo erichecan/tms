@@ -4,6 +4,16 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 
+// 导入路由 - 2025-01-27 16:45:00 添加行程管理路由
+import authRoutes from './routes/authRoutes';
+import customerRoutes from './routes/customerRoutes';
+import driverRoutes from './routes/driverRoutes';
+import vehicleRoutes from './routes/vehicleRoutes';
+import shipmentRoutes from './routes/shipmentRoutes';
+import tripRoutes from './routes/tripRoutes';
+import financeRoutes from './routes/financeRoutes';
+import ruleRoutes from './routes/ruleRoutes';
+
 // 初始化 Express 应用 // 2025-09-23 10:00:00
 const app = express();
 
@@ -17,6 +27,16 @@ app.use(morgan('dev')); // 请求日志 // 2025-09-23 10:00:00
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
+
+// 注册路由 - 2025-01-27 16:45:00 注册所有API路由
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/shipments', shipmentRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/finance', financeRoutes);
+app.use('/api/rules', ruleRoutes);
 
 export default app;
 
