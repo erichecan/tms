@@ -163,10 +163,10 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">仪表盘</h1>
-        <p className="page-description">欢迎使用TMS智能物流运营平台</p>
+    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+      <div className="page-header" style={{ marginBottom: '24px' }}>
+        <h1 className="page-title" style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>仪表盘</h1>
+        <p className="page-description" style={{ margin: 0, color: '#666' }}>欢迎使用TMS智能物流运营平台</p>
       </div>
 
       {/* 统计卡片 */}

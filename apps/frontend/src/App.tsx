@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
-import Layout from './components/Layout/Layout';
+import PageLayout from './components/Layout/PageLayout'; // 2025-01-27 17:30:00 使用新的PageLayout组件
 import Login from './pages/Auth/Login';
 import Home from './pages/Home/Home';
 import TestPage from './pages/Test/TestPage';
@@ -35,24 +35,15 @@ function App() {
             <Route path="/trip-management" element={<TripManagement />} />
             <Route path="/customers" element={<CustomerManagement />} />
             <Route path="/finance-settlement" element={<FinanceManagement />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="rules" element={<RuleManagement />} />
-              <Route path="shipments" element={<ShipmentManagement />} />
-              <Route path="finance" element={<FinanceManagement />} />
-              <Route path="customers" element={<CustomerManagement />} />
-              <Route path="drivers" element={<DriverManagement />} />
-              <Route path="vehicles" element={<VehicleManagement />} />
-              <Route path="currencies" element={<CurrencyManagement />} />
-              {/* Add other protected routes here */}
-            </Route>
+            {/* 管理后台页面 - 2025-01-27 17:30:00 使用新的PageLayout */}
+            <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/shipments" element={<ProtectedRoute><PageLayout><ShipmentManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/drivers" element={<ProtectedRoute><PageLayout><DriverManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/vehicles" element={<ProtectedRoute><PageLayout><VehicleManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/currencies" element={<ProtectedRoute><PageLayout><CurrencyManagement /></PageLayout></ProtectedRoute>} />
           </Routes>
         </TenantProvider>
       </AuthProvider>
