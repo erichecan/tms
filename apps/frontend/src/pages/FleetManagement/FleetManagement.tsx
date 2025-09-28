@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
+import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-01-27 17:15:00 添加Google Maps组件
 
 const { Title, Text } = Typography;
 
@@ -362,18 +363,36 @@ const FleetManagement: React.FC = () => {
       key: 'map',
       label: '地图轨迹',
       children: (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <EnvironmentOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
-            <Title level={4}>地图轨迹功能</Title>
-            <Text type="secondary">
-              显示当前行程路线与历史回程轨迹，支持筛选某行程进行回放
-            </Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              MVP版本使用模拟数据，后续接入GPS/OBD
-            </Text>
-          </div>
+        <Card title="车队实时位置">
+          <GoogleMap
+            center={{ lat: 39.9042, lng: 116.4074 }}
+            zoom={10}
+            height="500px"
+            markers={[
+              {
+                id: 'trip-1',
+                position: { lat: 39.9042, lng: 116.4074 },
+                title: 'TRIP-20250127-001',
+                info: '<div><strong>行程 TRIP-20250127-001</strong><br/>司机：张三<br/>车辆：京A12345<br/>状态：在途</div>',
+              },
+              {
+                id: 'trip-2',
+                position: { lat: 39.9142, lng: 116.4174 },
+                title: 'TRIP-20250127-002',
+                info: '<div><strong>行程 TRIP-20250127-002</strong><br/>司机：李四<br/>车辆：京B67890<br/>状态：在途</div>',
+              },
+            ]}
+            routes={[
+              {
+                from: { lat: 39.9042, lng: 116.4074 },
+                to: { lat: 39.9142, lng: 116.4174 },
+                color: '#1890ff',
+              },
+            ]}
+            onMarkerClick={(markerId) => {
+              console.log('点击标记:', markerId);
+            }}
+          />
         </Card>
       )
     },

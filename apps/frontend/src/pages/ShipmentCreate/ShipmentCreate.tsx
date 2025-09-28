@@ -33,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
+import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-01-27 17:15:00 添加Google Maps组件
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -63,6 +64,7 @@ const ShipmentCreate: React.FC = () => {
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showMap, setShowMap] = useState(false); // 2025-01-27 17:15:00 新增地图显示状态
 
   // 从localStorage恢复表单状态
   const CACHE_KEY = 'shipment_form_cache';
@@ -76,10 +78,12 @@ const ShipmentCreate: React.FC = () => {
     try {
       setCustomersLoading(true);
       const response = await customersApi.getCustomers();
-      setCustomers(response.data || []);
+      // 2025-01-27 17:10:00 修复API返回结构，后端返回分页对象
+      setCustomers(response.data?.data || []);
     } catch (error) {
       console.error('加载客户列表失败:', error);
       message.error('加载客户列表失败');
+      setCustomers([]); // 2025-01-27 17:10:00 确保失败时设置为空数组
     } finally {
       setCustomersLoading(false);
     }
@@ -632,7 +636,21 @@ const ShipmentCreate: React.FC = () => {
 
   // 地址与时间模块 - 修改为左右布局，符合北美地址习惯 // 2025-01-27 15:30:00
   const renderAddressTimeSection = () => (
-    <Card title="地址与时间" style={{ marginBottom: 12 }}>
+    <Card 
+      title={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>地址与时间</span>
+          <Button 
+            type="link" 
+            icon={<EnvironmentOutlined />}
+            onClick={() => setShowMap(!showMap)}
+          >
+            {showMap ? '隐藏地图' : '显示地图'}
+          </Button>
+        </div>
+      } 
+      style={{ marginBottom: 12 }}
+    >
       <Row gutter={[16, 8]}>
         {/* 发货人信息 - 左侧 */}
         <Col span={12}>
@@ -917,6 +935,41 @@ const ShipmentCreate: React.FC = () => {
           </Row>
         </Col>
       </Row>
+      
+      {/* 地图显示区域 - 2025-01-27 17:15:00 新增地图功能 */}
+      {showMap && (
+        <div style={{ marginTop: '16px' }}>
+          <GoogleMap
+            center={{ lat: 39.9042, lng: 116.4074 }}
+            zoom={10}
+            height="300px"
+            markers={[
+              {
+                id: 'pickup',
+                position: { lat: 39.9042, lng: 116.4074 },
+                title: '取货地址',
+                info: '<div><strong>取货地址</strong><br/>点击标记选择位置</div>',
+              },
+              {
+                id: 'delivery',
+                position: { lat: 39.9142, lng: 116.4174 },
+                title: '送货地址',
+                info: '<div><strong>送货地址</strong><br/>点击标记选择位置</div>',
+              },
+            ]}
+            routes={[
+              {
+                from: { lat: 39.9042, lng: 116.4074 },
+                to: { lat: 39.9142, lng: 116.4174 },
+                color: '#1890ff',
+              },
+            ]}
+            onMarkerClick={(markerId) => {
+              console.log('选择地址标记:', markerId);
+            }}
+          />
+        </div>
+      )}
     </Card>
   );
 
