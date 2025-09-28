@@ -408,7 +408,7 @@ const FleetManagement: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ marginBottom: 16 }}>
         <Title level={3}>车队管理</Title>
         <Text type="secondary">
