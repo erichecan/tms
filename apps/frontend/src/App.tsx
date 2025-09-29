@@ -18,6 +18,11 @@ import CurrencyManagement from './pages/CurrencyManagement/CurrencyManagement';
 // 新增页面导入 - 符合PRD v3.0-PC设计
 import FleetManagement from './pages/FleetManagement/FleetManagement';
 import TripManagement from './pages/TripManagement/TripManagement';
+// 计费规则引擎页面导入
+import PricingTemplates from './pages/PricingEngine/PricingTemplates';
+import PricingCalculator from './pages/PricingEngine/PricingCalculator';
+import PricingWizard from './pages/PricingEngine/PricingWizard';
+import PricingHome from './pages/PricingEngine/PricingHome';
 import './App.css';
 
 function App() {
@@ -44,6 +49,11 @@ function App() {
             <Route path="/admin/drivers" element={<ProtectedRoute><PageLayout><DriverManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/vehicles" element={<ProtectedRoute><PageLayout><VehicleManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/currencies" element={<ProtectedRoute><PageLayout><CurrencyManagement /></PageLayout></ProtectedRoute>} />
+            {/* 计费规则引擎路由 - 2025-09-29 09:15:00 */}
+            <Route path="/admin/pricing" element={<ProtectedRoute><PageLayout><PricingHome /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/pricing/templates" element={<ProtectedRoute><PageLayout><PricingTemplates /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/pricing/calculator" element={<ProtectedRoute><PageLayout><PricingCalculator /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/pricing/wizard" element={<ProtectedRoute><PageLayout><PricingWizard /></PageLayout></ProtectedRoute>} />
           </Routes>
         </TenantProvider>
       </AuthProvider>

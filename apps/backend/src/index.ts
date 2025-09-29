@@ -49,6 +49,14 @@ import driverRoutes from './routes/driverRoutes';
 import vehicleRoutes from './routes/vehicleRoutes';
 import tripRoutes from './routes/tripRoutes'; // 行程管理路由 // 2025-01-27 16:45:00
 import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
+import pricingEngineRoutes from './routes/pricingEngineRoutes';
+import shipmentCompletionRoutes from './routes/shipmentCompletionRoutes';
+
+// 导入新增的服务
+import { PricingEngineService } from './services/PricingEngineService';
+import { PricingEngineController } from './controllers/PricingEngineController';
+import { PricingFinancialIntegration } from './services/PricingFinancialIntegration';
+import { PricingPermissionService } from './services/PricingPermissionService'; // 计费规则引擎 // 2025-09-29 02:35:00
 
 // 创建Express应用
 const app = express();
@@ -97,6 +105,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:00
 app.use('/api/trips', tripRoutes); // 行程管理API // 2025-01-27 16:45:00
+app.use('/api/pricing', pricingEngineRoutes); // 计费规则引擎 // 2025-09-29 02:35:00
+app.use('/api/shipments', shipmentCompletionRoutes); // 运单完成和财务生成 // 2025-09-29 03:35:00
 
 // 404处理
 app.use('*', (req, res) => {
