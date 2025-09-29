@@ -29,10 +29,7 @@ import {
   Tabs,
 } from 'antd';
 import {
-  DashboardOutlined,
-  MemoryOutlined,
-  DatabaseOutlined,
-  CloudOutlined,
+  DatabaseOutlined as MemoryOutlined,
   ThunderboltOutlined,
   WarningOutlined,
   CheckCircleOutlined,
@@ -40,10 +37,7 @@ import {
   ReloadOutlined,
   SettingOutlined,
   BarChartOutlined,
-  LineChartOutlined,
-  PieChartOutlined,
   MonitorOutlined,
-  ServerOutlined,
   ApiOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
