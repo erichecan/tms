@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, createBrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -38,7 +38,12 @@ import './App.css';
 
 function App() {
   return (
-    <Router>
+    <Router 
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AuthProvider>
         <TenantProvider>
           <Routes>
