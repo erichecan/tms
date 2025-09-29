@@ -17,6 +17,11 @@ import {
   BarChartOutlined,
   ToolOutlined,
   TrophyOutlined,
+  EnvironmentOutlined,
+  RouteOutlined,
+  HistoryOutlined,
+  DashboardOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -118,6 +123,31 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
           key: '/admin/driver-performance',
           icon: <TrophyOutlined />,
           label: '司机绩效',
+        },
+        {
+          key: '/admin/real-time-tracking',
+          icon: <EnvironmentOutlined />,
+          label: '实时跟踪',
+        },
+        {
+          key: '/admin/route-optimization',
+          icon: <RouteOutlined />,
+          label: '路径优化',
+        },
+        {
+          key: '/admin/rule-version-management',
+          icon: <HistoryOutlined />,
+          label: '规则版本',
+        },
+        {
+          key: '/admin/performance-monitoring',
+          icon: <DashboardOutlined />,
+          label: '性能监控',
+        },
+        {
+          key: '/admin/granular-permissions',
+          icon: <LockOutlined />,
+          label: '权限控制',
         },
       ],
     },

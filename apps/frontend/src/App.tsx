@@ -27,6 +27,13 @@ import BatchImportPage from './pages/BatchImport/BatchImportPage';
 import FinancialReportsPage from './pages/FinancialReports/FinancialReportsPage';
 import VehicleMaintenancePage from './pages/VehicleMaintenance/VehicleMaintenancePage';
 import DriverPerformancePage from './pages/DriverPerformance/DriverPerformancePage';
+// 新增页面导入 - 2025-09-29 21:30:00
+import RealTimeTrackingPage from './pages/RealTimeTracking/RealTimeTrackingPage';
+import RouteOptimizationPage from './pages/RouteOptimization/RouteOptimizationPage';
+import RuleVersionManagementPage from './pages/RuleVersionManagement/RuleVersionManagementPage';
+// 新增页面导入 - 2025-09-29 22:00:00
+import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage';
+import GranularPermissionsPage from './pages/GranularPermissions/GranularPermissionsPage';
 import './App.css';
 
 function App() {
@@ -66,6 +73,16 @@ function App() {
             <Route path="/admin/vehicle-maintenance" element={<ProtectedRoute><PageLayout><VehicleMaintenancePage /></PageLayout></ProtectedRoute>} />
             {/* 司机绩效考核路由 - 2025-09-29 16:00:00 */}
             <Route path="/admin/driver-performance" element={<ProtectedRoute><PageLayout><DriverPerformancePage /></PageLayout></ProtectedRoute>} />
+            {/* 实时位置跟踪路由 - 2025-09-29 21:30:00 */}
+            <Route path="/admin/real-time-tracking" element={<ProtectedRoute><PageLayout><RealTimeTrackingPage /></PageLayout></ProtectedRoute>} />
+            {/* 路径优化路由 - 2025-09-29 21:40:00 */}
+            <Route path="/admin/route-optimization" element={<ProtectedRoute><PageLayout><RouteOptimizationPage /></PageLayout></ProtectedRoute>} />
+            {/* 规则版本管理路由 - 2025-09-29 21:50:00 */}
+            <Route path="/admin/rule-version-management" element={<ProtectedRoute><PageLayout><RuleVersionManagementPage /></PageLayout></ProtectedRoute>} />
+            {/* 性能监控路由 - 2025-09-29 22:00:00 */}
+            <Route path="/admin/performance-monitoring" element={<ProtectedRoute><PageLayout><PerformanceMonitoringPage /></PageLayout></ProtectedRoute>} />
+            {/* 细粒度权限控制路由 - 2025-09-29 22:10:00 */}
+            <Route path="/admin/granular-permissions" element={<ProtectedRoute><PageLayout><GranularPermissionsPage /></PageLayout></ProtectedRoute>} />
           </Routes>
         </TenantProvider>
       </AuthProvider>
