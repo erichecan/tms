@@ -26,7 +26,7 @@ import {
 } from 'antd';
 import {
   DollarOutlined,
-  TrendingUpOutlined,
+  ArrowUpOutlined,
   ArrowDownOutlined,
   PieChartOutlined,
   BarChartOutlined,
@@ -297,7 +297,7 @@ const FinancialDashboard: React.FC = () => {
                 />
                 <div style={{ marginTop: 8 }}>
                   <Text type="secondary">
-                    <TrendingUpOutlined /> 较上月 +12.5%
+                    <ArrowUpOutlined /> 较上月 +12.5%
                   </Text>
                 </div>
               </Card>
