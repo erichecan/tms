@@ -15,6 +15,10 @@ import CustomerManagement from './pages/CustomerManagement/CustomerManagement';
 import DriverManagement from './pages/DriverManagement/DriverManagement';
 import VehicleManagement from './pages/VehicleManagement/VehicleManagement';
 import CurrencyManagement from './pages/CurrencyManagement/CurrencyManagement';
+import PricingTemplates from './pages/PricingEngine/PricingTemplates';
+import PricingCalculator from './pages/PricingEngine/PricingCalculator';
+import PricingWizard from './pages/PricingEngine/PricingWizard';
+import PricingHome from './pages/PricingEngine/PricingHome';
 import './App.css';
 
 function App() {
@@ -43,6 +47,10 @@ function App() {
               <Route path="drivers" element={<DriverManagement />} />
               <Route path="vehicles" element={<VehicleManagement />} />
               <Route path="currencies" element={<CurrencyManagement />} />
+              <Route path="pricing" element={<PricingHome />} />
+              <Route path="pricing/templates" element={<PricingTemplates />} />
+              <Route path="pricing/calculator" element={<PricingCalculator />} />
+              <Route path="pricing/wizard" element={<PricingWizard />} />
               {/* Add other protected routes here */}
             </Route>
           </Routes>

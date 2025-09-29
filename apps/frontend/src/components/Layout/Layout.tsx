@@ -11,6 +11,7 @@ import {
   UserOutlined,
   TeamOutlined,
   TruckOutlined,
+  CalculatorOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,7 +25,7 @@ const AppLayout: React.FC = () => {
   } = theme.useToken();
   const navigate = useNavigate();
   const { logout } = useAuth();
-
+  
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -86,6 +87,33 @@ const AppLayout: React.FC = () => {
               icon: <DollarOutlined />,
               label: '货币管理',
               onClick: () => navigate('/admin/currencies'),
+            },
+            {
+              key: '9',
+              icon: <CalculatorOutlined />,
+              label: '智能计费',
+              children: [
+                {
+                  key: '9-0',
+                  label: '首页概览',
+                  onClick: () => navigate('/admin/pricing'),
+                },
+                {
+                  key: '9-1',
+                  label: '规则向导',
+                  onClick: () => navigate('/admin/pricing/wizard'),
+                },
+                {
+                  key: '9-2',
+                  label: '模板管理',
+                  onClick: () => navigate('/admin/pricing/templates'),
+                },
+                {
+                  key: '9-3',
+                  label: '费用计算器',
+                  onClick: () => navigate('/admin/pricing/calculator'),
+                },
+              ],
             },
           ]}
         />
