@@ -27,7 +27,7 @@ import {
 import {
   DollarOutlined,
   TrendingUpOutlined,
-  TrendingDownOutlined,
+  ArrowDownOutlined,
   PieChartOutlined,
   BarChartOutlined,
   LineChartOutlined,
@@ -313,7 +313,7 @@ const FinancialDashboard: React.FC = () => {
                 />
                 <div style={{ marginTop: 8 }}>
                   <Text type="secondary">
-                    <TrendingDownOutlined /> 较上月 +8.2%
+                    <ArrowDownOutlined /> 较上月 +8.2%
                   </Text>
                 </div>
               </Card>
