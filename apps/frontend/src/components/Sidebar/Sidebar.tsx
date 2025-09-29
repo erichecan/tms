@@ -13,6 +13,10 @@ import {
   MenuUnfoldOutlined,
   FileTextOutlined,
   CarOutlined,
+  UploadOutlined,
+  BarChartOutlined,
+  ToolOutlined,
+  TrophyOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -81,6 +85,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
           label: '运单管理',
         },
         {
+          key: '/admin/batch-import',
+          icon: <UploadOutlined />,
+          label: '批量导入',
+        },
+        {
           key: '/admin/drivers',
           icon: <TeamOutlined />,
           label: '司机管理',
@@ -94,6 +103,21 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
           key: '/admin/rules',
           icon: <SettingOutlined />,
           label: '规则管理',
+        },
+        {
+          key: '/admin/financial-reports',
+          icon: <BarChartOutlined />,
+          label: '财务报告',
+        },
+        {
+          key: '/admin/vehicle-maintenance',
+          icon: <ToolOutlined />,
+          label: '车辆维护',
+        },
+        {
+          key: '/admin/driver-performance',
+          icon: <TrophyOutlined />,
+          label: '司机绩效',
         },
       ],
     },

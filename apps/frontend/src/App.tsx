@@ -23,6 +23,10 @@ import PricingTemplates from './pages/PricingEngine/PricingTemplates';
 import PricingCalculator from './pages/PricingEngine/PricingCalculator';
 import PricingWizard from './pages/PricingEngine/PricingWizard';
 import PricingHome from './pages/PricingEngine/PricingHome';
+import BatchImportPage from './pages/BatchImport/BatchImportPage';
+import FinancialReportsPage from './pages/FinancialReports/FinancialReportsPage';
+import VehicleMaintenancePage from './pages/VehicleMaintenance/VehicleMaintenancePage';
+import DriverPerformancePage from './pages/DriverPerformance/DriverPerformancePage';
 import './App.css';
 
 function App() {
@@ -54,6 +58,14 @@ function App() {
             <Route path="/admin/pricing/templates" element={<ProtectedRoute><PageLayout><PricingTemplates /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/pricing/calculator" element={<ProtectedRoute><PageLayout><PricingCalculator /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/pricing/wizard" element={<ProtectedRoute><PageLayout><PricingWizard /></PageLayout></ProtectedRoute>} />
+            {/* 批量导入路由 - 2025-09-29 15:10:00 */}
+            <Route path="/admin/batch-import" element={<ProtectedRoute><PageLayout><BatchImportPage /></PageLayout></ProtectedRoute>} />
+            {/* 财务报告路由 - 2025-09-29 15:25:00 */}
+            <Route path="/admin/financial-reports" element={<ProtectedRoute><PageLayout><FinancialReportsPage /></PageLayout></ProtectedRoute>} />
+            {/* 车辆维护记录路由 - 2025-09-29 15:45:00 */}
+            <Route path="/admin/vehicle-maintenance" element={<ProtectedRoute><PageLayout><VehicleMaintenancePage /></PageLayout></ProtectedRoute>} />
+            {/* 司机绩效考核路由 - 2025-09-29 16:00:00 */}
+            <Route path="/admin/driver-performance" element={<ProtectedRoute><PageLayout><DriverPerformancePage /></PageLayout></ProtectedRoute>} />
           </Routes>
         </TenantProvider>
       </AuthProvider>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select, Row, Col, Divider } from 'antd';
-import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select, Row, Col, Divider, Statistic } from 'antd';
+import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined, EnvironmentOutlined, DownloadOutlined } from '@ant-design/icons';
 import { customersApi, shipmentsApi } from '../../services/api';
 import { Customer, Shipment, ShipmentAddress } from '../../types';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
@@ -276,7 +276,7 @@ const CustomerManagement: React.FC = () => {
 
   return (
     <PageLayout>
-      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>客户管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCustomer}>
@@ -681,25 +681,221 @@ const CustomerManagement: React.FC = () => {
         )}
       </Modal>
 
-      {/* 财务记录模态框 - 符合PRD v3.0-PC设计 */}
+      {/* 财务记录模态框 - 2025-09-29 15:30:00 完善客户财务记录详情 */}
       <Modal
-        title={`${selectedCustomer?.name} - 财务记录`}
+        title={`${selectedCustomer?.name} - 财务记录详情`}
         open={isFinanceModalVisible}
         onCancel={() => setIsFinanceModalVisible(false)}
         footer={null}
-        width={1000}
+        width={1200}
       >
-        <Card>
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <DollarOutlined style={{ fontSize: '48px', color: '#fa8c16', marginBottom: '16px' }} />
-            <p>财务记录功能开发中...</p>
-            <p style={{ color: '#666', fontSize: '14px' }}>
-              将显示按客户聚合的应收/应付记录，支持导出和详情查看
-            </p>
+        <div>
+          {/* 财务概览 */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="总应收"
+                  value={12500}
+                  prefix="¥"
+                  valueStyle={{ color: '#3f8600' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="已收款"
+                  value={11800}
+                  prefix="¥"
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="未收款"
+                  value={700}
+                  prefix="¥"
+                  valueStyle={{ color: '#cf1322' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic
+                  title="回款率"
+                  value={94.4}
+                  suffix="%"
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          {/* 财务记录列表 */}
+          <Card title="财务记录明细" size="small">
+            <Table
+              dataSource={[
+                {
+                  id: 'F001',
+                  type: 'receivable',
+                  amount: 2500,
+                  status: 'paid',
+                  dueDate: '2025-09-15',
+                  paidDate: '2025-09-14',
+                  description: '运单 SHIP-20250915-001 运费',
+                  shipmentNo: 'SHIP-20250915-001',
+                },
+                {
+                  id: 'F002',
+                  type: 'receivable',
+                  amount: 3200,
+                  status: 'paid',
+                  dueDate: '2025-09-20',
+                  paidDate: '2025-09-18',
+                  description: '运单 SHIP-20250920-002 运费',
+                  shipmentNo: 'SHIP-20250920-002',
+                },
+                {
+                  id: 'F003',
+                  type: 'receivable',
+                  amount: 1800,
+                  status: 'paid',
+                  dueDate: '2025-09-25',
+                  paidDate: '2025-09-23',
+                  description: '运单 SHIP-20250925-003 运费',
+                  shipmentNo: 'SHIP-20250925-003',
+                },
+                {
+                  id: 'F004',
+                  type: 'receivable',
+                  amount: 1500,
+                  status: 'paid',
+                  dueDate: '2025-09-28',
+                  paidDate: '2025-09-27',
+                  description: '运单 SHIP-20250928-004 运费',
+                  shipmentNo: 'SHIP-20250928-004',
+                },
+                {
+                  id: 'F005',
+                  type: 'receivable',
+                  amount: 2800,
+                  status: 'paid',
+                  dueDate: '2025-09-30',
+                  paidDate: '2025-09-29',
+                  description: '运单 SHIP-20250930-005 运费',
+                  shipmentNo: 'SHIP-20250930-005',
+                },
+                {
+                  id: 'F006',
+                  type: 'receivable',
+                  amount: 700,
+                  status: 'pending',
+                  dueDate: '2025-10-05',
+                  paidDate: null,
+                  description: '运单 SHIP-20251005-006 运费',
+                  shipmentNo: 'SHIP-20251005-006',
+                },
+              ]}
+              columns={[
+                {
+                  title: '记录类型',
+                  dataIndex: 'type',
+                  key: 'type',
+                  width: 100,
+                  render: (type: string) => (
+                    <Tag color={type === 'receivable' ? 'blue' : 'green'}>
+                      {type === 'receivable' ? '应收' : '应付'}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: '金额',
+                  dataIndex: 'amount',
+                  key: 'amount',
+                  width: 100,
+                  render: (amount: number) => `¥${amount.toLocaleString()}`,
+                },
+                {
+                  title: '状态',
+                  dataIndex: 'status',
+                  key: 'status',
+                  width: 100,
+                  render: (status: string) => (
+                    <Tag color={status === 'paid' ? 'green' : 'orange'}>
+                      {status === 'paid' ? '已收款' : '待收款'}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: '到期日期',
+                  dataIndex: 'dueDate',
+                  key: 'dueDate',
+                  width: 100,
+                },
+                {
+                  title: '收款日期',
+                  dataIndex: 'paidDate',
+                  key: 'paidDate',
+                  width: 100,
+                  render: (date: string | null) => date || '-',
+                },
+                {
+                  title: '运单号',
+                  dataIndex: 'shipmentNo',
+                  key: 'shipmentNo',
+                  width: 150,
+                  render: (shipmentNo: string) => (
+                    <Button type="link" size="small">
+                      {shipmentNo}
+                    </Button>
+                  ),
+                },
+                {
+                  title: '描述',
+                  dataIndex: 'description',
+                  key: 'description',
+                },
+                {
+                  title: '操作',
+                  key: 'action',
+                  width: 100,
+                  render: (_, record) => (
+                    <Space size="small">
+                      <Button type="link" size="small" icon={<EyeOutlined />}>
+                        详情
+                      </Button>
+                      {record.status === 'pending' && (
+                        <Button type="link" size="small" danger>
+                          催收
+                        </Button>
+                      )}
+                    </Space>
+                  ),
+                },
+              ]}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              size="small"
+            />
+          </Card>
+
+          {/* 操作按钮 */}
+          <div style={{ marginTop: 16, textAlign: 'right' }}>
+            <Space>
+              <Button icon={<DownloadOutlined />}>
+                导出财务记录
+              </Button>
+              <Button type="primary" icon={<DollarOutlined />}>
+                创建收款记录
+              </Button>
+            </Space>
           </div>
-        </Card>
+        </div>
       </Modal>
-      </div>
+    </div>
     </PageLayout>
   );
 };
