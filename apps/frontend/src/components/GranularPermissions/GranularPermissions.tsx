@@ -40,7 +40,7 @@ import {
   SettingOutlined,
   SafetyCertificateOutlined,
   CrownOutlined,
-  ShieldCheckOutlined,
+  SafetyCertificateOutlined as ShieldCheckOutlined,
   UserAddOutlined,
   UsergroupAddOutlined,
   AuditOutlined,
