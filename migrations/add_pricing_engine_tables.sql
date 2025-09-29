@@ -233,7 +233,10 @@ ALTER TABLE public.shipments
 ADD COLUMN pricing_template_id uuid REFERENCES public.pricing_templates(id),
 ADD COLUMN pricing_calculated_at timestamp,
 ADD COLUMN pricing_version varchar(20),
-ADD COLUMN pricing_trace jsonb DEFAULT '{}'; -- 规则执行轨迹
+ADD COLUMN pricing_trace jsonb DEFAULT '{}', -- 规则执行轨迹  
+ADD COLUMN pricing_components jsonb DEFAULT '[]', -- 计费组件数组
+ADD COLUMN estimated_cost_calculated numeric(12,2), -- 通过规则引擎计算的预估费用
+ADD COLUMN pricing_rule_trace jsonb DEFAULT '[]'; -- 规则调用轨迹
 
 CREATE INDEX idx_shipments_pricing_template ON public.shipments(pricing_template_id);
 CREATE INDEX idx_shipments_pricing_calculated ON public.shipments(pricing_calculated_at);
