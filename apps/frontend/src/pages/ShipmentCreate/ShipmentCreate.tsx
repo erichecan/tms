@@ -549,7 +549,7 @@ const ShipmentCreate: React.FC = () => {
               }}
               notFoundContent={customersLoading ? "加载中..." : "暂无客户"}
               allowClear
-              dropdownRender={(menu) => (
+              popupRender={(menu) => (
                 <div>
                   {menu}
                   <div style={{ padding: '8px 12px', borderTop: '1px solid #f0f0f0' }}>
@@ -1363,15 +1363,15 @@ const ShipmentCreate: React.FC = () => {
 
   return (
     <PageLayout>
-      <div style={{ padding: '24px' }}>
-        <Card>
-          <div style={{ marginBottom: '16px' }}>
-            <Title level={2}>
-              <TruckOutlined /> 创建运单
-            </Title>
-            <Text type="secondary">请填写运单信息</Text>
-          </div>
+      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ marginBottom: 16 }}>
+          <Title level={3}>
+            <TruckOutlined /> 创建运单
+          </Title>
+          <Text type="secondary">请填写运单信息</Text>
+        </div>
 
+        <Card>
           <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 8px' }}>
             <Form
               form={form}

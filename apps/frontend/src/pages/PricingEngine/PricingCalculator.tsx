@@ -325,50 +325,67 @@ const PricingCalculatorPage: React.FC = () => {
         )}
 
         {/* 详细分解 */}
-        <Tabs defaultActiveKey="all">
-          <Tabs.TabPane tab="总收入明细" key="revenue">
-            <Table
-              columns={resultColumns}
-              dataSource={calculation.revenueBreakdown}
-              pagination={false}
-
-
-              size="small"
-            />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="司机薪酬明细" key="driver">
-            <Table
-              columns={resultColumns}
-              dataSource={calculation.driverBreakdown}
-              pagination={false}
-              size="small"
-            />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="内部成本明细" key="costs">
-            <Table
-              columns={resultColumns}
-              dataSource={calculation.costBreakdown}
-              pagination={false}
-              size="small"
-            />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="全部明细" key="all">
-            <Table
-              columns={[
-                ...resultColumns,
-                {
-                  title: '类型',
-                  dataIndex: 'type',
-                  key: 'type',
-                  render: (type: string) => <Tag color={type === '收入' ? 'blue' : type === '司机薪酬' ? 'green' : 'orange'}>{type}</Tag>
-                }
-              ]}
-              dataSource={allCosts}
-              pagination={false}
-              size="small"
-            />
-          </Tabs.TabPane>
-        </Tabs>
+        <Tabs 
+          defaultActiveKey="all"
+          items={[
+            {
+              key: 'revenue',
+              label: '总收入明细',
+              children: (
+                <Table
+                  columns={resultColumns}
+                  dataSource={calculation.revenueBreakdown}
+                  pagination={false}
+                  size="small"
+                />
+              )
+            },
+            {
+              key: 'driver',
+              label: '司机薪酬明细',
+              children: (
+                <Table
+                  columns={resultColumns}
+                  dataSource={calculation.driverBreakdown}
+                  pagination={false}
+                  size="small"
+                />
+              )
+            },
+            {
+              key: 'costs',
+              label: '内部成本明细',
+              children: (
+                <Table
+                  columns={resultColumns}
+                  dataSource={calculation.costBreakdown}
+                  pagination={false}
+                  size="small"
+                />
+              )
+            },
+            {
+              key: 'all',
+              label: '全部明细',
+              children: (
+                <Table
+                  columns={[
+                    ...resultColumns,
+                    {
+                      title: '类型',
+                      dataIndex: 'type',
+                      key: 'type',
+                      render: (type: string) => <Tag color={type === '收入' ? 'blue' : type === '司机薪酬' ? 'green' : 'orange'}>{type}</Tag>
+                    }
+                  ]}
+                  dataSource={allCosts}
+                  pagination={false}
+                  size="small"
+                />
+              )
+            }
+          ]}
+        />
 
         {/* 计费元数据 */}
         <Divider />

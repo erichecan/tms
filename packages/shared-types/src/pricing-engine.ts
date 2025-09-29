@@ -2,6 +2,37 @@
 // 创建时间: 2025-09-29 02:20:00
 // 作用: 定义智能计费规则引擎的完整类型系统
 
+// 导入基础类型
+export interface QueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+  filters?: Record<string, any>;
+}
+
+export interface Shipment {
+  id: string;
+  shipmentNumber: string;
+  status: string;
+  weight?: number;
+  volume?: number;
+  distance?: number;
+  cargoType?: string;
+  pickup?: {
+    city: string;
+    address: string;
+  };
+  delivery?: {
+    city: string;
+    address: string;
+  };
+  estimatedCost?: number;
+  finalCost?: number;
+  currency?: string;
+}
+
 // =====================================================
 // 1. 业务场景基础类型
 // =====================================================
@@ -130,7 +161,7 @@ export interface CostAllocationRule {
   FUEL_COST?: 'auto_calculated';
   
   // 其他内部成本
-  [key: string]: number | string;
+  [key: string]: number | string | undefined;
 }
 
 // =====================================================

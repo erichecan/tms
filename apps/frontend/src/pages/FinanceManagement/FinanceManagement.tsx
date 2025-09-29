@@ -28,13 +28,12 @@ import {
 } from '@ant-design/icons';
 import { financeApi, customersApi, driversApi } from '../../services/api';
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
-// import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:30:00 移除，在App.tsx中已包装
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
-const { TabPane } = Tabs;
 
 const FinanceManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -274,7 +273,8 @@ const FinanceManagement: React.FC = () => {
   const netProfit = totalRevenue - totalExpenses;
 
   return (
-    <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+    <PageLayout>
+      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">财务结算</h1>
@@ -332,79 +332,89 @@ const FinanceManagement: React.FC = () => {
         </Col>
       </Row>
 
-      <Tabs defaultActiveKey="records">
-        <TabPane tab="财务记录" key="records">
-          <Card className="content-card">
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>财务记录</Title>
-                <Text type="secondary">共 {financialRecords.length} 条记录</Text>
-              </div>
-            </div>
+      <Tabs 
+        defaultActiveKey="records"
+        items={[
+          {
+            key: 'records',
+            label: '财务记录',
+            children: (
+              <Card className="content-card">
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <Title level={4} style={{ margin: 0 }}>财务记录</Title>
+                    <Text type="secondary">共 {financialRecords.length} 条记录</Text>
+                  </div>
+                </div>
 
-            <Table
-              columns={financialRecordColumns}
-              dataSource={financialRecords}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                total: financialRecords.length,
-                pageSize: 10,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-              }}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="结算单管理" key="statements">
-          <Card className="content-card">
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>结算单列表</Title>
-                <Text type="secondary">共 {statements.length} 个结算单</Text>
-              </div>
-              <Space>
-                <Button
-                  type="primary"
-                  icon={<FileTextOutlined />}
-                  onClick={() => {
-                    setStatementType(StatementType.CUSTOMER);
-                    setIsStatementModalVisible(true);
+                <Table
+                  columns={financialRecordColumns}
+                  dataSource={financialRecords}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{
+                    total: financialRecords.length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
                   }}
-                >
-                  生成客户对账单
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<FileTextOutlined />}
-                  onClick={() => {
-                    setStatementType(StatementType.DRIVER);
-                    setIsStatementModalVisible(true);
-                  }}
-                >
-                  生成司机薪酬单
-                </Button>
-              </Space>
-            </div>
+                />
+              </Card>
+            )
+          },
+          {
+            key: 'statements',
+            label: '结算单管理',
+            children: (
+              <Card className="content-card">
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <Title level={4} style={{ margin: 0 }}>结算单列表</Title>
+                    <Text type="secondary">共 {statements.length} 个结算单</Text>
+                  </div>
+                  <Space>
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      onClick={() => {
+                        setStatementType(StatementType.CUSTOMER);
+                        setIsStatementModalVisible(true);
+                      }}
+                    >
+                      生成客户对账单
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      onClick={() => {
+                        setStatementType(StatementType.DRIVER);
+                        setIsStatementModalVisible(true);
+                      }}
+                    >
+                      生成司机薪酬单
+                    </Button>
+                  </Space>
+                </div>
 
-            <Table
-              columns={statementColumns}
-              dataSource={statements}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                total: statements.length,
-                pageSize: 10,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-              }}
-            />
-          </Card>
-        </TabPane>
-      </Tabs>
+                <Table
+                  columns={statementColumns}
+                  dataSource={statements}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{
+                    total: statements.length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+                  }}
+                />
+              </Card>
+            )
+          }
+        ]}
+      />
 
       {/* 生成结算单模态框 */}
       <Modal
@@ -443,7 +453,8 @@ const FinanceManagement: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 
