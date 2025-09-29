@@ -1,7 +1,17 @@
 # 智能物流运营平台 (TMS SaaS) - 产品需求文档 (PRD)
 
-**版本:** 3.0-PC (MVP版本，围绕PC端完整闭环)  
-**最后更新:** 2025-01-27 17:00:00  
+**版本:** 3.1-PC (智能计费规则引擎完整版)  
+**最后更新:** 2025-09-29 09:12:36  
+
+## 版本变更摘要 (3.0-PC → 3.1-PC)
+
+变更点 | 说明
+-------|-----
+**🎯 智能计费规则引擎完整实现** | 从预留状态升级为完整功能，支持向导式规则创建、模板管理、实时计算
+**📊 计费规则管理页面** | 新增4个专用页面：计费首页、规则向导、模板管理、计算器
+**🔧 后端API完整支持** | 实现完整的计费规则引擎API：模板CRUD、规则执行、计算预览
+**💾 数据库扩展** | 新增计费规则相关表结构，支持规则版本管理和执行历史
+**🎨 界面集成优化** | 计费功能无缝集成到左侧导航系统，保持界面一致性
 
 ## 版本变更摘要 (2.1 → 3.0-PC)
 
@@ -13,7 +23,7 @@
 优化调度分配逻辑 | 运单详情页可视化司机/车辆可用列表，支持直接指派或挂载到行程
 新增车队管理页面 | 在途列表、空闲司机/车辆列表、地图轨迹、近30天历史
 完善执行流转 | 状态推进、司机上传POD（PC端代理上传）、通知机制
-预留智能报价扩展 | 字段与API预留，本期不实现实时计算
+~~预留智能报价扩展~~ | ~~字段与API预留，本期不实现实时计算~~ → **✅ 已完整实现**
 新增左侧导航系统 | 统一页面布局，支持收窄/展开功能
 完善后端API支持 | 实现完整的数据库Schema和API接口
 
@@ -101,25 +111,39 @@ phone | E.164 规范或本地标准；日志脱敏
 hsCode | 长度 4~10（格式正则）
 tags | 每个长度 <= 32；最多 10 个
 
-### 2.2 规则引擎（本期仅预留，不上线实时智能报价）
+### 2.2 智能计费规则引擎（✅ 已完整实现）
 
-本期不执行 pricing 计算，仅：
-- 保留规则数据存储结构（rule 表）
-- 运单新增字段：estimatedCost, pricingComponents[], pricingRuleTrace[]（初始 null 或空数组）
-- 预留 API：POST /api/pricing/preview（暂不实现逻辑，返回 “NOT_IMPLEMENTED”）
-- future: 当启用后，在“创建/编辑运单”与“司机分配前”可触发重新估价
+**核心功能**：支持向导式规则创建、模板管理、实时计算和预览的完整计费规则引擎。
 
-未来规则类型（预期）：
-- pricing：按重量/体积/距离/线路/时间段/客户等级生成组件价格
-- payroll：司机提成、补贴、奖励
-- surcharge：节假日 / 偏远地区 / 危险品
+#### 2.2.1 功能模块
+- **规则向导**：6步向导式界面，引导用户创建复杂的计费规则
+- **模板管理**：预定义计费模板，支持快速应用和自定义修改
+- **实时计算器**：基于运单信息实时计算费用，支持多规则组合
+- **计费首页**：统一入口，展示计费统计和快捷操作
 
-预留字段说明：
+#### 2.2.2 规则类型（已实现）
+- **pricing**：按重量/体积/距离/线路/时间段/客户等级生成组件价格
+- **surcharge**：节假日/偏远地区/危险品等附加费用
+- **discount**：客户等级、批量等折扣规则
+- **tax**：税费计算规则
+
+#### 2.2.3 API接口（已实现）
+- `GET /api/pricing/templates` - 获取计费模板列表
+- `POST /api/pricing/templates` - 创建计费模板
+- `PUT /api/pricing/templates/:id` - 更新计费模板
+- `DELETE /api/pricing/templates/:id` - 删除计费模板
+- `POST /api/pricing/calculate` - 实时计算费用
+- `POST /api/pricing/preview` - 费用预览（替换原预留接口）
+- `POST /api/pricing/test` - 规则测试和验证
+
+#### 2.2.4 数据字段（已实现）
 字段 | 类型 | 描述
 -----|------|-----
-estimatedCost | decimal(12,2) | 预估总价
+estimatedCost | decimal(12,2) | 预估总价（实时计算）
 pricingComponents[] | JSON 数组 | 每条：{code,label,calcType,amount,sourceRuleId}
 pricingRuleTrace[] | JSON 数组 | {ruleId, version, appliedActions[], priority}
+pricingTemplateId | string | 关联的计费模板ID
+calculationHistory[] | JSON 数组 | 历史计算记录，支持审计
 
 ### 2.3 财务自动生成
 
@@ -246,8 +270,10 @@ POST /api/shipments/{id}/complete
 Body: { "finalCost": 560.00, "currency":"CNY", "components":[ {"code":"BASE","amount":400}, {"code":"FUEL","amount":80}, {"code":"DISTANCE","amount":100}, {"code":"ROUND","amount":-20} ] }  
 校验：components 金额求和 == finalCost
 
-### 6.5 （预留）智能报价预览
-POST /api/pricing/preview → 501 NOT_IMPLEMENTED（记录调用意图，后续可分析）
+### 6.5 智能计费预览（✅ 已实现）
+POST /api/pricing/preview  
+Body: { "shipmentData": {...}, "templateId": "..." }  
+Response: 200 + 详细费用分解和计算过程
 
 ---
 
@@ -412,17 +438,17 @@ finalCost 人工错误 | 财务差错 | 双输入校验或允许二次审核
   "fragile": true,
   "insured": false,
   "driverId": "DRIVER-7",
-  "assignedAt": "2025-09-23T09:15:00Z",
+  "assignedAt": "2025-09-29 09:12:36T09:15:00Z",
   "estimatedCost": null,
   "pricingComponents": [],
   "pricingRuleTrace": [],
   "finalCost": null,
   "timeline": [
-    { "eventType": "CREATED", "timestamp": "2025-09-23T09:00:00Z" },
-    { "eventType": "DRIVER_ASSIGNED", "timestamp": "2025-09-23T09:15:00Z" }
+    { "eventType": "CREATED", "timestamp": "2025-09-29 09:12:36T09:00:00Z" },
+    { "eventType": "DRIVER_ASSIGNED", "timestamp": "2025-09-29 09:12:36T09:15:00Z" }
   ],
-  "createdAt": "2025-09-23T09:00:00Z",
-  "updatedAt": "2025-09-23T09:15:00Z",
+  "createdAt": "2025-09-29 09:12:36T09:00:00Z",
+  "updatedAt": "2025-09-29 09:12:36T09:15:00Z",
   "version": 3
 }
 ```
@@ -443,7 +469,7 @@ finalCost 人工错误 | 财务差错 | 双输入校验或允许二次审核
 若需我继续输出 DDL 草案或规则 Schema，请告知下一步需求。  
 （本文件已根据你的 3 点指令进行结构化修改与扩展。）
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 16. 角色与权限矩阵表（细化）
 
 角色 | 页面访问 | 接口权限 | 对象级权限 | 字段级权限 | 审批/发布 | 导出 | 备注
@@ -468,7 +494,7 @@ finalCost 人工错误 | 财务差错 | 双输入校验或允许二次审核
 规则(pricing/payroll) | ADMIN/TENANT_ADMIN | ADMIN/TENANT_ADMIN | ALL | ADMIN/TENANT_ADMIN | ADMIN/TENANT_ADMIN | ADMIN/TENANT_ADMIN
 财务记录 | 系统生成 | FINANCE(调整) | FINANCE/AUDITOR/ADMIN | - | FINANCE/AUDITOR | FINANCE/ADMIN
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 17. 规则引擎 DSL & 条件/动作白名单
 
 语法：
@@ -500,7 +526,7 @@ IF pickup.city = "上海" AND weight > 1000 THEN addFee("HEAVY", round(weight*0.
 IF customerTier IN ("VIP","GOLD") THEN applyDiscount("TIER", 0.05)
 ```
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 18. 运单字段完整表（类型/长度/验证）
 
 字段 | 类型/长度 | 约束 | 验证/说明
@@ -530,7 +556,7 @@ piiMasked | BOOLEAN | 默认 true | 前端展示脱敏
 
 错误码：WB_1001(手机号无效)，WB_1002(重量/体积为负)，WB_1003(币种不支持)。
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 19. 状态机图 + 异常恢复策略（细化）
 
 主链：`created → assigned → picked_up → in_transit → delivered → completed`；分支：`exception`、`canceled`。
@@ -543,7 +569,7 @@ piiMasked | BOOLEAN | 默认 true | 前端展示脱敏
 
 数据一致性：timeline 仅追加；完成前校验 finalCost；取消释放司机。
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 20. 财务组件分解与示例计算（含税/折扣优先级）
 
 组件：Base(基础价)、Fees(附加费)、Discounts(折扣)、Tax(税)、FX(汇率)、Rounding(舍入)。
@@ -559,7 +585,7 @@ piiMasked | BOOLEAN | 默认 true | 前端展示脱敏
 
 幂等：使用（shipmentId + pricingVersion + paramsHash）作为计算幂等键；输出写入 financial_component，记录顺序与舍入前后值。
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 21. 审计 & 幂等策略说明（细化）
 
 审计范围：谁/何时/来源/对象/字段前后值；敏感字段脱敏存储；可导出报表（CSV/Parquet）。
@@ -572,7 +598,7 @@ piiMasked | BOOLEAN | 默认 true | 前端展示脱敏
 
 留存：≥365 天；访问控制：AUDITOR 可见脱敏前（需审批）。
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 22. 指标/监控 & 报警阈值（默认）
 
 关键指标：
@@ -585,7 +611,7 @@ piiMasked | BOOLEAN | 默认 true | 前端展示脱敏
 - 计费失败率 < 0.5%；审计落库失败率 < 0.1%
 - 报警收敛：5 分钟窗口，抖动抑制；分级告警与值班轮值
 
-<!-- Added by assistant @ 2025-09-23 10:15:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 23. 迭代 Roadmap & 风险登记表（汇总）
 
 Roadmap（示例）：
@@ -602,7 +628,7 @@ Roadmap（示例）：
 财务金额误差 | 低 | 高 | 中 | 版本化参数+双人复核+回放
 性能瓶颈 | 中 | 中 | 中 | 压测+缓存+降级
 
-<!-- Added by assistant @ 2025-09-23 10:28:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 24. 数据库 DDL 草案（核心表）
 
 注：以下为逻辑 DDL 建议，实际以所选数据库方言为准（PostgreSQL 推荐）。
@@ -756,7 +782,7 @@ CREATE INDEX idx_audit_entity_ts ON audit_log(entity_type, entity_id, ts DESC);
 - 时间序查询：timeline/financial 按 ts/created_at 降序索引。
 - 金额字段 NUMERIC，统一两位小数，计算层控制舍入。
 
-<!-- Added by assistant @ 2025-09-23 10:28:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 25. 规则 DSL JSON Schema（建议）
 
 ```json
@@ -826,7 +852,7 @@ CREATE INDEX idx_audit_entity_ts ON audit_log(entity_type, entity_id, ts DESC);
 
 说明：仅允许白名单字段与动作；引擎加载时进行静态校验与限额检查。
 
-<!-- Added by assistant @ 2025-09-23 10:28:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 26. 驱动调度策略（初稿）
 
 目标：在 created/unassigned 阶段，按“可用性、距离、负载”择优分配。
@@ -844,7 +870,7 @@ CREATE INDEX idx_audit_entity_ts ON audit_log(entity_type, entity_id, ts DESC);
 
 输出：推荐 Top-N 司机列表；支持一键分配与人工选择。
 
-<!-- Added by assistant @ 2025-09-23 10:28:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 27. 司机移动端交互与权限细化
 
 功能：
@@ -862,7 +888,7 @@ CREATE INDEX idx_audit_entity_ts ON audit_log(entity_type, entity_id, ts DESC);
 - 无网络离线缓存，恢复后补传
 - 重复点击通过幂等键保证一次
 
-<!-- Added by assistant @ 2025-09-23 10:28:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 28. 异常分类代码表（建议）
 
 代码 | 名称 | 说明 | 是否终止
@@ -875,7 +901,7 @@ ADDRESS_ISSUE | 地址问题 | 地址不详/错误 | 否
 WEATHER | 天气 | 天灾导致无法按时 | 否
 OTHER | 其他 | 其他异常 | 否
 
-<!-- Added by assistant @ 2025-09-23 10:28:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 29. API 错误码标准（建议）
 
 结构：`{ code, message, details?, traceId }`

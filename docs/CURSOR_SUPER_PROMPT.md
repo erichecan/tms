@@ -418,4 +418,4 @@ export const ShipmentDetails: React.FC<{ shipmentId: string }> = ({ shipmentId }
 4. **保证数据一致性**: 重视状态转换和数据完整性
 5. **持续测试**: 确保功能正确性和系统稳定性
 
-<!-- Added by assistant @ 2025-01-27 15:30:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 15:30:00 -->

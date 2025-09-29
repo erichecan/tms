@@ -182,9 +182,9 @@ This security policy may be updated periodically. Significant changes will be an
 - Email notifications
 - GitHub security advisories
 
-Last updated: September 23, 2025
+Last updated: 2025-09-29 09:12:36
 
-<!-- Added by assistant @ 2025-09-23 10:55:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 🔎 Data Minimization & Field-level Masking
 
 - PII fields (phone/email) are masked by default in responses based on role.

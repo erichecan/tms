@@ -194,4 +194,4 @@ stateDiagram-v2
 - 状态变更会生成相应的通知
 - 财务记录在运单completed时自动生成
 
-<!-- Added by assistant @ 2025-01-27 15:30:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 15:30:00 -->

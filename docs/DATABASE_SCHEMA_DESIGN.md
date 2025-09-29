@@ -2,7 +2,7 @@
 # 智能物流运营平台 (TMS SaaS) - 数据库设计文档
 
 **版本:** 2.1 (与 PRD/TDD 同步)
-**最后更新:** 2025-09-23
+**最后更新:** 2025-09-29 09:12:36
 **数据库类型:** PostgreSQL
 
 ## 1. 设计理念
@@ -102,7 +102,7 @@
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:52:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 10:52:00 -->
 ## 4. 运单相关表 DDL 草案（与 PRD 第24节一致）
 
 方言：PostgreSQL；金额 NUMERIC(12,2)；时间 TIMESTAMPTZ。
@@ -156,7 +156,7 @@ CREATE UNIQUE INDEX uq_financial_shipment_type ON financial_record(shipment_id, 
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:52:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 10:52:00 -->
 ## 5. 约束与数据质量
 
 - 金额与单位：NUMERIC 精度统一；服务层控制银行家舍入。

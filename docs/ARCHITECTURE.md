@@ -1,7 +1,7 @@
 # TMS SaaS 系统架构设计文档
 
-**创建时间：** 2025-01-27 15:30:45  
-**版本：** 1.0  
+**创建时间：** 2025-09-29 09:12:36  
+**版本：** 3.1-PC (智能计费规则引擎完整版)  
 **负责人：** AI Assistant
 
 ## 1. 系统概述
@@ -71,7 +71,7 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-<!-- Added by assistant @ 2025-09-23 11:00:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 11:00:00 -->
 ### 2.1 规则引擎沙箱与调用路径
 
 ```
@@ -118,17 +118,29 @@ Client(Idempotency-Key) → API → Idempotency Store(DB/Redis) → Check & Lock
 - `POST /api/rules/validate` - 验证规则冲突
 - `POST /api/rules/execute` - 执行规则
 
-### 3.2 报价服务 (Pricing Service)
+### 3.2 智能计费规则引擎服务 (Pricing Engine Service) ✅ 已实现
 **职责：**
-- 智能报价计算
-- 运单费用预估
-- 追加费用管理
-- 客户等级管理
+- 计费规则模板管理
+- 实时费用计算和预览
+- 规则表达式引擎执行
+- 计费历史记录和审计
+- 财务集成和权限控制
 
 **核心API：**
-- `POST /api/pricing/quote` - 生成报价
-- `POST /api/pricing/additional-fee` - 添加追加费用
-- `GET /api/pricing/history` - 报价历史
+- `GET /api/pricing/templates` - 获取计费模板列表
+- `POST /api/pricing/templates` - 创建计费模板
+- `PUT /api/pricing/templates/:id` - 更新计费模板
+- `DELETE /api/pricing/templates/:id` - 删除计费模板
+- `POST /api/pricing/calculate` - 实时费用计算
+- `POST /api/pricing/preview` - 费用预览
+- `POST /api/pricing/test` - 规则测试和验证
+
+**架构组件：**
+- `PricingEngineController` - 控制器层
+- `PricingEngineService` - 业务逻辑层
+- `PricingFinancialIntegration` - 财务集成服务
+- `PricingPermissionService` - 权限控制服务
+- `RuleExpressionEngine` - 规则表达式引擎
 
 ### 3.3 运单服务 (Shipment Service)
 **职责：**
@@ -318,7 +330,7 @@ CREATE TABLE financial_records (
   "success": true,
   "data": {},
   "message": "操作成功",
-  "timestamp": "2025-01-27T15:30:45Z",
+  "timestamp": "2025-09-29 09:12:36T15:30:45Z",
   "requestId": "req_123456"
 }
 ```
@@ -337,7 +349,7 @@ CREATE TABLE financial_records (
       }
     ]
   },
-  "timestamp": "2025-01-27T15:30:45Z",
+  "timestamp": "2025-09-29 09:12:36T15:30:45Z",
   "requestId": "req_123456"
 }
 ```

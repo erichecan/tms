@@ -1,8 +1,8 @@
 
 # 智能物流运营平台 (TMS SaaS) - 技术总体设计文档 (TDD)
 
-**版本:** 2.1 (与 PRD 2.1 同步)
-**最后更新:** 2025-09-23
+**版本:** 3.1-PC (智能计费规则引擎完整版)
+**最后更新:** 2025-09-29 09:12:36
 
 ## 1. 概述
 
@@ -110,7 +110,7 @@
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 7. 权限与角色落地方案（与 PRD 16 同步）
 
 实现要点：
@@ -121,7 +121,7 @@
 
 示例（伪代码）：
 ```ts
-// Added by assistant @ 2025-09-23 10:40:00
+// Added by assistant @ 2025-09-29 09:12:36 10:40:00
 router.post('/shipments', requireRole(['ADMIN','OPERATOR']), createShipment)
 router.post('/shipments/:id/complete', requireRole(['FINANCE','ADMIN']), completeShipment)
 ```
@@ -130,7 +130,7 @@ router.post('/shipments/:id/complete', requireRole(['FINANCE','ADMIN']), complet
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 8. 规则引擎与 DSL 白名单（与 PRD 17,25 同步）
 
 架构：
@@ -141,7 +141,7 @@ router.post('/shipments/:id/complete', requireRole(['FINANCE','ADMIN']), complet
 
 关键接口：
 ```ts
-// Added by assistant @ 2025-09-23 10:40:00
+// Added by assistant @ 2025-09-29 09:12:36 10:40:00
 type Facts = { shipment: Shipment; customer?: Customer; env: Env }
 type Rule = { conditions: Group; actions: Action[]; priority: number }
 evaluateRules(facts: Facts, rules: Rule[]): EvalResult
@@ -151,7 +151,7 @@ evaluateRules(facts: Facts, rules: Rule[]): EvalResult
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 9. 运单模型与验证/DDL 锚点（与 PRD 18,24 同步）
 
 模型：`shipment`, `shipment_party`, `shipment_package`, `shipment_item`, `shipment_timeline`。
@@ -164,7 +164,7 @@ DDL：采用 PostgreSQL，金额 NUMERIC(12,2)，见 PRD 第 24 节草案；建�
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 10. 状态机与异常恢复（与 PRD 19 同步）
 
 状态集合：created → assigned → picked_up → in_transit → delivered → completed；分支：exception/canceled。
@@ -178,7 +178,7 @@ DDL：采用 PostgreSQL，金额 NUMERIC(12,2)，见 PRD 第 24 节草案；建�
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 11. 财务流水线与幂等（与 PRD 20 同步）
 
 流程：delivered → 运营核对 → complete() → 写 receivable/payable → 写 component 明细。
@@ -189,7 +189,7 @@ DDL：采用 PostgreSQL，金额 NUMERIC(12,2)，见 PRD 第 24 节草案；建�
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 12. 审计与幂等实现（与 PRD 21 同步）
 
 审计中间件：封装 `recordAudit(entityType, id, changes, actor)`；对敏感字段做脱敏。
@@ -202,7 +202,7 @@ DDL：采用 PostgreSQL，金额 NUMERIC(12,2)，见 PRD 第 24 节草案；建�
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 13. 监控指标与告警（与 PRD 22 同步）
 
 埋点：
@@ -215,7 +215,7 @@ DDL：采用 PostgreSQL，金额 NUMERIC(12,2)，见 PRD 第 24 节草案；建�
 
 ---
 
-<!-- Added by assistant @ 2025-09-23 10:40:00 -->
+<!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 14. 司机移动端与权限校验（与 PRD 27 同步）
 
 接口：仅允许司机获取/更新属于自己的运单；在查询与更新时校验 `shipment.driverId === user.id`。

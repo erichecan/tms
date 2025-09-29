@@ -1,6 +1,6 @@
 # TEST PLAN - Minimal Shipment Flow (MVP)
 
-> 更新时间：2025-09-23 10:00:00
+> 更新时间：2025-09-29 09:12:36 10:00:00
 
 ## 单元测试（Jest）
 - StatusService 状态转换（合法/非法）

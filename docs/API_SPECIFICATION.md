@@ -1,8 +1,8 @@
 
 # 智能物流运营平台 (TMS SaaS) - API接口文档
 
-**版本:** 2.0 (基于代码分析)
-**最后更新:** 2025-09-11
+**版本:** 3.1-PC (智能计费规则引擎完整版)
+**最后更新:** 2025-09-29 09:12:36
 **基础路径:** `/api/v1` (注意: 根据路由文件, 版本号可能在Nginx或Express顶层应用)
 **认证方式:** 所有端点均需提供 `Authorization: Bearer <JWT>` 请求头.
 
@@ -160,3 +160,153 @@
   - `status` (`ShipmentStatus`, optional): 按运单状态过滤.
 - **成功响应 (200 OK):**
   - **Body:** `ApiResponse<Shipment[]>`
+
+---
+
+## 模块: 智能计费规则引擎 (Pricing Engine)
+
+**Controller:** `PricingEngineController.ts`
+**Routes:** `pricingEngineRoutes.ts`
+**Data Models:** `packages/shared-types/src/pricing-engine.ts`
+
+### 1. 获取计费模板列表
+
+- **Endpoint:** `GET /api/pricing/templates`
+- **描述:** 获取当前租户的计费模板列表
+- **查询参数:**
+  - `page` (number, optional, default: 1): 页码
+  - `limit` (number, optional, default: 20): 每页数量
+  - `search` (string, optional): 模板名称搜索
+  - `type` (string, optional): 模板类型过滤
+- **成功响应 (200 OK):**
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "template-uuid",
+        "name": "标准快递计费",
+        "type": "pricing",
+        "description": "适用于标准快递业务的计费规则",
+        "rules": [...],
+        "isActive": true,
+        "createdAt": "2025-09-29T09:12:36Z"
+      }
+    ],
+    "count": 5,
+    "timestamp": "2025-09-29T09:12:36Z"
+  }
+  ```
+
+### 2. 创建计费模板
+
+- **Endpoint:** `POST /api/pricing/templates`
+- **描述:** 创建新的计费模板
+- **请求体:**
+  ```json
+  {
+    "name": "新模板名称",
+    "type": "pricing",
+    "description": "模板描述",
+    "rules": [
+      {
+        "condition": "weight > 1000",
+        "action": "addFee('HEAVY', weight * 0.2, 'CNY')",
+        "priority": 1
+      }
+    ]
+  }
+  ```
+- **成功响应 (201 Created):** 返回创建的模板信息
+
+### 3. 更新计费模板
+
+- **Endpoint:** `PUT /api/pricing/templates/:id`
+- **描述:** 更新现有的计费模板
+- **路径参数:**
+  - `id` (string, required): 模板UUID
+- **请求体:** 与创建请求相同
+- **成功响应 (200 OK):** 返回更新后的模板信息
+
+### 4. 删除计费模板
+
+- **Endpoint:** `DELETE /api/pricing/templates/:id`
+- **描述:** 删除计费模板
+- **路径参数:**
+  - `id` (string, required): 模板UUID
+- **成功响应 (200 OK):** 删除确认
+
+### 5. 实时费用计算
+
+- **Endpoint:** `POST /api/pricing/calculate`
+- **描述:** 基于运单信息和规则模板实时计算费用
+- **请求体:**
+  ```json
+  {
+    "templateId": "template-uuid",
+    "shipmentData": {
+      "weight": 1500,
+      "volume": 2.5,
+      "distance": 50,
+      "cargoType": "GENERAL",
+      "pickup": { "city": "上海" },
+      "delivery": { "city": "北京" }
+    }
+  }
+  ```
+- **成功响应 (200 OK):**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "totalCost": 850.00,
+      "currency": "CNY",
+      "components": [
+        {
+          "code": "BASE",
+          "label": "基础运费",
+          "amount": 400.00,
+          "calcType": "fixed"
+        },
+        {
+          "code": "WEIGHT",
+          "label": "重量附加费",
+          "amount": 300.00,
+          "calcType": "weight_based"
+        },
+        {
+          "code": "DISTANCE",
+          "label": "距离费用",
+          "amount": 150.00,
+          "calcType": "distance_based"
+        }
+      ],
+      "calculationTrace": [...],
+      "templateUsed": "template-uuid"
+    },
+    "timestamp": "2025-09-29T09:12:36Z"
+  }
+  ```
+
+### 6. 费用预览
+
+- **Endpoint:** `POST /api/pricing/preview`
+- **描述:** 预览运单的费用计算（不保存）
+- **请求体:** 与计算请求相同
+- **成功响应 (200 OK):** 返回费用预览结果
+
+### 7. 规则测试
+
+- **Endpoint:** `POST /api/pricing/test`
+- **描述:** 测试计费规则的执行结果
+- **请求体:**
+  ```json
+  {
+    "rules": [...],
+    "testData": {
+      "weight": 1000,
+      "distance": 100
+    }
+  }
+  ```
+- **成功响应 (200 OK):** 返回测试执行结果
