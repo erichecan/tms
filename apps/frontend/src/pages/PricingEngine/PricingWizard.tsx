@@ -37,8 +37,8 @@ import {
   TeamOutlined,
   SettingOutlined,
   CheckCircleOutlined,
-  ArrowRightOutlined,
-  ArrowLeftOutlined,
+  RightOutlined,
+  LeftOutlined,
   HeartOutlined,
   BankOutlined,
   ContainerOutlined,
@@ -1145,12 +1145,12 @@ const PricingWizardPage: React.FC = () => {
       <div style={{ marginTop: '24px', textAlign: 'center' }}>
         <Space size="middle">
           {current > 0 && (
-            <Button size="large" onClick={prev} icon={<ArrowLeftOutlined />}>
+            <Button size="large" onClick={prev} icon={<LeftOutlined />}>
               上一步
             </Button>
           )}
           {current < steps.length - 1 && (
-            <Button type="primary" size="large" onClick={next} icon={<ArrowRightOutlined />}>
+            <Button type="primary" size="large" onClick={next} icon={<RightOutlined />}>
               下一步
             </Button>
           )}

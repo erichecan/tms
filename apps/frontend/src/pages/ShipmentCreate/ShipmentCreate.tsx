@@ -23,7 +23,7 @@ import {
   TruckOutlined,
   EnvironmentOutlined,
   InboxOutlined,
-  SafetyOutlined,
+  SafetyCertificateOutlined,
   HomeOutlined,
   ShopOutlined,
   QuestionCircleOutlined,
@@ -1310,7 +1310,7 @@ const ShipmentCreate: React.FC = () => {
       <Row gutter={[12, 8]}>
         <Col span={24}>
           <Title level={5}>
-            <SafetyOutlined /> 保险服务
+            <SafetyCertificateOutlined /> 保险服务
           </Title>
         </Col>
         <Col span={12}>

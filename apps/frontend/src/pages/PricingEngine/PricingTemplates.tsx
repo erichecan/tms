@@ -26,7 +26,7 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   EyeOutlined, 
-  TestOutlined,
+  ExperimentOutlined,
   CalculatorOutlined 
 } from '@ant-design/icons';
 import axios from 'axios';

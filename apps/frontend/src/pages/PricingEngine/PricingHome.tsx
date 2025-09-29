@@ -22,7 +22,7 @@ import {
   ThunderboltOutlined,
   HeartOutlined,
   BankOutlined,
-  ArrowRightOutlined
+  RightOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -154,7 +154,7 @@ const PricingHomePage: React.FC = () => {
                 <Paragraph>{feature.description}</Paragraph>
                 <Button 
                   type="link" 
-                  icon={<ArrowRightOutlined />}
+                  icon={<RightOutlined />}
                   onClick={() => navigate(feature.path)}
                 >
                   立即体验
