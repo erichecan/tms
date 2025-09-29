@@ -27,7 +27,7 @@ import {
   Tooltip,
 } from 'antd';
 import {
-  RouteOutlined,
+  BranchesOutlined,
   CarOutlined,
   EnvironmentOutlined,
   ClockCircleOutlined,
@@ -484,7 +484,7 @@ const RouteOptimization: React.FC = () => {
       )}
 
       {/* 优化后的路线列表 */}
-      <Card title="优化后的路线" extra={<RouteOutlined />}>
+      <Card title="优化后的路线" extra={<BranchesOutlined />}>
         <Table
           columns={routeColumns}
           dataSource={optimizationResult?.routes || mockRoutes}

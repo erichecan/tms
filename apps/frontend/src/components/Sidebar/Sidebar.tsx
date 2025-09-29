@@ -18,7 +18,7 @@ import {
   ToolOutlined,
   TrophyOutlined,
   EnvironmentOutlined,
-  RouteOutlined,
+  BranchesOutlined,
   HistoryOutlined,
   DashboardOutlined,
   LockOutlined,
@@ -131,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         },
         {
           key: '/admin/route-optimization',
-          icon: <RouteOutlined />,
+          icon: <BranchesOutlined />,
           label: '路径优化',
         },
         {
