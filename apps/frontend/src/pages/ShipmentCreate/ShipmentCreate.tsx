@@ -591,6 +591,7 @@ const ShipmentCreate: React.FC = () => {
             name="externalOrderNo"
             label="外部订单号 (External Order No.)"
             tooltip="第三方平台或系统的订单号"
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入外部订单号" />
           </Form.Item>
@@ -600,6 +601,7 @@ const ShipmentCreate: React.FC = () => {
             name="salesChannel"
             label="销售渠道 (Sales Channel)"
             rules={[{ required: true, message: '请选择销售渠道' }]}
+            style={{ marginBottom: 8 }}
           >
             <Select placeholder="选择销售渠道">
               <Option value="DIRECT">直接销售</Option>
@@ -613,6 +615,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="sourceType"
             label="来源类型 (Source Type)"
+            style={{ marginBottom: 8 }}
           >
             <Select placeholder="选择来源类型">
               <Option value="manual">手工录入</Option>
@@ -622,10 +625,36 @@ const ShipmentCreate: React.FC = () => {
             </Select>
           </Form.Item>
         </Col>
-        <Col span={24}>
+        <Col span={12}>
+          <Form.Item
+            name="tags"
+            label="标签 (Tags)"
+            tooltip="最多10个标签，每个标签长度不超过32字符"
+            style={{ marginBottom: 8 }}
+          >
+            <Select
+              mode="tags"
+              placeholder="添加标签，按回车确认"
+              maxTagCount={10}
+              tokenSeparators={[',']}
+              onChange={(value) => setSelectedTags(value)}
+            >
+              <Option value="B2C">B2C</Option>
+              <Option value="B2B">B2B</Option>
+              <Option value="URGENT">紧急</Option>
+              <Option value="FRAGILE">易碎品</Option>
+              <Option value="DANGEROUS">危险品</Option>
+              <Option value="COLD_CHAIN">冷链</Option>
+              <Option value="SIGNATURE_REQUIRED">需签名</Option>
+              <Option value="APPOINTMENT">需预约</Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={12}>
           <Form.Item
             name="sellerNotes"
             label="销售备注 (Seller Notes)"
+            style={{ marginBottom: 8 }}
           >
             <TextArea 
               rows={3} 
@@ -662,7 +691,7 @@ const ShipmentCreate: React.FC = () => {
             name="customerId"
             label="客户选择 (Customer Selection)"
             rules={[{ required: true, message: '请选择客户' }]}
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 8 }}
           >
             <Select
               showSearch
@@ -710,7 +739,7 @@ const ShipmentCreate: React.FC = () => {
             name="customerName"
             label="客户姓名 (Customer Name)"
             rules={[{ required: true, message: '请输入客户姓名' }]}
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入客户姓名" />
           </Form.Item>
@@ -726,7 +755,7 @@ const ShipmentCreate: React.FC = () => {
                 message: '请输入有效的手机号码（支持北美和中国格式）' 
               }
             ]}
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入联系电话（如：+1-555-123-4567 或 13812345678）" />
           </Form.Item>
@@ -738,7 +767,7 @@ const ShipmentCreate: React.FC = () => {
             rules={[
               { type: 'email', message: '请输入有效的邮箱地址' }
             ]}
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入邮箱地址" />
           </Form.Item>
@@ -747,7 +776,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="priority"
             label="优先级 (Priority)"
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 8 }}
           >
             <Select placeholder="普通">
               <Option value="low">低</Option>
