@@ -115,22 +115,22 @@ const CustomerManagement: React.FC = () => {
           email: values.email,
           phone: values.phone,
           address: {
-            street: values.address || '测试街道',
-            city: '测试城市',
-            state: '测试省份',
-            postalCode: '100000',
-            country: '中国'
+            street: values.pickupAddressLine1 || '测试街道',
+            city: values.pickupCity || '测试城市',
+            state: values.pickupProvince || '测试省份',
+            postalCode: values.pickupPostalCode || '100000',
+            country: values.pickupCountry || '中国'
           }
         },
         billingInfo: {
           companyName: values.name,
           taxId: 'TEST001',
           billingAddress: {
-            street: values.address || '测试街道',
-            city: '测试城市',
-            state: '测试省份',
-            postalCode: '100000',
-            country: '中国'
+            street: values.pickupAddressLine1 || '测试街道',
+            city: values.pickupCity || '测试城市',
+            state: values.pickupProvince || '测试省份',
+            postalCode: values.pickupPostalCode || '100000',
+            country: values.pickupCountry || '中国'
           }
         }
       };
@@ -160,22 +160,22 @@ const CustomerManagement: React.FC = () => {
           email: values.email,
           phone: values.phone,
           address: {
-            street: values.address || '测试街道',
-            city: '测试城市',
-            state: '测试省份',
-            postalCode: '100000',
-            country: '中国'
+            street: values.pickupAddressLine1 || '测试街道',
+            city: values.pickupCity || '测试城市',
+            state: values.pickupProvince || '测试省份',
+            postalCode: values.pickupPostalCode || '100000',
+            country: values.pickupCountry || '中国'
           }
         },
         billingInfo: {
           companyName: values.name,
           taxId: 'TEST001',
           billingAddress: {
-            street: values.address || '测试街道',
-            city: '测试城市',
-            state: '测试省份',
-            postalCode: '100000',
-            country: '中国'
+            street: values.pickupAddressLine1 || '测试街道',
+            city: values.pickupCity || '测试城市',
+            state: values.pickupProvince || '测试省份',
+            postalCode: values.pickupPostalCode || '100000',
+            country: values.pickupCountry || '中国'
           }
         }
       };
@@ -197,6 +197,21 @@ const CustomerManagement: React.FC = () => {
       title: '客户姓名',
       dataIndex: 'name',
       key: 'name',
+    },
+    {
+      title: '客户等级',
+      dataIndex: 'level',
+      key: 'level',
+      width: 100,
+      render: (level: string) => {
+        const levelMap: { [key: string]: { color: string; text: string } } = {
+          'standard': { color: 'blue', text: '普通' },
+          'premium': { color: 'gold', text: '高级' },
+          'vip': { color: 'purple', text: 'VIP' },
+        };
+        const levelInfo = levelMap[level] || { color: 'default', text: level || '普通' };
+        return <Tag color={levelInfo.color}>{levelInfo.text}</Tag>;
+      },
     },
     {
       title: '邮箱',
@@ -338,10 +353,13 @@ const CustomerManagement: React.FC = () => {
           loading={loading}
           scroll={{ x: 800 }}
           pagination={{
-            pageSize: 10,
+            pageSize: 20,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            defaultPageSize: 20,
+            showLessItems: false,
           }}
         />
       </Card>
@@ -384,6 +402,18 @@ const CustomerManagement: React.FC = () => {
             rules={[{ required: true, message: '请输入电话号码' }]}
           >
             <Input placeholder="请输入电话号码" />
+          </Form.Item>
+          
+          <Form.Item
+            name="level"
+            label="客户等级"
+            initialValue="standard"
+          >
+            <Select>
+              <Select.Option value="standard">普通</Select.Option>
+              <Select.Option value="premium">高级</Select.Option>
+              <Select.Option value="vip">VIP</Select.Option>
+            </Select>
           </Form.Item>
           
           <Divider>默认地址设置</Divider>
