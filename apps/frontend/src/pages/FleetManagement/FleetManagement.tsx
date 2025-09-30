@@ -9,22 +9,13 @@ import {
   Space, 
   Button, 
   Badge, 
-  Timeline,
-  Tabs,
   List,
   Avatar,
-  Progress,
-  Statistic,
   Divider
 } from 'antd';
 import { 
   TeamOutlined, 
   TruckOutlined, 
-  EnvironmentOutlined, 
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
   EyeOutlined,
   HistoryOutlined
 } from '@ant-design/icons';
@@ -36,11 +27,9 @@ const { Title, Text } = Typography;
 
 const FleetManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
   const [inTransitTrips, setInTransitTrips] = useState<Trip[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
-  const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
   useEffect(() => {
@@ -96,24 +85,6 @@ const FleetManagement: React.FC = () => {
         { id: 'vehicle4', tenantId: 'tenant1', plateNumber: '京D22222', type: '平板车', capacityKg: 6000, status: VehicleStatus.AVAILABLE, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
       ]);
 
-      setRecentTrips([
-        {
-          id: '3',
-          tenantId: 'tenant1',
-          tripNo: 'TRIP-20250126-001',
-          status: TripStatus.COMPLETED,
-          driverId: 'driver1',
-          vehicleId: 'vehicle1',
-          legs: [],
-          shipments: ['shipment4', 'shipment5'],
-          startTimePlanned: '2025-01-26T09:00:00Z',
-          endTimePlanned: '2025-01-26T18:00:00Z',
-          startTimeActual: '2025-01-26T09:00:00Z',
-          endTimeActual: '2025-01-26T17:30:00Z',
-          createdAt: '2025-01-26T08:00:00Z',
-          updatedAt: '2025-01-26T17:30:00Z'
-        }
-      ]);
     } catch (error) {
       console.error('Failed to load fleet data:', error);
     } finally {
@@ -210,282 +181,182 @@ const FleetManagement: React.FC = () => {
           <Button 
             type="text" 
             icon={<EyeOutlined />} 
-            onClick={() => setSelectedTrip(record)}
+            onClick={() => handleTripClick(record)}
           />
         </Space>
       ),
     },
   ];
 
-  const tabItems = [
-    {
-      key: 'overview',
-      label: '总览',
-      children: (
-        <div>
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="在途行程"
-                  value={inTransitTrips.length}
-                  prefix={<PlayCircleOutlined />}
-                  valueStyle={{ color: '#3f8600' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="空闲司机"
-                  value={availableDrivers.length}
-                  prefix={<TeamOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="空闲车辆"
-                  value={availableVehicles.length}
-                  prefix={<TruckOutlined />}
-                  valueStyle={{ color: '#722ed1' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="今日完成"
-                  value={recentTrips.length}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-          </Row>
-
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Card title="在途行程" size="small">
-                <List
-                  dataSource={inTransitTrips}
-                  renderItem={(trip) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<TruckOutlined />} />}
-                        title={trip.tripNo}
-                        description={
-                          <div>
-                            <Text>{getDriverName(trip.driverId)} / {getVehiclePlate(trip.vehicleId)}</Text>
-                            <br />
-                            <Text type="secondary">
-                              预计 {new Date(trip.endTimePlanned || '').toLocaleString('zh-CN')} 完成
-                            </Text>
-                          </div>
-                        }
-                      />
-                      <Tag color={getStatusColor(trip.status)}>
-                        {getStatusText(trip.status)}
-                      </Tag>
-                    </List.Item>
-                  )}
-                />
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card title="空闲资源" size="small">
-                <Tabs size="small" items={[
-                  {
-                    key: 'drivers',
-                    label: `司机 (${availableDrivers.length})`,
-                    children: (
-                      <List
-                        dataSource={availableDrivers}
-                        renderItem={(driver) => (
-                          <List.Item>
-                            <List.Item.Meta
-                              avatar={<Avatar icon={<TeamOutlined />} />}
-                              title={driver.name}
-                              description={driver.phone}
-                            />
-                            <Tag color="green">空闲</Tag>
-                          </List.Item>
-                        )}
-                      />
-                    )
-                  },
-                  {
-                    key: 'vehicles',
-                    label: `车辆 (${availableVehicles.length})`,
-                    children: (
-                      <List
-                        dataSource={availableVehicles}
-                        renderItem={(vehicle) => (
-                          <List.Item>
-                            <List.Item.Meta
-                              avatar={<Avatar icon={<TruckOutlined />} />}
-                              title={vehicle.plateNumber}
-                              description={`${vehicle.type} - ${vehicle.capacityKg}kg`}
-                            />
-                            <Tag color="green">空闲</Tag>
-                          </List.Item>
-                        )}
-                      />
-                    )
-                  }
-                ]} />
-              </Card>
-            </Col>
-          </Row>
-        </div>
-      )
-    },
-    {
-      key: 'inTransit',
-      label: '在途管理',
-      children: (
-      <Card style={{ width: '100%' }}>
-        <Table
-          columns={inTransitColumns}
-          dataSource={inTransitTrips}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          size="small"
-          scroll={{ x: 800 }}
-        />
-      </Card>
-      )
-    },
-    {
-      key: 'map',
-      label: '地图轨迹',
-      children: (
-        <Card title="车队实时位置">
-          <GoogleMap
-            center={{ lat: 39.9042, lng: 116.4074 }}
-            zoom={10}
-            height="500px"
-            markers={[
-              {
-                id: 'trip-1',
-                position: { lat: 39.9042, lng: 116.4074 },
-                title: 'TRIP-20250127-001',
-                info: '<div><strong>行程 TRIP-20250127-001</strong><br/>司机：张三<br/>车辆：京A12345<br/>状态：在途</div>',
-              },
-              {
-                id: 'trip-2',
-                position: { lat: 39.9142, lng: 116.4174 },
-                title: 'TRIP-20250127-002',
-                info: '<div><strong>行程 TRIP-20250127-002</strong><br/>司机：李四<br/>车辆：京B67890<br/>状态：在途</div>',
-              },
-            ]}
-            routes={[
-              {
-                from: { lat: 39.9042, lng: 116.4074 },
-                to: { lat: 39.9142, lng: 116.4174 },
-                color: '#1890ff',
-              },
-            ]}
-            onMarkerClick={(markerId) => {
-              console.log('点击标记:', markerId);
-            }}
-          />
-        </Card>
-      )
-    },
-    {
-      key: 'history',
-      label: '历史记录',
-      children: (
-        <Card>
-          <Table
-            columns={[
-              ...inTransitColumns.slice(0, -1), // 移除操作列
-              {
-                title: '实际结束',
-                dataIndex: 'endTimeActual',
-                key: 'endTimeActual',
-                width: 150,
-                render: (endTime: string) => endTime ? new Date(endTime).toLocaleString('zh-CN') : '-',
-              }
-            ]}
-            dataSource={recentTrips}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total) => `共 ${total} 条记录`,
-            }}
-            size="small"
-          />
-        </Card>
-      )
-    }
-  ];
+  // 在途行程点击查看详情处理函数
+  const handleTripClick = (trip: Trip) => {
+    setSelectedTrip(trip);
+  };
 
   return (
     <PageLayout>
       <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: 16 }}>
-        <Title level={3}>车队管理</Title>
-        <Text type="secondary">
-          管理在途司机车辆、空闲资源列表、地图轨迹显示，支持行程调度和历史回放
-        </Text>
-      </div>
-      
-      <Tabs 
-        activeKey={activeTab} 
-        onChange={setActiveTab}
-        items={tabItems}
-      />
-
-      {/* 行程详情模态框 */}
-      {selectedTrip && (
-        <Card
-          title={`${selectedTrip.tripNo} - 行程详情`}
-          style={{ marginTop: 16 }}
-          extra={
-            <Button onClick={() => setSelectedTrip(null)}>
-              关闭
-            </Button>
-          }
-        >
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Card size="small" title="基本信息">
-                <p><strong>行程号:</strong> {selectedTrip.tripNo}</p>
-                <p><strong>状态:</strong> <Tag color={getStatusColor(selectedTrip.status)}>{getStatusText(selectedTrip.status)}</Tag></p>
-                <p><strong>司机:</strong> {getDriverName(selectedTrip.driverId)}</p>
-                <p><strong>车辆:</strong> {getVehiclePlate(selectedTrip.vehicleId)}</p>
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card size="small" title="时间信息">
-                <p><strong>计划开始:</strong> {new Date(selectedTrip.startTimePlanned || '').toLocaleString('zh-CN')}</p>
-                <p><strong>计划结束:</strong> {new Date(selectedTrip.endTimePlanned || '').toLocaleString('zh-CN')}</p>
-                {selectedTrip.startTimeActual && (
-                  <p><strong>实际开始:</strong> {new Date(selectedTrip.startTimeActual).toLocaleString('zh-CN')}</p>
-                )}
-                {selectedTrip.endTimeActual && (
-                  <p><strong>实际结束:</strong> {new Date(selectedTrip.endTimeActual).toLocaleString('zh-CN')}</p>
-                )}
-              </Card>
-            </Col>
-          </Row>
+        <div style={{ marginBottom: 16 }}>
+          <Title level={3}>车队管理</Title>
+          <Text type="secondary">
+            管理在途司机车辆、空闲资源列表、地图轨迹显示，支持行程调度和历史回放
+          </Text>
+        </div>
+        
+        {/* 左右布局：左侧显示在途行程和空闲资源，右侧显示地图 */}
+        <Row gutter={[24, 24]}>
+          {/* 左侧：上下结构 */}
+          <Col span={14}>
+            {/* 上面：在途行程 */}
+            <Card title="在途行程" style={{ marginBottom: 16 }}>
+              <Table
+                columns={inTransitColumns}
+                dataSource={inTransitTrips}
+                rowKey="id"
+                loading={loading}
+                pagination={false}
+                size="small"
+                scroll={{ x: 800 }}
+                onRow={(record) => ({
+                  onClick: () => handleTripClick(record),
+                  style: { cursor: 'pointer' }
+                })}
+              />
+            </Card>
+            
+            {/* 下面：空闲资源 */}
+            <Card title="空闲资源">
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Card size="small" title={`空闲司机 (${availableDrivers.length})`}>
+                    <List
+                      dataSource={availableDrivers}
+                      renderItem={(driver) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            avatar={<Avatar icon={<TeamOutlined />} />}
+                            title={driver.name}
+                            description={driver.phone}
+                          />
+                          <Tag color="green">空闲</Tag>
+                        </List.Item>
+                      )}
+                    />
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card size="small" title={`空闲车辆 (${availableVehicles.length})`}>
+                    <List
+                      dataSource={availableVehicles}
+                      renderItem={(vehicle) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            avatar={<Avatar icon={<TruckOutlined />} />}
+                            title={vehicle.plateNumber}
+                            description={`${vehicle.type} - ${vehicle.capacityKg}kg`}
+                          />
+                          <Tag color="green">空闲</Tag>
+                        </List.Item>
+                      )}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
           
-          <Divider>挂载运单</Divider>
-          <div style={{ textAlign: 'center' }}>
-            <Badge count={selectedTrip.shipments.length} showZero>
-              <Text>共 {selectedTrip.shipments.length} 个运单</Text>
-            </Badge>
-          </div>
-        </Card>
-      )}
+          {/* 右侧：地图组件 */}
+          <Col span={10}>
+            <Card title="车队实时位置">
+              <GoogleMap
+                center={{ lat: 39.9042, lng: 116.4074 }}
+                zoom={10}
+                height="600px"
+                markers={[
+                  {
+                    id: 'trip-1',
+                    position: { lat: 39.9042, lng: 116.4074 },
+                    title: 'TRIP-20250127-001',
+                    info: '<div><strong>行程 TRIP-20250127-001</strong><br/>司机：张三<br/>车辆：京A12345<br/>状态：在途</div>',
+                  },
+                  {
+                    id: 'trip-2',
+                    position: { lat: 39.9142, lng: 116.4174 },
+                    title: 'TRIP-20250127-002',
+                    info: '<div><strong>行程 TRIP-20250127-002</strong><br/>司机：李四<br/>车辆：京B67890<br/>状态：在途</div>',
+                  },
+                ]}
+                routes={[
+                  {
+                    from: { lat: 39.9042, lng: 116.4074 },
+                    to: { lat: 39.9142, lng: 116.4174 },
+                    color: '#1890ff',
+                  },
+                ]}
+                onMarkerClick={(markerId) => {
+                  console.log('点击标记:', markerId);
+                }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 页面底部：历史记录入口 */}
+        <div style={{ marginTop: 24, textAlign: 'center' }}>
+          <Button 
+            type="link" 
+            icon={<HistoryOutlined />}
+            onClick={() => {
+              // TODO: 跳转到历史记录页面或打开历史记录模态框
+              console.log('查看历史记录');
+            }}
+          >
+            查看历史记录
+          </Button>
+        </div>
+
+        {/* 行程详情模态框 */}
+        {selectedTrip && (
+          <Card
+            title={`${selectedTrip.tripNo} - 行程详情`}
+            style={{ marginTop: 16 }}
+            extra={
+              <Button onClick={() => setSelectedTrip(null)}>
+                关闭
+              </Button>
+            }
+          >
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card size="small" title="基本信息">
+                  <p><strong>行程号:</strong> {selectedTrip.tripNo}</p>
+                  <p><strong>状态:</strong> <Tag color={getStatusColor(selectedTrip.status)}>{getStatusText(selectedTrip.status)}</Tag></p>
+                  <p><strong>司机:</strong> {getDriverName(selectedTrip.driverId)}</p>
+                  <p><strong>车辆:</strong> {getVehiclePlate(selectedTrip.vehicleId)}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card size="small" title="时间信息">
+                  <p><strong>计划开始:</strong> {new Date(selectedTrip.startTimePlanned || '').toLocaleString('zh-CN')}</p>
+                  <p><strong>计划结束:</strong> {new Date(selectedTrip.endTimePlanned || '').toLocaleString('zh-CN')}</p>
+                  {selectedTrip.startTimeActual && (
+                    <p><strong>实际开始:</strong> {new Date(selectedTrip.startTimeActual).toLocaleString('zh-CN')}</p>
+                  )}
+                  {selectedTrip.endTimeActual && (
+                    <p><strong>实际结束:</strong> {new Date(selectedTrip.endTimeActual).toLocaleString('zh-CN')}</p>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+            
+            <Divider>挂载运单</Divider>
+            <div style={{ textAlign: 'center' }}>
+              <Badge count={selectedTrip.shipments.length} showZero>
+                <Text>共 {selectedTrip.shipments.length} 个运单</Text>
+              </Badge>
+            </div>
+          </Card>
+        )}
       </div>
     </PageLayout>
   );
