@@ -810,6 +810,7 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperName"
                   label="发货人姓名 (Shipper Name)"
                   rules={[{ required: true, message: '请输入发货人姓名' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入发货人姓名" />
                 </Form.Item>
@@ -818,6 +819,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
                   name="shipperCompany"
                   label="公司名称 (Company Name)"
+                  style={{ marginBottom: 8 }}
           >
                   <Input placeholder="请输入公司名称（可选）" />
           </Form.Item>
@@ -827,6 +829,7 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperAddress1"
                   label="地址行1 (Address Line 1)"
                   rules={[{ required: true, message: '请输入地址行1' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入街道地址" />
           </Form.Item>
@@ -835,6 +838,7 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperAddress2"
                   label="地址行2 (Address Line 2)"
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入公寓号、套房号等（可选）" />
           </Form.Item>
@@ -844,6 +848,7 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperCity"
                   label="城市 (City)"
                   rules={[{ required: true, message: '请输入城市' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入城市" />
                 </Form.Item>
@@ -853,6 +858,7 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperProvince"
                   label="省份/州 (Province/State)"
                   rules={[{ required: true, message: '请输入省份/州' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入省份/州" />
                 </Form.Item>
@@ -862,6 +868,7 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperPostalCode"
                   label="邮政编码 (Postal Code)"
                   rules={[{ required: true, message: '请输入邮政编码' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入邮政编码" />
                 </Form.Item>
@@ -871,6 +878,7 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperCountry"
                   label="国家 (Country)"
                   rules={[{ required: true, message: '请选择国家' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Select>
                     <Option value="CA">加拿大 (Canada)</Option>
@@ -945,6 +953,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
                   name="receiverCompany"
                   label="公司名称 (Company Name)"
+                  style={{ marginBottom: 8 }}
           >
                   <Input placeholder="请输入公司名称（可选）" />
           </Form.Item>
@@ -954,6 +963,7 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverAddress1"
                   label="地址行1 (Address Line 1)"
                   rules={[{ required: true, message: '请输入地址行1' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入街道地址" />
           </Form.Item>
@@ -962,6 +972,7 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverAddress2"
                   label="地址行2 (Address Line 2)"
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入公寓号、套房号等（可选）" />
           </Form.Item>
@@ -971,6 +982,7 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverCity"
                   label="城市 (City)"
                   rules={[{ required: true, message: '请输入城市' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入城市" />
                 </Form.Item>
@@ -980,6 +992,7 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverProvince"
                   label="省份/州 (Province/State)"
                   rules={[{ required: true, message: '请输入省份/州' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入省份/州" />
                 </Form.Item>
@@ -989,6 +1002,7 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverPostalCode"
                   label="邮政编码 (Postal Code)"
                   rules={[{ required: true, message: '请输入邮政编码' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入邮政编码" />
                 </Form.Item>
@@ -998,6 +1012,7 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverCountry"
                   label="国家 (Country)"
                   rules={[{ required: true, message: '请选择国家' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Select>
                     <Option value="CA">加拿大 (Canada)</Option>
@@ -1014,6 +1029,7 @@ const ShipmentCreate: React.FC = () => {
                     { required: true, message: '请输入联系电话' },
                     { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
                   ]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="如：+1-555-123-4567" />
                 </Form.Item>
@@ -1138,6 +1154,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['packages', index, 'boxName']}
                 label="包裹名称"
                 initialValue={pkg.boxName}
+                style={{ marginBottom: 8 }}
               >
                 <Input placeholder="如：BOX-A" />
               </Form.Item>
@@ -1148,6 +1165,7 @@ const ShipmentCreate: React.FC = () => {
                 label={`长度 (${unitSystem})`}
                 initialValue={pkg.length}
                 rules={[{ required: true, message: '请输入长度' }]}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
               </Form.Item>
@@ -1158,6 +1176,7 @@ const ShipmentCreate: React.FC = () => {
                 label={`宽度 (${unitSystem})`}
                 initialValue={pkg.width}
                 rules={[{ required: true, message: '请输入宽度' }]}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
               </Form.Item>
@@ -1168,6 +1187,7 @@ const ShipmentCreate: React.FC = () => {
                 label={`高度 (${unitSystem})`}
                 initialValue={pkg.height}
                 rules={[{ required: true, message: '请输入高度' }]}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
               </Form.Item>
@@ -1178,6 +1198,7 @@ const ShipmentCreate: React.FC = () => {
                 label={`重量 (${weightUnit})`}
                 initialValue={pkg.weight}
                 rules={[{ required: true, message: '请输入重量' }]}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
               </Form.Item>
@@ -1187,6 +1208,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['packages', index, 'declaredValue']}
                 label="申报价值 (CNY)"
                 initialValue={pkg.declaredValue}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
               </Form.Item>
@@ -1196,6 +1218,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['packages', index, 'remark']}
                 label="备注"
                 initialValue={pkg.remark}
+                style={{ marginBottom: 8 }}
               >
                 <Input placeholder="包裹备注信息" />
               </Form.Item>
@@ -1267,6 +1290,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['items', index, 'sku']}
                 label="SKU"
                 initialValue={item.sku}
+                style={{ marginBottom: 8 }}
               >
                 <Input placeholder="商品SKU" />
               </Form.Item>
@@ -1276,6 +1300,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['items', index, 'hsCode']}
                 label="海关编码"
                 initialValue={item.hsCode}
+                style={{ marginBottom: 8 }}
               >
                 <Input placeholder="HS Code" />
               </Form.Item>
@@ -1286,6 +1311,7 @@ const ShipmentCreate: React.FC = () => {
                 label="数量"
                 initialValue={item.quantity}
                 rules={[{ required: true, message: '请输入数量' }]}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={1} />
               </Form.Item>
@@ -1295,6 +1321,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['items', index, 'originCountry']}
                 label="原产国"
                 initialValue={item.originCountry}
+                style={{ marginBottom: 8 }}
               >
                 <Select placeholder="选择原产国">
                   <Option value="CN">中国</Option>
@@ -1313,6 +1340,7 @@ const ShipmentCreate: React.FC = () => {
                 label="商品描述"
                 initialValue={item.description}
                 rules={[{ required: true, message: '请输入商品描述' }]}
+                style={{ marginBottom: 8 }}
               >
                 <Input placeholder="详细描述商品" />
               </Form.Item>
@@ -1322,6 +1350,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['items', index, 'unitWeight']}
                 label={`单位重量 (${weightUnit})`}
                 initialValue={item.unitWeight}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
               </Form.Item>
@@ -1331,6 +1360,7 @@ const ShipmentCreate: React.FC = () => {
                 name={['items', index, 'unitPrice']}
                 label="单价 (CNY)"
                 initialValue={item.unitPrice}
+                style={{ marginBottom: 8 }}
               >
                 <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
               </Form.Item>
@@ -1391,6 +1421,7 @@ const ShipmentCreate: React.FC = () => {
             name="cargoLength"
             label={`长度 (${unitSystem})`}
             rules={[{ required: true, message: '请输入长度' }]}
+            style={{ marginBottom: 8 }}
           >
             <InputNumber
               style={{ width: '100%' }}
@@ -1405,6 +1436,7 @@ const ShipmentCreate: React.FC = () => {
             name="cargoWidth"
             label={`宽度 (${unitSystem})`}
             rules={[{ required: true, message: '请输入宽度' }]}
+            style={{ marginBottom: 8 }}
           >
             <InputNumber
               style={{ width: '100%' }}
@@ -1419,6 +1451,7 @@ const ShipmentCreate: React.FC = () => {
             name="cargoHeight"
             label={`高度 (${unitSystem})`}
             rules={[{ required: true, message: '请输入高度' }]}
+            style={{ marginBottom: 8 }}
           >
             <InputNumber
               style={{ width: '100%' }}
@@ -1433,6 +1466,7 @@ const ShipmentCreate: React.FC = () => {
             name="cargoWeight"
             label={`重量 (${weightUnit})`}
             rules={[{ required: true, message: '请输入重量' }]}
+            style={{ marginBottom: 8 }}
           >
             <InputNumber
               style={{ width: '100%' }}
@@ -1447,6 +1481,7 @@ const ShipmentCreate: React.FC = () => {
             name="cargoQuantity"
             label="箱数/件数 (Package Count)"
             rules={[{ required: true, message: '请输入数量' }]}
+            style={{ marginBottom: 8 }}
           >
             <InputNumber
               style={{ width: '100%' }}
@@ -1456,7 +1491,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item name="cargoPalletCount" label="托盘数 (Pallet Count)">
+          <Form.Item name="cargoPalletCount" label="托盘数 (Pallet Count)" style={{ marginBottom: 8 }}>
             <InputNumber
               style={{ width: '100%' }}
               placeholder="托盘数"
@@ -1465,7 +1500,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item name="cargoValue" label="货物价值 (Cargo Value - CNY)">
+          <Form.Item name="cargoValue" label="货物价值 (Cargo Value - CNY)" style={{ marginBottom: 8 }}>
             <InputNumber
               style={{ width: '100%' }}
               placeholder="货物价值"
@@ -1475,7 +1510,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={24}>
-          <Form.Item name="cargoDescription" label="货物描述 (Cargo Description)">
+          <Form.Item name="cargoDescription" label="货物描述 (Cargo Description)" style={{ marginBottom: 8 }}>
             <TextArea
               rows={3}
               placeholder="请详细描述货物内容、包装方式等"
@@ -1653,6 +1688,7 @@ const ShipmentCreate: React.FC = () => {
             name="cargoType"
             label="货物类型 (Cargo Type)"
             rules={[{ required: true, message: '请选择货物类型' }]}
+            style={{ marginBottom: 8 }}
           >
             <Select placeholder="选择货物类型">
               <Option value="GENERAL">普通货物</Option>
@@ -1669,6 +1705,7 @@ const ShipmentCreate: React.FC = () => {
             name="dangerousGoodsCode"
             label="危险品代码 (Dangerous Goods Code)"
             tooltip="如果是危险品，请输入相应的危险品代码"
+            style={{ marginBottom: 8 }}
           >
             <Input placeholder="如：UN1234" />
           </Form.Item>
@@ -1678,6 +1715,7 @@ const ShipmentCreate: React.FC = () => {
             name="requiresColdChain"
             label="冷链运输 (Cold Chain Required)"
             valuePropName="checked"
+            style={{ marginBottom: 8 }}
           >
             <Switch />
           </Form.Item>
@@ -1687,6 +1725,7 @@ const ShipmentCreate: React.FC = () => {
             name="needSignature"
             label="需要签名确认 (Signature Required)"
             valuePropName="checked"
+            style={{ marginBottom: 8 }}
           >
             <Switch />
           </Form.Item>
@@ -1695,6 +1734,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="deliveryNote"
             label="送货单备注 (Delivery Note)"
+            style={{ marginBottom: 8 }}
           >
             <TextArea 
               rows={2} 
@@ -1716,7 +1756,7 @@ const ShipmentCreate: React.FC = () => {
           </Title>
         </Col>
         <Col span={12}>
-          <Form.Item name="insurance" label="购买保险 (Purchase Insurance)" valuePropName="checked">
+          <Form.Item name="insurance" label="购买保险 (Purchase Insurance)" valuePropName="checked" style={{ marginBottom: 8 }}>
             <Switch />
           </Form.Item>
         </Col>
@@ -1724,6 +1764,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             label="保险金额 (Insurance Amount - CNY)"
             shouldUpdate={(prevValues, currentValues) => prevValues.insurance !== currentValues.insurance}
+            style={{ marginBottom: 8 }}
           >
             {({ getFieldValue, setFieldValue }) => (
               <InputNumber
@@ -1746,17 +1787,17 @@ const ShipmentCreate: React.FC = () => {
           </Title>
         </Col>
         <Col span={12}>
-          <Form.Item name="requiresTailgate" label="需要尾板 (Requires Tailgate)" valuePropName="checked">
+          <Form.Item name="requiresTailgate" label="需要尾板 (Requires Tailgate)" valuePropName="checked" style={{ marginBottom: 8 }}>
             <Switch />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="requiresAppointment" label="需要预约 (Requires Appointment)" valuePropName="checked">
+          <Form.Item name="requiresAppointment" label="需要预约 (Requires Appointment)" valuePropName="checked" style={{ marginBottom: 8 }}>
             <Switch />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="waitingTime" label="等候时间 (Waiting Time - minutes)">
+          <Form.Item name="waitingTime" label="等候时间 (Waiting Time - minutes)" style={{ marginBottom: 8 }}>
             <InputNumber
               style={{ width: '100%' }}
               placeholder="等候时间"
@@ -1766,7 +1807,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="deliveryInstructions" label="配送说明 (Delivery Instructions)">
+          <Form.Item name="deliveryInstructions" label="配送说明 (Delivery Instructions)" style={{ marginBottom: 8 }}>
             <Input placeholder="特殊配送要求" />
           </Form.Item>
         </Col>
@@ -1778,7 +1819,7 @@ const ShipmentCreate: React.FC = () => {
           </Title>
         </Col>
         <Col span={24}>
-          <Form.Item name="specialRequirements" label="选择特殊需求 (Special Requirements)">
+          <Form.Item name="specialRequirements" label="选择特殊需求 (Special Requirements)" style={{ marginBottom: 8 }}>
             <Checkbox.Group options={specialRequirementsOptions} />
           </Form.Item>
         </Col>
