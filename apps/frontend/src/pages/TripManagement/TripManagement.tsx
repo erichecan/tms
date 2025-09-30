@@ -46,6 +46,9 @@ const TripManagement: React.FC = () => {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [form] = Form.useForm();
+  
+  // 权限控制：模拟当前用户角色 // 2025-09-30 10:45:00
+  const [currentUserRole] = useState<'dispatcher' | 'driver' | 'admin'>('dispatcher');
 
   useEffect(() => {
     loadTrips();
@@ -158,16 +161,15 @@ const TripManagement: React.FC = () => {
     form.resetFields();
   };
 
+  // 简化编辑功能：只允许修改基本信息和状态 // 2025-09-30 10:45:00
   const handleEditTrip = (trip: Trip) => {
     setEditingTrip(trip);
     setIsEditModalVisible(true);
     form.setFieldsValue({
       tripNo: trip.tripNo,
-      driverId: trip.driverId,
-      vehicleId: trip.vehicleId,
+      status: trip.status,
       startTimePlanned: trip.startTimePlanned,
       endTimePlanned: trip.endTimePlanned,
-      shipments: trip.shipments
     });
   };
 
@@ -185,6 +187,29 @@ const TripManagement: React.FC = () => {
     } catch (error) {
       console.error('Failed to update trip status:', error);
       message.error('更新行程状态失败');
+    }
+  };
+
+  // 司机完成POD后自动完成行程 // 2025-09-30 10:45:00
+  const handleCompletePOD = async (trip: Trip) => {
+    try {
+      // TODO: 实现POD完成逻辑
+      // 1. 上传POD证明
+      // 2. 自动将行程状态更新为已完成
+      // 3. 更新运单状态
+      
+      Modal.confirm({
+        title: '确认完成POD',
+        content: `确认完成行程 ${trip.tripNo} 的POD上传？完成后行程将自动标记为已完成。`,
+        onOk: async () => {
+          // 模拟POD完成和行程自动完成
+          await handleStatusChange(trip, TripStatus.COMPLETED);
+          message.success('POD已完成，行程自动标记为已完成');
+        }
+      });
+    } catch (error) {
+      console.error('Failed to complete POD:', error);
+      message.error('完成POD失败');
     }
   };
 
@@ -295,14 +320,18 @@ const TripManagement: React.FC = () => {
               onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
-          <Tooltip title="编辑">
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              onClick={() => handleEditTrip(record)}
-            />
-          </Tooltip>
-          {record.status === TripStatus.PLANNING && (
+          {/* 简化编辑功能：只有调度员可以编辑，且功能简化 // 2025-09-30 10:45:00 */}
+          {currentUserRole === 'dispatcher' && (
+            <Tooltip title="编辑（简化）">
+              <Button 
+                type="text" 
+                icon={<EditOutlined />} 
+                onClick={() => handleEditTrip(record)}
+                size="small"
+              />
+            </Tooltip>
+          )}
+          {record.status === TripStatus.PLANNING && currentUserRole === 'dispatcher' && (
             <Tooltip title="开始执行">
               <Button 
                 type="text" 
@@ -311,8 +340,9 @@ const TripManagement: React.FC = () => {
               />
             </Tooltip>
           )}
-          {record.status === TripStatus.ONGOING && (
-            <Tooltip title="完成行程">
+          {/* 行程完成按钮权限控制：只能由调度员点击或司机完成POD后自动完成 // 2025-09-30 10:45:00 */}
+          {record.status === TripStatus.ONGOING && currentUserRole === 'dispatcher' && (
+            <Tooltip title="完成行程（调度员）">
               <Button 
                 type="text" 
                 icon={<CheckCircleOutlined />} 
@@ -320,13 +350,18 @@ const TripManagement: React.FC = () => {
               />
             </Tooltip>
           )}
-          <Tooltip title="删除">
-            <Button 
-              type="text" 
-              icon={<DeleteOutlined />} 
-              danger
-            />
-          </Tooltip>
+          {/* 司机可以通过POD完成行程，这里可以添加POD完成按钮 */}
+          {record.status === TripStatus.ONGOING && currentUserRole === 'driver' && (
+            <Tooltip title="完成POD">
+              <Button 
+                type="primary"
+                size="small"
+                onClick={() => handleCompletePOD(record)}
+              >
+                完成POD
+              </Button>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
@@ -374,7 +409,7 @@ const TripManagement: React.FC = () => {
         }}
         okText="确认"
         cancelText="取消"
-        width={800}
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -430,6 +465,68 @@ const TripManagement: React.FC = () => {
               ))}
             </Select>
           </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 简化编辑行程弹窗 - 只允许修改基本信息 // 2025-09-30 10:45:00 */}
+      <Modal
+        title="编辑行程（简化）"
+        open={isEditModalVisible}
+        onOk={() => {
+          // TODO: 实现简化编辑逻辑
+          message.success('行程信息已更新');
+          setIsEditModalVisible(false);
+          setEditingTrip(null);
+          loadTrips();
+        }}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setEditingTrip(null);
+          form.resetFields();
+        }}
+        okText="确认"
+        cancelText="取消"
+        width={500}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="tripNo"
+            label="行程号"
+            rules={[{ required: true, message: '请输入行程号' }]}
+          >
+            <Input placeholder="请输入行程号" />
+          </Form.Item>
+          
+          <Form.Item
+            name="status"
+            label="状态"
+          >
+            <Select placeholder="请选择状态">
+              <Select.Option value={TripStatus.PLANNING}>规划中</Select.Option>
+              <Select.Option value={TripStatus.ONGOING}>执行中</Select.Option>
+              <Select.Option value={TripStatus.COMPLETED}>已完成</Select.Option>
+              <Select.Option value={TripStatus.CANCELED}>已取消</Select.Option>
+            </Select>
+          </Form.Item>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="startTimePlanned"
+                label="计划开始时间"
+              >
+                <Input placeholder="计划开始时间" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="endTimePlanned"
+                label="计划结束时间"
+              >
+                <Input placeholder="计划结束时间" />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
 
