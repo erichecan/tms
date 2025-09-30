@@ -35,7 +35,6 @@ import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
-import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-01-27 17:15:00 添加Google Maps组件
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -51,17 +50,25 @@ const ShipmentCreate: React.FC = () => {
   const [customersLoading, setCustomersLoading] = useState(false); // 2025-01-27 16:45:00 恢复客户加载状态
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
-  // 动态初始化商品明细数据 - 2025-09-29 14:45:00 修复默认数据初始化问题
+  // 动态初始化商品明细数据 - 默认5行商品明细 // 2025-09-30 10:45:00
   const [cargoItems, setCargoItems] = useState<any[]>(() => {
-    // 从URL参数或localStorage获取客户信息，如果有则初始化一个商品项
-    const urlParams = new URLSearchParams(window.location.search);
-    const customerId = urlParams.get('customerId');
-    const savedData = localStorage.getItem('shipmentFormData');
-    
-    if (customerId || savedData) {
-      return [{ id: 1, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' }];
+    // 默认创建5行商品明细
+    const defaultItems = [];
+    for (let i = 1; i <= 5; i++) {
+      defaultItems.push({
+        id: i,
+        description: '',
+        quantity: 1,
+        weight: 0,
+        length: 0,
+        width: 0,
+        height: 0,
+        value: 0,
+        hsCode: '',
+        palletCount: 0
+      });
     }
-    return [{ id: 1, description: '', quantity: 1, weight: 0, length: 0, width: 0, height: 0, value: 0, hsCode: '' }];
+    return defaultItems;
   });
   
   // 提交确认模式
@@ -71,7 +78,6 @@ const ShipmentCreate: React.FC = () => {
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [showMap, setShowMap] = useState(false); // 2025-01-27 17:15:00 新增地图显示状态
 
   // 商品明细管理函数 - 2025-09-29 14:50:00 新增商品明细动态管理
   const addCargoItem = () => {
@@ -85,7 +91,8 @@ const ShipmentCreate: React.FC = () => {
       width: 0, 
       height: 0, 
       value: 0, 
-      hsCode: '' 
+      hsCode: '',
+      palletCount: 0
     }]);
   };
 
@@ -170,8 +177,38 @@ const ShipmentCreate: React.FC = () => {
     setIsAddCustomerModalVisible(true);
   };
 
-  const handleAddCustomer = async (customerData: any) => {
+  const handleAddCustomer = async () => {
     try {
+      const values = await form.validateFields();
+      
+      // 转换表单数据为后端API期望的格式
+      const customerData = {
+        name: values.name,
+        level: 'standard',
+        contactInfo: {
+          email: values.email,
+          phone: values.phone,
+          address: {
+            street: values.pickupAddressLine1 || '测试街道',
+            city: values.pickupCity || '测试城市',
+            state: values.pickupProvince || '测试省份',
+            postalCode: values.pickupPostalCode || '100000',
+            country: values.pickupCountry || '中国'
+          }
+        },
+        billingInfo: {
+          companyName: values.name,
+          taxId: 'TEST001',
+          billingAddress: {
+            street: values.pickupAddressLine1 || '测试街道',
+            city: values.pickupCity || '测试城市',
+            state: values.pickupProvince || '测试省份',
+            postalCode: values.pickupPostalCode || '100000',
+            country: values.pickupCountry || '中国'
+          }
+        }
+      };
+      
       const response = await customersApi.createCustomer(customerData);
       const newCustomer = response.data;
       
@@ -183,10 +220,11 @@ const ShipmentCreate: React.FC = () => {
       handleCustomerSelect(newCustomer.id);
       
       setIsAddCustomerModalVisible(false);
-      message.success('客户创建成功');
+      form.resetFields();
+      message.success('客户添加成功');
     } catch (error) {
-      console.error('创建客户失败:', error);
-      message.error('创建客户失败');
+      console.error('Failed to add customer:', error);
+      message.error('添加客户失败');
     }
   };
   
@@ -669,21 +707,10 @@ const ShipmentCreate: React.FC = () => {
     </Card>
   );
 
-  // 地址与时间模块 - 修改为左右布局，符合北美地址习惯 // 2025-01-27 15:30:00
+  // 地址与时间模块 - 修改为左右布局，符合北美地址习惯，移除地图功能 // 2025-09-30 10:45:00
   const renderAddressTimeSection = () => (
     <Card 
-      title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>地址与时间</span>
-          <Button 
-            type="link" 
-            icon={<EnvironmentOutlined />}
-            onClick={() => setShowMap(!showMap)}
-          >
-            {showMap ? '隐藏地图' : '显示地图'}
-          </Button>
-        </div>
-      } 
+      title="地址与时间"
       style={{ marginBottom: 12 }}
     >
       <Row gutter={[16, 8]}>
@@ -694,7 +721,7 @@ const ShipmentCreate: React.FC = () => {
               <EnvironmentOutlined /> 发货人信息 (Shipper)
             </span>
           } style={{ height: '100%' }}>
-            <Row gutter={[8, 6]}>
+            <Row gutter={[8, 8]}>
         <Col span={24}>
                 <Form.Item
                   name="shipperName"
@@ -821,7 +848,7 @@ const ShipmentCreate: React.FC = () => {
               <EnvironmentOutlined /> 收货人信息 (Receiver)
             </span>
           } style={{ height: '100%' }}>
-            <Row gutter={[12, 12]}>
+            <Row gutter={[8, 8]}>
         <Col span={24}>
                 <Form.Item
                   name="receiverName"
@@ -970,41 +997,6 @@ const ShipmentCreate: React.FC = () => {
           </Row>
         </Col>
       </Row>
-      
-      {/* 地图显示区域 - 2025-01-27 17:15:00 新增地图功能 */}
-      {showMap && (
-        <div style={{ marginTop: '16px' }}>
-          <GoogleMap
-            center={{ lat: 39.9042, lng: 116.4074 }}
-            zoom={10}
-            height="300px"
-            markers={[
-              {
-                id: 'pickup',
-                position: { lat: 39.9042, lng: 116.4074 },
-                title: '取货地址',
-                info: '<div><strong>取货地址</strong><br/>点击标记选择位置</div>',
-              },
-              {
-                id: 'delivery',
-                position: { lat: 39.9142, lng: 116.4174 },
-                title: '送货地址',
-                info: '<div><strong>送货地址</strong><br/>点击标记选择位置</div>',
-              },
-            ]}
-            routes={[
-              {
-                from: { lat: 39.9042, lng: 116.4074 },
-                to: { lat: 39.9142, lng: 116.4174 },
-                color: '#1890ff',
-              },
-            ]}
-            onMarkerClick={(markerId) => {
-              console.log('选择地址标记:', markerId);
-            }}
-          />
-        </div>
-      )}
     </Card>
   );
 
@@ -1136,22 +1128,6 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         <Col span={24}>
-          <Form.Item label="快速选择商品 (Quick Product Selection)">
-            <Select
-              placeholder="从商品库中选择常用商品"
-              allowClear
-              onSelect={handleProductSelect}
-              style={{ marginBottom: '12px' }}
-            >
-              {productLibrary.map(product => (
-                <Option key={product.id} value={product.id}>
-                  {product.name} ({product.length}×{product.width}×{product.height} {product.unit}, {product.weight}kg)
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={24}>
           <Form.Item name="cargoDescription" label="货物描述 (Cargo Description)">
             <TextArea
               rows={3}
@@ -1176,117 +1152,133 @@ const ShipmentCreate: React.FC = () => {
             </div>
             
             {cargoItems.map((item, index) => (
-              <Card 
+              <div 
                 key={item.id} 
-                size="small" 
-                style={{ marginBottom: 12 }}
-                title={`商品 ${index + 1}`}
-                extra={
-                  cargoItems.length > 1 ? (
-                    <Button 
-                      type="text" 
-                      danger 
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => removeCargoItem(item.id)}
-                    >
-                      删除
-                    </Button>
-                  ) : null
-                }
+                style={{ 
+                  marginBottom: 8, 
+                  padding: 12, 
+                  border: '1px solid #f0f0f0', 
+                  borderRadius: 6,
+                  backgroundColor: '#fafafa'
+                }}
               >
-                <Row gutter={[16, 8]}>
-                  <Col span={12}>
-                    <Form.Item label="商品描述" style={{ marginBottom: 8 }}>
-                      <Input
-                        placeholder="请输入商品描述"
-                        value={item.description}
-                        onChange={(e) => updateCargoItem(item.id, 'description', e.target.value)}
-                      />
-                    </Form.Item>
+                <Row gutter={[8, 8]} align="middle">
+                  <Col span={3}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>商品描述</div>
+                    <Input
+                      size="small"
+                      placeholder="商品描述"
+                      value={item.description}
+                      onChange={(e) => updateCargoItem(item.id, 'description', e.target.value)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label="数量" style={{ marginBottom: 8 }}>
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="数量"
-                        min={1}
-                        value={item.quantity}
-                        onChange={(value) => updateCargoItem(item.id, 'quantity', value || 1)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>数量</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="数量"
+                      min={1}
+                      value={item.quantity}
+                      onChange={(value) => updateCargoItem(item.id, 'quantity', value || 1)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label={`重量 (${weightUnit})`} style={{ marginBottom: 8 }}>
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="重量"
-                        min={0}
-                        precision={1}
-                        value={item.weight}
-                        onChange={(value) => updateCargoItem(item.id, 'weight', value || 0)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>重量({weightUnit})</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="重量"
+                      min={0}
+                      precision={1}
+                      value={item.weight}
+                      onChange={(value) => updateCargoItem(item.id, 'weight', value || 0)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label={`长度 (${unitSystem})`} style={{ marginBottom: 8 }}>
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="长度"
-                        min={0}
-                        precision={1}
-                        value={item.length}
-                        onChange={(value) => updateCargoItem(item.id, 'length', value || 0)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>长度({unitSystem})</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="长度"
+                      min={0}
+                      precision={1}
+                      value={item.length}
+                      onChange={(value) => updateCargoItem(item.id, 'length', value || 0)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label={`宽度 (${unitSystem})`} style={{ marginBottom: 8 }}>
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="宽度"
-                        min={0}
-                        precision={1}
-                        value={item.width}
-                        onChange={(value) => updateCargoItem(item.id, 'width', value || 0)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>宽度({unitSystem})</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="宽度"
+                      min={0}
+                      precision={1}
+                      value={item.width}
+                      onChange={(value) => updateCargoItem(item.id, 'width', value || 0)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label={`高度 (${unitSystem})`} style={{ marginBottom: 8 }}>
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="高度"
-                        min={0}
-                        precision={1}
-                        value={item.height}
-                        onChange={(value) => updateCargoItem(item.id, 'height', value || 0)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>高度({unitSystem})</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="高度"
+                      min={0}
+                      precision={1}
+                      value={item.height}
+                      onChange={(value) => updateCargoItem(item.id, 'height', value || 0)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label="价值 (CNY)" style={{ marginBottom: 8 }}>
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="价值"
-                        min={0}
-                        precision={2}
-                        value={item.value}
-                        onChange={(value) => updateCargoItem(item.id, 'value', value || 0)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>托盘数</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="托盘数"
+                      min={0}
+                      value={item.palletCount}
+                      onChange={(value) => updateCargoItem(item.id, 'palletCount', value || 0)}
+                    />
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label="HS编码" style={{ marginBottom: 8 }}>
-                      <Input
-                        placeholder="HS编码"
-                        value={item.hsCode}
-                        onChange={(e) => updateCargoItem(item.id, 'hsCode', e.target.value)}
-                      />
-                    </Form.Item>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>价值(CNY)</div>
+                    <InputNumber
+                      size="small"
+                      style={{ width: '100%' }}
+                      placeholder="价值"
+                      min={0}
+                      precision={2}
+                      value={item.value}
+                      onChange={(value) => updateCargoItem(item.id, 'value', value || 0)}
+                    />
+                  </Col>
+                  <Col span={2}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>HS编码</div>
+                    <Input
+                      size="small"
+                      placeholder="HS编码"
+                      value={item.hsCode}
+                      onChange={(e) => updateCargoItem(item.id, 'hsCode', e.target.value)}
+                    />
+                  </Col>
+                  <Col span={1}>
+                    <div style={{ height: 32, display: 'flex', alignItems: 'center' }}>
+                      {cargoItems.length > 5 && (
+                        <Button 
+                          type="text" 
+                          danger 
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => removeCargoItem(item.id)}
+                          style={{ padding: 0 }}
+                        />
+                      )}
+                    </div>
                   </Col>
                 </Row>
-              </Card>
+              </div>
             ))}
           </div>
         </Col>
@@ -1304,10 +1296,10 @@ const ShipmentCreate: React.FC = () => {
     </Card>
   );
 
-  // 服务与保险模块 // 2025-09-24 14:05:00
+  // 服务与保险模块 - 行间距缩小到8px // 2025-09-30 10:45:00
   const renderServicesSection = () => (
     <Card title="服务与保险" style={{ marginBottom: 12 }}>
-      <Row gutter={[12, 8]}>
+      <Row gutter={[8, 8]}>
         <Col span={24}>
           <Title level={5}>
             <SafetyCertificateOutlined /> 保险服务
@@ -1580,35 +1572,63 @@ const ShipmentCreate: React.FC = () => {
           </div>
         </Card>
 
-        {/* 快速创建客户模态框 - 2025-01-27 16:45:00 新增 */}
+        {/* 快速创建客户模态框 - 与客户管理页面保持一致 // 2025-09-30 10:45:00 */}
       <Modal
-        title="快速创建客户"
+        title="新增客户"
         open={isAddCustomerModalVisible}
-        onCancel={() => setIsAddCustomerModalVisible(false)}
-        footer={null}
-        width={600}
+        onOk={handleAddCustomer}
+        onCancel={() => {
+          setIsAddCustomerModalVisible(false);
+        }}
+        okText="确认"
+        cancelText="取消"
+        width={800}
       >
-        <Form
-          layout="vertical"
-          onFinish={handleAddCustomer}
-        >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="客户姓名"
+            rules={[{ required: true, message: '请输入客户姓名' }]}
+          >
+            <Input placeholder="请输入客户姓名" />
+          </Form.Item>
+          
+          <Form.Item
+            name="email"
+            label="邮箱"
+            rules={[
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
+          >
+            <Input placeholder="请输入邮箱（可选）" />
+          </Form.Item>
+          
+          <Form.Item
+            name="phone"
+            label="电话"
+            rules={[{ required: true, message: '请输入电话号码' }]}
+          >
+            <Input placeholder="请输入电话号码" />
+          </Form.Item>
+          
+          <Divider>默认地址设置</Divider>
+          
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                name="name"
-                label="客户姓名"
-                rules={[{ required: true, message: '请输入客户姓名' }]}
+                name="pickupCountry"
+                label="取货地址-国家"
+                initialValue="中国"
               >
-                <Input placeholder="请输入客户姓名" />
+                <Input placeholder="国家" />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
-                name="phone"
-                label="联系电话"
-                rules={[{ required: true, message: '请输入联系电话' }]}
+                name="pickupProvince"
+                label="取货地址-省份"
               >
-                <Input placeholder="请输入联系电话" />
+                <Input placeholder="省份" />
               </Form.Item>
             </Col>
           </Row>
@@ -1616,48 +1636,36 @@ const ShipmentCreate: React.FC = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                name="email"
-                label="邮箱地址"
-                rules={[
-                  { type: 'email', message: '请输入有效的邮箱地址' }
-                ]}
+                name="pickupCity"
+                label="取货地址-城市"
               >
-                <Input placeholder="请输入邮箱地址" />
+                <Input placeholder="城市" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="pickupPostalCode"
+                label="取货地址-邮编"
+              >
+                <Input placeholder="邮编" />
               </Form.Item>
             </Col>
           </Row>
-
-          <Divider>默认地址（可选）</Divider>
           
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="defaultPickupAddress" label="默认取货地址">
-                <TextArea 
-                  rows={3} 
-                  placeholder="请输入默认取货地址（格式：省/市/区 详细地址）" 
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="defaultDeliveryAddress" label="默认送货地址">
-                <TextArea 
-                  rows={3} 
-                  placeholder="请输入默认送货地址（格式：省/市/区 详细地址）" 
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <div style={{ textAlign: 'right', marginTop: '24px' }}>
-            <Space>
-              <Button onClick={() => setIsAddCustomerModalVisible(false)}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit">
-                创建客户
-              </Button>
-            </Space>
-          </div>
+          <Form.Item
+            name="pickupAddressLine1"
+            label="取货地址-详细地址"
+          >
+            <Input placeholder="详细地址" />
+          </Form.Item>
+          
+          <Form.Item
+            name="pickupIsResidential"
+            label="取货地址类型"
+            valuePropName="checked"
+          >
+            <input type="checkbox" /> 住宅地址
+          </Form.Item>
         </Form>
       </Modal>
       </div>
