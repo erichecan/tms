@@ -919,7 +919,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" rules={[{ required: true, message: '请选择取货时间段' }]}>
+          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" rules={[{ required: true, message: '请选择取货时间段' }]} style={{ marginBottom: 8 }}>
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
@@ -945,6 +945,7 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverName"
                   label="收货人姓名 (Receiver Name)"
                   rules={[{ required: true, message: '请输入收货人姓名' }]}
+                  style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入收货人姓名" />
                 </Form.Item>
