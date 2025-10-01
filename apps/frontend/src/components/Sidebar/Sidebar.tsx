@@ -62,6 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       icon: <PlusOutlined />,
       label: '创建运单',
     },
+    // 将运单管理移动到创建运单与车队管理之间 // 2025-10-01 14:20:30
+    {
+      key: '/admin/shipments',
+      icon: <FileTextOutlined />,
+      label: '运单管理',
+    },
     {
       key: '/fleet-management',
       icon: <TruckOutlined />,
@@ -93,11 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       icon: <SettingOutlined />,
       label: '管理后台',
       children: [
-        {
-          key: '/admin/shipments',
-          icon: <FileTextOutlined />,
-          label: '运单管理',
-        },
+        // 运单管理已提升到一级菜单 // 2025-10-01 14:20:30
         {
           key: '/admin/batch-import',
           icon: <UploadOutlined />,

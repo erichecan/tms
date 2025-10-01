@@ -124,35 +124,30 @@ const FleetManagement: React.FC = () => {
     return textMap[status] || status;
   };
 
+  // 在途行程表：合并司机/车辆列，运单数量以蓝色徽标展示，移除操作列，整行可点击 // 2025-10-01 14:22:10
   const inTransitColumns = [
     {
-      title: '行程号',
+      title: '行程',
       dataIndex: 'tripNo',
       key: 'tripNo',
-      width: 150,
+      width: 220,
+      render: (_: any, record: Trip) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>{record.tripNo}</span>
+          <Badge count={record.shipments.length} color="#1890ff" style={{ backgroundColor: '#1890ff' }} />
+        </div>
+      )
     },
     {
-      title: '司机',
-      dataIndex: 'driverId',
-      key: 'driverId',
-      width: 100,
-      render: (driverId: string) => getDriverName(driverId),
-    },
-    {
-      title: '车辆',
-      dataIndex: 'vehicleId',
-      key: 'vehicleId',
-      width: 120,
-      render: (vehicleId: string) => getVehiclePlate(vehicleId),
-    },
-    {
-      title: '运单数量',
-      dataIndex: 'shipments',
-      key: 'shipments',
-      width: 100,
-      render: (shipments: string[]) => (
-        <Badge count={shipments.length} showZero color="blue" />
-      ),
+      title: '司机 / 车辆',
+      key: 'driverVehicle',
+      width: 220,
+      render: (_: any, record: Trip) => (
+        <div>
+          <div>{getDriverName(record.driverId)}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>{getVehiclePlate(record.vehicleId)}</div>
+        </div>
+      )
     },
     {
       title: '状态',
@@ -169,22 +164,8 @@ const FleetManagement: React.FC = () => {
       title: '预计结束',
       dataIndex: 'endTimePlanned',
       key: 'endTimePlanned',
-      width: 150,
+      width: 160,
       render: (endTime: string) => new Date(endTime).toLocaleString('zh-CN'),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 100,
-      render: (_: any, record: Trip) => (
-        <Space size="small">
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
-            onClick={() => handleTripClick(record)}
-          />
-        </Space>
-      ),
     },
   ];
 

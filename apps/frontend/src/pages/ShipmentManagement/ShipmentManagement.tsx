@@ -12,6 +12,7 @@ import {
 import { shipmentsApi, driversApi } from '../../services/api';
 import { Shipment, ShipmentStatus, Driver } from '../../types';
 import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; // 2025-09-27 03:10:00 恢复运单详情组件
+import { useLocation } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
@@ -24,10 +25,23 @@ const ShipmentManagement: React.FC = () => {
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
   const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
 
+  const location = useLocation();
+
   useEffect(() => {
     loadShipments();
     loadDrivers();
   }, []);
+
+  // 页面进入后，如果来自创建页且携带 autoAssignShipmentId，则自动打开指派弹窗 // 2025-10-01 14:07:30
+  useEffect(() => {
+    const state: any = location.state;
+    if (state?.autoAssignShipmentId && shipments.length > 0) {
+      const target = shipments.find(s => s.id === state.autoAssignShipmentId);
+      if (target) {
+        handleAssignDriver(target);
+      }
+    }
+  }, [location.state, shipments]);
 
   const loadShipments = async () => {
     try {
@@ -258,6 +272,13 @@ const ShipmentManagement: React.FC = () => {
               <Space direction="vertical" style={{ width: '100%' }}>
                 {drivers
                   .filter(driver => driver.status === 'active')
+                  // 简单推荐排序：按车辆类型优先冷链匹配，再按名字字典序 // 2025-10-01 14:08:20
+                  .sort((a, b) => {
+                    const aScore = a.vehicleInfo?.type === '冷链' ? 1 : 0;
+                    const bScore = b.vehicleInfo?.type === '冷链' ? 1 : 0;
+                    if (aScore !== bScore) return bScore - aScore;
+                    return (a.name || '').localeCompare(b.name || '');
+                  })
                   .map(driver => (
                     <Card
                       key={driver.id}
