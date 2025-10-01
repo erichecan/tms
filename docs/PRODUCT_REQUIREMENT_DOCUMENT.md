@@ -1,7 +1,7 @@
 # 智能物流运营平台 (TMS SaaS) - 产品需求文档 (PRD)
 
 **版本:** 3.0.0 (完整功能版本)  
-**最后更新:** 2025-09-29 19:50:00  
+**最后更新:** 2025-10-01 13:58:00  
 
 ## 版本变更摘要 (V3.0.0 发布)
 
@@ -81,7 +81,7 @@ canceled | 终止 | 任一非终态手动取消 | 终态
 exception | 异常中断 | 任一非终态状态标记异常 | 可能恢复或取消
 
 说明：
-- created 与 unassigned 可逻辑合一（系统内部可用一个状态 created，界面以“未分配”筛选）。若未来引入“预创建草稿”才再加 draft。
+- created 与 unassigned 可逻辑合一（系统内部可用一个状态 created，界面以"未分配"筛选）。若未来引入"预创建草稿"才再加 draft。
 - 不再有 quoted / confirmed；报价逻辑延后。
 
 #### 2.1.2 操作与约束
@@ -101,11 +101,11 @@ exception | 异常中断 | 任一非终态状态标记异常 | 可能恢复或�
 
 分组 | 字段示例 | 说明
 -----|---------|-----
-订单元信息 | externalOrderNo, salesChannel, sourceType(manual/api/import), tags[], sellerNotes | 支持第三方渠道关联
+订单元信息 | salesChannel, sellerNotes | 订单元信息已精简（2025-10-01）；其余字段移除
 发货方(Ship From) | shipperName, shipperCompany, shipperContactName, shipperPhone, shipperEmail, shipperAddress{country,province,state,city,postalCode,addressLine1,addressLine2,isResidential} | 支持地址簿引用 addressBookId
 收货方(Ship To) | receiverName, receiverCompany, receiverContactName, receiverPhone, receiverEmail, receiverAddress{... 同上} | isResidential 影响后续计费（预留）
-包裹列表 packages[] | packageId, boxName, length,width,height, dimensionUnit(cm), weight, weightUnit(kg), declaredValue, currency, remark | 多包裹支持
-商品明细 items[] | itemId, sku, description, hsCode, quantity, unitWeight, unitPrice, currency, originCountry | 支持报关
+包裹列表 packages[] | - | 2025-10-01 移除独立包裹模块
+商品明细 items[] | - | 2025-10-01 移除独立商品明细模块
 费用预留字段 | estimatedCost (nullable), pricingComponents[], pricingRuleTrace[] | 本期不计算，仅存空结构
 司机调度 | driverId(后填), assignedBy, assignedAt | 分配后写入
 货物属性 | cargoType(普货/敏感), requiresColdChain(bool), fragile(bool), insured(bool), insuranceAmount | insuranceAmount 目前不计算保费
@@ -864,7 +864,7 @@ piiMasked | BOOLEAN | 默认 true | 前端展示脱敏
 2) AfterDiscount = round(Subtotal × (1 - D), 2)  
 3) Total = round(AfterDiscount × (1 + Tax), 2)
 
-可配置：支持“先税后折扣”作为租户协议选项，但需在审计中记录所用策略版本。
+可配置：支持"先税后折扣"作为租户协议选项，但需在审计中记录所用策略版本。
 
 示例：Base=100, Fees=20, D=10%, Tax=13% → AfterDiscount=108.00 → Total=122.04。
 
@@ -1140,7 +1140,7 @@ CREATE INDEX idx_audit_entity_ts ON audit_log(entity_type, entity_id, ts DESC);
 <!-- Added by assistant @ 2025-09-29 09:12:36 -->
 ## 26. 驱动调度策略（初稿）
 
-目标：在 created/unassigned 阶段，按“可用性、距离、负载”择优分配。
+目标：在 created/unassigned 阶段，按"可用性、距离、负载"择优分配。
 
 输入：shipment 起点/终点、包裹重量体积、时间窗；司机当前位置/状态/负载/能力（冷链）。
 
