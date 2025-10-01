@@ -19,6 +19,7 @@ import {
   Radio,
   Checkbox,
   Modal,
+  Spin,
 } from 'antd';
 import {
   TruckOutlined,
@@ -33,7 +34,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi, customersApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
+import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 
@@ -51,6 +52,29 @@ const ShipmentCreate: React.FC = () => {
   const [customersLoading, setCustomersLoading] = useState(false); // 2025-01-27 16:45:00 恢复客户加载状态
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
+  
+  // 实时计费相关状态 - 2025-10-01 21:40:00
+  const [realTimePricing, setRealTimePricing] = useState<{
+    totalCost: number;
+    breakdown: {
+      baseFee: number;
+      distanceFee: number;
+      weightFee: number;
+      volumeFee: number;
+      additionalFees: number;
+    };
+    loading: boolean;
+  }>({
+    totalCost: 0,
+    breakdown: {
+      baseFee: 0,
+      distanceFee: 0,
+      weightFee: 0,
+      volumeFee: 0,
+      additionalFees: 0
+    },
+    loading: false
+  });
   // 移除商品明细动态管理（根据产品文档） // 2025-10-01 13:45:00
   
   // 提交确认模式
@@ -60,6 +84,7 @@ const ShipmentCreate: React.FC = () => {
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [customerForm] = Form.useForm(); // 独立的客户表单实例 // 2025-10-01 21:55:00
   
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
 
@@ -133,12 +158,13 @@ const ShipmentCreate: React.FC = () => {
 
   const handleAddCustomer = async () => {
     try {
-      const values = await form.validateFields();
+      // 只验证客户表单字段，而不是整个运单表单 // 2025-10-01 21:55:00
+      const values = await customerForm.validateFields();
       
       // 转换表单数据为后端API期望的格式
       const customerData = {
         name: values.name,
-        level: 'standard',
+        level: values.level || 'standard',
         contactInfo: {
           email: values.email,
           phone: values.phone,
@@ -174,7 +200,7 @@ const ShipmentCreate: React.FC = () => {
       handleCustomerSelect(newCustomer.id);
       
       setIsAddCustomerModalVisible(false);
-      form.resetFields();
+      customerForm.resetFields(); // 重置客户表单而不是运单表单 // 2025-10-01 21:55:00
       message.success('客户添加成功');
     } catch (error) {
       console.error('Failed to add customer:', error);
@@ -528,6 +554,175 @@ const ShipmentCreate: React.FC = () => {
     return Math.round(baseCost);
   };
 
+  // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-01 21:50:00
+  const calculateRealTimePricing = async (values: any) => {
+    // 检查是否有必要的字段
+    if (!values.shipperAddrLine1 || !values.receiverAddrLine1 || !values.cargoWeight) {
+      return;
+    }
+
+    setRealTimePricing(prev => ({ ...prev, loading: true }));
+
+    try {
+      // 构建运单上下文用于后端计费引擎 - 匹配后端schema // 2025-10-01 21:50:00
+      const shipmentContext = {
+        shipmentId: 'preview-' + Date.now(), // 临时ID用于预览
+        tenantId: '00000000-0000-0000-0000-000000000001',
+        pickupLocation: {
+          address: values.shipperAddrLine1,
+          city: values.shipperCity || 'Toronto'
+        },
+        deliveryLocation: {
+          address: values.receiverAddrLine1,
+          city: values.receiverCity || 'Toronto'
+        },
+        distance: values.distance || 25, // 默认25km
+        weight: values.cargoWeight || 100, // 默认100kg
+        volume: values.cargoLength && values.cargoWidth && values.cargoHeight 
+          ? values.cargoLength * values.cargoWidth * values.cargoHeight / 1000000 // 转换为立方米
+          : 1, // 默认1立方米
+        pallets: 1
+      };
+
+      console.log('调用后端计费引擎:', shipmentContext);
+
+      // 调用后端计费引擎API
+      const response = await pricingApi.calculateCost(shipmentContext);
+      
+      if (response.data && response.data.totalRevenue) {
+        const pricingData = response.data;
+        
+        // 解析费用明细
+        const breakdown = {
+          baseFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'BASE_FEE')?.amount || 100,
+          distanceFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'DISTANCE_FEE')?.amount || 0,
+          weightFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'WEIGHT_FEE')?.amount || 0,
+          volumeFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'VOLUME_FEE')?.amount || 0,
+          additionalFees: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'ADDITIONAL_FEES')?.amount || 0
+        };
+
+        setRealTimePricing({
+          totalCost: Math.round(pricingData.totalRevenue),
+          breakdown: {
+            baseFee: Math.round(breakdown.baseFee),
+            distanceFee: Math.round(breakdown.distanceFee),
+            weightFee: Math.round(breakdown.weightFee),
+            volumeFee: Math.round(breakdown.volumeFee),
+            additionalFees: Math.round(breakdown.additionalFees)
+          },
+          loading: false
+        });
+
+        console.log('计费引擎返回结果:', pricingData);
+      } else {
+        throw new Error('计费引擎返回数据格式错误');
+      }
+
+    } catch (error) {
+      console.error('实时计费计算失败，降级到本地计算:', error);
+      
+      // 降级到本地计算
+      const baseFee = 100;
+      const distance = values.distance || 25;
+      const distanceFee = distance * 2;
+      const weightFee = (values.cargoWeight || 0) * 0.5;
+      
+      let volumeFee = 0;
+      if (values.cargoLength && values.cargoWidth && values.cargoHeight) {
+        const volume = values.cargoLength * values.cargoWidth * values.cargoHeight;
+        volumeFee = volume * 0.01;
+      }
+
+      let additionalFees = 0;
+      if (values.insurance) additionalFees += 20;
+      if (values.requiresTailgate) additionalFees += 30;
+      if (values.requiresAppointment) additionalFees += 15;
+
+      const totalCost = baseFee + distanceFee + weightFee + volumeFee + additionalFees;
+
+      setRealTimePricing({
+        totalCost: Math.round(totalCost),
+        breakdown: {
+          baseFee,
+          distanceFee: Math.round(distanceFee),
+          weightFee: Math.round(weightFee),
+          volumeFee: Math.round(volumeFee),
+          additionalFees
+        },
+        loading: false
+      });
+    }
+  };
+
+  // 表单字段变化处理 - 2025-10-01 21:40:00
+  const handleFormChange = (changedValues: any, allValues: any) => {
+    // 检查是否是需要触发计费的字段
+    const pricingFields = [
+      'shipperAddrLine1', 'shipperCity', 'shipperState', 'shipperPostalCode',
+      'receiverAddrLine1', 'receiverCity', 'receiverState', 'receiverPostalCode',
+      'cargoWeight', 'cargoLength', 'cargoWidth', 'cargoHeight',
+      'insurance', 'requiresTailgate', 'requiresAppointment'
+    ];
+
+    const shouldTriggerPricing = Object.keys(changedValues).some(field => 
+      pricingFields.includes(field)
+    );
+
+    if (shouldTriggerPricing) {
+      // 延迟执行，避免频繁计算
+      setTimeout(() => {
+        calculateRealTimePricing(allValues);
+      }, 500);
+    }
+  };
+
+  // 实时费用显示组件 - 2025-10-01 21:40:00
+  const renderRealTimePricing = () => (
+    <Card title="实时费用预估" style={{ marginBottom: 12 }}>
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            {realTimePricing.loading ? (
+              <div>
+                <Spin size="large" />
+                <div style={{ marginTop: 8, color: '#666' }}>正在计算费用...</div>
+              </div>
+            ) : realTimePricing.totalCost > 0 ? (
+              <div>
+                <Text strong style={{ fontSize: '28px', color: '#1890ff' }}>
+                  ¥{realTimePricing.totalCost}
+                </Text>
+                <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+                  预估总费用
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: '#999' }}>
+                请填写地址和货物信息以查看费用预估
+              </div>
+            )}
+          </div>
+        </Col>
+        {realTimePricing.totalCost > 0 && (
+          <Col span={24}>
+            <Divider style={{ margin: '12px 0' }} />
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              <Row gutter={[8, 4]}>
+                <Col span={12}>基础费用: ¥{realTimePricing.breakdown.baseFee}</Col>
+                <Col span={12}>距离费用: ¥{realTimePricing.breakdown.distanceFee}</Col>
+                <Col span={12}>重量费用: ¥{realTimePricing.breakdown.weightFee}</Col>
+                <Col span={12}>体积费用: ¥{realTimePricing.breakdown.volumeFee}</Col>
+                {realTimePricing.breakdown.additionalFees > 0 && (
+                  <Col span={24}>附加服务: ¥{realTimePricing.breakdown.additionalFees}</Col>
+                )}
+              </Row>
+            </div>
+          </Col>
+        )}
+      </Row>
+    </Card>
+  );
+
   // 单页模块化布局 - 基础信息模块 // 2025-09-24 14:05:00
   // 渲染订单元信息部分：仅保留销售渠道与销售备注 // 2025-10-01 10:22:30
   const renderOrderInfoSection = () => (
@@ -623,11 +818,11 @@ const ShipmentCreate: React.FC = () => {
             >
               {customers.map((customer: any) => (
                 <Option key={customer.id} value={customer.id}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{customer.name}</div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.4' }}>
+                    <span style={{ fontWeight: 500 }}>{customer.name}</span>
+                    <span style={{ fontSize: '12px', color: '#666' }}>
                       {customer.phone} • {customer.email}
-                    </div>
+                    </span>
                   </div>
                 </Option>
               ))}
@@ -640,11 +835,12 @@ const ShipmentCreate: React.FC = () => {
             label="客户等级 (Customer Level)"
             style={{ marginBottom: 8 }}
           >
-            <Select placeholder="普通">
-              <Option value="low">低</Option>
-              <Option value="normal">普通</Option>
-              <Option value="high">高</Option>
-              <Option value="urgent">紧急</Option>
+            <Select placeholder="VIP1">
+              <Option value="vip1">VIP1</Option>
+              <Option value="vip2">VIP2</Option>
+              <Option value="vip3">VIP3</Option>
+              <Option value="standard">标准</Option>
+              <Option value="premium">高级</Option>
             </Select>
           </Form.Item>
         </Col>
@@ -1468,8 +1664,9 @@ const ShipmentCreate: React.FC = () => {
             <Form
               form={form}
               layout="vertical"
+              onValuesChange={handleFormChange}
               initialValues={{
-                priority: 'normal',
+                priority: 'vip1',
                 addressType: 'residential',
                 shipperCountry: 'CA',
                 receiverCountry: 'CA',
@@ -1493,7 +1690,10 @@ const ShipmentCreate: React.FC = () => {
               {renderSafetyComplianceSection()}
               {renderServicesSection()}
 
-              {/* 2025-10-01 15:00:45 将“订单元信息”模块移动到创建页最底部 */}
+              {/* 实时费用预估组件 - 2025-10-01 21:40:00 */}
+              {renderRealTimePricing()}
+
+              {/* 2025-10-01 15:00:45 将"订单元信息"模块移动到创建页最底部 */}
               {renderOrderInfoSection()}
 
               {/* 提交按钮 */}
@@ -1523,12 +1723,13 @@ const ShipmentCreate: React.FC = () => {
         onOk={handleAddCustomer}
         onCancel={() => {
           setIsAddCustomerModalVisible(false);
+          customerForm.resetFields(); // 关闭时重置客户表单 // 2025-10-01 21:55:00
         }}
         okText="确认"
         cancelText="取消"
         width={800}
       >
-        <Form form={form} layout="vertical">
+        <Form form={customerForm} layout="vertical">
           <Form.Item
             name="name"
             label="客户姓名"

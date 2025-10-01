@@ -137,7 +137,7 @@ export class PricingEngineService {
       
       const result = await this.db.query(query, [templateId, process.env.CURRENT_TENANT_ID]);
       
-      return result.rows[0] || null;
+      return result[0] || null;
     } catch (error) {
       logger.error(`获取计费模板 ${templateId} 失败`, error);
       throw error;
@@ -152,27 +152,51 @@ export class PricingEngineService {
   }
 
   /**
-   * 自动匹配最佳计费模板的实际实现
+   * 自动匹配最佳计费模板的实际实现 - 优化匹配逻辑 // 2025-10-01 22:00:00
    */
   private async findBestTemplateInternal(shipmentContext: ShipmentContext): Promise<PricingTemplate | null> {
     try {
       // 基于业务场景自动匹配最佳模板
       const scenario = this.detectBusinessScenario(shipmentContext);
-      logger.info(`检测到业务场景: ${scenario}`);
+      logger.info(`检测到业务场景: ${scenario}`, { shipmentContext });
 
-      const query = `
+      // 1. 首先尝试精确匹配业务场景
+      let query = `
         SELECT * FROM pricing_templates 
         WHERE tenant_id = $1 AND type = $2 AND status = 'active'
         ORDER BY version DESC
         LIMIT 1
       `;
       
-      const result = await this.db.query(query, [process.env.CURRENT_TENANT_ID, scenario]);
+      let result = await this.db.query(query, [shipmentContext.tenantId, scenario]);
       
-      return result.rows[0] || null;
+      if (result && result.length > 0) {
+        logger.info(`找到精确匹配的模板: ${result[0].name}`);
+        return result[0];
+      }
+
+      // 2. 如果没有精确匹配，尝试通用模板
+      query = `
+        SELECT * FROM pricing_templates 
+        WHERE tenant_id = $1 AND type = 'CUSTOM' AND status = 'active'
+        ORDER BY version DESC
+        LIMIT 1
+      `;
+      
+      result = await this.db.query(query, [shipmentContext.tenantId]);
+      
+      if (result && result.length > 0) {
+        logger.info(`使用通用模板: ${result[0].name}`);
+        return result[0];
+      }
+
+      // 3. 如果仍然没有找到，返回默认模板
+      logger.warn(`未找到匹配的计费模板，使用默认逻辑`);
+      return this.createDefaultTemplate(shipmentContext);
+      
     } catch (error) {
       logger.error('自动匹配模板失败', error);
-      return null;
+      return this.createDefaultTemplate(shipmentContext);
     }
   }
 
@@ -219,6 +243,66 @@ export class PricingEngineService {
   private isClientDirect(context: ShipmentContext): boolean {
     const { pickupLocation } = context as any;
     return !pickupLocation.warehouseId || pickupLocation.warehouseType === 'CLIENT_LOCATION';
+  }
+
+  /**
+   * 创建默认计费模板 - 当没有找到匹配模板时使用 // 2025-10-01 22:00:00
+   */
+  private createDefaultTemplate(shipmentContext: ShipmentContext): PricingTemplate {
+    logger.info('创建默认计费模板', { shipmentId: shipmentContext.shipmentId });
+    
+    return {
+      id: 'default-template-' + Date.now(),
+      tenantId: shipmentContext.tenantId,
+      name: '默认计费模板',
+      description: '通用默认计费模板',
+      type: 'CUSTOM',
+      businessConditions: {
+        pickupType: 'ANY',
+        deliveryType: 'ANY',
+        customerType: 'ANY'
+      },
+      pricingRules: [
+        {
+          ruleId: 'default_base_fee',
+          name: '基础运费',
+          component: 'BASE_FEE',
+          formula: 100,
+          priority: 100
+        },
+        {
+          ruleId: 'default_distance_fee',
+          name: '距离费用',
+          component: 'DISTANCE_FEE',
+          formula: 'distance * 2',
+          priority: 110
+        },
+        {
+          ruleId: 'default_weight_fee',
+          name: '重量费用',
+          component: 'WEIGHT_FEE',
+          formula: 'weight * 0.5',
+          priority: 120
+        }
+      ],
+      driverRules: [
+        {
+          ruleId: 'default_driver_pay',
+          name: '司机基础工资',
+          component: 'BASE_DRIVER_PAY',
+          formula: 50,
+          priority: 100
+        }
+      ],
+      costAllocation: {
+        FLEET_COST: 'auto_calculated',
+        WAREHOUSE_COST: 20
+      },
+      status: 'active',
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
   }
 
   // =====================================================
@@ -514,7 +598,7 @@ export class PricingEngineService {
     try {
       const query = 'SELECT * FROM pricing_components WHERE code = $1 AND tenant_id = $2';
       const result = await this.db.query(query, [code, process.env.CURRENT_TENANT_ID]);
-      return result.rows[0];
+      return result[0];
     } catch (error) {
       logger.debug(`获取组件 ${code} 失败`, error);
       return null;
@@ -639,10 +723,10 @@ export class PricingEngineService {
     // 从数据库获取运单信息并构建上下文
     try {
       const shipment = await this.db.query('SELECT * FROM shipments WHERE id = $1', [shipmentId]);
-      if (shipment.rowCount === 0) {
+      if (!shipment || shipment.length === 0) {
         throw new Error(`运单 ${shipmentId} 不存在`);
       }
-      const shipmentData = shipment.rows[0];
+      const shipmentData = shipment[0];
 
       const context: ShipmentContext = {
         shipmentId: shipmentData.id,

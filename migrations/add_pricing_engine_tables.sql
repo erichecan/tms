@@ -142,12 +142,13 @@ CREATE TABLE public.shipment_pricing_details (
     execution_time numeric(10,3), -- 毫秒
     
     -- 审计字段
-    calculated_at timestamp DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_shipment_pricing_shipment_id (shipment_id),
-    INDEX idx_shipment_pricing_component_type (component_type),
-    INDEX idx_shipment_pricing_calculated_at (calculated_at)
+    calculated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 为运单计费详情表创建索引
+CREATE INDEX idx_shipment_pricing_shipment_id ON public.shipment_pricing_details(shipment_id);
+CREATE INDEX idx_shipment_pricing_component_type ON public.shipment_pricing_details(component_type);
+CREATE INDEX idx_shipment_pricing_calculated_at ON public.shipment_pricing_details(calculated_at);
 
 -- =====================================================
 -- 5. 仓库与地理位置配置表
@@ -344,23 +345,23 @@ INSERT INTO public.pricing_templates (tenant_id, name, description, type, busine
 INSERT INTO public.pricing_components (tenant_id, code, name, description, category, calculation_type, formula, default_value, currency) VALUES
 -- 收入侧组件
 ('00000000-0000-0000-0000-000000000001', 'BASE_PICKUP_FEE', '基础取货费', '垃圾清运的基础费用', 'REVENUE', 'fixed', '40', 40, 'CAD'),
-('00000000-0000-0000-0000-000000000000001', 'BASE_DISTANCE_FEE', '基础距离费', '25公里内的基础运费', 'REVENUE', 'fixed', '180', 180, 'CAD'),
-('00000000-0000-0000-0000-000000000000001', 'EXTRA_DISTANCE_FEE', '超距费', '超出基础距离的额外费用', 'REVENUE', 'per_unit_tier', '20', 20, 'CAD'),
-('00000000-0000-0000-0000-000000000000001', 'WAITING_PENALTY', '等候费', '超时等候的额外收费', 'REVENUE', 'conditional', '30', 30, 'CAD'),
+('00000000-0000-0000-0000-000000000001', 'BASE_DISTANCE_FEE', '基础距离费', '25公里内的基础运费', 'REVENUE', 'fixed', '180', 180, 'CAD'),
+('00000000-0000-0000-0000-000000000001', 'EXTRA_DISTANCE_FEE', '超距费', '超出基础距离的额外费用', 'REVENUE', 'per_unit_tier', '20', 20, 'CAD'),
+('00000000-0000-0000-0000-000000000001', 'WAITING_PENALTY', '等候费', '超时等候的额外收费', 'REVENUE', 'conditional', '30', 30, 'CAD'),
 
 -- 司机薪酬组件
-('00000000-0000-0000-0000-000000000000001', 'WASTE_COLLECTION_PAY', '垃圾清运工资', '垃圾清运的司机报酬', 'DRIVER_COMPENSATION', 'fixed', '30', 30, 'CAD'),
-('00000000-0000-0000-0000-000000000000001', 'BASE_DRIVER_PAY', '基础工资', '运输司机的基础报酬', 'DRIVER_COMPENSATION', 'fixed', '80', 80, 'CAD'),
-('00000000-0000-0000-0000-000000000000001', 'WAITING_BONUS', '等候奖金', '超时等候给司机的奖金', 'DRIVER_COMPENSATION', 'conditional', '20', 20, 'CAD'),
+('00000000-0000-0000-0000-000000000001', 'WASTE_COLLECTION_PAY', '垃圾清运工资', '垃圾清运的司机报酬', 'DRIVER_COMPENSATION', 'fixed', '30', 30, 'CAD'),
+('00000000-0000-0000-0000-000000000001', 'BASE_DRIVER_PAY', '基础工资', '运输司机的基础报酬', 'DRIVER_COMPENSATION', 'fixed', '80', 80, 'CAD'),
+('00000000-0000-0000-0000-000000000001', 'WAITING_BONUS', '等候奖金', '超时等候给司机的奖金', 'DRIVER_COMPENSATION', 'conditional', '20', 20, 'CAD'),
 
 -- 内部成本组件
-('00000000-0000-0000-0000-000000000000001', 'WAREHOUSE_COST', '仓库成本', '仓库运营和处理费用', 'INTERNAL_COST', 'fixed', '40', 40, 'CAD');
+('00000000-0000-0000-0000-000000000001', 'WAREHOUSE_COST', '仓库成本', '仓库运营和处理费用', 'INTERNAL_COST', 'fixed', '40', 40, 'CAD');
 
 -- 插入仓库配置
 INSERT INTO public.warehouses (tenant_id, name, code, type, address, handling_cost, dock_fee) VALUES
-('00000000-0000-0000-0000-000000000000001', '7号仓库', 'WH_07', 'OWN_WAREHOUSE', '{"street": "7号仓库地址", "city": "Toronto", "province": "ON", "postalCode": "M5V1A1"}', 40, 0),
-('00000000-0000-0000-0000-000000000000001', '亚马逊YYZ9仓库', 'AMZ_YYZ9', 'THIRD_PARTY_WAREHOUSE', '{"street": "亚马逊仓库地址", "city": "Toronto", "province": "ON", "postalCode": "L3R5W7"}', 0, 0),
-('00000000-0000-0000-0000-000000000000001', '垃圾填埋场', 'LANDFILL_01', 'DISPOSAL_SITE', '{"street": "垃圾填埋场地址", "city": "Toronto", "province": "ON"}', 0, 0);
+('00000000-0000-0000-0000-000000000001', '7号仓库', 'WH_07', 'OWN_WAREHOUSE', '{"street": "7号仓库地址", "city": "Toronto", "province": "ON", "postalCode": "M5V1A1"}', 40, 0),
+('00000000-0000-0000-0000-000000000001', '亚马逊YYZ9仓库', 'AMZ_YYZ9', 'THIRD_PARTY_WAREHOUSE', '{"street": "亚马逊仓库地址", "city": "Toronto", "province": "ON", "postalCode": "L3R5W7"}', 0, 0),
+('00000000-0000-0000-0000-000000000001', '垃圾填埋场', 'LANDFILL_01', 'DISPOSAL_SITE', '{"street": "垃圾填埋场地址", "city": "Toronto", "province": "ON"}', 0, 0);
 
 COMMENT ON TABLE public.pricing_templates IS '计费规则模板表 - 支持业务场景驱动的计费规则配置';
 COMMENT ON TABLE public.pricing_components IS '计费组件定义表 - 标准化的费用组件管理';

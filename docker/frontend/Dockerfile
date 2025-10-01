@@ -9,7 +9,9 @@ COPY . .
 # 安装所有依赖
 RUN npm install
 
-# 构建前端应用
+# 构建前端应用 - 传递环境变量到构建过程 // 2025-10-01 21:45:00
+ARG VITE_API_BASE_URL=http://localhost:8000/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build:frontend
 
 # ---- Final Stage ----
