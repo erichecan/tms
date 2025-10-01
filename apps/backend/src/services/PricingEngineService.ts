@@ -258,9 +258,9 @@ export class PricingEngineService {
       description: '通用默认计费模板',
       type: 'CUSTOM',
       businessConditions: {
-        pickupType: 'ANY',
-        deliveryType: 'ANY',
-        customerType: 'ANY'
+        pickupType: 'CLIENT_LOCATION',
+        deliveryType: 'CLIENT_ADDRESS',
+        customerType: 'EXTERNAL'
       },
       pricingRules: [
         {
@@ -300,8 +300,8 @@ export class PricingEngineService {
       },
       status: 'active',
       version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
   }
 
