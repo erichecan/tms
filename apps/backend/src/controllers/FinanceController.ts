@@ -7,7 +7,7 @@ import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { CurrencyService } from '../services/CurrencyService';
 import { logger } from '../utils/logger';
-import { QueryParams } from '@shared/index';
+import { QueryParams } from '@tms/shared-types';
 
 // Helper to get request ID safely
 const getRequestId = (req: Request): string => {

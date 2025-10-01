@@ -10,7 +10,6 @@ import {
   ShipmentContext,
   PricingDetail,
   BusinessScenarioType,
-  PricingError,
   PricingErrorCode,
   DriverRule,
   PricingRule,
@@ -53,11 +52,11 @@ export class PricingEngineService {
         : await this.findBestTemplate(shipmentContext);
 
       if (!template) {
-        throw new PricingError({
-          code: PricingErrorCode.TEMPLATE_NOT_FOUND,
-          message: '未找到合适的计费模板',
-          context: shipmentContext
-        });
+        // 2025-10-01 14:53:05 抛出标准错误对象，附加 code 以便控制器识别
+        const err: any = new Error('未找到合适的计费模板');
+        err.code = PricingErrorCode.TEMPLATE_NOT_FOUND;
+        err.context = shipmentContext;
+        throw err;
       }
 
       // 2. 验证模板是否适用于当前运单
@@ -207,7 +206,7 @@ export class PricingEngineService {
   }
 
   private isWarehouseTransfer(context: ShipmentContext): boolean {
-    const { pickupLocation, deliveryLocation } = context;
+    const { pickupLocation, deliveryLocation } = context as any;
     return (
       pickupLocation.warehouseCode === 'WH_07' && 
       deliveryLocation.warehouseCode === 'AMZ_YYZ9'
@@ -218,7 +217,7 @@ export class PricingEngineService {
   }
 
   private isClientDirect(context: ShipmentContext): boolean {
-    const { pickupLocation } = context;
+    const { pickupLocation } = context as any;
     return !pickupLocation.warehouseId || pickupLocation.warehouseType === 'CLIENT_LOCATION';
   }
 
@@ -527,6 +526,7 @@ export class PricingEngineService {
    */
   private async savePricingDetails(calculation: PricingCalculation): Promise<void> {
     try {
+      // 2025-10-01 14:50:20 使用公开的 getConnection 进行事务
       const client = await this.db.getConnection();
       
       await client.query('BEGIN');
@@ -601,11 +601,10 @@ export class PricingEngineService {
   private async validateTemplateMatch(template: PricingTemplate, context: ShipmentContext): Promise<void> {
     // 基础的模板匹配验证
     if (template.type === 'WASTE_COLLECTION' && !this.isWasteCollection(context)) {
-      throw new PricingError({
-        code: PricingErrorCode.TEMPLATE_NOT_FOUND,
-        message: '模板类型与运单场景不匹配',
-        context: context
-      });
+      const err: any = new Error('模板类型与运单场景不匹配');
+      err.code = PricingErrorCode.TEMPLATE_NOT_FOUND;
+      err.context = context;
+      throw err;
     }
   }
 
@@ -676,25 +675,4 @@ export class PricingEngineService {
   }
 }
 
-// =====================================================
-// 错误类型定义
-// =====================================================
-
-export class PricingError extends Error {
-  public code: PricingErrorCode;
-  public details?: Record<string, any>;
-  public context?: ShipmentContext;
-
-  constructor(config: {
-    code: PricingErrorCode;
-    message: string;
-    details?: Record<string, any>;
-    context?: ShipmentContext;
-  }) {
-    super(config.message);
-    this.name = 'PricingError';
-    this.code = config.code;
-    this.details = config.details;
-    this.context = config.context;
-  }
-}
+// 2025-10-01 14:50:20 移除重复的错误类定义，使用 shared-types 中的类型接口并抛出标准 Error

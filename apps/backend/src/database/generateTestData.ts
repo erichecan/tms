@@ -159,17 +159,19 @@ export class TestDataGenerator {
     return customers;
   }
 
-  // 生成测试司机数据
+  // 生成测试司机数据 - 增加更多司机数据用于测试 // 2025-10-01 21:30:00
   generateDrivers(): TestDriver[] {
     const drivers: TestDriver[] = [];
     const statuses: ('available' | 'busy' | 'offline')[] = ['available', 'busy', 'offline'];
+    const names = ['李司机', '王司机', '张司机', '刘司机', '陈司机', '杨司机', '赵司机', '黄司机', '周司机', '吴司机', '徐司机', '孙司机', '马司机', '朱司机', '胡司机'];
 
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 15; i++) {
       const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const name = names[i - 1] || `司机${i}`;
       
       drivers.push({
         id: `driver_${i}`,
-        name: `司机${i}`,
+        name,
         phone: `139${String(i).padStart(8, '0')}`,
         email: `driver${i}@example.com`,
         status,
@@ -183,27 +185,29 @@ export class TestDataGenerator {
     return drivers;
   }
 
-  // 生成测试车辆数据
+  // 生成测试车辆数据 - 增加更多车辆数据用于测试 // 2025-10-01 21:30:00
   generateVehicles(): TestVehicle[] {
     const vehicles: TestVehicle[] = [];
-    const types = ['厢式货车', '平板车', '冷藏车', '危险品运输车'];
-    const makes = ['东风', '解放', '重汽', '陕汽', '福田'];
-    const models = ['天龙', 'J6', '豪沃', '德龙', '欧曼'];
+    const types = ['厢式货车', '平板车', '冷藏车', '危险品运输车', '普通货车', '集装箱车'];
+    const makes = ['东风', '解放', '重汽', '陕汽', '福田', '江淮', '江铃', '庆铃'];
+    const models = ['天龙', 'J6', '豪沃', '德龙', '欧曼', '格尔发', '凯运', '600P'];
     const statuses: ('available' | 'busy' | 'maintenance')[] = ['available', 'busy', 'maintenance'];
+    const platePrefixes = ['京', '沪', '粤', '深', '杭', '宁', '蓉', '汉', '西', '渝'];
 
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 20; i++) {
       const type = types[Math.floor(Math.random() * types.length)];
       const make = makes[Math.floor(Math.random() * makes.length)];
       const model = models[Math.floor(Math.random() * models.length)];
       const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const platePrefix = platePrefixes[Math.floor(Math.random() * platePrefixes.length)];
       
       vehicles.push({
         id: `vehicle_${i}`,
-        plateNumber: `京${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${String(i).padStart(5, '0')}`,
+        plateNumber: `${platePrefix}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${String(i).padStart(5, '0')}`,
         type,
-        capacityKg: Math.floor(Math.random() * 10000) + 1000,
+        capacityKg: Math.floor(Math.random() * 15000) + 1000,
         status,
-        year: 2020 + Math.floor(Math.random() * 4),
+        year: 2018 + Math.floor(Math.random() * 6),
         make,
         model,
         createdAt: dayjs().subtract(Math.floor(Math.random() * 60), 'day').toISOString(),
@@ -333,7 +337,7 @@ export class TestDataGenerator {
     return trips;
   }
 
-  // 生成所有测试数据
+  // 生成所有测试数据并插入数据库 // 2025-10-01 21:30:00
   async generateAllTestData(): Promise<void> {
     try {
       console.log('开始生成测试数据...');
@@ -352,16 +356,54 @@ export class TestDataGenerator {
       console.log(`- 运单: ${shipments.length} 条`);
       console.log(`- 行程: ${trips.length} 条`);
 
-      // 这里可以添加数据库插入逻辑
-      // 由于数据库服务可能需要具体的实现，这里只输出数据结构
-      console.log('\n数据结构预览:');
-      console.log('客户数据:', JSON.stringify(customers[0], null, 2));
-      console.log('司机数据:', JSON.stringify(drivers[0], null, 2));
-      console.log('车辆数据:', JSON.stringify(vehicles[0], null, 2));
-      console.log('运单数据:', JSON.stringify(shipments[0], null, 2));
-      console.log('行程数据:', JSON.stringify(trips[0], null, 2));
+      // 插入数据库
+      console.log('\n开始插入数据库...');
+      const tenantId = '00000000-0000-0000-0000-000000000001';
 
-      console.log('\n测试数据生成完成！');
+      // 插入司机数据 - 修复字段匹配问题 // 2025-10-01 21:35:00
+      for (const driver of drivers) {
+        try {
+          await this.dbService.createDriver(tenantId, {
+            name: driver.name,
+            phone: driver.phone,
+            licenseNumber: driver.licenseNumber,
+            status: driver.status === 'available' ? 'active' : 'inactive',
+            vehicleInfo: {
+              type: 'truck',
+              capacity: 10000,
+              features: ['GPS'],
+              dimensions: { width: 2.5, height: 2.8, length: 6 },
+              licensePlate: `京A${driver.id.slice(-4)}`
+            },
+            performance: {
+              rating: 4.5 + Math.random() * 0.5,
+              onTimeRate: 0.9 + Math.random() * 0.1,
+              totalDeliveries: Math.floor(Math.random() * 200) + 50,
+              customerSatisfaction: 0.85 + Math.random() * 0.15
+            }
+          });
+          console.log(`✓ 司机 ${driver.name} 插入成功`);
+        } catch (error) {
+          console.log(`⚠ 司机 ${driver.name} 插入失败:`, error.message);
+        }
+      }
+
+      // 插入车辆数据 - 修复字段匹配问题 // 2025-10-01 21:35:00
+      for (const vehicle of vehicles) {
+        try {
+          await this.dbService.createVehicle({
+            plateNumber: vehicle.plateNumber,
+            vehicleType: vehicle.type,
+            capacity: vehicle.capacityKg,
+            status: vehicle.status
+          });
+          console.log(`✓ 车辆 ${vehicle.plateNumber} 插入成功`);
+        } catch (error) {
+          console.log(`⚠ 车辆 ${vehicle.plateNumber} 插入失败:`, error.message);
+        }
+      }
+
+      console.log('\n测试数据插入完成！');
     } catch (error) {
       console.error('生成测试数据失败:', error);
       throw error;

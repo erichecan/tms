@@ -2,7 +2,24 @@ import { Router } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { validateRequest, tripCreateSchema, tripUpdateSchema } from '../middleware/validationMiddleware';
+import { validateRequest } from '../middleware/validationMiddleware';
+import Joi from 'joi';
+
+// 2025-10-01 14:50:50 临时补充行程验证Schema，避免缺失导出导致的构建失败
+const tripCreateSchema = Joi.object({
+  tripNo: Joi.string().optional(),
+  driverId: Joi.string().uuid().optional(),
+  vehicleId: Joi.string().uuid().optional(),
+  status: Joi.string().valid('planned','in_progress','completed','cancelled').default('planned'),
+  shipments: Joi.array().items(Joi.string().uuid()).default([])
+});
+
+const tripUpdateSchema = Joi.object({
+  driverId: Joi.string().uuid().optional(),
+  vehicleId: Joi.string().uuid().optional(),
+  status: Joi.string().valid('planned','in_progress','completed','cancelled').optional(),
+  shipments: Joi.array().items(Joi.string().uuid()).optional()
+});
 
 const router = Router();
 const dbService = new DatabaseService();

@@ -12,7 +12,7 @@ import {
   PaginatedResponse,
   AdditionalFee,
   ShipmentTimeline
-} from '@shared/index';
+} from '@tms/shared-types';
 
 export interface ShipmentAssignment {
   shipmentId: string;

@@ -4,7 +4,7 @@
 
 import { Request, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
-import { PricingEngineService, PricingError } from '../services/PricingEngineService';
+import { PricingEngineService } from '../services/PricingEngineService';
 import { logger } from '../utils/logger';
 import {
   PricingTemplateCreateRequest,
@@ -265,13 +265,14 @@ export class PricingEngineController {
     } catch (error) {
       logger.error('计费计算失败', error);
       
-      if (error instanceof PricingError) {
+      // 2025-10-01 14:52:45 使用通用错误形状判断，避免依赖具体类
+      if ((error as any)?.code) {
         res.status(400).json({
           success: false,
           error: {
-            code: error.code,
-            message: error.message,
-            details: error.details
+            code: (error as any).code,
+            message: (error as Error).message,
+            details: (error as any).details
           },
           timestamp: new Date().toISOString()
         });
@@ -326,13 +327,13 @@ export class PricingEngineController {
     } catch (error) {
       logger.error('预览计费结果失败', error);
       
-      if (error instanceof PricingError) {
+      if ((error as any)?.code) {
         res.status(400).json({
           success: false,
           error: {
-            code: error.code,
-            message: error.message,
-            details: error.details
+            code: (error as any).code,
+            message: (error as Error).message,
+            details: (error as any).details
           },
           timestamp: new Date().toISOString()
         });
@@ -384,13 +385,13 @@ export class PricingEngineController {
     } catch (error) {
       logger.error(`重新计算运单费用失败: ${req.params.shipmentId}`, error);
       
-      if (error instanceof PricingError) {
+      if ((error as any)?.code) {
         res.status(400).json({
           success: false,
           error: {
-            code: error.code,
-            message: error.message,
-        details: error.details
+            code: (error as any).code,
+            message: (error as Error).message,
+            details: (error as any).details
           },
           timestamp: new Date().toISOString()
         });
@@ -452,7 +453,20 @@ export class PricingEngineController {
       
       for (const scenario of testRequest.testScenarios) {
         try {
-          const calculation = await this.pricingService.calculatePricing(scenario.context, templateId);
+          // 2025-10-01 14:53:30 修复类型：将 Partial<ShipmentContext> 合并为完整上下文（填充必需字段）
+          const context = {
+            shipmentId: (scenario.context as any).shipmentId || 'TEMP',
+            tenantId: (scenario.context as any).tenantId || 'TEMP',
+            pickupLocation: (scenario.context as any).pickupLocation || { address: 'unknown', city: 'unknown' },
+            deliveryLocation: (scenario.context as any).deliveryLocation || { address: 'unknown', city: 'unknown' },
+            distance: (scenario.context as any).distance || 0,
+            weight: (scenario.context as any).weight || 0,
+            volume: (scenario.context as any).volume,
+            pallets: (scenario.context as any).pallets,
+            customerTier: (scenario.context as any).customerTier,
+            cargoType: (scenario.context as any).cargoType
+          } as ShipmentContext;
+          const calculation = await this.pricingService.calculatePricing(context, templateId);
           testResults.push({
             scenario: scenario.context,
             result: calculation,
@@ -615,8 +629,9 @@ export class PricingEngineController {
         }
       ];
 
+      // 2025-10-01 14:50:35 修复拼写错误：current-confidence 应为 current.confidence
       const bestMatch = scenarios.reduce((prev, current) => 
-        current-confidence > prev.confidence ? current : prev
+        current.confidence > prev.confidence ? current : prev
       );
 
       res.status(200).json({

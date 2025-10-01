@@ -2,7 +2,7 @@
 // 创建时间: 2025-01-27 15:30:45
 
 import { Engine } from 'json-rules-engine';
-import { Rule, RuleCondition, RuleAction, RuleExecution, RuleConflict } from '@shared/index';
+import { Rule, RuleCondition, RuleAction, RuleExecution, RuleConflict } from '@tms/shared-types';
 import { logger } from '../utils/logger';
 import { DatabaseService } from './DatabaseService';
 

@@ -1486,13 +1486,15 @@ const ShipmentCreate: React.FC = () => {
               }}
             >
               {/* 单页布局 - 显示所有模块 */}
-              {renderOrderInfoSection()}
               {renderBasicInfoSection()}
               {renderAddressTimeSection()}
               {/* 根据产品文档移除包裹信息与商品明细模块 // 2025-10-01 13:49:10 */}
               {renderCargoSection()}
               {renderSafetyComplianceSection()}
               {renderServicesSection()}
+
+              {/* 2025-10-01 15:00:45 将“订单元信息”模块移动到创建页最底部 */}
+              {renderOrderInfoSection()}
 
               {/* 提交按钮 */}
               <div style={{ textAlign: 'center', marginTop: '24px' }}>

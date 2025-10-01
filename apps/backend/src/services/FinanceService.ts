@@ -5,7 +5,7 @@ import { DatabaseService } from './DatabaseService';
 import { RuleEngineService } from './RuleEngineService';
 import { CurrencyService } from './CurrencyService';
 import { logger } from '../utils/logger';
-import { DEFAULT_CURRENCY } from '@shared/constants';
+import { DEFAULT_CURRENCY } from '@tms/shared-types';
 import { 
   FinancialRecord, 
   Statement, 
@@ -19,7 +19,7 @@ import {
   Customer,
   QueryParams,
   PaginatedResponse
-} from '@shared/index';
+} from '@tms/shared-types';
 
 export interface ReceivableSummary {
   customerId: string;

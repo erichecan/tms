@@ -89,7 +89,12 @@ export interface Customer extends BaseEntity {
   tenantId: string;
   name: string;
   level: CustomerLevel;
+  // 2025-10-01 14:52:10 扩展客户字段以匹配后端使用
   contactInfo: ContactInfo;
+  phone?: string;
+  email?: string;
+  defaultPickupAddress?: Record<string, any> | null;
+  defaultDeliveryAddress?: Record<string, any> | null;
   billingInfo?: BillingInfo;
 }
 

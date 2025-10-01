@@ -6,7 +6,7 @@ import { ShipmentService, ShipmentAssignment } from '../services/ShipmentService
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { logger } from '../utils/logger';
-import { Shipment, QueryParams } from '@shared/index';
+import { Shipment, QueryParams } from '@tms/shared-types';
 
 // Helper to get request ID safely
 const getRequestId = (req: Request): string => {

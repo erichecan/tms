@@ -46,8 +46,16 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
 
   // 根据当前路径自动展开对应的菜单 - 添加时间戳注释 @ 2025-09-30 09:15:00
   useEffect(() => {
+    // 2025-10-01 15:06:20 特殊处理：当进入“运单管理”时不要展开“管理后台”下拉
+    if (location.pathname.startsWith('/admin/shipments')) {
+      setOpenKeys([]);
+      return;
+    }
+
     if (location.pathname.startsWith('/admin')) {
       setOpenKeys(['/admin']);
+    } else {
+      setOpenKeys([]);
     }
   }, [location.pathname]);
 
@@ -165,6 +173,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {
+    // 2025-10-01 15:06:20 点击“运单管理”时，显式收起“管理后台”下拉
+    if (key === '/admin/shipments') {
+      setOpenKeys([]);
+    }
     navigate(key);
   };
 

@@ -3,7 +3,7 @@
 
 import { DatabaseService } from './DatabaseService';
 import { logger } from '../utils/logger';
-import { SUPPORTED_CURRENCIES, CURRENCY_SYMBOLS, CURRENCY_NAMES } from '@shared/constants';
+import { SUPPORTED_CURRENCIES, CURRENCY_SYMBOLS, CURRENCY_NAMES } from '@tms/shared-types';
 
 export interface ExchangeRate {
   id: string;
