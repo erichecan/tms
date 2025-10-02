@@ -1,7 +1,7 @@
 // 运单详情组件 - 符合PRD v3.0-PC设计
 // 创建时间: 2025-01-27 15:30:00
 
-import React, { useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react'; // 2025-10-02 15:32:10 引入 useRef/useEffect 支持签名画布
 import { 
   Button, 
   Card, 
@@ -20,7 +20,9 @@ import {
   Select, 
   Timeline,
   Badge,
-  message
+  message,
+  List,
+  Avatar
 } from 'antd';
 import { 
   PrinterOutlined, 
@@ -43,6 +45,10 @@ import {
   POD 
 } from '../../types/index';
 import { formatCurrency } from '../../utils/formatCurrency';
+import jsPDF from 'jspdf'; // 2025-10-02 11:15:00 引入 jsPDF 以生成PDF
+import html2canvas from 'html2canvas'; // 2025-10-02 11:15:00 将DOM渲染为图片嵌入PDF
+import { generateBOLHtml } from '../../templates/BOLTemplate'; // 2025-10-02 11:20:30 引入BOL模板
+import { driversApi, vehiclesApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API
 
 const { Title, Text } = Typography;
 
@@ -66,12 +72,20 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [activeTab, setActiveTab] = useState('basic');
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
   const [isMountModalVisible, setIsMountModalVisible] = useState(false);
+  const [isESignVisible, setIsESignVisible] = useState(false); // 2025-10-02 15:32:10 电子签弹窗
+  const canvasRef = useRef<HTMLCanvasElement | null>(null); // 2025-10-02 15:32:10 签名画布引用
+  const [isDrawing, setIsDrawing] = useState(false); // 2025-10-02 15:32:10 绘制状态
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null); // 2025-10-02 15:32:10 签名图片
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [pods, setPods] = useState<POD[]>([]);
   const [form] = Form.useForm();
+  const [addDriverForm] = Form.useForm(); // 2025-10-02 11:05:20 快速添加司机表单
+  const [addVehicleForm] = Form.useForm(); // 2025-10-02 11:05:20 快速添加车辆表单
+  const [isQuickAddDriverVisible, setIsQuickAddDriverVisible] = useState(false); // 2025-10-02 11:05:20
+  const [isQuickAddVehicleVisible, setIsQuickAddVehicleVisible] = useState(false); // 2025-10-02 11:05:20
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string }> = {
       [ShipmentStatus.CREATED]: { color: 'blue', text: '已创建' },
@@ -116,9 +130,34 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     // TODO: 加载可用行程
   };
 
-  const handlePODUpload = (file: any) => {
-    // TODO: 实现POD上传逻辑
-    message.success('POD上传成功');
+  const handlePODUpload = async (file: any) => {
+    try {
+      // 2025-10-02 16:25:00 实现真正的POD上传逻辑，支持手机拍照
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 调用后端POD上传接口
+      const response = await fetch(`${process.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/shipments/${shipment.id}/pod`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Tenant-ID': localStorage.getItem('tenantId') || '',
+        },
+        body: formData,
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        message.success('POD上传成功');
+        // 刷新POD列表
+        setPods([...pods, result.data]);
+      } else {
+        message.error(result.error?.message || 'POD上传失败');
+      }
+    } catch (error) {
+      console.error('POD upload error:', error);
+      message.error('POD上传失败，请检查网络连接');
+    }
     return false; // 阻止默认上传行为
   };
 
@@ -140,111 +179,15 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           body { margin: 0; }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
-          .shipment-details { 
-            font-family: Arial, sans-serif; 
-            font-size: 12px;
-            line-height: 1.4;
-          }
-          .header { 
-            text-align: center; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 10px; 
-            margin-bottom: 20px; 
-          }
-          .section { 
-            margin-bottom: 15px; 
-            border-bottom: 1px solid #ccc; 
-            padding-bottom: 10px; 
-          }
-          .signature-area { 
-            margin-top: 30px; 
-            border: 1px solid #000; 
-            height: 80px; 
-            padding: 10px; 
-          }
+          #bol-print-root { width: 190mm; }
+          /* 强制一页 A4 打印 */
+          @page { size: A4 portrait; margin: 10mm; }
         }
       </style>
     `;
 
-    // 创建打印内容
-    const printContent = `
-      ${printStyles}
-      <div class="shipment-details">
-        <div class="header">
-          <h1>运输单据</h1>
-          <h2>SHIPMENT DOCUMENT</h2>
-        </div>
-        
-        <div class="section">
-          <h3>运单信息 / Shipment Information</h3>
-          <p><strong>运单号 / Shipment No.:</strong> ${shipment.shipmentNumber}</p>
-          <p><strong>状态 / Status:</strong> ${getStatusTag(shipment.status).text}</p>
-          <p><strong>创建时间 / Created:</strong> ${new Date(shipment.createdAt).toLocaleString()}</p>
-        </div>
-
-        <div class="section">
-          <h3>客户信息 / Customer Information</h3>
-          <p><strong>客户名称 / Customer:</strong> ${shipment.customerName || '未指定'}</p>
-        </div>
-
-        <div class="section">
-          <h3>司机信息 / Driver Information</h3>
-          <p><strong>司机姓名 / Driver:</strong> ${shipment.driverName || '未分配'}</p>
-        </div>
-
-        <div class="section">
-          <h3>地址信息 / Address Information</h3>
-          <div style="display: flex; justify-content: space-between;">
-            <div style="width: 48%;">
-              <h4>取货地址 / Pickup Address</h4>
-              <p>${shipment.pickupAddress.street}</p>
-              <p>${shipment.pickupAddress.city}, ${shipment.pickupAddress.state}</p>
-              <p>邮编: ${shipment.pickupAddress.postalCode}</p>
-            </div>
-            <div style="width: 48%;">
-              <h4>送货地址 / Delivery Address</h4>
-              <p>${shipment.deliveryAddress.street}</p>
-              <p>${shipment.deliveryAddress.city}, ${shipment.deliveryAddress.state}</p>
-              <p>邮编: ${shipment.deliveryAddress.postalCode}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>货物信息 / Cargo Information</h3>
-          <p><strong>重量 / Weight:</strong> ${shipment.weight} kg</p>
-          <p><strong>描述 / Description:</strong> ${shipment.description || '无'}</p>
-          <p><strong>取货时间 / Pickup Date:</strong> ${new Date(shipment.pickupDate).toLocaleDateString()}</p>
-          ${shipment.deliveryDate ? `<p><strong>送货时间 / Delivery Date:</strong> ${new Date(shipment.deliveryDate).toLocaleDateString()}</p>` : ''}
-        </div>
-
-        <div class="section">
-          <h3>费用信息 / Cost Information</h3>
-          <p><strong>预估费用 / Estimated Cost:</strong> ${formatCurrency(shipment.estimatedCost)}</p>
-          ${shipment.actualCost ? `<p><strong>实际费用 / Actual Cost:</strong> ${formatCurrency(shipment.actualCost)}</p>` : ''}
-        </div>
-
-        <div class="signature-area">
-          <div style="display: flex; justify-content: space-between;">
-            <div style="width: 30%;">
-              <p><strong>发货人签字 / Shipper Signature:</strong></p>
-              <div style="height: 40px; border-bottom: 1px solid #000;"></div>
-              <p>日期 / Date: _______________</p>
-            </div>
-            <div style="width: 30%;">
-              <p><strong>司机签字 / Driver Signature:</strong></p>
-              <div style="height: 40px; border-bottom: 1px solid #000;"></div>
-              <p>日期 / Date: _______________</p>
-            </div>
-            <div style="width: 30%;">
-              <p><strong>收货人签字 / Receiver Signature:</strong></p>
-              <div style="height: 40px; border-bottom: 1px solid #000;"></div>
-              <p>日期 / Date: _______________</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    const bolHtml = generateBOLHtml(shipment, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null });
+    const printContent = `${printStyles}<div id="bol-print-root">${bolHtml}</div>`;
 
     // 打开新窗口打印
     const printWindow = window.open('', '_blank');
@@ -257,6 +200,103 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         printWindow.close();
       }, 500);
     }
+  };
+
+  // 2025-10-02 11:15:00 将详情区域转成 PDF，可对接外部模板
+  const handleDownloadPDF = async () => {
+    try {
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-10000px';
+      container.style.top = '0';
+      container.style.width = '820px';
+      container.style.padding = '12px';
+      container.innerHTML = `<div id="pdf-root">${generateBOLHtml(shipment, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null })}</div>`;
+      document.body.appendChild(container);
+
+      const pdfEl = container.querySelector('#pdf-root') as HTMLElement;
+      const canvas = await html2canvas(pdfEl, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 48; // margins
+      const imgHeight = canvas.height * (imgWidth / canvas.width);
+      const y = 24;
+      pdf.addImage(imgData, 'PNG', 24, y, imgWidth, Math.min(imgHeight, pageHeight - 48));
+      pdf.save(`${shipment.shipmentNumber || shipment.id}.pdf`);
+
+      document.body.removeChild(container);
+      message.success('PDF 已下载');
+    } catch (e) {
+      console.error('PDF 生成失败', e);
+      message.error('PDF 生成失败');
+    }
+  };
+
+  // 2025-10-02 15:32:10 电子签：画布事件处理
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+  }, [isESignVisible]);
+
+  const getPos = (e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect();
+    if ('touches' in e) {
+      const t = e.touches[0];
+      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    }
+    const m = e as MouseEvent;
+    return { x: m.clientX - rect.left, y: m.clientY - rect.top };
+  };
+
+  const handleStart = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    setIsDrawing(true);
+    const { x, y } = getPos(e.nativeEvent, canvas);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const handleMove = (e: any) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getPos(e.nativeEvent, canvas);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const handleEnd = () => {
+    setIsDrawing(false);
+  };
+
+  const handleClearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSignatureDataUrl(null);
+  };
+
+  const handleSaveSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    setSignatureDataUrl(dataUrl);
+    message.success('电子签名已保存');
+    setIsESignVisible(false);
   };
 
   const tabItems = [
@@ -310,21 +350,39 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Title level={5}>发货地址</Title>
-                <div>
-                  <Text>{shipment.shipperAddress.country} {shipment.shipperAddress.province} {shipment.shipperAddress.city}</Text><br />
-                  <Text>{shipment.shipperAddress.addressLine1}</Text><br />
-                  <Text>邮编: {shipment.shipperAddress.postalCode}</Text>
-                  {shipment.shipperAddress.isResidential && <Tag color="blue">住宅</Tag>}
-                </div>
+                {(() => {
+                  const anyS: any = shipment as any; // 2025-10-02 11:00:20 兼容不同数据结构
+                  const addr = anyS.shipperAddress || anyS.shipper?.address;
+                  if (!addr) {
+                    return <Text type="secondary">暂无发货地址</Text>;
+                  }
+                  return (
+                    <div>
+                      <Text>{addr.country || ''} {addr.province || addr.state || ''} {addr.city || ''}</Text><br />
+                      <Text>{addr.addressLine1 || addr.street || ''}</Text><br />
+                      {addr.postalCode && <Text>邮编: {addr.postalCode}</Text>}
+                      {addr.isResidential && <Tag color="blue">住宅</Tag>}
+                    </div>
+                  );
+                })()}
               </Col>
               <Col span={12}>
                 <Title level={5}>收货地址</Title>
-                <div>
-                  <Text>{shipment.receiverAddress.country} {shipment.receiverAddress.province} {shipment.receiverAddress.city}</Text><br />
-                  <Text>{shipment.receiverAddress.addressLine1}</Text><br />
-                  <Text>邮编: {shipment.receiverAddress.postalCode}</Text>
-                  {shipment.receiverAddress.isResidential && <Tag color="blue">住宅</Tag>}
-                </div>
+                {(() => {
+                  const anyS: any = shipment as any;
+                  const addr = anyS.receiverAddress || anyS.receiver?.address;
+                  if (!addr) {
+                    return <Text type="secondary">暂无收货地址</Text>;
+                  }
+                  return (
+                    <div>
+                      <Text>{addr.country || ''} {addr.province || addr.state || ''} {addr.city || ''}</Text><br />
+                      <Text>{addr.addressLine1 || addr.street || ''}</Text><br />
+                      {addr.postalCode && <Text>邮编: {addr.postalCode}</Text>}
+                      {addr.isResidential && <Tag color="blue">住宅</Tag>}
+                    </div>
+                  );
+                })()}
               </Col>
             </Row>
           </Card>
@@ -337,14 +395,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                 <Text>{shipment.description || '无'}</Text>
               </Col>
             </Row>
-            {shipment.tags.length > 0 && (
+            {(shipment as any).tags && (shipment as any).tags.length > 0 && (
               <>
                 <Divider />
                 <Row gutter={[16, 16]}>
                   <Col span={24}>
                     <Text strong>标签：</Text>
                     <Space>
-                      {shipment.tags.map((tag, index) => (
+                      {(shipment as any).tags.map((tag: any, index: number) => (
                         <Tag key={index}>{tag}</Tag>
                       ))}
                     </Space>
@@ -424,14 +482,26 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               beforeUpload={handlePODUpload}
               showUploadList={false}
               accept="image/*"
+              capture="environment" // 2025-10-02 16:25:00 优化手机体验，优先使用后置摄像头
+              multiple={false}
+              disabled={shipment.status === 'completed' || shipment.status === 'cancelled'}
             >
-              <Button icon={<UploadOutlined />}>
-                上传POD图片
+              <Button icon={<UploadOutlined />} type="primary">
+                拍照上传POD
               </Button>
             </Upload>
-            <div style={{ marginTop: 16 }}>
-              <Text type="secondary">已上传 {pods.length} 张POD图片</Text>
+            <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                支持手机拍照或从相册选择，已上传 {pods.length} 张POD图片
+              </Text>
             </div>
+            {(shipment.status === 'completed' || shipment.status === 'cancelled') && (
+              <div style={{ marginTop: 8, fontSize: '12px', color: '#f5222d' }}>
+                <Text type="danger" style={{ fontSize: '12px' }}>
+                  运单已完成或已取消，无法上传POD
+                </Text>
+              </div>
+            )}
           </Card>
 
           <Card title="状态时间线">
@@ -476,9 +546,12 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           </Button>
           <Button 
             icon={<DownloadOutlined />} 
-            onClick={onDownloadPDF}
+            onClick={handleDownloadPDF}
           >
             下载 PDF
+          </Button>
+          <Button onClick={() => setIsESignVisible(true)}>
+            电子签名
           </Button>
         </Space>
       </div>
@@ -506,7 +579,12 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         <Form form={form} layout="vertical">
           <Form.Item
             name="driverId"
-            label="选择司机"
+            label={(
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>选择司机</span>
+                <Button type="link" size="small" onClick={() => setIsQuickAddDriverVisible(true)}>+ 添加司机</Button>
+              </div>
+            )}
             rules={[{ required: true, message: '请选择司机' }]}
           >
             <Select placeholder="请选择司机">
@@ -520,7 +598,12 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           
           <Form.Item
             name="vehicleId"
-            label="选择车辆"
+            label={(
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>选择车辆</span>
+                <Button type="link" size="small" onClick={() => setIsQuickAddVehicleVisible(true)}>+ 添加车辆</Button>
+              </div>
+            )}
             rules={[{ required: true, message: '请选择车辆' }]}
           >
             <Select placeholder="请选择车辆">
@@ -532,6 +615,121 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Select>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 快速添加司机弹窗 // 2025-10-02 11:05:20 */}
+      <Modal
+        title="添加司机"
+        open={isQuickAddDriverVisible}
+        onCancel={() => { setIsQuickAddDriverVisible(false); addDriverForm.resetFields(); }}
+        onOk={async () => {
+          try {
+            const values = await addDriverForm.validateFields();
+            const res = await driversApi.createDriver({ name: values.name, phone: values.phone, status: 'available' });
+            const created = res?.data?.data || res?.data || { id: `drv_${Date.now()}`, name: values.name, phone: values.phone };
+            setAvailableDrivers(prev => [created, ...prev]);
+            form.setFieldsValue({ driverId: created.id });
+            message.success('司机已添加');
+            setIsQuickAddDriverVisible(false);
+            addDriverForm.resetFields();
+          } catch (e) {}
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Row gutter={16}>
+          <Col span={12}>
+            <Card size="small" title="司机信息（紧凑）">
+              <Form form={addDriverForm} layout="vertical">
+                <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}> 
+                  <Input placeholder="张三" />
+                </Form.Item>
+                <Form.Item name="age" label="年龄" rules={[{ required: true, message: '请输入年龄' }]}> 
+                  <Input type="number" placeholder="30" />
+                </Form.Item>
+                <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}> 
+                  <Input placeholder="13800000000" />
+                </Form.Item>
+                <Form.Item name="englishLevel" label="英语水平" rules={[{ required: true, message: '请选择英语水平' }]}> 
+                  <Select options={[{ label: 'Basic', value: 'basic' }, { label: 'Intermediate', value: 'intermediate' }, { label: 'Fluent', value: 'fluent' }]} placeholder="选择英语水平" />
+                </Form.Item>
+                <Form.Item name="otherLanguages" label="其他语言"> 
+                  <Select mode="multiple" placeholder="选择其他语言" options={[{ label: '普通话', value: 'mandarin' }, { label: '广东话', value: 'cantonese' }, { label: '法语', value: 'french' }]} />
+                </Form.Item>
+                <Form.Item name="licenseClass" label="驾照等级（加拿大）" rules={[{ required: true, message: '请选择驾照等级' }]}> 
+                  <Select placeholder="选择驾照等级" options={[{ label: 'Class G (Ontario)', value: 'G' }, { label: 'Class G1', value: 'G1' }, { label: 'Class G2', value: 'G2' }, { label: 'Class AZ (Tractor-Trailer)', value: 'AZ' }, { label: 'Class DZ (Straight Truck)', value: 'DZ' }, { label: 'Class CZ (Bus)', value: 'CZ' }, { label: 'Class BZ (School Bus)', value: 'BZ' }, { label: 'Class M (Motorcycle)', value: 'M' }]} />
+                </Form.Item>
+              </Form>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card size="small" title="全部司机（只读列表）">
+              <List
+                size="small"
+                dataSource={availableDrivers}
+                renderItem={(driver) => (
+                  <List.Item>
+                    <List.Item.Meta avatar={<Avatar>{(driver.name || '').slice(0,1)}</Avatar>} title={driver.name} description={driver.phone} />
+                    <Tag color="green">空闲</Tag>
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </Modal>
+
+      {/* 快速添加车辆弹窗 // 2025-10-02 11:05:20 */}
+      <Modal
+        title="添加车辆"
+        open={isQuickAddVehicleVisible}
+        onCancel={() => { setIsQuickAddVehicleVisible(false); addVehicleForm.resetFields(); }}
+        onOk={async () => {
+          try {
+            const values = await addVehicleForm.validateFields();
+            const res = await vehiclesApi.createVehicle({ plateNumber: values.plateNumber, type: values.type, capacityKg: Number(values.capacityKg || 0), status: 'available' });
+            const created = res?.data?.data || res?.data || { id: `veh_${Date.now()}`, plateNumber: values.plateNumber, type: values.type };
+            setAvailableVehicles(prev => [created, ...prev]);
+            form.setFieldsValue({ vehicleId: created.id });
+            message.success('车辆已添加');
+            setIsQuickAddVehicleVisible(false);
+            addVehicleForm.resetFields();
+          } catch (e) {}
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Row gutter={16}>
+          <Col span={12}>
+            <Card size="small" title="车辆信息（紧凑）">
+              <Form form={addVehicleForm} layout="vertical">
+                <Form.Item name="plateNumber" label="车牌号" rules={[{ required: true, message: '请输入车牌号' }]}> 
+                  <Input placeholder="京A12345" />
+                </Form.Item>
+                <Form.Item name="type" label="车型" rules={[{ required: true, message: '请选择车型' }]}> 
+                  <Select options={[{ label: '厢式货车', value: '厢式货车' }, { label: '平板车', value: '平板车' }, { label: '冷链车', value: '冷链车' }]} />
+                </Form.Item>
+                <Form.Item name="capacityKg" label="载重(kg)" rules={[{ required: true, message: '请输入载重' }]}> 
+                  <Input type="number" placeholder="3000" />
+                </Form.Item>
+              </Form>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card size="small" title="全部车辆（只读列表）">
+              <List
+                size="small"
+                dataSource={availableVehicles}
+                renderItem={(vehicle) => (
+                  <List.Item>
+                    <List.Item.Meta title={vehicle.plateNumber} description={`${vehicle.type} - ${vehicle.capacityKg || 0}kg`} />
+                    <Tag color="green">空闲</Tag>
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Col>
+        </Row>
       </Modal>
 
       {/* 挂载到行程模态框 */}
@@ -562,6 +760,48 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Select>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 电子签名弹窗 // 2025-10-02 15:32:10 */}
+      <Modal
+        title="电子签名"
+        open={isESignVisible}
+        onCancel={() => setIsESignVisible(false)}
+        footer={null}
+        width={560}
+      >
+        <div style={{ marginBottom: 8 }}>
+          <Text type="secondary">请在下方空白区域书写签名（支持触屏或鼠标）。</Text>
+        </div>
+        <div
+          style={{ border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden', touchAction: 'none' }}
+        >
+          <canvas
+            ref={canvasRef}
+            width={520}
+            height={200}
+            style={{ display: 'block', background: '#fff' }}
+            onMouseDown={handleStart}
+            onMouseMove={handleMove}
+            onMouseUp={handleEnd}
+            onMouseLeave={handleEnd}
+            onTouchStart={handleStart}
+            onTouchMove={handleMove}
+            onTouchEnd={handleEnd}
+          />
+        </div>
+        <Space style={{ marginTop: 12 }}>
+          <Button onClick={handleClearSignature}>清除</Button>
+          <Button type="primary" onClick={handleSaveSignature}>保存签名</Button>
+        </Space>
+        {signatureDataUrl && (
+          <div style={{ marginTop: 12 }}>
+            <Text type="secondary">签名预览：</Text>
+            <div>
+              <img src={signatureDataUrl} alt="签名预览" style={{ maxWidth: '100%', height: 80, objectFit: 'contain' }} />
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

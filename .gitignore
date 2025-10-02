@@ -160,3 +160,4 @@ pnpm-lock.yaml
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+.vercel

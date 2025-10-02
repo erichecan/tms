@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Tooltip } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -36,11 +36,28 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
+  // 菜单展开状态管理 - 添加时间戳注释 @ 2025-09-30 09:15:00
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   const handleCollapse = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
     onCollapse?.(collapsed);
   };
+
+  // 根据当前路径自动展开对应的菜单 - 添加时间戳注释 @ 2025-09-30 09:15:00
+  useEffect(() => {
+    // 2025-10-01 15:06:20 特殊处理：当进入“运单管理”时不要展开“管理后台”下拉
+    if (location.pathname.startsWith('/admin/shipments')) {
+      setOpenKeys([]);
+      return;
+    }
+
+    if (location.pathname.startsWith('/admin')) {
+      setOpenKeys(['/admin']);
+    } else {
+      setOpenKeys([]);
+    }
+  }, [location.pathname]);
 
   const menuItems: MenuProps['items'] = [
     {
@@ -52,6 +69,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       key: '/create-shipment',
       icon: <PlusOutlined />,
       label: '创建运单',
+    },
+    // 将运单管理移动到创建运单与车队管理之间 // 2025-10-01 14:20:30
+    {
+      key: '/admin/shipments',
+      icon: <FileTextOutlined />,
+      label: '运单管理',
     },
     {
       key: '/fleet-management',
@@ -84,11 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       icon: <SettingOutlined />,
       label: '管理后台',
       children: [
-        {
-          key: '/admin/shipments',
-          icon: <FileTextOutlined />,
-          label: '运单管理',
-        },
+        // 运单管理已提升到一级菜单 // 2025-10-01 14:20:30
         {
           key: '/admin/batch-import',
           icon: <UploadOutlined />,
@@ -154,7 +173,16 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {
+    // 2025-10-01 15:06:20 点击“运单管理”时，显式收起“管理后台”下拉
+    if (key === '/admin/shipments') {
+      setOpenKeys([]);
+    }
     navigate(key);
+  };
+
+  // 处理菜单展开/收起事件 - 添加时间戳注释 @ 2025-09-30 09:15:00
+  const handleOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
   };
 
   return (
@@ -201,8 +229,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
+        openKeys={openKeys}
         items={menuItems}
         onClick={handleMenuClick}
+        onOpenChange={handleOpenChange}
         style={{
           borderRight: 0,
           height: 'calc(100vh - 64px)',

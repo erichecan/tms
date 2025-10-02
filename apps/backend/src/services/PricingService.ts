@@ -13,7 +13,7 @@ import {
   FeeType,
   CustomerLevel,
   DEFAULT_CURRENCY
-} from '@shared/index';
+} from '@tms/shared-types';
 
 export interface QuoteRequest {
   customerId: string;

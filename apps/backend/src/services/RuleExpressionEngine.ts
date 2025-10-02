@@ -35,11 +35,15 @@ interface RuleFact {
   [key: string]: any;
 }
 
-interface ParsedCondition {
+// 2025-10-01 14:51:05 导出以便其他模块可用
+export interface ParsedCondition {
   field: string;
   operator: string;
   value: any;
 }
+
+// 2025-10-01 14:59:30 统一条件节点类型，避免泛型数组不匹配
+export type ConditionNode = ParsedCondition | { op: string; children: ConditionNode[] };
 
 export class RuleExpressionEngine {
   
@@ -63,7 +67,8 @@ export class RuleExpressionEngine {
    * @param expression 条件表达式字符串，如："weight > 1000 AND pickup.city = 'Toronto'"
    * @returns 解析后的条件对象
    */
-  parseCondition(expression: string): ParsedCondition | { op: string; children: ParsedCondition[] } {
+  // 2025-10-01 14:59:30 使用统一的 ConditionNode 类型
+  parseCondition(expression: string): ConditionNode {
     try {
       // 移除多余空格
       const cleaned = expression.trim().replace(/\s+/g, ' ');
@@ -112,7 +117,7 @@ export class RuleExpressionEngine {
    * 解析复合条件
    * @param expression 复合条件表达式
    */
-  private parseComplexCondition(expression: string): { op: string; children: ParsedCondition[] } {
+  private parseComplexCondition(expression: string): { op: string; children: ConditionNode[] } {
     // 支持的逻辑操作符
     const logicalOps = [' AND ', ' OR '];
     
@@ -121,7 +126,7 @@ export class RuleExpressionEngine {
         const parts = expression.split(op);
         if (parts.length >= 2) {
           // 递归解析每个部分
-          const children = parts.map(part => this.parseCondition(part.trim()));
+          const children: ConditionNode[] = parts.map(part => this.parseCondition(part.trim()));
           
           return {
             op: op.trim(),
@@ -170,7 +175,7 @@ export class RuleExpressionEngine {
    * @param condition 解析后的条件
    * @param facts 事实数据
    */
-  evaluateCondition(condition: ParsedCondition | { op: string; children: ParsedCondition[] }, facts: RuleFact): boolean {
+  evaluateCondition(condition: ConditionNode, facts: RuleFact): boolean {
     if ('op' in condition) {
       // 复合条件
       const result = condition.children.map(child => this.evaluateCondition(child, facts));
@@ -330,7 +335,7 @@ export class RuleExpressionEngine {
    * @param condition 条件对象
    * @param indent 缩进级别
    */
-  private formatCondition(condition: any, indent: number): string {
+  private formatCondition(condition: ConditionNode, indent: number): string {
     const spaces = '  '.repeat(indent);
     
     if ('op' in condition) {
@@ -359,7 +364,7 @@ export class RuleExpressionEngine {
 }
 
 // 导出工具函数
-export function parseRuleExpression(expression: string): ParsedCondition | { op: string; children: ParsedCondition[] } {
+export function parseRuleExpression(expression: string): ConditionNode {
   const engine = new RuleExpressionEngine();
   return engine.parseCondition(expression);
 }

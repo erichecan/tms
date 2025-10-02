@@ -47,8 +47,9 @@ export class DatabaseService {
   /**
    * 获取数据库连接
    * @returns 数据库连接
+   * 2025-10-01 14:50:10 调整为 public 以便服务内部复用（如计费保存事务）
    */
-  private async getConnection(): Promise<PoolClient> {
+  public async getConnection(): Promise<PoolClient> {
     return await this.pool.connect();
   }
 
@@ -58,6 +59,7 @@ export class DatabaseService {
    * @param params 查询参数
    * @returns 查询结果
    */
+  // 2025-10-01 14:50:10 统一返回 rows，以避免上层误用 rowCount/length
   public async query(query: string, params: any[] = []): Promise<any> {
     const client = await this.getConnection();
     try {
@@ -1561,11 +1563,11 @@ export class DatabaseService {
       const tripQuery = 'SELECT * FROM trips WHERE tenant_id = $1 AND id = $2';
       const tripResult = await client.query(tripQuery, [tenantId, tripId]);
       
-      if (tripResult.length === 0) {
+      if (tripResult.rows.length === 0) {
         throw new Error('Trip not found');
       }
 
-      const currentTrip = tripResult[0];
+      const currentTrip = tripResult.rows[0];
       const currentShipments = currentTrip.shipments || [];
       
       // 合并运单ID
@@ -1586,7 +1588,7 @@ export class DatabaseService {
       ]);
 
       await client.query('COMMIT');
-      return this.mapTripFromDb(updateResult[0]);
+      return this.mapTripFromDb(updateResult.rows[0]);
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

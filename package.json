@@ -53,5 +53,8 @@
     "finance"
   ],
   "author": "TMS Development Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
 }

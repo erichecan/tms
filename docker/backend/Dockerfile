@@ -24,6 +24,8 @@ WORKDIR /app
 RUN mkdir -p /app
 # 拷贝编译产物到 /app/dist，沿用工作目录启动方式
 COPY --from=builder /app/apps/backend/dist /app/dist
+# 拷贝packages目录到正确位置 // 2025-10-01 17:18:30
+COPY --from=builder /app/packages /app/packages
 # 使用根 workspace 的生产依赖
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/backend/package.json /app/package.json
@@ -32,4 +34,4 @@ COPY --from=builder /app/apps/backend/package.json /app/package.json
 EXPOSE 8000
 
 # 启动应用
-CMD ["node", "dist/apps/backend/src/index.js"]
+CMD ["node", "dist/index.js"]
