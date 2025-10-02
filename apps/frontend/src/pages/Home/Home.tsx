@@ -145,7 +145,7 @@ const Home: React.FC = () => {
             <Button
               size="large"
               icon={<TeamOutlined />}
-              onClick={() => navigate('/fleet-management')}
+              onClick={() => navigate('/admin/fleet')}
               block
             >
               进入车队管理
