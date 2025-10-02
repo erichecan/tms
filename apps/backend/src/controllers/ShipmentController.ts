@@ -160,9 +160,31 @@ export class ShipmentController {
       console.log('Creating shipment with data:', JSON.stringify(shipmentData, null, 2));
       const shipment = await this.shipmentService.createShipment(tenantId, shipmentData);
       
+      // 🚀 核心功能：运单创建后自动触发智能调度优化引擎
+      // 这里集成了完整的车辆调度优化系统：
+      // 1. 🗺️ 路线规划算法 (Google Maps)
+      // 2. ⚡ 最短路径计算 (Directions API)
+      // 3. 🚛 车辆调度优化 (智能分配算法)
+      try {
+        const { ShipmentProcessingService } = await import('../services/ShipmentProcessingService');
+        const processingService = new ShipmentProcessingService(this.dbService);
+        
+        // 异步执行智能调度，不阻塞响应
+        processingService.processNewShipment(shipment.id, tenantId)
+          .then(result => {
+            logger.info(`智能调度完成 (${shipment.id}):`, result.message);
+          })
+          .catch(error => {
+            logger.error(`智能调度失败 (${shipment.id}): ${error.message}`);
+          });
+      } catch (error) {
+        logger.warn('智能调度服务加载失败，不影响运单创建');
+      }
+      
       res.status(201).json({
         success: true,
         data: shipment,
+        message: '运单创建成功，智能调度正在优化车辆分配...',
         timestamp: new Date().toISOString(),
         requestId: getRequestId(req)
       });

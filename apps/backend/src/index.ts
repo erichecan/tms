@@ -166,11 +166,18 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// 🚀 启动智能调度优化定时任务
+import { getDispatchOptimizationJob } from './jobs/DispatchOptimizationJob';
+const optimizationJob = getDispatchOptimizationJob();
+optimizationJob.start();
+
 // 启动服务器
 app.listen(PORT, () => {
   logger.info(`TMS SaaS Backend Server started on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`Health check: http://localhost:${PORT}/health`);
+  logger.info('🚛 智能调度优化引擎已启动');
+  logger.info(`📊 定时任务状态: ${optimizationJob.getStatus().running ? '运行中' : '已停止'}`);
 });
 
 export default app;
