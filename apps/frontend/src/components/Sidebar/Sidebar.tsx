@@ -119,26 +119,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
           icon: <SettingOutlined />,
           label: '规则管理',
         },
-        {
-          key: '/admin/financial-reports',
-          icon: <BarChartOutlined />,
-          label: '财务报告',
-        },
-        {
-          key: '/admin/vehicle-maintenance',
-          icon: <ToolOutlined />,
-          label: '车辆维护',
-        },
-        {
-          key: '/admin/driver-performance',
-          icon: <TrophyOutlined />,
-          label: '司机绩效',
-        },
-        {
-          key: '/admin/real-time-tracking',
-          icon: <EnvironmentOutlined />,
-          label: '实时跟踪',
-        },
+        // 2025-10-02 18:35:00 - 已整合的页面功能已移除:
+        // - 财务报告 → 整合到财务管理页面(财务报表标签页)
+        // - 车辆维护 → 整合到车队管理页面(车辆维护标签页)
+        // - 司机绩效 → 整合到车队管理页面(司机绩效标签页)
+        // - 实时跟踪 → 整合到车队管理页面(实时跟踪标签页)
         {
           key: '/admin/route-optimization',
           icon: <BranchesOutlined />,
@@ -149,11 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
           icon: <HistoryOutlined />,
           label: '规则版本',
         },
-        {
-          key: '/admin/performance-monitoring',
-          icon: <DashboardOutlined />,
-          label: '性能监控',
-        },
+        // 2025-10-02 18:35:00 - 性能监控 → 整合到仪表板页面(系统监控标签页)
         {
           key: '/admin/granular-permissions',
           icon: <LockOutlined />,

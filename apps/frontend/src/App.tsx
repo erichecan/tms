@@ -22,14 +22,14 @@ import PricingWizard from './pages/PricingEngine/PricingWizard';
 import PricingHome from './pages/PricingEngine/PricingHome';
 import BatchImportPage from './pages/BatchImport/BatchImportPage';
 import FinancialReportsPage from './pages/FinancialReports/FinancialReportsPage';
-import VehicleMaintenancePage from './pages/VehicleMaintenance/VehicleMaintenancePage';
-import DriverPerformancePage from './pages/DriverPerformance/DriverPerformancePage';
-// 新增页面导入 - 2025-09-29 21:30:00
-import RealTimeTrackingPage from './pages/RealTimeTracking/RealTimeTrackingPage';
+// 2025-10-02 18:35:00 - 以下页面已整合，移除独立导入:
+// import VehicleMaintenancePage from './pages/VehicleMaintenance/VehicleMaintenancePage'; → 已整合到车队管理页面
+// import DriverPerformancePage from './pages/DriverPerformance/DriverPerformancePage'; → 已整合到车队管理页面
+// import RealTimeTrackingPage from './pages/RealTimeTracking/RealTimeTrackingPage'; → 已整合到车队管理页面
 import RouteOptimizationPage from './pages/RouteOptimization/RouteOptimizationPage';
 import RuleVersionManagementPage from './pages/RuleVersionManagement/RuleVersionManagementPage';
-// 新增页面导入 - 2025-09-29 22:00:00
-import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage';
+// 2025-10-02 18:35:00 - 以下页面已整合，移除独立导入:
+// import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage'; → 已整合到仪表板页面
 import GranularPermissionsPage from './pages/GranularPermissions/GranularPermissionsPage';
 import './App.css';
 
@@ -67,20 +67,17 @@ function App() {
             <Route path="/admin/pricing/wizard" element={<ProtectedRoute><PageLayout><PricingWizard /></PageLayout></ProtectedRoute>} />
             {/* 批量导入路由 - 2025-09-29 15:10:00 */}
             <Route path="/admin/batch-import" element={<ProtectedRoute><PageLayout><BatchImportPage /></PageLayout></ProtectedRoute>} />
-            {/* 财务报告路由 - 2025-09-29 15:25:00 */}
-            <Route path="/admin/financial-reports" element={<ProtectedRoute><PageLayout><FinancialReportsPage /></PageLayout></ProtectedRoute>} />
-            {/* 车辆维护记录路由 - 2025-09-29 15:45:00 */}
-            <Route path="/admin/vehicle-maintenance" element={<ProtectedRoute><PageLayout><VehicleMaintenancePage /></PageLayout></ProtectedRoute>} />
-            {/* 司机绩效考核路由 - 2025-09-29 16:00:00 */}
-            <Route path="/admin/driver-performance" element={<ProtectedRoute><PageLayout><DriverPerformancePage /></PageLayout></ProtectedRoute>} />
-            {/* 实时位置跟踪路由 - 2025-09-29 21:30:00 */}
-            <Route path="/admin/real-time-tracking" element={<ProtectedRoute><PageLayout><RealTimeTrackingPage /></PageLayout></ProtectedRoute>} />
+            {/* 2025-10-02 18:35:00 - 以下路由已移除，功能已整合:
+            /admin/financial-reports → 已整合到财务管理页面(财务报表标签页)
+            /admin/vehicle-maintenance → 已整合到车队管理页面(车辆维护标签页)
+            /admin/driver-performance → 已整合到车队管理页面(司机绩效标签页)
+            /admin/real-time-tracking → 已整合到车队管理中(实时跟踪标签页)
+            */}
             {/* 路径优化路由 - 2025-09-29 21:40:00 */}
             <Route path="/admin/route-optimization" element={<ProtectedRoute><PageLayout><RouteOptimizationPage /></PageLayout></ProtectedRoute>} />
             {/* 规则版本管理路由 - 2025-09-29 21:50:00 */}
             <Route path="/admin/rule-version-management" element={<ProtectedRoute><PageLayout><RuleVersionManagementPage /></PageLayout></ProtectedRoute>} />
-            {/* 性能监控路由 - 2025-09-29 22:00:00 */}
-            <Route path="/admin/performance-monitoring" element={<ProtectedRoute><PageLayout><PerformanceMonitoringPage /></PageLayout></ProtectedRoute>} />
+            {/* 2025-10-02 18:35:00 - 性能监控路由已移除，功能已整合到仪表板页面(系统监控标签页) */}
             {/* 细粒度权限控制路由 - 2025-09-29 22:10:00 */}
             <Route path="/admin/granular-permissions" element={<ProtectedRoute><PageLayout><GranularPermissionsPage /></PageLayout></ProtectedRoute>} />
           </Routes>
