@@ -528,10 +528,11 @@ const PricingCalculatorPage: React.FC = () => {
                     label="客户等级"
                   >
                     <Select placeholder="选择客户等级">
-                      <Select.Option value="VIP">VIP</Select.Option>
-                      <Select.Option value="STANDARD">标准</Select.Option>
-                      <Select.Option value="PREMIUM">高级</Select.Option>
-                      <Select.Option value="INTERNAL">内部</Select.Option>
+                      <Select.Option value="VIP1">VIP1</Select.Option>
+                      <Select.Option value="VIP2">VIP2</Select.Option>
+                      <Select.Option value="VIP3">VIP3</Select.Option>
+                      <Select.Option value="VIP4">VIP4</Select.Option>
+                      <Select.Option value="VIP5">VIP5</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>

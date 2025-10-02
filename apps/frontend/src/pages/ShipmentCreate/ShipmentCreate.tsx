@@ -816,16 +816,19 @@ const ShipmentCreate: React.FC = () => {
                 </div>
               )}
             >
-              {customers.map((customer: any) => (
-                <Option key={customer.id} value={customer.id}>
-                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.4' }}>
-                    <span style={{ fontWeight: 500 }}>{customer.name}</span>
-                    <span style={{ fontSize: '12px', color: '#666' }}>
-                      {customer.phone} • {customer.email}
-                    </span>
-                  </div>
-                </Option>
-              ))}
+              {customers.map((customer: any) => {
+                const details = [customer.phone, customer.email].filter(Boolean).join(' / '); // 2025-10-02 16:55:10 同行展示并按存在与否拼接
+                return (
+                  <Option key={customer.id} value={customer.id}>
+                    <div style={{ display: 'flex', alignItems: 'center', lineHeight: '1.4' }}>
+                      <span style={{ fontWeight: 500 }}>{customer.name}</span>
+                      {details && (
+                        <span style={{ fontSize: '12px', color: '#666', marginLeft: 8 }}>{details}</span>
+                      )}
+                    </div>
+                  </Option>
+                );
+              })}
             </Select>
           </Form.Item>
         </Col>
@@ -834,13 +837,14 @@ const ShipmentCreate: React.FC = () => {
             name="priority"
             label="客户等级 (Customer Level)"
             style={{ marginBottom: 8 }}
+            initialValue="vip1"
           >
             <Select placeholder="VIP1">
               <Option value="vip1">VIP1</Option>
               <Option value="vip2">VIP2</Option>
               <Option value="vip3">VIP3</Option>
-              <Option value="standard">标准</Option>
-              <Option value="premium">高级</Option>
+              <Option value="vip4">VIP4</Option>
+              <Option value="vip5">VIP5</Option>
             </Select>
           </Form.Item>
         </Col>

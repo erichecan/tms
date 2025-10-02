@@ -11,8 +11,13 @@ import {
   Badge, 
   List,
   Avatar,
-  Divider
-} from 'antd';
+  Divider,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message
+} from 'antd'; // 2025-10-02 15:20:45 引入 Modal/Form 等用于添加司机/车辆
 import { 
   TeamOutlined, 
   TruckOutlined, 
@@ -20,8 +25,10 @@ import {
   HistoryOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
+import { driversApi, vehiclesApi, tripsApi } from '../../services/api'; // 2025-10-02 15:20:45 引入创建司机/车辆API // 2025-10-02 16:38:00 添加tripsApi
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-01-27 17:15:00 添加Google Maps组件
+import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
 
 const { Title, Text } = Typography;
 
@@ -31,6 +38,10 @@ const FleetManagement: React.FC = () => {
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [isAddDriverVisible, setIsAddDriverVisible] = useState(false); // 2025-10-02 15:20:45 添加司机弹窗
+  const [isAddVehicleVisible, setIsAddVehicleVisible] = useState(false); // 2025-10-02 15:20:45 添加车辆弹窗
+  const [driverForm] = Form.useForm(); // 2025-10-02 15:20:45 司机表单
+  const [vehicleForm] = Form.useForm(); // 2025-10-02 15:20:45 车辆表单
 
   useEffect(() => {
     loadFleetData();
@@ -39,42 +50,32 @@ const FleetManagement: React.FC = () => {
   const loadFleetData = async () => {
     try {
       setLoading(true);
-      // TODO: 实现API调用
       
-      // 模拟数据
-      setInTransitTrips([
-        {
-          id: '1',
-          tenantId: 'tenant1',
-          tripNo: 'TRIP-20250127-001',
-          status: TripStatus.ONGOING,
-          driverId: 'driver1',
-          vehicleId: 'vehicle1',
-          legs: [],
-          shipments: ['shipment1', 'shipment2'],
-          startTimePlanned: '2025-01-27T09:00:00Z',
-          endTimePlanned: '2025-01-27T18:00:00Z',
-          startTimeActual: '2025-01-27T09:15:00Z',
-          createdAt: '2025-01-27T08:00:00Z',
-          updatedAt: '2025-01-27T09:15:00Z'
-        },
-        {
-          id: '2',
-          tenantId: 'tenant1',
-          tripNo: 'TRIP-20250127-002',
-          status: TripStatus.ONGOING,
-          driverId: 'driver2',
-          vehicleId: 'vehicle2',
-          legs: [],
-          shipments: ['shipment3'],
-          startTimePlanned: '2025-01-27T14:00:00Z',
-          endTimePlanned: '2025-01-27T20:00:00Z',
-          startTimeActual: '2025-01-27T14:30:00Z',
-          createdAt: '2025-01-27T10:00:00Z',
-          updatedAt: '2025-01-27T14:30:00Z'
-        }
+      // 2025-10-02 16:38:00 从数据库加载真实的司机和车辆数据
+      const [driversRes, vehiclesRes, tripsRes] = await Promise.all([
+        driversApi.getDrivers(),
+        vehiclesApi.getVehicles(),
+        tripsApi.getTrips()
       ]);
 
+      // 获取所有司机中状态为available的
+      const allDrivers = driversRes.data?.data || [];
+      const availableDrivers = allDrivers.filter(driver => driver.status === DriverStatus.AVAILABLE);
+      setAvailableDrivers(availableDrivers);
+
+      // 获取所有车辆中状态为available的
+      const allVehicles = vehiclesRes.data?.data || [];
+      const availableVehicles = allVehicles.filter(vehicle => vehicle.status === VehicleStatus.AVAILABLE);
+      setAvailableVehicles(availableVehicles);
+
+      // 获取在途行程
+      const allTrips = tripsRes.data?.data || [];
+      const inTransitTrips = allTrips.filter(trip => trip.status === TripStatus.ONGOING);
+      setInTransitTrips(inTransitTrips);
+
+    } catch (error) {
+      console.error('Failed to load fleet data:', error);
+      // 如果API调用失败，使用模拟数据作为后备
       setAvailableDrivers([
         { id: 'driver3', tenantId: 'tenant1', name: '王五', phone: '13800138003', status: DriverStatus.AVAILABLE, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
         { id: 'driver4', tenantId: 'tenant1', name: '赵六', phone: '13800138004', status: DriverStatus.AVAILABLE, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
@@ -84,9 +85,6 @@ const FleetManagement: React.FC = () => {
         { id: 'vehicle3', tenantId: 'tenant1', plateNumber: '京C11111', type: '厢式货车', capacityKg: 3000, status: VehicleStatus.AVAILABLE, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
         { id: 'vehicle4', tenantId: 'tenant1', plateNumber: '京D22222', type: '平板车', capacityKg: 6000, status: VehicleStatus.AVAILABLE, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
       ]);
-
-    } catch (error) {
-      console.error('Failed to load fleet data:', error);
     } finally {
       setLoading(false);
     }
@@ -125,12 +123,12 @@ const FleetManagement: React.FC = () => {
   };
 
   // 在途行程表：合并司机/车辆列，运单数量以蓝色徽标展示，移除操作列，整行可点击 // 2025-10-01 14:22:10
-  const inTransitColumns = [
+  const inTransitColumns = [ // 2025-10-02 16:28:40 进一步缩窄列宽，减少表格空白
     {
       title: '行程',
       dataIndex: 'tripNo',
       key: 'tripNo',
-      width: 220,
+      width: 140, // 2025-10-02 16:37:13 调整行程列宽度为140px
       render: (_: any, record: Trip) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>{record.tripNo}</span>
@@ -141,7 +139,7 @@ const FleetManagement: React.FC = () => {
     {
       title: '司机 / 车辆',
       key: 'driverVehicle',
-      width: 220,
+      width: 140, // 2025-10-02 16:37:13 调整司机/车辆列宽度为140px
       render: (_: any, record: Trip) => (
         <div>
           <div>{getDriverName(record.driverId)}</div>
@@ -149,23 +147,17 @@ const FleetManagement: React.FC = () => {
         </div>
       )
     },
+    // 2025-10-02 15:20:45 去掉状态列；合并时间列：上面开始时间，下面预计结束时间
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: TripStatus) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusText(status)}
-        </Tag>
-      ),
-    },
-    {
-      title: '预计结束',
-      dataIndex: 'endTimePlanned',
-      key: 'endTimePlanned',
+      title: '时间',
+      key: 'timeRange',
       width: 160,
-      render: (endTime: string) => new Date(endTime).toLocaleString('zh-CN'),
+      render: (_: any, record: Trip) => (
+        <div>
+          <div style={{ fontSize: 12 }}>{formatDateTime(record.startTimePlanned)}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>{formatDateTime(record.endTimePlanned)}</div>
+        </div>
+      )
     },
   ];
 
@@ -175,6 +167,7 @@ const FleetManagement: React.FC = () => {
   };
 
   return (
+    <>
     <PageLayout>
       <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: 16 }}>
@@ -197,7 +190,7 @@ const FleetManagement: React.FC = () => {
                 loading={loading}
                 pagination={false}
                 size="small"
-                scroll={{ x: 800 }}
+                scroll={{ x: 500 }} // 2025-10-02 16:37:13 调整滚动宽度为500px（140+140+160+边距）
                 onRow={(record) => ({
                   onClick: () => handleTripClick(record),
                   style: { cursor: 'pointer' }
@@ -209,7 +202,7 @@ const FleetManagement: React.FC = () => {
             <Card title="空闲资源">
               <Row gutter={[16, 16]}>
                 <Col span={12}>
-                  <Card size="small" title={`空闲司机 (${availableDrivers.length})`}>
+                  <Card size="small" title={`空闲司机 (${availableDrivers.length})`} extra={<Button type="link" onClick={() => setIsAddDriverVisible(true)}>添加司机</Button>}>{/* 2025-10-02 15:20:45 增加添加司机按钮 */}
                     <List
                       dataSource={availableDrivers}
                       renderItem={(driver) => (
@@ -226,7 +219,7 @@ const FleetManagement: React.FC = () => {
                   </Card>
                 </Col>
                 <Col span={12}>
-                  <Card size="small" title={`空闲车辆 (${availableVehicles.length})`}>
+                  <Card size="small" title={`空闲车辆 (${availableVehicles.length})`} extra={<Button type="link" onClick={() => setIsAddVehicleVisible(true)}>添加车辆</Button>}>{/* 2025-10-02 15:20:45 增加添加车辆按钮 */}
                     <List
                       dataSource={availableVehicles}
                       renderItem={(vehicle) => (
@@ -318,13 +311,13 @@ const FleetManagement: React.FC = () => {
               </Col>
               <Col span={12}>
                 <Card size="small" title="时间信息">
-                  <p><strong>计划开始:</strong> {new Date(selectedTrip.startTimePlanned || '').toLocaleString('zh-CN')}</p>
-                  <p><strong>计划结束:</strong> {new Date(selectedTrip.endTimePlanned || '').toLocaleString('zh-CN')}</p>
+                  <p><strong>计划开始:</strong> {formatDateTime(selectedTrip.startTimePlanned)}</p>
+                  <p><strong>计划结束:</strong> {formatDateTime(selectedTrip.endTimePlanned)}</p>
                   {selectedTrip.startTimeActual && (
-                    <p><strong>实际开始:</strong> {new Date(selectedTrip.startTimeActual).toLocaleString('zh-CN')}</p>
+                    <p><strong>实际开始:</strong> {formatDateTime(selectedTrip.startTimeActual)}</p>
                   )}
                   {selectedTrip.endTimeActual && (
-                    <p><strong>实际结束:</strong> {new Date(selectedTrip.endTimeActual).toLocaleString('zh-CN')}</p>
+                    <p><strong>实际结束:</strong> {formatDateTime(selectedTrip.endTimeActual)}</p>
                   )}
                 </Card>
               </Col>
@@ -340,6 +333,153 @@ const FleetManagement: React.FC = () => {
         )}
       </div>
     </PageLayout>
+
+    {/* 添加司机弹窗 // 2025-10-02 15:20:45 */}
+    <Modal
+      title="添加司机"
+      open={isAddDriverVisible}
+      onCancel={() => { setIsAddDriverVisible(false); driverForm.resetFields(); }}
+      onOk={async () => {
+        try {
+          const values = await driverForm.validateFields();
+          await driversApi.createDriver({
+            name: values.name,
+            phone: values.phone,
+            age: values.age || '',
+            englishProficiency: values.englishProficiency || '',
+            otherLanguages: values.otherLanguages || [],
+            licenseClass: values.licenseClass || '',
+            status: 'available'
+          });
+          message.success('司机已添加');
+          setIsAddDriverVisible(false);
+          driverForm.resetFields();
+          // 2025-10-02 16:38:00 重新从数据库加载司机数据
+          loadFleetData();
+        } catch (e) {
+          console.error('Failed to add driver:', e);
+          message.error('添加司机失败');
+        }
+      }}
+      width={720}
+    >
+      <Row gutter={16}>
+        <Col span={12}>
+          <Card size="small" title="司机信息（紧凑）">
+            <Form form={driverForm} layout="vertical">
+              <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}> 
+                <Input placeholder="张三" />
+              </Form.Item>
+              <Form.Item label="年龄" name="age" rules={[{ required: true, message: '请输入年龄' }]}> 
+                <Input type="number" placeholder="30" />
+              </Form.Item>
+              <Form.Item label="手机号" name="phone" rules={[{ required: true, message: '请输入手机号' }]}> 
+                <Input placeholder="13800000000" />
+              </Form.Item>
+              <Form.Item label="英语水平" name="englishLevel" rules={[{ required: true, message: '请选择英语水平' }]}> 
+                <Select options={[{ label: 'Basic', value: 'basic' }, { label: 'Intermediate', value: 'intermediate' }, { label: 'Fluent', value: 'fluent' }]} placeholder="选择英语水平" />
+              </Form.Item>
+              <Form.Item label="其他语言" name="otherLanguages"> 
+                <Select
+                  mode="multiple"
+                  placeholder="选择其他语言"
+                  options={[{ label: '普通话', value: 'mandarin' }, { label: '广东话', value: 'cantonese' }, { label: '法语', value: 'french' }]}
+                />
+              </Form.Item>
+              <Form.Item label="驾照等级（加拿大）" name="licenseClass" rules={[{ required: true, message: '请选择驾照等级' }]}> 
+                <Select
+                  placeholder="选择驾照等级"
+                  options={[
+                    { label: 'Class G (Ontario)', value: 'G' },
+                    { label: 'Class G1', value: 'G1' },
+                    { label: 'Class G2', value: 'G2' },
+                    { label: 'Class AZ (Tractor-Trailer)', value: 'AZ' },
+                    { label: 'Class DZ (Straight Truck)', value: 'DZ' },
+                    { label: 'Class CZ (Bus)', value: 'CZ' },
+                    { label: 'Class BZ (School Bus)', value: 'BZ' },
+                    { label: 'Class M (Motorcycle)', value: 'M' }
+                  ]}
+                />
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card size="small" title="全部司机（只读列表）">
+            <List
+              size="small"
+              dataSource={availableDrivers}
+              renderItem={(driver) => (
+                <List.Item>
+                  <List.Item.Meta title={driver.name} description={driver.phone} />
+                  <Tag color="green">空闲</Tag>
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+      </Row>
+    </Modal>
+
+    {/* 添加车辆弹窗 // 2025-10-02 15:20:45 */}
+    <Modal
+      title="添加车辆"
+      open={isAddVehicleVisible}
+      onCancel={() => { setIsAddVehicleVisible(false); vehicleForm.resetFields(); }}
+      onOk={async () => {
+        try {
+          const values = await vehicleForm.validateFields();
+          await vehiclesApi.createVehicle({
+            plateNumber: values.plateNumber,
+            type: values.type,
+            capacityKg: Number(values.capacityKg) || 0,
+            status: 'available'
+          });
+          message.success('车辆已添加');
+          setIsAddVehicleVisible(false);
+          vehicleForm.resetFields();
+          // 2025-10-02 16:38:00 重新从数据库加载车辆数据
+          loadFleetData();
+        } catch (e) {
+          console.error('Failed to add vehicle:', e);
+          message.error('添加车辆失败');
+        }
+      }}
+      width={720}
+    >
+      <Row gutter={16}>
+        <Col span={12}>
+          <Card size="small" title="车辆信息（紧凑）">
+            <Form form={vehicleForm} layout="vertical">
+              <Form.Item label="车牌号" name="plateNumber" rules={[{ required: true, message: '请输入车牌号' }]}>
+                <Input placeholder="京A12345" />
+              </Form.Item>
+              <Form.Item label="车型" name="type" rules={[{ required: true, message: '请选择车型' }]}>
+                <Select options={[{ label: '厢式货车', value: '厢式货车' }, { label: '平板车', value: '平板车' }, { label: '冷链车', value: '冷链车' }]} />
+              </Form.Item>
+              <Form.Item label="载重(kg)" name="capacityKg" rules={[{ required: true, message: '请输入载重' }]}>
+                <Input type="number" placeholder="3000" />
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card size="small" title="全部车辆（只读列表）">
+            <List
+              size="small"
+              dataSource={availableVehicles}
+              renderItem={(vehicle) => (
+                <List.Item>
+                  <List.Item.Meta title={vehicle.plateNumber} description={`${vehicle.type} - ${vehicle.capacityKg}kg`} />
+                  <Tag color="green">空闲</Tag>
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+      </Row>
+    </Modal>
+    </>
   );
 };
 

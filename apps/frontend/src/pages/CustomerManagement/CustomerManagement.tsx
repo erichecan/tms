@@ -5,6 +5,7 @@ import { customersApi, shipmentsApi } from '../../services/api';
 import { Customer, Shipment, ShipmentAddress } from '../../types';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
 import { formatCurrency } from '../../utils/formatCurrency';
+import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
 
 const { Title } = Typography;
 
@@ -204,13 +205,14 @@ const CustomerManagement: React.FC = () => {
       key: 'level',
       width: 100,
       render: (level: string) => {
-        const levelMap: { [key: string]: { color: string; text: string } } = {
-          'standard': { color: 'blue', text: '普通' },
-          'premium': { color: 'gold', text: '高级' },
-          'vip': { color: 'purple', text: 'VIP' },
-        };
-        const levelInfo = levelMap[level] || { color: 'default', text: level || '普通' };
-        return <Tag color={levelInfo.color}>{levelInfo.text}</Tag>;
+        const normalized = (level || '').toLowerCase();
+        const text =
+          normalized === 'vip1' ? 'VIP1' :
+          normalized === 'vip2' ? 'VIP2' :
+          normalized === 'vip3' ? 'VIP3' :
+          normalized === 'vip4' ? 'VIP4' :
+          normalized === 'vip5' ? 'VIP5' : 'VIP1';
+        return <Tag color="purple">{text}</Tag>;
       },
     },
     {
@@ -407,12 +409,14 @@ const CustomerManagement: React.FC = () => {
           <Form.Item
             name="level"
             label="客户等级"
-            initialValue="standard"
+            initialValue="vip1"
           >
             <Select>
-              <Select.Option value="standard">普通</Select.Option>
-              <Select.Option value="premium">高级</Select.Option>
-              <Select.Option value="vip">VIP</Select.Option>
+              <Select.Option value="vip1">VIP1</Select.Option>
+              <Select.Option value="vip2">VIP2</Select.Option>
+              <Select.Option value="vip3">VIP3</Select.Option>
+              <Select.Option value="vip4">VIP4</Select.Option>
+              <Select.Option value="vip5">VIP5</Select.Option>
             </Select>
           </Form.Item>
           
@@ -526,12 +530,14 @@ const CustomerManagement: React.FC = () => {
           <Form.Item
             name="level"
             label="客户等级"
-            initialValue="standard"
+            initialValue="vip1"
           >
             <Select>
-              <Select.Option value="standard">普通</Select.Option>
-              <Select.Option value="premium">高级</Select.Option>
-              <Select.Option value="vip">VIP</Select.Option>
+              <Select.Option value="vip1">VIP1</Select.Option>
+              <Select.Option value="vip2">VIP2</Select.Option>
+              <Select.Option value="vip3">VIP3</Select.Option>
+              <Select.Option value="vip4">VIP4</Select.Option>
+              <Select.Option value="vip5">VIP5</Select.Option>
             </Select>
           </Form.Item>
         </Form>
@@ -619,7 +625,7 @@ const CustomerManagement: React.FC = () => {
               dataIndex: 'createdAt',
               key: 'createdAt',
               width: 150,
-              render: (date: string) => new Date(date).toLocaleString('zh-CN'),
+              render: (date: string) => formatDateTime(date),
             },
             {
               title: '操作',

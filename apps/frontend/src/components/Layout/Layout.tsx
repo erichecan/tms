@@ -65,16 +65,10 @@ const AppLayout: React.FC = () => {
               onClick: () => navigate('/admin/customers'),
             },
             {
-              key: '5',
-              icon: <TeamOutlined />,
-              label: '司机管理',
-              onClick: () => navigate('/admin/drivers'),
-            },
-            {
               key: '6',
               icon: <TruckOutlined />,
-              label: '车辆管理',
-              onClick: () => navigate('/admin/vehicles'),
+              label: '车队管理',
+              onClick: () => navigate('/admin/fleet'),
             },
             {
               key: '7',
