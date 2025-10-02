@@ -300,7 +300,7 @@ const RouteOptimization: React.FC = () => {
       title: '总成本',
       dataIndex: 'totalCost',
       key: 'totalCost',
-      render: (cost: number) => `¥${cost}`,
+      render: (cost: number) => `$${cost}`,
       sorter: (a: OptimizedRoute, b: OptimizedRoute) => a.totalCost - b.totalCost,
     },
     {
@@ -458,7 +458,7 @@ const RouteOptimization: React.FC = () => {
               <Statistic
                 title="成本节省"
                 value={optimizationResult.savings}
-                prefix="¥"
+                prefix="$"
                 valueStyle={{ color: '#52c41a' }}
               />
             </Col>
@@ -475,7 +475,7 @@ const RouteOptimization: React.FC = () => {
 
           <Alert
             message="优化完成"
-            description={`使用${getAlgorithmName(optimizationResult.algorithm)}算法，共节省成本¥${optimizationResult.savings}，效率提升${optimizationResult.improvement}%`}
+            description={`使用${getAlgorithmName(optimizationResult.algorithm)}算法，共节省成本$${optimizationResult.savings}，效率提升${optimizationResult.improvement}%`}
             type="success"
             showIcon
             style={{ marginTop: 16 }}

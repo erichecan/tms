@@ -690,7 +690,7 @@ const ShipmentCreate: React.FC = () => {
             ) : realTimePricing.totalCost > 0 ? (
               <div>
                 <Text strong style={{ fontSize: '28px', color: '#1890ff' }}>
-                  ¥{realTimePricing.totalCost}
+                  ${realTimePricing.totalCost}
                 </Text>
                 <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
                   预估总费用
@@ -708,12 +708,12 @@ const ShipmentCreate: React.FC = () => {
             <Divider style={{ margin: '12px 0' }} />
             <div style={{ fontSize: '12px', color: '#666' }}>
               <Row gutter={[8, 4]}>
-                <Col span={12}>基础费用: ¥{realTimePricing.breakdown.baseFee}</Col>
-                <Col span={12}>距离费用: ¥{realTimePricing.breakdown.distanceFee}</Col>
-                <Col span={12}>重量费用: ¥{realTimePricing.breakdown.weightFee}</Col>
-                <Col span={12}>体积费用: ¥{realTimePricing.breakdown.volumeFee}</Col>
+                <Col span={12}>基础费用: ${realTimePricing.breakdown.baseFee}</Col>
+                <Col span={12}>距离费用: ${realTimePricing.breakdown.distanceFee}</Col>
+                <Col span={12}>重量费用: ${realTimePricing.breakdown.weightFee}</Col>
+                <Col span={12}>体积费用: ${realTimePricing.breakdown.volumeFee}</Col>
                 {realTimePricing.breakdown.additionalFees > 0 && (
-                  <Col span={24}>附加服务: ¥{realTimePricing.breakdown.additionalFees}</Col>
+                  <Col span={24}>附加服务: ${realTimePricing.breakdown.additionalFees}</Col>
                 )}
               </Row>
             </div>
@@ -1615,14 +1615,14 @@ const ShipmentCreate: React.FC = () => {
                 </Col>
                 <Col span={6}>
                   <Text strong>价值：</Text>
-                  <div>¥{submittedData.cargoValue || 0}</div>
+                  <div>${submittedData.cargoValue || 0}</div>
                 </Col>
               </Row>
             </Col>
             <Col span={24}>
               <Title level={5}>费用预估</Title>
               <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>
-                ¥{submittedData.estimatedCost}
+                ${submittedData.estimatedCost}
               </Text>
             </Col>
           </Row>

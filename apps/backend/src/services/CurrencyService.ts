@@ -235,10 +235,10 @@ export class CurrencyService {
   private getDefaultExchangeRate(fromCurrency: string, toCurrency: string): number {
     // 这里可以设置一些默认汇率，或者集成外部API
     const defaultRates: Record<string, Record<string, number>> = {
-      'CNY': { 'USD': 0.14, 'CAD': 0.19, 'EUR': 0.13 },
-      'USD': { 'CNY': 7.2, 'CAD': 1.35, 'EUR': 0.92 },
-      'CAD': { 'CNY': 5.3, 'USD': 0.74, 'EUR': 0.68 },
-      'EUR': { 'CNY': 7.8, 'USD': 1.09, 'CAD': 1.47 }
+      'CAD': { 'USD': 0.14, 'CAD': 0.19, 'EUR': 0.13 },
+      'USD': { 'CAD': 7.2, 'CAD': 1.35, 'EUR': 0.92 },
+      'CAD': { 'CAD': 5.3, 'USD': 0.74, 'EUR': 0.68 },
+      'EUR': { 'CAD': 7.8, 'USD': 1.09, 'CAD': 1.47 }
     };
 
     return defaultRates[fromCurrency]?.[toCurrency] || 1;

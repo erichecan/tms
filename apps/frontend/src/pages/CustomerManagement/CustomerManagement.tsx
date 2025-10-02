@@ -733,7 +733,7 @@ const CustomerManagement: React.FC = () => {
                 <Statistic
                   title="总应收"
                   value={12500}
-                  prefix="¥"
+                  prefix="$"
                   valueStyle={{ color: '#3f8600' }}
                 />
               </Card>
@@ -743,7 +743,7 @@ const CustomerManagement: React.FC = () => {
                 <Statistic
                   title="已收款"
                   value={11800}
-                  prefix="¥"
+                  prefix="$"
                   valueStyle={{ color: '#1890ff' }}
                 />
               </Card>
@@ -753,7 +753,7 @@ const CustomerManagement: React.FC = () => {
                 <Statistic
                   title="未收款"
                   value={700}
-                  prefix="¥"
+                  prefix="$"
                   valueStyle={{ color: '#cf1322' }}
                 />
               </Card>
@@ -852,7 +852,7 @@ const CustomerManagement: React.FC = () => {
                   dataIndex: 'amount',
                   key: 'amount',
                   width: 100,
-                  render: (amount: number) => `¥${amount.toLocaleString()}`,
+                  render: (amount: number) => `$${amount.toLocaleString()}`,
                 },
                 {
                   title: '状态',

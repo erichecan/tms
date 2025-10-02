@@ -55,7 +55,7 @@ const CurrencyManagement: React.FC = () => {
       id: '1',
       code: 'CNY',
       name: '人民币',
-      symbol: '¥',
+      symbol: '$',
       exchangeRate: 1.0,
       isDefault: true,
       isActive: true,
@@ -337,7 +337,7 @@ const CurrencyManagement: React.FC = () => {
             label="货币符号"
             rules={[{ required: true, message: '请输入货币符号' }]}
           >
-            <Input placeholder="如: $, €, ¥" />
+            <Input placeholder="如: $, €, $" />
           </Form.Item>
           
           <Form.Item
@@ -391,7 +391,7 @@ const CurrencyManagement: React.FC = () => {
             label="货币符号"
             rules={[{ required: true, message: '请输入货币符号' }]}
           >
-            <Input placeholder="如: $, €, ¥" />
+            <Input placeholder="如: $, €, $" />
           </Form.Item>
           
           <Form.Item

@@ -478,12 +478,12 @@ export class ShipmentService {
         type: 'payable',
         referenceId: shipment.driverId,
         amount: commission,
-        currency: 'CNY',
+        currency: 'CAD',
         status: 'pending',
         description: `运单 ${shipment.shipmentNumber} 司机薪酬`
       });
 
-      logger.info(`Driver commission calculated: ${shipment.driverId} - ${commission} CNY`);
+      logger.info(`Driver commission calculated: ${shipment.driverId} - ${commission} CAD`);
     } catch (error) {
       logger.error('Failed to calculate driver commission:', error);
     }

@@ -319,7 +319,7 @@ const VehicleMaintenance: React.FC = () => {
       key: 'cost',
       render: (cost: number) => (
         <Text style={{ color: cost > 0 ? '#cf1322' : '#52c41a' }}>
-          {cost > 0 ? `¥${cost.toLocaleString()}` : '免费'}
+          {cost > 0 ? `$${cost.toLocaleString()}` : '免费'}
         </Text>
       ),
       sorter: (a: MaintenanceRecord, b: MaintenanceRecord) => a.cost - b.cost,
@@ -522,7 +522,7 @@ const VehicleMaintenance: React.FC = () => {
               value={maintenanceRecords
                 .filter(r => dayjs(r.maintenanceDate).isSame(dayjs(), 'month'))
                 .reduce((sum, r) => sum + r.cost, 0)}
-              prefix="¥"
+              prefix="$"
               precision={0}
               valueStyle={{ color: '#fa8c16' }}
             />
@@ -611,7 +611,7 @@ const VehicleMaintenance: React.FC = () => {
                   placeholder="费用"
                   min={0}
                   precision={2}
-                  prefix="¥"
+                  prefix="$"
                 />
               </Form.Item>
             </Col>

@@ -184,14 +184,14 @@ const FinancialDashboard: React.FC = () => {
       title: '总收入',
       dataIndex: 'totalRevenue',
       key: 'totalRevenue',
-      render: (value: number) => `¥${value.toLocaleString()}`,
+      render: (value: number) => `$${value.toLocaleString()}`,
       sorter: (a: CustomerFinancialData, b: CustomerFinancialData) => a.totalRevenue - b.totalRevenue,
     },
     {
       title: '已收款',
       dataIndex: 'totalPayments',
       key: 'totalPayments',
-      render: (value: number) => `¥${value.toLocaleString()}`,
+      render: (value: number) => `$${value.toLocaleString()}`,
     },
     {
       title: '未收款',
@@ -199,7 +199,7 @@ const FinancialDashboard: React.FC = () => {
       key: 'outstandingAmount',
       render: (value: number) => (
         <Tag color={value > 0 ? 'red' : 'green'}>
-          ¥{value.toLocaleString()}
+          ${value.toLocaleString()}
         </Tag>
       ),
     },
@@ -244,7 +244,7 @@ const FinancialDashboard: React.FC = () => {
       dataIndex: 'revenue',
       key: 'revenue',
       render: (value: number) => (
-        <Statistic value={value} prefix="¥" valueStyle={{ fontSize: '14px' }} />
+        <Statistic value={value} prefix="$" valueStyle={{ fontSize: '14px' }} />
       ),
     },
     {
@@ -252,7 +252,7 @@ const FinancialDashboard: React.FC = () => {
       dataIndex: 'expenses',
       key: 'expenses',
       render: (value: number) => (
-        <Statistic value={value} prefix="¥" valueStyle={{ fontSize: '14px', color: '#cf1322' }} />
+        <Statistic value={value} prefix="$" valueStyle={{ fontSize: '14px', color: '#cf1322' }} />
       ),
     },
     {
@@ -262,7 +262,7 @@ const FinancialDashboard: React.FC = () => {
       render: (value: number) => (
         <Statistic 
           value={value} 
-          prefix="¥" 
+          prefix="$" 
           valueStyle={{ 
             fontSize: '14px', 
             color: value > 0 ? '#3f8600' : '#cf1322' 

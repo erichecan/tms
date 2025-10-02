@@ -47,7 +47,7 @@ async function safeMigration() {
       "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS pricing_components JSONB",
       "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS pricing_rule_trace JSONB",
       "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS final_cost DECIMAL(12,2)",
-      "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS cost_currency VARCHAR(3) DEFAULT 'CNY'",
+      "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS cost_currency VARCHAR(3) DEFAULT 'CAD'",
       "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS assigned_driver_id UUID",
       "ALTER TABLE shipments ADD COLUMN IF NOT EXISTS assigned_vehicle_id UUID"
     ];

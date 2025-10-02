@@ -275,7 +275,7 @@ const DriverPayroll: React.FC = () => {
       key: 'baseSalary',
       render: (amount: number) => (
         <Text strong style={{ fontSize: '14px', color: '#fa8c16' }}>
-          ¥{amount.toLocaleString()}
+          ${amount.toLocaleString()}
         </Text>
       ),
     },
@@ -285,7 +285,7 @@ const DriverPayroll: React.FC = () => {
       key: 'tripBonus',
       render: (amount: number) => (
         <Text strong style={{ fontSize: '14px', color: '#722ed1' }}>
-          ¥{amount.toLocaleString()}
+          ${amount.toLocaleString()}
         </Text>
       ),
     },
@@ -295,7 +295,7 @@ const DriverPayroll: React.FC = () => {
       key: 'fuelAllowance',
       render: (amount: number) => (
         <Text strong style={{ fontSize: '14px', color: '#eb2f96' }}>
-          ¥{amount.toLocaleString()}
+          ${amount.toLocaleString()}
         </Text>
       ),
     },
@@ -305,7 +305,7 @@ const DriverPayroll: React.FC = () => {
       key: 'totalEarnings',
       render: (amount: number) => (
         <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-          ¥{amount.toLocaleString()}
+          ${amount.toLocaleString()}
         </Text>
       ),
       sorter: (a: SalaryRecord, b: SalaryRecord) => a.totalEarnings - b.totalEarnings,
@@ -421,7 +421,7 @@ const DriverPayroll: React.FC = () => {
             <Statistic
               title="总支付金额"
               value={statistics.totalPaidAmount}
-              prefix="¥"
+              prefix="$"
               precision={0}
               valueStyle={{ color: '#1890ff', fontSize: '24px' }}
               suffix={
@@ -437,7 +437,7 @@ const DriverPayroll: React.FC = () => {
             <Statistic
               title="平均薪酬"
               value={Math.round(statistics.averageSalary)}
-              prefix="¥"
+              prefix="$"
               precision={0}
               valueStyle={{ color: '#52c41a', fontSize: '24px' }}
               suffix={
@@ -490,7 +490,7 @@ const DriverPayroll: React.FC = () => {
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={7}>
                   <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
-                    ¥{salaryRecords.reduce((sum, r) => sum + r.totalEarnings, 0).toLocaleString()}
+                    ${salaryRecords.reduce((sum, r) => sum + r.totalEarnings, 0).toLocaleString()}
                   </Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={8} colSpan={3} />
@@ -554,7 +554,7 @@ const DriverPayroll: React.FC = () => {
                   min={0}
                   style={{ width: '100%' }}
                   placeholder="基础工资"
-                  prefix="¥"
+                  prefix="$"
                 />
               </Form.Item>
             </Col>
@@ -568,7 +568,7 @@ const DriverPayroll: React.FC = () => {
                   min={0}
                   style={{ width: '100%' }}
                   placeholder="行程奖金"
-                  prefix="¥"
+                  prefix="$"
                 />
               </Form.Item>
             </Col>
@@ -585,7 +585,7 @@ const DriverPayroll: React.FC = () => {
                   min={0}
                   style={{ width: '100%' }}
                   placeholder="燃油补贴"
-                  prefix="¥"
+                  prefix="$"
                 />
               </Form.Item>
             </Col>

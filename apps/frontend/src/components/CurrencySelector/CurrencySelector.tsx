@@ -7,7 +7,7 @@ import { Select, Space, Typography } from 'antd';
 const SUPPORTED_CURRENCIES = ['CNY', 'USD', 'CAD', 'EUR'] as const;
 
 const CURRENCY_SYMBOLS = {
-  CNY: '¥',
+  CNY: '$',
   USD: '$',
   CAD: 'C$',
   EUR: '€'

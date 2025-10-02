@@ -166,7 +166,7 @@ export class PricingService {
         additionalFees: []
       };
 
-      logger.info(`Quote generated for shipment ${shipment.id}: ${finalCost} CNY`);
+      logger.info(`Quote generated for shipment ${shipment.id}: ${finalCost} CAD`);
       return response;
     } catch (error) {
       logger.error('Failed to generate quote:', error);

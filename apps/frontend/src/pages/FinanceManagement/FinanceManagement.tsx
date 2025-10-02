@@ -171,7 +171,7 @@ const FinanceManagement: React.FC = () => {
       key: 'amount',
       render: (amount: number | string, record: FinancialRecord) => {
         // 使用安全的货币格式化函数，彻底解决 toFixed 错误 // 2025-01-27 15:36:00
-        const prefix = record.type === 'revenue' ? '+¥' : '-¥';
+        const prefix = record.type === 'revenue' ? '+$' : '-$';
         return (
           <Text strong style={{ color: record.type === 'revenue' ? '#52c41a' : '#ff4d4f' }}>
             {formatCurrency(amount, 2, prefix)}
@@ -217,7 +217,7 @@ const FinanceManagement: React.FC = () => {
         // 使用安全的货币格式化函数，彻底解决 toFixed 错误 // 2025-01-27 15:36:00
         return (
           <Text strong style={{ color: '#1890ff' }}>
-            {formatCurrency(amount, 2, '¥')}
+            {formatCurrency(amount, 2, '$')}
           </Text>
         );
       },

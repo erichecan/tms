@@ -5,7 +5,7 @@ import React from 'react';
 import { Typography, Space, Tooltip } from 'antd';
 // 临时常量定义
 const CURRENCY_SYMBOLS = {
-  CNY: '¥',
+  CNY: '$',
   USD: '$',
   CAD: 'C$',
   EUR: '€'

@@ -1,17 +1,18 @@
 // 货币格式化工具函数
 // 创建时间: 2025-01-27 15:36:00
+// 修改时间: 2025-10-02 20:05:00 - 默认货币改为加拿大元 (CAD)
 
 /**
  * 安全地格式化货币数值，防止 toFixed 错误
  * @param value - 要格式化的值，可以是数字、字符串、null 或 undefined
  * @param precision - 小数位数，默认为 2
- * @param prefix - 货币符号前缀，默认为 '¥'
+ * @param prefix - 货币符号前缀，默认为 '$' (CAD)
  * @returns 格式化后的货币字符串
  */
 export const formatCurrency = (
   value: number | string | null | undefined,
   precision: number = 2,
-  prefix: string = '¥'
+  prefix: string = '$'
 ): string => {
   try {
     // 处理 null 和 undefined
@@ -49,13 +50,13 @@ export const formatCurrency = (
  * 格式化货币数值，带有千分位分隔符
  * @param value - 要格式化的值
  * @param precision - 小数位数，默认为 2
- * @param prefix - 货币符号前缀，默认为 '¥'
+ * @param prefix - 货币符号前缀，默认为 '$' (CAD)
  * @returns 格式化后的货币字符串（带千分位分隔符）
  */
 export const formatCurrencyWithSeparator = (
   value: number | string | null | undefined,
   precision: number = 2,
-  prefix: string = '¥'
+  prefix: string = '$'
 ): string => {
   try {
     // 先使用基本格式化

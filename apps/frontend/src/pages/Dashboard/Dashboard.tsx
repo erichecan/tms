@@ -135,10 +135,10 @@ const Dashboard: React.FC = () => {
       render: (cost: number | string | null | undefined) => {
         // 使用安全的货币格式化函数，彻底解决 toFixed 错误 // 2025-09-26 17:50:00
         try {
-          return formatCurrency(cost, 2, '¥');
+          return formatCurrency(cost, 2, '$');
         } catch (error) {
           console.error('Error formatting cost in Dashboard:', error, 'cost:', cost);
-          return '¥0.00';
+          return '$0.00';
         }
       },
     },

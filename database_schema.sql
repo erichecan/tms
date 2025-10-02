@@ -113,7 +113,7 @@ CREATE TABLE public.financial_records (
     type character varying(50) NOT NULL,
     reference_id uuid NOT NULL,
     amount numeric(10,2) NOT NULL,
-    currency character varying(3) DEFAULT 'CNY'::character varying,
+    currency character varying(3) DEFAULT 'CAD'::character varying,
     status character varying(20) DEFAULT 'pending'::character varying,
     due_date date,
     paid_at timestamp without time zone,
