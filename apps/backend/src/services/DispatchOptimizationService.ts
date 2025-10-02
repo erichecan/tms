@@ -553,7 +553,7 @@ export class DispatchOptimizationService {
 
   private calculateEstimatedStartTime(shipment: any): string {
     // 当前时间 + 1小时准备时间
-    const startTime = חד Date(Date.now() + 60 * 60 * 1000);
+    const startTime = new Date(Date.now() + 60 * 60 * 1000);
     return startTime.toISOString();
   }
 
