@@ -39,22 +39,17 @@ export class ShipmentProcessingService {
         };
       }
 
-      // 2. 触发实时计费规则引擎
-      const pricingResult = await this.pricingEngineService.calculateShipmentPricing(
-        tenantId,
-        {
-          shipmentId,
-          customerTier: shipment.customer_tier || 'standard',
-          cargoInfo: shipment.cargo_info,
-          addressInfo: {
-            pickupAddress: shipment.shipper_address,
-            deliveryAddress: shipment.receiver_address,
-          },
+      // 2. 触发实时计费规则引擎 - 简化版本 2025-10-02 20:20:00
+      // TODO: 完善智能调度集成后再启用详细的计费计算
+      try {
+        const pricingResult = await this.pricingEngineService.recalculateShipmentPricing(shipmentId);
+        // 更新运单的预估费用
+        if (pricingResult && pricingResult.success) {
+          await this.updateShipmentPricing(shipmentId, pricingResult, tenantId);
         }
-      );
-
-      // 更新运单的预估费用
-      await this.updateShipmentPricing(shipmentId, pricingResult, tenantId);
+      } catch (error) {
+        logger.warn(`运单 ${shipmentId} 计费计算失败，跳过: ${error.message}`);
+      }
 
       // 3. 🚀 核心功能：触发智能调度优化引擎
       // 这里集成了：路线规划算法 + 最短路径计算 + 车辆调度优化

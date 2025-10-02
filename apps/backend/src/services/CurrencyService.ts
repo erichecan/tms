@@ -233,12 +233,12 @@ export class CurrencyService {
    * 获取默认汇率（用于测试或备用）
    */
   private getDefaultExchangeRate(fromCurrency: string, toCurrency: string): number {
-    // 这里可以设置一些默认汇率，或者集成外部API
+    // 默认汇率 - 基于 CAD (Canadian Dollar) 2025-10-02 20:15:00
     const defaultRates: Record<string, Record<string, number>> = {
-      'CAD': { 'USD': 0.14, 'CAD': 0.19, 'EUR': 0.13 },
-      'USD': { 'CAD': 7.2, 'CAD': 1.35, 'EUR': 0.92 },
-      'CAD': { 'CAD': 5.3, 'USD': 0.74, 'EUR': 0.68 },
-      'EUR': { 'CAD': 7.8, 'USD': 1.09, 'CAD': 1.47 }
+      'CAD': { 'USD': 0.74, 'EUR': 0.68, 'GBP': 0.58, 'CAD': 1.0 },
+      'USD': { 'CAD': 1.35, 'EUR': 0.92, 'GBP': 0.79, 'USD': 1.0 },
+      'EUR': { 'CAD': 1.47, 'USD': 1.09, 'GBP': 0.86, 'EUR': 1.0 },
+      'GBP': { 'CAD': 1.72, 'USD': 1.27, 'EUR': 1.16, 'GBP': 1.0 }
     };
 
     return defaultRates[fromCurrency]?.[toCurrency] || 1;
