@@ -153,9 +153,9 @@ const FleetManagement: React.FC = () => {
       key: 'timeRange',
       width: 160,
       render: (_: any, record: Trip) => (
-        <div>
-          <div style={{ fontSize: 12 }}>{formatDateTime(record.startTimePlanned)}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{formatDateTime(record.endTimePlanned)}</div>
+        <div style={{ fontSize: 11 }}>
+          <div><strong>开始:</strong> <span style={{ fontSize: 10 }}>{formatDateTime(record.startTimePlanned)}</span></div>
+          <div><strong>预计完:</strong> <span style={{ fontSize: 10, color: '#888' }}>{formatDateTime(record.endTimePlanned)}</span></div>
         </div>
       )
     },
@@ -312,12 +312,12 @@ const FleetManagement: React.FC = () => {
               <Col span={12}>
                 <Card size="small" title="时间信息">
                   <p><strong>计划开始:</strong> {formatDateTime(selectedTrip.startTimePlanned)}</p>
-                  <p><strong>计划结束:</strong> {formatDateTime(selectedTrip.endTimePlanned)}</p>
+                  <p><strong>计划完成:</strong> {formatDateTime(selectedTrip.endTimePlanned)}</p>
                   {selectedTrip.startTimeActual && (
                     <p><strong>实际开始:</strong> {formatDateTime(selectedTrip.startTimeActual)}</p>
                   )}
                   {selectedTrip.endTimeActual && (
-                    <p><strong>实际结束:</strong> {formatDateTime(selectedTrip.endTimeActual)}</p>
+                    <p><strong>实际完成:</strong> {formatDateTime(selectedTrip.endTimeActual)}</p>
                   )}
                 </Card>
               </Col>
