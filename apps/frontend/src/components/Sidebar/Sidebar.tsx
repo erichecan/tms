@@ -94,11 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       icon: <UserOutlined />,
       label: '客户管理',
     },
-    {
-      key: '/trip-management',
-      icon: <CarOutlined />,
-      label: '行程管理',
-    },
+    // 2025-10-02 18:55:00 - 行程管理已整合到车队管理页面中
     {
       type: 'divider',
     },
