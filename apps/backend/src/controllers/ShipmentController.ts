@@ -830,4 +830,69 @@ export class ShipmentController {
       });
     }
   }
+
+  /**
+   * 删除运单
+   * @param req 请求对象
+   * @param res 响应对象
+   */
+  async deleteShipment(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantId = req.tenant?.id;
+      const shipmentId = req.params.id;
+
+      if (!tenantId || !shipmentId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      // 检查运单是否存在且属于当前租户
+      const shipment = await this.dbService.query(
+        'SELECT id FROM shipments WHERE id = $1 AND tenant_id = $2',
+        [shipmentId, tenantId]
+      );
+
+      if (!shipment || shipment.length === 0) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Shipment not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      // 删除运单相关的定价详情记录
+      await this.dbService.query(
+        'DELETE FROM shipment_pricing_details WHERE shipment_id = $1',
+        [shipmentId]
+      );
+
+      // 删除运单
+      await this.dbService.query(
+        'DELETE FROM shipments WHERE id = $1 AND tenant_id = $2',
+        [shipmentId, tenantId]
+      );
+
+      res.json({
+        success: true,
+        message: 'Shipment deleted successfully',
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    } catch (error) {
+      logger.error('Failed to delete shipment:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to delete shipment' },
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    }
+  }
 }

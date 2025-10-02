@@ -159,6 +159,13 @@ router.post('/:id/cancel',
 );
 
 /**
+ * @route DELETE /api/v1/shipments/:id
+ * @desc 删除运单
+ * @access Private
+ */
+router.delete('/:id', shipmentController.deleteShipment.bind(shipmentController));
+
+/**
  * @route GET /api/v1/shipments/stats
  * @desc 获取运单统计
  * @access Private
