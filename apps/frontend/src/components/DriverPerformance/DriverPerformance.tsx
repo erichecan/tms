@@ -1,6 +1,6 @@
-// 司机绩效考核和薪酬计算组件
-// 创建时间: 2025-09-29 15:50:00
-// 作用: 管理司机绩效考核和薪酬计算详情
+// 司机绩效考核和薪酬计算组件 (简化版本)
+// 创建时间: 2025-09-29 15:50:00 (简化于 2025-10-02 19:05:00)
+// 作用: 基础司机管理和简单薪酬记录
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -20,95 +20,52 @@ import {
   Row,
   Col,
   Statistic,
-  Progress,
-  Alert,
-  Tabs,
-  Timeline,
-  Tooltip,
-  Avatar,
-  Badge,
-  Rate,
   Divider,
 } from 'antd';
 import {
   UserOutlined,
   DollarOutlined,
-  TrophyOutlined,
+  CarOutlined,
   CalendarOutlined,
-  TruckOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  StarOutlined,
-  BarChartOutlined,
-  LineChartOutlined,
-  PieChartOutlined,
+  PlusOutlined,
   EditOutlined,
-  EyeOutlined,
-  DownloadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
-import { driversApi } from '../../services/api';
-import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 interface Driver {
   id: string;
   name: string;
   phone: string;
   licenseNumber: string;
+  licenseClass: string;
+  status: 'available' | 'busy' | 'offline';
   joinDate: string;
-  status: 'active' | 'inactive' | 'suspended';
-  totalTrips: number;
-  totalEarnings: number;
-  rating: number;
-  lastActiveDate: string;
 }
 
-interface PerformanceRecord {
-  id: string;
-  driverId: string;
-  driverName: string;
-  period: string;
-  totalTrips: number;
-  completedTrips: number;
-  onTimeRate: number;
-  customerRating: number;
-  safetyScore: number;
-  fuelEfficiency: number;
-  totalEarnings: number;
-  baseSalary: number;
-  bonus: number;
-  deductions: number;
-  netSalary: number;
-  performanceGrade: 'A' | 'B' | 'C' | 'D';
-}
-
-interface SalaryDetail {
+interface SalaryRecord {
   id: string;
   driverId: string;
   driverName: string;
   month: string;
+  tripsCompleted: number;
+  totalDistance: number;
   baseSalary: number;
   tripBonus: number;
-  overtimePay: number;
   fuelAllowance: number;
-  performanceBonus: number;
-  deductions: number;
-  netSalary: number;
-  status: 'pending' | 'approved' | 'paid';
-  paidDate?: string;
+  totalEarnings: number;
+  status: 'pending' | 'paid';
+  payDate?: string;
 }
 
 const DriverPerformance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
-  const [salaryDetails, setSalaryDetails] = useState<SalaryDetail[]>([]);
+  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<PerformanceRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<SalaryRecord | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -125,584 +82,486 @@ const DriverPerformance: React.FC = () => {
           name: '张三',
           phone: '13800138000',
           licenseNumber: 'A123456789',
-          joinDate: '2023-01-15',
-          status: 'active',
-          totalTrips: 245,
-          totalEarnings: 125000,
-          rating: 4.8,
-          lastActiveDate: '2025-09-29',
+          licenseClass: 'A1',
+          status: 'available',
+          joinDate: '2024-01-15',
         },
         {
           id: 'D002',
           name: '李四',
           phone: '13900139000',
           licenseNumber: 'A987654321',
-          joinDate: '2023-03-20',
-          status: 'active',
-          totalTrips: 189,
-          totalEarnings: 98000,
-          rating: 4.6,
-          lastActiveDate: '2025-09-28',
+          licenseClass: 'A2',
+          status: 'busy',
+          joinDate: '2024-02-20',
         },
         {
           id: 'D003',
           name: '王五',
           phone: '13700137000',
-          licenseNumber: 'A555666777',
-          joinDate: '2023-06-10',
-          status: 'active',
-          totalTrips: 156,
-          totalEarnings: 78000,
-          rating: 4.4,
-          lastActiveDate: '2025-09-27',
+          licenseNumber: 'B111111111',
+          licenseClass: 'B1',
+          status: 'available',
+          joinDate: '2024-03-10',
         },
       ];
 
-      const mockPerformanceRecords: PerformanceRecord[] = [
+      const mockSalaryRecords: SalaryRecord[] = [
         {
-          id: 'P001',
+          id: 'Salary001',
           driverId: 'D001',
           driverName: '张三',
-          period: '2025-09',
-          totalTrips: 28,
-          completedTrips: 27,
-          onTimeRate: 96.4,
-          customerRating: 4.8,
-          safetyScore: 95,
-          fuelEfficiency: 88,
-          totalEarnings: 14200,
-          baseSalary: 8000,
-          bonus: 6200,
-          deductions: 0,
-          netSalary: 14200,
-          performanceGrade: 'A',
-        },
-        {
-          id: 'P002',
-          driverId: 'D002',
-          driverName: '李四',
-          period: '2025-09',
-          totalTrips: 22,
-          completedTrips: 21,
-          onTimeRate: 95.5,
-          customerRating: 4.6,
-          safetyScore: 92,
-          fuelEfficiency: 85,
-          totalEarnings: 11800,
-          baseSalary: 8000,
-          bonus: 3800,
-          deductions: 0,
-          netSalary: 11800,
-          performanceGrade: 'B',
-        },
-        {
-          id: 'P003',
-          driverId: 'D003',
-          driverName: '王五',
-          period: '2025-09',
-          totalTrips: 18,
-          completedTrips: 17,
-          onTimeRate: 94.4,
-          customerRating: 4.4,
-          safetyScore: 88,
-          fuelEfficiency: 82,
-          totalEarnings: 9800,
-          baseSalary: 8000,
-          bonus: 1800,
-          deductions: 0,
-          netSalary: 9800,
-          performanceGrade: 'B',
-        },
-      ];
-
-      const mockSalaryDetails: SalaryDetail[] = [
-        {
-          id: 'S001',
-          driverId: 'D001',
-          driverName: '张三',
-          month: '2025-09',
-          baseSalary: 8000,
-          tripBonus: 4200,
-          overtimePay: 800,
+          month: '2024-09',
+          tripsCompleted: 45,
+          totalDistance: 3200,
+          baseSalary: 4000,
+          tripBonus: 2250,
           fuelAllowance: 1200,
-          performanceBonus: 1000,
-          deductions: 0,
-          netSalary: 15200,
+          totalEarnings: 7450,
           status: 'paid',
-          paidDate: '2025-09-30',
+          payDate: '2024-10-01',
         },
         {
-          id: 'S002',
+          id: 'Salary002',
           driverId: 'D002',
           driverName: '李四',
-          month: '2025-09',
-          baseSalary: 8000,
-          tripBonus: 2800,
-          overtimePay: 600,
+          month: '2024-09',
+          tripsCompleted: 38,
+          totalDistance: 2800,
+          baseSalary: 4000,
+          tripBonus: 1900,
           fuelAllowance: 1000,
-          performanceBonus: 500,
-          deductions: 0,
-          netSalary: 12900,
+          totalEarnings: 6900,
           status: 'paid',
-          paidDate: '2025-09-30',
+          payDate: '2024-10-01',
         },
         {
-          id: 'S003',
+          id: 'Salary003',
           driverId: 'D003',
           driverName: '王五',
-          month: '2025-09',
-          baseSalary: 8000,
-          tripBonus: 1800,
-          overtimePay: 400,
-          fuelAllowance: 800,
-          performanceBonus: 0,
-          deductions: 0,
-          netSalary: 11000,
-          status: 'approved',
+          month: '2024-09',
+          tripsCompleted: 52,
+          totalDistance: 4100,
+          baseSalary: 4000,
+          tripBonus: 2600,
+          fuelAllowance: 1500,
+          totalEarnings: 8100,
+          status: 'pending',
         },
       ];
 
       setDrivers(mockDrivers);
-      setPerformanceRecords(mockPerformanceRecords);
-      setSalaryDetails(mockSalaryDetails);
+      setSalaryRecords(mockSalaryRecords);
     } catch (error) {
-      console.error('加载数据失败:', error);
+      console.error('Failed to load data:', error);
       message.error('加载数据失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const getGradeColor = (grade: string) => {
-    const colors = {
-      A: 'green',
-      B: 'blue',
-      C: 'orange',
-      D: 'red',
-    };
-    return colors[grade as keyof typeof colors] || 'default';
+  const handleAddRecord = () => {
+    setEditingRecord(null);
+    form.resetFields();
+    setIsModalVisible(true);
   };
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      active: 'green',
-      inactive: 'default',
-      suspended: 'red',
-      pending: 'orange',
-      approved: 'blue',
-      paid: 'green',
-    };
-    return colors[status as keyof typeof colors] || 'default';
+  const handleEditRecord = (record: SalaryRecord) => {
+    setEditingRecord(record);
+    form.setFieldsValue(record);
+    setIsModalVisible(true);
   };
 
-  const getStatusText = (status: string) => {
-    const texts = {
-      active: '活跃',
-      inactive: '非活跃',
-      suspended: '暂停',
-      pending: '待审核',
-      approved: '已审核',
-      paid: '已发放',
-    };
-    return texts[status as keyof typeof texts] || status;
+  const handleModalOk = async () => {
+    try {
+      const values = await form.validateFields();
+      
+      if (editingRecord) {
+        // 编辑记录
+        const updatedRecord = { ...editingRecord, ...values };
+        setSalaryRecords(prev => 
+          prev.map(record => record.id === editingRecord.id ? updatedRecord : record)
+        );
+        message.success('薪酬记录更新成功');
+      } else {
+        // 新增记录
+        const newRecord: SalaryRecord = {
+          id: `Salary${Date.now()}`,
+          ...values,
+          status: 'pending',
+        };
+        setSalaryRecords(prev => [...prev, newRecord]);
+        message.success('薪酬记录添加成功');
+      }
+      
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error('Form validation failed:', error);
+    }
   };
 
-  const performanceColumns = [
-    {
-      title: '司机',
-      dataIndex: 'driverName',
-      key: 'driverName',
-      render: (name: string, record: PerformanceRecord) => (
-        <Space>
-          <Avatar size="small" icon={<UserOutlined />} />
-          <div>
-            <div>{name}</div>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              {record.period}
-            </Text>
-          </div>
-        </Space>
-      ),
-    },
-    {
-      title: '运单完成情况',
-      key: 'trips',
-      render: (_, record: PerformanceRecord) => (
-        <div>
-          <div>完成: {record.completedTrips}/{record.totalTrips}</div>
-          <Progress 
-            percent={Math.round((record.completedTrips / record.totalTrips) * 100)} 
-            size="small" 
-            status={record.completedTrips === record.totalTrips ? 'success' : 'normal'}
-          />
-        </div>
-      ),
-    },
-    {
-      title: '准时率',
-      dataIndex: 'onTimeRate',
-      key: 'onTimeRate',
-      render: (rate: number) => (
-        <div>
-          <div>{rate}%</div>
-          <Progress 
-            percent={rate} 
-            size="small" 
-            status={rate >= 95 ? 'success' : rate >= 85 ? 'normal' : 'exception'}
-          />
-        </div>
-      ),
-      sorter: (a: PerformanceRecord, b: PerformanceRecord) => a.onTimeRate - b.onTimeRate,
-    },
-    {
-      title: '客户评分',
-      dataIndex: 'customerRating',
-      key: 'customerRating',
-      render: (rating: number) => (
-        <div>
-          <Rate disabled value={rating} allowHalf style={{ fontSize: '14px' }} />
-          <div style={{ fontSize: '12px', color: '#666' }}>{rating}</div>
-        </div>
-      ),
-      sorter: (a: PerformanceRecord, b: PerformanceRecord) => a.customerRating - b.customerRating,
-    },
-    {
-      title: '安全分数',
-      dataIndex: 'safetyScore',
-      key: 'safetyScore',
-      render: (score: number) => (
-        <div>
-          <div>{score}</div>
-          <Progress 
-            percent={score} 
-            size="small" 
-            status={score >= 90 ? 'success' : score >= 80 ? 'normal' : 'exception'}
-          />
-        </div>
-      ),
-      sorter: (a: PerformanceRecord, b: PerformanceRecord) => a.safetyScore - b.safetyScore,
-    },
-    {
-      title: '绩效等级',
-      dataIndex: 'performanceGrade',
-      key: 'performanceGrade',
-      render: (grade: string) => (
-        <Tag color={getGradeColor(grade)} style={{ fontSize: '16px', padding: '4px 8px' }}>
-          {grade}
-        </Tag>
-      ),
-      sorter: (a: PerformanceRecord, b: PerformanceRecord) => a.performanceGrade.localeCompare(b.performanceGrade),
-    },
-    {
-      title: '薪酬',
-      key: 'salary',
-      render: (_, record: PerformanceRecord) => (
-        <div>
-          <div style={{ fontSize: '12px', color: '#666' }}>基础: ¥{record.baseSalary}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>奖金: ¥{record.bonus}</div>
-          <div style={{ fontWeight: 'bold', color: '#1890ff' }}>总计: ¥{record.netSalary}</div>
-        </div>
-      ),
-    },
-  ];
+  const handleDeleteRecord = (id: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这条薪酬记录吗？',
+      onOk: () => {
+        setSalaryRecords(prev => prev.filter(record => record.id !== id));
+        message.success('删除成功');
+      },
+    });
+  };
 
-  const salaryColumns = [
-    {
-      title: '司机',
-      dataIndex: 'driverName',
-      key: 'driverName',
-      render: (name: string, record: SalaryDetail) => (
-        <Space>
-          <Avatar size="small" icon={<UserOutlined />} />
-          <div>
-            <div>{name}</div>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              {record.month}
-            </Text>
-          </div>
-        </Space>
-      ),
-    },
-    {
-      title: '基础工资',
-      dataIndex: 'baseSalary',
-      key: 'baseSalary',
-      render: (value: number) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '运单奖金',
-      dataIndex: 'tripBonus',
-      key: 'tripBonus',
-      render: (value: number) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '加班费',
-      dataIndex: 'overtimePay',
-      key: 'overtimePay',
-      render: (value: number) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '燃油补贴',
-      dataIndex: 'fuelAllowance',
-      key: 'fuelAllowance',
-      render: (value: number) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '绩效奖金',
-      dataIndex: 'performanceBonus',
-      key: 'performanceBonus',
-      render: (value: number) => (
-        <Text style={{ color: value > 0 ? '#52c41a' : '#666' }}>
-          {value > 0 ? `+¥${value.toLocaleString()}` : '¥0'}
-        </Text>
-      ),
-    },
-    {
-      title: '实发工资',
-      dataIndex: 'netSalary',
-      key: 'netSalary',
-      render: (value: number) => (
-        <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-          ¥{value.toLocaleString()}
-        </Text>
-      ),
-      sorter: (a: SalaryDetail, b: SalaryDetail) => a.netSalary - b.netSalary,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string, record: SalaryDetail) => (
-        <div>
-          <Tag color={getStatusColor(status)}>
-            {getStatusText(status)}
-          </Tag>
-          {record.paidDate && (
-            <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
-              发放: {dayjs(record.paidDate).format('MM-DD')}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_, record: SalaryDetail) => (
-        <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />}>
-            详情
-          </Button>
-          {record.status === 'approved' && (
-            <Button type="link" size="small" icon={<DollarOutlined />}>
-              发放
-            </Button>
-          )}
-        </Space>
-      ),
-    },
-  ];
+  const getStatusTag = (status: string) => {
+    const statusConfig: Record<string, { color: string; text: string }> = {
+      pending: { color: 'orange', text: '待处理' },
+      paid: { color: 'green', text: '已支付' },
+    };
+    
+    const config = statusConfig[status] || { color: 'default', text: status };
+    return <Tag color={config.color}>{config.text}</Tag>;
+  };
 
   const driverColumns = [
     {
-      title: '司机信息',
-      key: 'driverInfo',
-      render: (_, record: Driver) => (
+      title: '司机姓名',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string) => (
         <Space>
-          <Avatar size="large" icon={<UserOutlined />} />
-          <div>
-            <div style={{ fontWeight: 'bold' }}>{record.name}</div>
-            <Text type="secondary">{record.phone}</Text>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              驾照: {record.licenseNumber}
-            </div>
-          </div>
+          <UserOutlined />
+          {name}
         </Space>
       ),
+    },
+    {
+      title: '联系电话',
+      dataIndex: 'phone',
+      key: 'phone',
+    },
+    {
+      title: '驾照号',
+      dataIndex: 'licenseNumber',
+      key: 'licenseNumber',
+    },
+    {
+      title: '驾照等级',
+      dataIndex: 'licenseClass',
+      key: 'licenseClass',
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusText(status)}
-        </Tag>
-      ),
-    },
-    {
-      title: '总运单数',
-      dataIndex: 'totalTrips',
-      key: 'totalTrips',
-      render: (trips: number) => (
-        <Badge count={trips} showZero color="blue" />
-      ),
-      sorter: (a: Driver, b: Driver) => a.totalTrips - b.totalTrips,
-    },
-    {
-      title: '总收入',
-      dataIndex: 'totalEarnings',
-      key: 'totalEarnings',
-      render: (earnings: number) => (
-        <Text strong style={{ color: '#52c41a' }}>
-          ¥{earnings.toLocaleString()}
-        </Text>
-      ),
-      sorter: (a: Driver, b: Driver) => a.totalEarnings - b.totalEarnings,
-    },
-    {
-      title: '评分',
-      dataIndex: 'rating',
-      key: 'rating',
-      render: (rating: number) => (
-        <div>
-          <Rate disabled value={rating} allowHalf style={{ fontSize: '16px' }} />
-          <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
-            {rating}
-          </div>
-        </div>
-      ),
-      sorter: (a: Driver, b: Driver) => a.rating - b.rating,
+      render: (status: string) => {
+        const statusConfig: Record<string, { color: string; text: string }> = {
+          available: { color: 'green', text: '空闲' },
+          busy: { color: 'blue', text: '在途' },
+          offline: { color: 'gray', text: '离线' },
+        };
+        const config = statusConfig[status] || { color: 'default', text: status };
+        return <Tag color={config.color}>{config.text}</Tag>;
+      },
     },
     {
       title: '入职日期',
       dataIndex: 'joinDate',
       key: 'joinDate',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
-    },
-    {
-      title: '最后活跃',
-      dataIndex: 'lastActiveDate',
-      key: 'lastActiveDate',
-      render: (date: string) => dayjs(date).format('MM-DD HH:mm'),
+      render: (date: string) => new Date(date).toLocaleDateString(),
     },
   ];
 
-  const tabItems = [
+  const salaryColumns = [
     {
-      key: 'performance',
-      label: '绩效考核',
-      children: (
-        <div>
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Title level={4} style={{ margin: 0 }}>司机绩效考核</Title>
-            <Button type="primary" icon={<TrophyOutlined />}>
-              生成考核报告
-            </Button>
-          </div>
-          
-          <Table
-            columns={performanceColumns}
-            dataSource={performanceRecords}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-            scroll={{ x: 1200 }}
-          />
-        </div>
+      title: '司机姓名',
+      dataIndex: 'driverName',
+      key: 'driverName',
+    },
+    {
+      title: '月份',
+      dataIndex: 'month',
+      key: 'month',
+    },
+    {
+      title: '完成行程',
+      dataIndex: 'tripsCompleted',
+      key: 'tripsCompleted',
+      render: (count: number) => `${count} 次`,
+    },
+    {
+      title: '总里程',
+      dataIndex: 'totalDistance',
+      key: 'totalDistance',
+      render: (distance: number) => `${distance} km`,
+    },
+    {
+      title: '基础工资',
+      dataIndex: 'baseSalary',
+      key: 'baseSalary',
+      render: (amount: number) => `¥${amount.toLocaleString()}`,
+    },
+    {
+      title: '行程奖金',
+      dataIndex: 'tripBonus',
+      key: 'tripBonus',
+      render: (amount: number) => `¥${amount.toLocaleString()}`,
+    },
+    {
+      title: '燃油补贴',
+      dataIndex: 'fuelAllowance',
+      key: 'fuelAllowance',
+      render: (amount: number) => `¥${amount.toLocaleString()}`,
+    },
+    {
+      title: '总薪酬',
+      dataIndex: 'totalEarnings',
+      key: 'totalEarnings',
+      render: (amount: number) => (
+        <Text strong style={{ color: '#1890ff' }}>
+          ¥{amount.toLocaleString()}
+        </Text>
       ),
     },
     {
-      key: 'salary',
-      label: '薪酬管理',
-      children: (
-        <div>
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Title level={4} style={{ margin: 0 }}>司机薪酬详情</Title>
-            <Space>
-              <Button icon={<DownloadOutlined />}>
-                导出薪酬单
-              </Button>
-              <Button type="primary" icon={<DollarOutlined />}>
-                批量发放
-              </Button>
-            </Space>
-          </div>
-          
-          <Table
-            columns={salaryColumns}
-            dataSource={salaryDetails}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-            scroll={{ x: 1200 }}
-          />
-        </div>
-      ),
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => getStatusTag(status),
     },
     {
-      key: 'drivers',
-      label: '司机档案',
-      children: (
-        <div>
-          <div style={{ marginBottom: 16 }}>
-            <Title level={4} style={{ margin: 0 }}>司机档案管理</Title>
-          </div>
-          
-          <Table
-            columns={driverColumns}
-            dataSource={drivers}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-            scroll={{ x: 1000 }}
-          />
-        </div>
+      title: '支付日期',
+      dataIndex: 'payDate',
+      key: 'payDate',
+      render: (date: string) => date ? new Date(date).toLocaleDateString() : '-',
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: SalaryRecord) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditRecord(record)}
+          >
+            编辑
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteRecord(record.id)}
+          >
+            删除
+          </Button>
+        </Space>
       ),
     },
   ];
+
+  // 统计信息
+  const getStatistics = () => {
+    const totalDrivers = drivers.length;
+    const availableDrivers = drivers.filter(d => d.status === 'available').length;
+    const paidRecords = salaryRecords.filter(r => r.status === 'paid').length;
+    const pendingRecords = salaryRecords.filter(r => r.status === 'pending').length;
+    const totalPaidAmount = salaryRecords
+      .filter(r => r.status === 'paid')
+      .reduce((sum, r) => sum + r.totalEarnings, 0);
+
+    return {
+      totalDrivers,
+      availableDrivers,
+      paidRecords,
+      pendingRecords,
+      totalPaidAmount,
+    };
+  };
+
+  const statistics = getStatistics();
 
   return (
     <div>
-      {/* 统计概览 */}
+      {/* 统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={8}>
           <Card>
             <Statistic
-              title="活跃司机"
-              value={drivers.filter(d => d.status === 'active').length}
+              title="总司机数"
+              value={statistics.totalDrivers}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: '#3f8600' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={8}>
           <Card>
             <Statistic
-              title="本月总薪酬"
-              value={salaryDetails.reduce((sum, s) => sum + s.netSalary, 0)}
-              prefix="¥"
-              precision={0}
+              title="空闲司机"
+              value={statistics.availableDrivers}
+              prefix={<CarOutlined />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={8}>
           <Card>
             <Statistic
-              title="平均评分"
-              value={drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length}
-              precision={1}
-              prefix={<StarOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="待发放薪酬"
-              value={salaryDetails.filter(s => s.status === 'approved').reduce((sum, s) => sum + s.netSalary, 0)}
-              prefix="¥"
-              precision={0}
-              valueStyle={{ color: '#cf1322' }}
+              title="已付薪酬记录"
+              value={statistics.paidRecords}
+              prefix={<DollarOutlined />}
+              valueStyle={{ color: '#722ed1' }}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* 主要内容 */}
-      <Tabs defaultActiveKey="performance" items={tabItems} />
+      <Row gutter={[16, 16]}>
+        {/* 司机列表 */}
+        <Col xs={24} lg={12}>
+          <Card
+            title={
+              <Space>
+                <UserOutlined />
+                司机列表
+              </Space>
+            }
+          >
+            <Table
+              columns={driverColumns}
+              dataSource={drivers}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              size="small"
+            />
+          </Card>
+        </Col>
+
+        {/* 薪酬记录 */}
+        <Col xs={24} lg={12}>
+          <Card
+            title={
+              <Space>
+                <DollarOutlined />
+                薪酬记录
+              </Space>
+            }
+            extra={
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={handleAddRecord}
+              >
+                添加工资记录
+              </Button>
+            }
+          >
+            <Table
+              columns={salaryColumns}
+              dataSource={salaryRecords}
+              rowKey="id"
+              loading={loading}
+              pagination={{ pageSize: 5 }}
+              size="small"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 薪酬记录编辑模态框 */}
+      <Modal
+        title={editingRecord ? '编辑薪酬记录' : '添加工资记录'}
+        open={isModalVisible}
+        onOk={handleModalOk}
+        onCancel={() => setIsModalVisible(false)}
+        width={600}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="driverId"
+            label="选择司机"
+            rules={[{ required: true, message: '请选择司机' }]}
+          >
+            <Select placeholder="选择司机">
+              {drivers.map(driver => (
+                <Option key={driver.id} value={driver.id}>
+                  {driver.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="month"
+            label="工资月份"
+            rules={[{ required: true, message: '请选择月份' }]}
+          >
+            <DatePicker.picker
+              picker="month"
+              placeholder="选择月份"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="baseSalary"
+                label="基础工资"
+                rules={[{ required: true, message: '请输入基础工资' }]}
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="基础工资"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="tripBonus"
+                label="行程奖金"
+                rules={[{ required: true, message: '请输入行程奖金' }]}
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="行程奖金"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="fuelAllowance"
+                label="燃油补贴"
+                rules={[{ required: true, message: '请输入燃油补贴' }]}
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="燃油补贴"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="tripsCompleted"
+                label="完成行程数"
+                rules={[{ required: true, message: '请输入行程数' }]}
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="行程数"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   );
 };
