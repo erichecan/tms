@@ -77,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       label: '运单管理',
     },
     {
-      key: '/fleet-management',
+      key: '/admin/fleet',
       icon: <TruckOutlined />,
       label: '车队管理',
     },
