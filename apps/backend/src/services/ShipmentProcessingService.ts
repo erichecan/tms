@@ -40,7 +40,7 @@ export class ShipmentProcessingService {
       }
 
       // 2. 触发实时计费规则引擎
-      const pricingResult = await this.pricingEngineService.calculateShipmentCost(
+      const pricingResult = await this.pricingEngineService.calculateCost(
         tenantId,
         {
           shipmentId,

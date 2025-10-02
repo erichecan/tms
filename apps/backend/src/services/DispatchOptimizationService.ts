@@ -172,14 +172,14 @@ export class DispatchOptimizationService {
       const response = await fetch(url);
       const data = await response.json();
 
-      if (data.status === 'OK' && data.results.length > 0) {
-        const location = data.results[0].geometry.location;
+      if ((data as any).status === 'OK' && (data as any).results.length > 0) {
+        const location = (data as any).results[0].geometry.location;
         return {
           lat: location.lat,
           lng: location.lng,
         };
       } else {
-        logger.warn(`地理编码失败: ${data.status}`);
+        logger.warn(`地理编码失败: ${(data as any).status}`);
         return null;
       }
     } catch (error) {
@@ -260,8 +260,8 @@ export class DispatchOptimizationService {
       const response = await fetch(url);
       const data = await response.json();
 
-      if (data.status === 'OK' && data.routes.length > 0) {
-        const route = data.routes[0];
+      if ((data as any).status === 'OK' && (data as any).routes.length > 0) {
+        const route = (data as any).routes[0];
         const leg = route.legs[0];
         
         return {
@@ -272,7 +272,7 @@ export class DispatchOptimizationService {
           instructions: leg.steps.map((step: any) => step.html_instructions).join(' → '),
         };
       } else {
-        throw new Error(`路线规划失败: ${data.status}`);
+        throw new Error(`路线规划失败: ${(data as any).status}`);
       }
     } catch (error) {
       logger.error(`路线规划API调用失败: ${error.message}`);
