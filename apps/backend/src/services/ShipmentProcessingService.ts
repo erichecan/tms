@@ -44,10 +44,10 @@ export class ShipmentProcessingService {
       try {
         const pricingResult = await this.pricingEngineService.recalculateShipmentPricing(shipmentId);
         // 更新运单的预估费用
-        if (pricingResult && pricingResult.success) {
+        if (pricingResult && pricingResult.totalCost) {
           await this.updateShipmentPricing(shipmentId, pricingResult, tenantId);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`运单 ${shipmentId} 计费计算失败，跳过: ${error.message}`);
       }
 
