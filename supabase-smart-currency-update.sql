@@ -197,6 +197,7 @@ DO $$
 DECLARE 
     table_record RECORD;
     column_record RECORD;
+    result INTEGER;  -- 声明result变量
 BEGIN
     -- 查找所有可能包含currency字段的表
     FOR table_record IN 
@@ -282,11 +283,10 @@ FROM currencies WHERE code = 'CAD';
 -- 其他表的CAD统计
 DO $$
 DECLARE
-    table_name TEXT;
-    column_name TEXT;
+    rec RECORD;
     count_result INTEGER;
 BEGIN
-    FOR table_name, column_name IN 
+    FOR rec IN 
         SELECT DISTINCT c.table_name, c.column_name
         FROM information_schema.columns c
         WHERE c.column_name IN ('currency', 'default_currency', 'primary_currency')
@@ -295,10 +295,10 @@ BEGIN
     LOOP
         BEGIN
             EXECUTE format('SELECT COUNT(*) FROM %I WHERE %I = ''CAD''', 
-                          table_name, column_name) INTO count_result;
+                          rec.table_name, rec.column_name) INTO count_result;
             
             IF count_result > 0 THEN
-                RAISE NOTICE '表 %.% 中有 % 行CAD记录', table_name, column_name, count_result;
+                RAISE NOTICE '表 %.% 中有 % 行CAD记录', rec.table_name, rec.column_name, count_result;
             END IF;
         EXCEPTION
             WHEN OTHERS THEN
