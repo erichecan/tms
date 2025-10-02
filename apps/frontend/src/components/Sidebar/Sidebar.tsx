@@ -120,11 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         // - 车辆维护 → 整合到车队管理页面(车辆维护标签页)
         // - 司机绩效 → 整合到车队管理页面(司机绩效标签页)
         // - 实时跟踪 → 整合到车队管理页面(实时跟踪标签页)
-        {
-          key: '/admin/route-optimization',
-          icon: <BranchesOutlined />,
-          label: '路径优化',
-        },
+        // 2025-10-02 19:00:00 - 路径优化功能暂时移除，后续添加
         {
           key: '/admin/rule-version-management',
           icon: <HistoryOutlined />,

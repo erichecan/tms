@@ -26,7 +26,8 @@ import FinancialReportsPage from './pages/FinancialReports/FinancialReportsPage'
 // import VehicleMaintenancePage from './pages/VehicleMaintenance/VehicleMaintenancePage'; → 已整合到车队管理页面
 // import DriverPerformancePage from './pages/DriverPerformance/DriverPerformancePage'; → 已整合到车队管理页面
 // import RealTimeTrackingPage from './pages/RealTimeTracking/RealTimeTrackingPage'; → 已整合到车队管理页面
-import RouteOptimizationPage from './pages/RouteOptimization/RouteOptimizationPage';
+// 2025-10-02 19:00:00 - 路径优化页面暂时移除，后续添加
+// import RouteOptimizationPage from './pages/RouteOptimization/RouteOptimizationPage';
 import RuleVersionManagementPage from './pages/RuleVersionManagement/RuleVersionManagementPage';
 // 2025-10-02 18:35:00 - 以下页面已整合，移除独立导入:
 // import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage'; → 已整合到仪表板页面
@@ -73,8 +74,7 @@ function App() {
             /admin/driver-performance → 已整合到车队管理页面(司机绩效标签页)
             /admin/real-time-tracking → 已整合到车队管理中(实时跟踪标签页)
             */}
-            {/* 路径优化路由 - 2025-09-29 21:40:00 */}
-            <Route path="/admin/route-optimization" element={<ProtectedRoute><PageLayout><RouteOptimizationPage /></PageLayout></ProtectedRoute>} />
+            {/* 2025-10-02 19:00:00 - 路径优化路由已暂时移除，后续添加 */}
             {/* 规则版本管理路由 - 2025-09-29 21:50:00 */}
             <Route path="/admin/rule-version-management" element={<ProtectedRoute><PageLayout><RuleVersionManagementPage /></PageLayout></ProtectedRoute>} />
             {/* 2025-10-02 18:35:00 - 性能监控路由已移除，功能已整合到仪表板页面(系统监控标签页) */}
