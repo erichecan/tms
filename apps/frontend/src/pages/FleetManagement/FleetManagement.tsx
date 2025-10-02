@@ -26,7 +26,8 @@ import {
   HistoryOutlined,
   EnvironmentOutlined,
   TrophyOutlined,
-  ToolOutlined
+  ToolOutlined,
+  DollarOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
 import { driversApi, vehiclesApi, tripsApi } from '../../services/api'; // 2025-10-02 15:20:45 引入创建司机/车辆API // 2025-10-02 16:38:00 添加tripsApi
