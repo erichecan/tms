@@ -2,7 +2,7 @@
 // 创建时间: 2025-10-02 19:20:00
 // 作用: 定时执行批量运单优化，确保所有待分配运单都得到处理
 
-import cron from 'node-cron';
+// import cron from 'node-cron';
 import { DatabaseService } from '../services/DatabaseService';
 import { ShipmentProcessingService } from '../services/ShipmentProcessingService';
 import { logger } from '../utils/logger';
@@ -10,7 +10,7 @@ import { logger } from '../utils/logger';
 class DispatchOptimizationJob {
   private dbService: DatabaseService;
   private processingService: ShipmentProcessingService;
-  private cronJob: cron.ScheduledTask | null = null;
+  private isRunning: boolean = false;
 
   constructor() {
     this.dbService = new DatabaseService();
@@ -18,19 +18,17 @@ class DispatchOptimizationJob {
   }
 
   /**
-   * 启动定时任务
-   * 每10分钟执行一次批量运单优化
+   * 启动定时任务 - 简化版本
    */
   public start(): void {
-    // 0 */10 * * * * - 每10分钟执行一次
-    this.cronJob = cron.schedule('0 */10 * * * *', async () => {
-      await this.runBatchOptimization();
-    }, {
-      scheduled: false, // 手动启动
-      timezone: 'Asia/Shanghai'
-    });
+    this.isRunning = true;
+    // 使用setInterval模拟定时任务
+    setInterval(async () => {
+      if (this.isRunning) {
+        await this.runBatchOptimization();
+      }
+    }, 10 * 60 * 1000); // 每10分钟
 
-    this.cronJob.start();
     logger.info('🕐 调度优化定时任务已启动 (每10分钟执行一次)');
   }
 
@@ -38,11 +36,8 @@ class DispatchOptimizationJob {
    * 停止定时任务
    */
   public stop(): void {
-    if (this.cronJob) {
-      this.cronJob.stop();
-      this.cronJob = null;
-      logger.info('🛑 调度优化定时任务已停止');
-    }
+    this.isRunning = false;
+    logger.info('🛑 调度优化定时任务已停止');
   }
 
   /**
@@ -168,8 +163,8 @@ class DispatchOptimizationJob {
    */
   public getStatus(): { running: boolean; nextRun?: Date } {
     return {
-      running: this.cronJob?.getStatus() === 'scheduled',
-      nextRun: this.cronJob ? (this.cronJob as any).nextDate() : undefined,
+      running: this.isRunning,
+      nextRun: new Date(Date.now() + 10 * 60 * 1000), // 下次运行时间：现在+10分钟
     };
   }
 }
