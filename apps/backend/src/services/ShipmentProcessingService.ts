@@ -44,7 +44,7 @@ export class ShipmentProcessingService {
       try {
         const pricingResult = await this.pricingEngineService.recalculateShipmentPricing(shipmentId);
         // 更新运单的预估费用
-        if (pricingResult && pricingResult.totalCost) {
+        if (pricingResult && pricingResult.totalRevenue) {
           await this.updateShipmentPricing(shipmentId, pricingResult, tenantId);
         }
       } catch (error: any) {
