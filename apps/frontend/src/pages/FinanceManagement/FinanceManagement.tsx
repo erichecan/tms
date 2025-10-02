@@ -22,14 +22,16 @@ import {
   FileTextOutlined,
   DownloadOutlined,
   EyeOutlined,
-  ExclamationCircleOutlined,
+  ExclamationCircle Outlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import { financeApi, customersApi, driversApi } from '../../services/api';
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
 import { formatCurrency } from '../../utils/formatCurrency';
+import FinancialDashboard from '../../components/FinancialReports/FinancialDashboard'; // 2025-10-02 18:10:00 整合财务报表功能
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -275,10 +277,10 @@ const FinanceManagement: React.FC = () => {
   return (
     <PageLayout>
       <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'phase-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">财务结算</h1>
-          <p className="page-description">管理财务记录和生成结算单</p>
+          <h1 className="page-title">财务管理</h1>
+          <p className="page-description">综合财务管理平台 - 记录、结算、报表</p>
         </div>
         <Button 
           type="primary" 
@@ -292,7 +294,18 @@ const FinanceManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* 财务概览 */}
+      {/* 2025-10-02 18:10:00 - 添加标签页来整合财务报表功能 */}
+      <Tabs defaultActiveKey="records" size="large">
+        <Tabs.TabPane 
+          tab={
+            <span>
+              <DollarOutlined />
+              财务记录
+            </span>
+          } 
+          key="records"
+        >
+          {/* 财务概览 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
           <Card className="stats-card">
@@ -453,6 +466,26 @@ const FinanceManagement: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+        </Tabs.TabPane>
+        
+        <Tabs.TabPane 
+          tab={
+            <span>
+              <BarChartOutlined />
+              财务报表
+            </span>
+          } 
+          key="reports"
+        >
+          <div style={{ padding: '16px 0' }}>
+            <Card>
+              <Title level={4}>📊 财务分析报表</Title>
+              <Text type="secondary">全面的财务数据分析和报表生成功能</Text>
+              <FinancialDashboard />
+            </Card>
+          </div>
+        </Tabs.TabPane>
+      </Tabs>
       </div>
     </PageLayout>
   );

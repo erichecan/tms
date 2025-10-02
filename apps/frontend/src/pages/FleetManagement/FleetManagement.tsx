@@ -16,19 +16,22 @@ import {
   Form,
   Input,
   Select,
-  message
-} from 'antd'; // 2025-10-02 15:20:45 引入 Modal/Form 等用于添加司机/车辆
+  message,
+  Tabs
+} from 'antd'; // 2025-10-02 15:20:45 引入 Modal/Form 等用于添加司机/车辆 // 2025-10-02 18:15:00 添加Tabs用于整合功能
 import { 
   TeamOutlined, 
   TruckOutlined, 
   EyeOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  EnvironmentOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
 import { driversApi, vehiclesApi, tripsApi } from '../../services/api'; // 2025-10-02 15:20:45 引入创建司机/车辆API // 2025-10-02 16:38:00 添加tripsApi
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
 import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-01-27 17:15:00 添加Google Maps组件
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
+import RealTimeTracking from '../../components/RealTimeTracking/RealTimeTracking'; // 2025-10-02 18:15:00 整合实时跟踪功能
 
 const { Title, Text } = Typography;
 
@@ -173,11 +176,22 @@ const FleetManagement: React.FC = () => {
         <div style={{ marginBottom: 16 }}>
           <Title level={3}>车队管理</Title>
           <Text type="secondary">
-            管理在途司机车辆、空闲资源列表、地图轨迹显示，支持行程调度和历史回放
+            综合车队管理平台 - 在途行程、司机车辆、实时跟踪
           </Text>
         </div>
-        
-        {/* 左右布局：左侧显示在途行程和空闲资源，右侧显示地图 */}
+
+        {/* 2025-10-02 18:15:00 - 添加标签页来整合实时跟踪等功能 */}
+        <Tabs defaultActiveKey="fleet" size="large">
+          <Tabs.TabPane 
+            tab={
+              <span>
+                <TruckOutlined />
+                车队管理
+              </span>
+            } 
+            key="fleet"
+          >
+            {/* 左右布局：左侧显示在途行程和空闲资源，右侧显示地图 */}
         <Row gutter={[24, 24]}>
           {/* 左侧：上下结构 */}
           <Col span={14}>
@@ -288,6 +302,26 @@ const FleetManagement: React.FC = () => {
             查看历史记录
           </Button>
         </div>
+          </Tabs.TabPane>
+
+          <Tabs.TabPane 
+            tab={
+              <span>
+                <EnvironmentOutlined />
+                实时跟踪
+              </span>
+            } 
+            key="tracking"
+          >
+            <div style={{ padding: '16px 0' }}>
+              <Card>
+                <Title level={4}>📍 实时位置跟踪</Title>
+                <Text type="secondary">车队实时位置监控和跟踪管理</Text>
+                <RealTimeTracking />
+              </Card>
+            </div>
+          </Tabs.TabPane>
+        </Tabs>
 
         {/* 行程详情模态框 */}
         {selectedTrip && (
