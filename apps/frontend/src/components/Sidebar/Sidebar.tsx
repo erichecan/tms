@@ -113,16 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
           icon: <UploadOutlined />,
           label: '批量导入',
         },
-        {
-          key: '/admin/drivers',
-          icon: <TeamOutlined />,
-          label: '司机管理',
-        },
-        {
-          key: '/admin/vehicles',
-          icon: <TruckOutlined />,
-          label: '车辆管理',
-        },
+        // 2025-10-02 17:25:00 - 司机管理和车辆管理功能已整合到车队管理中
         {
           key: '/admin/rules',
           icon: <SettingOutlined />,

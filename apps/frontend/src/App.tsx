@@ -12,12 +12,9 @@ import ShipmentManagement from './pages/ShipmentManagement/ShipmentManagement';
 import ShipmentCreate from './pages/ShipmentCreate/ShipmentCreate';
 import FinanceManagement from './pages/FinanceManagement/FinanceManagement';
 import CustomerManagement from './pages/CustomerManagement/CustomerManagement';
-import DriverManagement from './pages/DriverManagement/DriverManagement';
-import VehicleManagement from './pages/VehicleManagement/VehicleManagement';
 import CurrencyManagement from './pages/CurrencyManagement/CurrencyManagement';
 // 新增页面导入 - 符合PRD v3.0-PC设计
 import FleetManagement from './pages/FleetManagement/FleetManagement';
-import TripManagement from './pages/TripManagement/TripManagement';
 // 计费规则引擎页面导入
 import PricingTemplates from './pages/PricingEngine/PricingTemplates';
 import PricingCalculator from './pages/PricingEngine/PricingCalculator';
@@ -53,17 +50,15 @@ function App() {
             <Route path="/create-shipment" element={<ProtectedRoute><ShipmentCreate /></ProtectedRoute>} />
             {/* 新增路由 - 符合PRD v3.0-PC设计 - 2025-09-29 13:35:00 移除路由层PageLayout，与创建运单页面保持一致 */}
             <Route path="/fleet-management" element={<ProtectedRoute><FleetManagement /></ProtectedRoute>} />
-            <Route path="/trip-management" element={<ProtectedRoute><TripManagement /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
             <Route path="/finance-settlement" element={<ProtectedRoute><FinanceManagement /></ProtectedRoute>} />
-            {/* 管理后台页面 - 2025-01-27 17:30:00 使用新的PageLayout */}
+            {/* 管理后台页面 - 2025-01-27 17:30:00 使用新的PageLayout - 2025-10-02 17:20:00 移除独立的司机、车辆、行程管理页面 */}
             <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/shipments" element={<ProtectedRoute><PageLayout><ShipmentManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
-            <Route path="/admin/drivers" element={<ProtectedRoute><PageLayout><DriverManagement /></PageLayout></ProtectedRoute>} />
-            <Route path="/admin/vehicles" element={<ProtectedRoute><PageLayout><VehicleManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/fleet" element={<ProtectedRoute><PageLayout><FleetManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/currencies" element={<ProtectedRoute><PageLayout><CurrencyManagement /></PageLayout></ProtectedRoute>} />
             {/* 计费规则引擎路由 - 2025-09-29 09:15:00 */}
             <Route path="/admin/pricing" element={<ProtectedRoute><PageLayout><PricingHome /></PageLayout></ProtectedRoute>} />

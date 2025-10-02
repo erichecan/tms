@@ -207,7 +207,7 @@ const Home: React.FC = () => {
           <Card
             hoverable
             size="small"
-            onClick={() => navigate('/admin/drivers')}
+            onClick={() => navigate('/admin/fleet')}
             style={{ textAlign: 'center' }}
           >
             <TeamOutlined style={{ fontSize: '24px', color: '#722ed1', marginBottom: '8px' }} />
