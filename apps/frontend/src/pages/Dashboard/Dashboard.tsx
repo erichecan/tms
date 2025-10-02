@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Table, Tag, Space, Button } from 'antd';
+import { Row, Col, Card, Statistic, Table, Tag, Space, Button, Tabs } from 'antd';
 import {
   DollarOutlined,
   TruckOutlined,
@@ -7,10 +7,12 @@ import {
   FileTextOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  MonitorOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, rulesApi, customersApi, driversApi } from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
+import PerformanceMonitoring from '../../components/PerformanceMonitoring/PerformanceMonitoring'; // 2025-10-02 18:25:00 整合性能监控功能
 
 
 
@@ -166,10 +168,21 @@ const Dashboard: React.FC = () => {
     <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div className="page-header" style={{ marginBottom: '24px' }}>
         <h1 className="page-title" style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>仪表盘</h1>
-        <p className="page-description" style={{ margin: 0, color: '#666' }}>欢迎使用TMS智能物流运营平台</p>
+        <p className="page-description" style={{ margin: 0, color: '#666' }}>TMS智能物流运营平台 - 概览与监控</p>
       </div>
 
-      {/* 统计卡片 */}
+      {/* 2025-10-02 18:25:00 - 添加标签页来整合性能监控功能 */}
+      <Tabs defaultActiveKey="overview" size="large">
+        <Tabs.TabPane 
+          tab={
+            <span>
+              <FileTextOutlined />
+              运营概览
+            </span>
+          } 
+          key="overview"
+        >
+          {/* 统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card className="stats-card">
@@ -260,6 +273,26 @@ const Dashboard: React.FC = () => {
           size="small"
         />
       </Card>
+        </Tabs.TabPane>
+
+        <Tabs.TabPane 
+          tab={
+            <span>
+              <MonitorOutlined />
+              系统监控
+            </span>
+          } 
+          key="monitoring"
+        >
+          <div style={{ padding: '16px 0' }}>
+            <Card>
+              <h2 style={{ marginBottom: '16px' }}>📊 性能监控</h2>
+              <p style={{ color: '#666', marginBottom: '16px' }}>系统性能监控和缓存策略管理</p>
+              <PerformanceMonitoring />
+            </Card>
+          </div>
+        </Tabs.TabPane>
+      </Tabs>
     </div>
   );
 };

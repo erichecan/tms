@@ -24,7 +24,9 @@ import {
   TruckOutlined, 
   EyeOutlined,
   HistoryOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
+  TrophyOutlined,
+  ToolOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
 import { driversApi, vehiclesApi, tripsApi } from '../../services/api'; // 2025-10-02 15:20:45 引入创建司机/车辆API // 2025-10-02 16:38:00 添加tripsApi
@@ -32,6 +34,8 @@ import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00
 import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-01-27 17:15:00 添加Google Maps组件
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
 import RealTimeTracking from '../../components/RealTimeTracking/RealTimeTracking'; // 2025-10-02 18:15:00 整合实时跟踪功能
+import DriverPerformance from '../../components/DriverPerformance/DriverPerformance'; // 2025-10-02 18:25:00 整合司机绩效功能
+import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance'; // 2025-10-02 18:25:00 整合车辆维护功能
 
 const { Title, Text } = Typography;
 
@@ -318,6 +322,42 @@ const FleetManagement: React.FC = () => {
                 <Title level={4}>📍 实时位置跟踪</Title>
                 <Text type="secondary">车队实时位置监控和跟踪管理</Text>
                 <RealTimeTracking />
+              </Card>
+            </div>
+          </Tabs.TabPane>
+
+          <Tabs.TabPane 
+            tab={
+              <span>
+                <TrophyOutlined />
+                司机绩效
+              </span>
+            } 
+            key="performance"
+          >
+            <div style={{ padding: '16px 0' }}>
+              <Card>
+                <Title level={4}>👨‍💼 司机绩效考核</Title>
+                <Text type="secondary">管理司机绩效考核、薪酬计算和绩效分析</Text>
+                <DriverPerformance />
+              </Card>
+            </div>
+          </Tabs.TabPane>
+
+          <Tabs.TabPane 
+            tab={
+              <span>
+                <ToolOutlined />
+                车辆维护
+              </span>
+            } 
+            key="maintenance"
+          >
+            <div style={{ padding: '16px 0' }}>
+              <Card>
+                <Title level={4}>🔧 车辆维护记录</Title>
+                <Text type="secondary">管理车辆维护记录，跟踪车辆状态和保养计划</Text>
+                <VehicleMaintenance />
               </Card>
             </div>
           </Tabs.TabPane>
