@@ -103,10 +103,11 @@ export const pricingApi = {
 // Finance related API calls
 export const financeApi = {
   getFinancialRecords: (params?: any) => api.get('/finance/records', { params }),
+  // 2025-10、02 18:45:00 - 修复结算单生成API参数格式
   generateCustomerStatement: (customerId: string, period: { start: string, end: string }) => 
-    api.post('/finance/statements/customer', { customerId, period }),
+    api.post('/finance/statements/customer', { customerId, startDate: period.start, endDate: period.end }),
   generateDriverPayrollStatement: (driverId: string, period: { start: string, end: string }) => 
-    api.post('/finance/statements/driver', { driverId, period }),
+    api.post('/finance/statements/driver', { driverId, startDate: period.start, endDate: period.end }),
   getStatements: (params?: any) => api.get('/finance/statements', { params }),
   getStatementDetails: (statementId: string) => api.get(`/finance/statements/${statementId}`),
   downloadStatement: (statementId: string) => api.get(`/finance/statements/${statementId}/download`),

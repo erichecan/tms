@@ -45,6 +45,9 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/rules', ruleRoutes);
 app.use('/api/db', dbRoutes); // 注册DB路由 // 2025-10-02 02:41:10
 
+// 2025-10-02 18:45:00 - 确保财务路由可用
+console.log('财务路由已注册:', '/api/finance');
+
 export default app;
 
 
