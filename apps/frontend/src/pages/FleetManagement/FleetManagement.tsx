@@ -329,16 +329,16 @@ const FleetManagement: React.FC = () => {
           <Tabs.TabPane 
             tab={
               <span>
-                <TrophyOutlined />
-                司机绩效
+                <DollarOutlined />
+                司机薪酬
               </span>
             } 
-            key="performance"
+            key="driver-payroll"
           >
             <div style={{ padding: '16px 0' }}>
               <Card>
-                <Title level={4}>👨‍💼 司机绩效考核</Title>
-                <Text type="secondary">管理司机绩效考核、薪酬计算和绩效分析</Text>
+                <Title level={4}>💰 司机薪酬管理</Title>
+                <Text type="secondary">管理司机工资发放、薪酬计算和支付记录</Text>
                 <DriverPerformance />
               </Card>
             </div>
