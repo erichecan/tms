@@ -24,7 +24,7 @@ export class DatabaseService {
     } else {
       const host = process.env.DB_HOST || 'localhost';
       const port = parseInt(process.env.DB_PORT || '5432', 10);
-      const database = process.env.DB_NAME || 'tms';
+      const database = process.env.DB_NAME || 'tms_platform';
       const user = process.env.DB_USER || 'tms_user';
       const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
 

@@ -17,9 +17,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-        // 开发环境下提供一个有效的默认JWT，避免401 // 2025-09-26 03:50:00
+        // 开发环境下提供一个有效的默认JWT，避免401 // 2025-10-03 20:02:00 更新
         // 使用后端生成的真正JWT token
-        const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1ODg2MDc5MiwiZXhwIjoxNzU5NDY1NTkyfQ.37h-2GpnC9eb48GtVXxdi90_SuNQdmuVwFyccJdzXDc';
+        const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1OTUyMTcxOCwiZXhwIjoxNzYwMTI2NTE4fQ.NPx9IZ_YT-nORbmEEHygm_ewJYLY8dt29D7ucHR_a68';
       config.headers.Authorization = `Bearer ${devToken}`;
     }
     // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
