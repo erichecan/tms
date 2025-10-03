@@ -12,11 +12,12 @@
   background: #fff;
 }
 
-.ant-layout-content {
+/* 移除这个样式定义，避免与PageLayout冲突 */
+/* .ant-layout-content {
   margin: 24px 16px;
   padding: 24px;
   min-height: 280px;
-}
+} */
 
 /* Page header styles */
 .page-header {
@@ -420,8 +421,8 @@
 
 /* Content styles */
 .ant-layout-content {
-  background: #f0f2f5;
-  padding: 24px;
+  background: #ffffff;
+  padding: 0;
   margin: 0;
   min-height: calc(100vh - 64px);
 }
