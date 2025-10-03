@@ -22,11 +22,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showSidebar = true })
         collapsed={sidebarCollapsed} 
         onCollapse={setSidebarCollapsed} 
       />
-      <Layout style={{ marginLeft: sidebarCollapsed ? 80 : 240 }}>
+      <Layout style={{ marginLeft: 0 }}>
         <Content
           style={{
             margin: '0',
-            padding: '24px',
+            padding: '24px 24px 24px 24px',
+            paddingLeft: sidebarCollapsed ? '104px' : '264px', // 侧边栏宽度 + 24px间距
             background: '#ffffff',
             minHeight: '100vh',
           }}
