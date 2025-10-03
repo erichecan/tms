@@ -198,8 +198,9 @@ const FleetManagement: React.FC = () => {
                 </span>
               ),
               children: (
-            {/* 左右布局：左侧显示在途行程和空闲资源，右侧显示地图 */}
-        <Row gutter={[24, 24]}>
+                <>
+                  {/* 左右布局：左侧显示在途行程和空闲资源，右侧显示地图 */}
+                  <Row gutter={[24, 24]}>
           {/* 左侧：上下结构 */}
           <Col span={14}>
             {/* 上面：在途行程 */}
@@ -309,6 +310,7 @@ const FleetManagement: React.FC = () => {
             查看历史记录
           </Button>
         </div>
+                </>
               )
             },
             {
