@@ -76,12 +76,24 @@ GOOGLE_MAPS_BACKEND_API_KEY=your-backend-specific-key
 VITE_GOOGLE_MAPS_API_KEY=your-frontend-api-key
 ```
 
-### 2. 安装依赖
+### 2. 申请Google Maps API密钥
+详细申请步骤请参考: [API密钥申请指南](docs/google-maps-api-key-setup.md)
+
+### 3. 安装依赖
 ```bash
 npm install
 ```
 
-### 3. 启动开发服务器
+### 4. 配置环境变量
+```bash
+# 复制环境配置文件
+cp .env.example .env
+cp apps/frontend/.env.example apps/frontend/.env.local
+
+# 编辑配置文件，填入您的API密钥
+```
+
+### 5. 启动开发服务器
 ```bash
 # 启动后端服务
 npm run dev:backend
@@ -90,7 +102,7 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-### 4. 访问演示页面
+### 6. 访问演示页面
 打开浏览器访问: `http://localhost:3000/maps-demo`
 
 ## 🔑 API密钥申请
