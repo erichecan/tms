@@ -308,8 +308,9 @@ const FinanceManagement: React.FC = () => {
               </span>
             ),
             children: (
-          {/* 财务概览 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <>
+                {/* 财务概览 */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
           <Card className="stats-card">
             <Statistic
@@ -469,6 +470,7 @@ const FinanceManagement: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+              </>
             )
           },
           {
