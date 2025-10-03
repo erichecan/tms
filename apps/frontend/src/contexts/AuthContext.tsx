@@ -1,6 +1,7 @@
-import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { authApi } from '../services/api';
-import { UserLoginPayload, User } from '../types/index';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User } from '../types/index';
+import { authApi } from '../services/authApi';
+import { UserLoginPayload } from '../types/index';
 
 interface AuthContextType {
   user: User | null;
@@ -73,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const login = async (credentials: UserLoginPayload) => {
     setLoading(true);
@@ -90,13 +91,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const logout = () => {
     localStorage.removeItem('jwt_token');
     setToken(null);
     setUser(null);
-  };
+  }
 
   const isAuthenticated = !!token && !!user;
 
