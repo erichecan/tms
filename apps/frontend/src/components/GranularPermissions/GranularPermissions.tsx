@@ -50,7 +50,7 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
+// const { TabPane } = Tabs; // 已废弃，改用items属性
 
 interface Permission {
   id: string;
@@ -644,91 +644,107 @@ const GranularPermissions: React.FC = () => {
 
   return (
     <div>
-      <Tabs defaultActiveKey="users">
-        <TabPane tab="用户管理" key="users" icon={<UserOutlined />}>
-          <Card 
-            title="用户列表" 
-            extra={
-              <Button 
-                type="primary" 
-                icon={<UserAddOutlined />}
-                onClick={handleCreateUser}
+      <Tabs 
+        defaultActiveKey="users"
+        items={[
+          {
+            key: "users",
+            label: "用户管理",
+            children: (
+              <Card 
+                title="用户列表" 
+                extra={
+                  <Button 
+                    type="primary" 
+                    icon={<UserAddOutlined />}
+                    onClick={handleCreateUser}
+                  >
+                    新建用户
+                  </Button>
+                }
               >
-                新建用户
-              </Button>
-            }
-          >
-            <Table
-              columns={userColumns}
-              dataSource={users}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="角色管理" key="roles" icon={<TeamOutlined />}>
-          <Card 
-            title="角色列表" 
-            extra={
-              <Button 
-                type="primary" 
-                icon={<UsergroupAddOutlined />}
-                onClick={handleCreateRole}
+                <Table
+                  columns={userColumns}
+                  dataSource={users}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            )
+          },
+          {
+            key: "roles",
+            label: "角色管理",
+            children: (
+              <Card 
+                title="角色列表" 
+                extra={
+                  <Button 
+                    type="primary" 
+                    icon={<UsergroupAddOutlined />}
+                    onClick={handleCreateRole}
+                  >
+                    新建角色
+                  </Button>
+                }
               >
-                新建角色
-              </Button>
-            }
-          >
-            <Table
-              columns={roleColumns}
-              dataSource={roles}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="权限管理" key="permissions" icon={<LockOutlined />}>
-          <Card title="权限树">
-            <Tree
-              treeData={permissions}
-              defaultExpandAll
-              titleRender={(nodeData) => (
-                <Space>
-                  <ShieldCheckOutlined />
-                  <Text strong>{nodeData.name}</Text>
-                  <Text type="secondary">({nodeData.code})</Text>
-                </Space>
-              )}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="资源权限" key="resources" icon={<KeyOutlined />}>
-          <Card 
-            title="资源级权限" 
-            extra={
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />}
+                <Table
+                  columns={roleColumns}
+                  dataSource={roles}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            )
+          },
+          {
+            key: "permissions",
+            label: "权限管理",
+            children: (
+              <Card title="权限树">
+                <Tree
+                  treeData={permissions}
+                  defaultExpandAll
+                  titleRender={(nodeData) => (
+                    <Space>
+                      <ShieldCheckOutlined />
+                      <Text strong>{nodeData.name}</Text>
+                      <Text type="secondary">({nodeData.code})</Text>
+                    </Space>
+                  )}
+                />
+              </Card>
+            )
+          },
+          {
+            key: "resources",
+            label: "资源权限",
+            children: (
+              <Card 
+                title="资源级权限" 
+                extra={
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                  >
+                    分配资源权限
+                  </Button>
+                }
               >
-                分配资源权限
-              </Button>
-            }
-          >
-            <Table
-              columns={resourcePermissionColumns}
-              dataSource={resourcePermissions}
-              rowKey={(record) => `${record.resourceType}-${record.resourceId}`}
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
-        </TabPane>
-      </Tabs>
+                <Table
+                  columns={resourcePermissionColumns}
+                  dataSource={resourcePermissions}
+                  rowKey={(record) => `${record.resourceType}-${record.resourceId}`}
+                  loading={loading}
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            )
+          }
+        ]}
+      />
 
       {/* 用户编辑模态框 */}
       <Modal

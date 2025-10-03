@@ -44,7 +44,7 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
+// const { TabPane } = Tabs; // 已废弃，改用items属性
 
 interface PerformanceMetric {
   id: string;
@@ -580,43 +580,56 @@ const PerformanceMonitoring: React.FC = () => {
       </Row>
 
       {/* 详细监控信息 */}
-      <Tabs defaultActiveKey="metrics">
-        <TabPane tab="性能指标" key="metrics" icon={<BarChartOutlined />}>
-          <Card title="系统性能指标" extra={<MonitorOutlined />}>
-            <Table
-              columns={metricsColumns}
-              dataSource={metrics}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="缓存状态" key="cache" icon={<DatabaseOutlined />}>
-          <Card title="缓存系统状态" extra={<MemoryOutlined />}>
-            <Table
-              columns={cacheColumns}
-              dataSource={cacheStatus}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="系统告警" key="alerts" icon={<WarningOutlined />}>
-          <Card title="系统告警" extra={<ExclamationCircleOutlined />}>
-            <Table
-              columns={alertColumns}
-              dataSource={alerts}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
-        </TabPane>
-      </Tabs>
+      <Tabs 
+        defaultActiveKey="metrics"
+        items={[
+          {
+            key: "metrics",
+            label: "性能指标",
+            children: (
+              <Card title="系统性能指标" extra={<MonitorOutlined />}>
+                <Table
+                  columns={metricsColumns}
+                  dataSource={metrics}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={false}
+                />
+              </Card>
+            )
+          },
+          {
+            key: "cache",
+            label: "缓存状态",
+            children: (
+              <Card title="缓存系统状态" extra={<MemoryOutlined />}>
+                <Table
+                  columns={cacheColumns}
+                  dataSource={cacheStatus}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={false}
+                />
+              </Card>
+            )
+          },
+          {
+            key: "alerts",
+            label: "系统告警",
+            children: (
+              <Card title="系统告警" extra={<ExclamationCircleOutlined />}>
+                <Table
+                  columns={alertColumns}
+                  dataSource={alerts}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            )
+          }
+        ]}
+      />
 
       {/* 监控配置模态框 */}
       <Modal
