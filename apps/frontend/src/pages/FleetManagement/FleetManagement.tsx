@@ -176,13 +176,12 @@ const FleetManagement: React.FC = () => {
 
   return (
     <PageLayout>
-      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ marginBottom: 16 }}>
-          <Title level={3}>车队管理</Title>
-          <Text type="secondary">
-            综合车队管理平台 - 在途行程、司机车辆、实时跟踪
-          </Text>
-        </div>
+      <div style={{ marginBottom: 16 }}>
+        <Title level={3}>车队管理</Title>
+        <Text type="secondary">
+          综合车队管理平台 - 在途行程、司机车辆、实时跟踪
+        </Text>
+      </div>
 
         {/* 2025-10-02 18:15:00 - 添加标签页来整合实时跟踪等功能 */}
         <Tabs 

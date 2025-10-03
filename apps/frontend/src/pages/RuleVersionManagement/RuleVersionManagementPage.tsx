@@ -12,14 +12,12 @@ const { Title, Text } = Typography;
 const RuleVersionManagementPage: React.FC = () => {
   return (
     <PageLayout>
-      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ marginBottom: 16 }}>
-          <Title level={3}>📋 规则版本管理</Title>
-          <Text type="secondary">规则版本管理和发布审批流程</Text>
-        </div>
-        
-        <RuleVersionManagement />
+      <div style={{ marginBottom: 16 }}>
+        <Title level={3}>📋 规则版本管理</Title>
+        <Text type="secondary">规则版本管理和发布审批流程</Text>
       </div>
+        
+      <RuleVersionManagement />
     </PageLayout>
   );
 };

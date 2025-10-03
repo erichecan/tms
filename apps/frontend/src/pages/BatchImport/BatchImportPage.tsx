@@ -12,14 +12,12 @@ const { Title, Text } = Typography;
 const BatchImportPage: React.FC = () => {
   return (
     <PageLayout>
-      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ marginBottom: 16 }}>
-          <Title level={3}>📥 运单批量导入</Title>
-          <Text type="secondary">支持CSV格式文件批量导入运单数据，提高录入效率</Text>
-        </div>
-        
-        <BatchImport />
+      <div style={{ marginBottom: 16 }}>
+        <Title level={3}>📥 运单批量导入</Title>
+        <Text type="secondary">支持CSV格式文件批量导入运单数据，提高录入效率</Text>
       </div>
+      
+      <BatchImport />
     </PageLayout>
   );
 };

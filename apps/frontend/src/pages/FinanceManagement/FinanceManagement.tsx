@@ -276,7 +276,6 @@ const FinanceManagement: React.FC = () => {
 
   return (
     <PageLayout>
-      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'phase-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">财务管理</h1>
@@ -493,7 +492,6 @@ const FinanceManagement: React.FC = () => {
           }
         ]}
       />
-      </div>
     </PageLayout>
   );
 };

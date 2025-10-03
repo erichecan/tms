@@ -1654,13 +1654,12 @@ const ShipmentCreate: React.FC = () => {
 
   return (
     <PageLayout>
-      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ marginBottom: 16 }}>
-          <Title level={3}>
-            <TruckOutlined /> 创建运单
-          </Title>
-          <Text type="secondary">请填写运单信息</Text>
-        </div>
+      <div style={{ marginBottom: 16 }}>
+        <Title level={3}>
+          <TruckOutlined /> 创建运单
+        </Title>
+        <Text type="secondary">请填写运单信息</Text>
+      </div>
 
         <Card>
           <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 8px' }}>
@@ -1828,7 +1827,6 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-      </div>
     </PageLayout>
   );
 };

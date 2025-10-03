@@ -290,7 +290,7 @@ const ShipmentManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+    <PageLayout>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>运单管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>{/* 跳转创建页 // 2025-10-02 02:55:10 */}
@@ -417,7 +417,7 @@ const ShipmentManagement: React.FC = () => {
           </div>
         ) : null}
       </Modal>
-    </div>
+    </PageLayout>
   );
 };
 

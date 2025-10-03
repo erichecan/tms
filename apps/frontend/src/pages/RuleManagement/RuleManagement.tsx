@@ -219,7 +219,7 @@ const RuleManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+    <PageLayout>
       <div className="page-header" style={{ marginBottom: '24px' }}>
         <h1 className="page-title" style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>规则管理</h1>
         <p className="page-description" style={{ margin: 0, color: '#666' }}>管理计费规则和司机薪酬规则</p>
@@ -332,7 +332,7 @@ const RuleManagement: React.FC = () => {
           </div>
         )}
       </Modal>
-    </div>
+    </PageLayout>
   );
 };
 
