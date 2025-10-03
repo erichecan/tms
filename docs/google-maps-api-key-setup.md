@@ -48,34 +48,45 @@ Google Maps API提供每月$200的免费额度，足够初期开发使用：
 2. 点击"创建凭据" → "API密钥"
 3. 复制生成的API密钥
 
-### 步骤5: 配置API密钥限制
+### 步骤5: 配置API密钥限制（开发阶段简化方案）
 
-#### 前端密钥配置（用于浏览器）：
-1. 点击刚创建的API密钥
-2. 在"应用程序限制"部分：
-   - 选择"HTTP引荐来源网址"
-   - 添加您的域名：
-     - `http://localhost:3000`
-     - `http://localhost:3001`
-     - `https://yourdomain.com`（生产环境）
-3. 在"API限制"部分：
-   - 选择"限制密钥"
-   - 只选择以下API：
-     - Maps JavaScript API
-     - Geocoding API
-     - Places API
+#### 开发阶段推荐方案（无需复杂限制）：
+对于开发测试阶段，建议使用**无限制的API密钥**，这样更方便调试：
 
-#### 后端密钥配置（用于服务器）：
-1. 创建第二个API密钥
-2. 在"应用程序限制"部分：
-   - 选择"IP地址"
-   - 添加您的服务器IP地址
-3. 在"API限制"部分：
-   - 选择"限制密钥"
-   - 只选择以下API：
-     - Directions API
-     - Distance Matrix API
-     - Geocoding API
+1. **创建单个通用API密钥**（推荐开发使用）
+   - 点击刚创建的API密钥
+   - 在"应用程序限制"部分：选择"无"
+   - 在"API限制"部分：选择"无"
+   - 这样可以在本地开发环境中自由使用
+
+2. **或者创建两个简化限制的密钥**（更安全）：
+   - **前端密钥**：仅限制HTTP引荐来源网址为 `http://localhost:3000`
+   - **后端密钥**：无需IP限制，选择"无"
+
+#### 生产环境配置（上线前必须设置）：
+当项目准备上线时，需要配置严格限制：
+
+```javascript
+// 前端密钥限制（生产环境）：
+- HTTP引荐来源网址: https://yourdomain.com
+- 允许的API: Maps JavaScript API, Geocoding API
+
+// 后端密钥限制（生产环境）：
+- IP地址: 您的服务器IP地址
+- 允许的API: Directions API, Distance Matrix API
+```
+
+#### 开发阶段密钥配置示例：
+```bash
+# .env 文件（开发环境）
+GOOGLE_MAPS_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_MAPS_BACKEND_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# apps/frontend/.env.local 文件
+VITE_GOOGLE_MAPS_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**注意**：开发阶段使用无限制密钥时，务必设置预算告警，避免意外费用。
 
 ## ⚙️ 环境配置
 
@@ -173,10 +184,21 @@ VITE_GOOGLE_MAPS_API_KEY=AIzaSyzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
 4. **审查代码安全**
 
 ### 开发阶段建议
-1. 使用测试密钥进行开发
-2. 设置较低的预算告警
-3. 定期审查API使用情况
-4. 在生产环境使用限制更严格的密钥
+1. **使用无限制密钥进行开发** - 简化调试过程
+2. **设置预算告警** - 建议$10/月的低阈值
+3. **定期监控使用量** - 每周检查API调用统计
+4. **本地缓存策略** - 减少重复API调用
+5. **生产环境切换** - 上线前配置严格限制
+
+### 开发阶段快速开始
+如果您只想快速测试功能，可以：
+
+1. 创建一个无限制的API密钥
+2. 在 `.env` 和 `apps/frontend/.env.local` 中都填入同一个密钥
+3. 启动开发服务器测试功能
+4. 确认功能正常后，再配置生产环境限制
+
+这样可以在开发阶段避免复杂的配置问题。
 
 ## 📞 支持资源
 
