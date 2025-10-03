@@ -184,11 +184,10 @@ const FleetManagement: React.FC = () => {
       </div>
 
         {/* 2025-10-02 18:15:00 - 添加标签页来整合实时跟踪等功能 */}
-        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 8px' }}>
-          <Tabs 
-            defaultActiveKey="fleet" 
-            size="large"
-            items={[
+        <Tabs 
+          defaultActiveKey="fleet" 
+          size="large"
+          items={[
             {
               key: "fleet",
               label: (
@@ -558,7 +557,6 @@ const FleetManagement: React.FC = () => {
         </Col>
       </Row>
       </Modal>
-        </div>
     </PageLayout>
   );
 };
