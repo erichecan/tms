@@ -14,8 +14,8 @@ import { DatabaseService } from './services/DatabaseService';
 import fs from 'fs';
 import path from 'path';
 
-// 手动加载.env文件
-const envPath = path.resolve(__dirname, '../../.env');
+// 手动加载.env文件 - 2025-10-03 19:48:00 修复路径
+const envPath = path.resolve(__dirname, '../../../.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   const envLines = envContent.split('\n');
