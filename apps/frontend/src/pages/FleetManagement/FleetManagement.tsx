@@ -185,16 +185,19 @@ const FleetManagement: React.FC = () => {
         </div>
 
         {/* 2025-10-02 18:15:00 - 添加标签页来整合实时跟踪等功能 */}
-        <Tabs defaultActiveKey="fleet" size="large">
-          <Tabs.TabPane 
-            tab={
-              <span>
-                <TruckOutlined />
-                车队管理
-              </span>
-            } 
-            key="fleet"
-          >
+        <Tabs 
+          defaultActiveKey="fleet" 
+          size="large"
+          items={[
+            {
+              key: "fleet",
+              label: (
+                <span>
+                  <TruckOutlined />
+                  车队管理
+                </span>
+              ),
+              children: (
             {/* 左右布局：左侧显示在途行程和空闲资源，右侧显示地图 */}
         <Row gutter={[24, 24]}>
           {/* 左侧：上下结构 */}
@@ -306,62 +309,64 @@ const FleetManagement: React.FC = () => {
             查看历史记录
           </Button>
         </div>
-          </Tabs.TabPane>
-
-          <Tabs.TabPane 
-            tab={
-              <span>
-                <EnvironmentOutlined />
-                实时跟踪
-              </span>
-            } 
-            key="tracking"
-          >
-            <div style={{ padding: '16px 0' }}>
-              <Card>
-                <Title level={4}>📍 实时位置跟踪</Title>
-                <Text type="secondary">车队实时位置监控和跟踪管理</Text>
-                <RealTimeTracking />
-              </Card>
-            </div>
-          </Tabs.TabPane>
-
-          <Tabs.TabPane 
-            tab={
-              <span>
-                <DollarOutlined />
-                司机薪酬
-              </span>
-            } 
-            key="driver-payroll"
-          >
-            <div style={{ padding: '16px 0' }}>
-              <Card>
-                <Title level={4}>💰 司机薪酬管理</Title>
-                <Text type="secondary">管理司机工资发放、薪酬计算和支付记录</Text>
-                <DriverPerformance />
-              </Card>
-            </div>
-          </Tabs.TabPane>
-
-          <Tabs.TabPane 
-            tab={
-              <span>
-                <ToolOutlined />
-                车辆维护
-              </span>
-            } 
-            key="maintenance"
-          >
-            <div style={{ padding: '16px 0' }}>
-              <Card>
-                <Title level={4}>🔧 车辆维护记录</Title>
-                <Text type="secondary">管理车辆维护记录，跟踪车辆状态和保养计划</Text>
-                <VehicleMaintenance />
-              </Card>
-            </div>
-          </Tabs.TabPane>
-        </Tabs>
+              )
+            },
+            {
+              key: "tracking",
+              label: (
+                <span>
+                  <EnvironmentOutlined />
+                  实时跟踪
+                </span>
+              ),
+              children: (
+                <div style={{ padding: '16px 0' }}>
+                  <Card>
+                    <Title level={4}>📍 实时位置跟踪</Title>
+                    <Text type="secondary">车队实时位置监控和跟踪管理</Text>
+                    <RealTimeTracking />
+                  </Card>
+                </div>
+              )
+            },
+            {
+              key: "driver-payroll",
+              label: (
+                <span>
+                  <DollarOutlined />
+                  司机薪酬
+                </span>
+              ),
+              children: (
+                <div style={{ padding: '16px 0' }}>
+                  <Card>
+                    <Title level={4}>💰 司机薪酬管理</Title>
+                    <Text type="secondary">管理司机工资发放、薪酬计算和支付记录</Text>
+                    <DriverPerformance />
+                  </Card>
+                </div>
+              )
+            },
+            {
+              key: "maintenance",
+              label: (
+                <span>
+                  <ToolOutlined />
+                  车辆维护
+                </span>
+              ),
+              children: (
+                <div style={{ padding: '16px 0' }}>
+                  <Card>
+                    <Title level={4}>🔧 车辆维护记录</Title>
+                    <Text type="secondary">管理车辆维护记录，跟踪车辆状态和保养计划</Text>
+                    <VehicleMaintenance />
+                  </Card>
+                </div>
+              )
+            }
+          ]}
+        />
 
         {/* 行程详情模态框 */}
         {selectedTrip && (
