@@ -26,6 +26,7 @@ import {
   SettingOutlined
 } from '@ant-design/icons';
 import { formatCurrency } from '../../utils/formatCurrency';
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:35:00 添加PageLayout导入
 
 const { Title, Text } = Typography;
 

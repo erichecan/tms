@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, rulesApi, customersApi, driversApi } from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
 import PerformanceMonitoring from '../../components/PerformanceMonitoring/PerformanceMonitoring'; // 2025-10-02 18:25:00 整合性能监控功能
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:35:00 添加PageLayout导入
 
 
 

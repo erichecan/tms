@@ -26,6 +26,7 @@ import {
 import RuleEditor from '../../components/RuleEditor/RuleEditor';
 import { rulesApi } from '../../services/api';
 import { Rule, RuleType, RuleStatus } from '../../types/index';
+import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:35:00 添加PageLayout导入
 
 const { Title, Text } = Typography;
 
