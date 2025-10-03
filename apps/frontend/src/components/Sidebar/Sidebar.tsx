@@ -46,8 +46,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
 
   // 根据当前路径自动展开对应的菜单 - 添加时间戳注释 @ 2025-09-30 09:15:00
   useEffect(() => {
-    // 2025-10-01 15:06:20 特殊处理：当进入“运单管理”时不要展开“管理后台”下拉
-    if (location.pathname.startsWith('/admin/shipments')) {
+    // 2025-10-03 20:25:00 特殊处理：当进入一级菜单项时不要展开"管理后台"下拉
+    const topLevelAdminPaths = [
+      '/admin/shipments',  // 运单管理
+      '/admin/fleet',      // 车队管理
+      '/admin/customers',  // 客户管理
+      '/admin/currencies', // 货币管理
+    ];
+    
+    const isTopLevelPath = topLevelAdminPaths.some(path => location.pathname.startsWith(path));
+    
+    if (isTopLevelPath) {
       setOpenKeys([]);
       return;
     }
@@ -137,8 +146,15 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {
-    // 2025-10-01 15:06:20 点击“运单管理”时，显式收起“管理后台”下拉
-    if (key === '/admin/shipments') {
+    // 2025-10-03 20:25:00 点击一级菜单项时，显式收起"管理后台"下拉
+    const topLevelAdminPaths = [
+      '/admin/shipments',  // 运单管理
+      '/admin/fleet',      // 车队管理
+      '/admin/customers',  // 客户管理
+      '/admin/currencies', // 货币管理
+    ];
+    
+    if (topLevelAdminPaths.includes(key)) {
       setOpenKeys([]);
     }
     navigate(key);
