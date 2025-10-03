@@ -422,7 +422,7 @@
 /* Content styles */
 .ant-layout-content {
   background: #ffffff;
-  padding: 0;
+  padding: 24px !important; /* 确保PageLayout的padding生效 */
   margin: 0;
   min-height: calc(100vh - 64px);
 }
