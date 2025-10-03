@@ -411,7 +411,6 @@ const FleetManagement: React.FC = () => {
             </div>
           </Card>
         )}
-      </div>
 
       {/* 添加司机弹窗 // 2025-10-02 15:20:45 */}
       <Modal
