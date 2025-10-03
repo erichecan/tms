@@ -51,6 +51,7 @@ import tripRoutes from './routes/tripRoutes'; // 行程管理路由 // 2025-01-2
 import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
 import pricingEngineRoutes from './routes/pricingEngineRoutes';
 import shipmentCompletionRoutes from './routes/shipmentCompletionRoutes';
+import mapsRoutes from './routes/maps'; // Google Maps API路由 // 2025-10-03 10:00:00
 
 // 导入新增的服务
 import { PricingEngineService } from './services/PricingEngineService';
@@ -107,6 +108,7 @@ app.use('/api/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:
 app.use('/api/trips', tripRoutes); // 行程管理API // 2025-01-27 16:45:00
 app.use('/api/pricing', pricingEngineRoutes); // 计费规则引擎 // 2025-09-29 02:35:00
 app.use('/api/shipments', shipmentCompletionRoutes); // 运单完成和财务生成 // 2025-09-29 03:35:00
+app.use('/api/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
 
 // 404处理
 app.use('*', (req, res) => {

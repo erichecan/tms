@@ -1,0 +1,46 @@
+name: Playwright Anon Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-anon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (root)
+        run: npm ci
+
+      - name: Install browsers
+        run: npx playwright install --with-deps
+
+      - name: Start backend & frontend
+        run: |
+          npm run dev:backend &
+          npm run dev:frontend &
+          npx wait-on http://localhost:8000/healthz http://localhost:3000
+
+      - name: Run anon suite
+        env:
+          BASE_URL: http://localhost:3000
+        run: npm run test:e2e:anon
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-anon-report
+          path: playwright-report
+
+

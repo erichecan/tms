@@ -1,0 +1,93 @@
+.logistics-map-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+}
+
+.map-container {
+  position: relative;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 16px;
+  border-radius: 8px;
+  z-index: 1000;
+}
+
+.map-element {
+  border-radius: 0 0 8px 8px;
+}
+
+.route-info-panel {
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.route-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.route-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.route-item .label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.route-item .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .route-summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .route-item {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+/* 自定义地图标记样式 */
+.custom-marker {
+  background: #fff;
+  border: 2px solid #1890ff;
+  border-radius: 50%;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.custom-marker.pickup {
+  border-color: #52c41a;
+}
+
+.custom-marker.delivery {
+  border-color: #ff4d4f;
+}
+
+.custom-marker.waypoint {
+  border-color: #faad14;
+}

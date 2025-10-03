@@ -5,15 +5,13 @@
       "src": "apps/frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "apps/frontend/dist"
       }
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/apps/frontend/dist/$1"
-    }
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
     "VITE_API_BASE_URL": "@vite_api_base_url"
