@@ -172,127 +172,134 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 2025-10-02 18:25:00 - 添加标签页来整合性能监控功能 */}
-      <Tabs defaultActiveKey="overview" size="large">
-        <Tabs.TabPane 
-          tab={
-            <span>
-              <FileTextOutlined />
-              运营概览
-            </span>
-          } 
-          key="overview"
-        >
-          {/* 统计卡片 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stats-card">
-            <Statistic
-              title="总运单数"
-              value={stats.totalShipments}
-              prefix={<TruckOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stats-card">
-            <Statistic
-              title="活跃规则"
-              value={stats.activeRules}
-              prefix={<FileTextOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stats-card">
-            <Statistic
-              title="客户总数"
-              value={stats.totalCustomers}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stats-card">
-            <Statistic
-              title="司机总数"
-              value={stats.totalDrivers}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <Tabs 
+        defaultActiveKey="overview" 
+        size="large"
+        items={[
+          {
+            key: "overview",
+            label: (
+              <span>
+                <FileTextOutlined />
+                运营概览
+              </span>
+            ),
+            children: (
+              <>
+                {/* 统计卡片 */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card className="stats-card">
+                      <Statistic
+                        title="总运单数"
+                        value={stats.totalShipments}
+                        prefix={<TruckOutlined />}
+                        valueStyle={{ color: '#1890ff' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card className="stats-card">
+                      <Statistic
+                        title="活跃规则"
+                        value={stats.activeRules}
+                        prefix={<FileTextOutlined />}
+                        valueStyle={{ color: '#52c41a' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card className="stats-card">
+                      <Statistic
+                        title="客户总数"
+                        value={stats.totalCustomers}
+                        prefix={<TeamOutlined />}
+                        valueStyle={{ color: '#722ed1' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card className="stats-card">
+                      <Statistic
+                        title="司机总数"
+                        value={stats.totalDrivers}
+                        prefix={<TeamOutlined />}
+                        valueStyle={{ color: '#fa8c16' }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
 
-      {/* 收入统计 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={12}>
-          <Card className="content-card">
-            <Statistic
-              title="月度收入"
-              value={stats.monthlyRevenue}
-              precision={2}
-              prefix={<DollarOutlined />}
-              suffix="元"
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card className="content-card">
-            <Statistic
-              title="收入增长率"
-              value={stats.revenueGrowth}
-              precision={1}
-              suffix="%"
-              prefix={stats.revenueGrowth > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-              valueStyle={{ color: stats.revenueGrowth > 0 ? '#3f8600' : '#cf1322' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+                {/* 收入统计 */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} lg={12}>
+                    <Card className="content-card">
+                      <Statistic
+                        title="月度收入"
+                        value={stats.monthlyRevenue}
+                        precision={2}
+                        prefix={<DollarOutlined />}
+                        suffix="元"
+                        valueStyle={{ color: '#3f8600' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Card className="content-card">
+                      <Statistic
+                        title="收入增长率"
+                        value={stats.revenueGrowth}
+                        precision={1}
+                        suffix="%"
+                        prefix={stats.revenueGrowth > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                        valueStyle={{ color: stats.revenueGrowth > 0 ? '#3f8600' : '#cf1322' }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
 
-      {/* 最近运单 */}
-      <Card
-        className="content-card"
-        title="最近运单"
-        extra={
-          <Button type="primary" onClick={() => navigate('/shipments')}>
-            查看全部
-          </Button>
-        }
-      >
-        <Table
-          columns={shipmentColumns}
-          dataSource={recentShipments}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          size="small"
-        />
-      </Card>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane 
-          tab={
-            <span>
-              <MonitorOutlined />
-              系统监控
-            </span>
-          } 
-          key="monitoring"
-        >
-          <div style={{ padding: '16px 0' }}>
-            <Card>
-              <h2 style={{ marginBottom: '16px' }}>📊 性能监控</h2>
-              <p style={{ color: '#666', marginBottom: '16px' }}>系统性能监控和缓存策略管理</p>
-              <PerformanceMonitoring />
-            </Card>
-          </div>
-        </Tabs.TabPane>
-      </Tabs>
+                {/* 最近运单 */}
+                <Card
+                  className="content-card"
+                  title="最近运单"
+                  extra={
+                    <Button type="primary" onClick={() => navigate('/shipments')}>
+                      查看全部
+                    </Button>
+                  }
+                >
+                  <Table
+                    columns={shipmentColumns}
+                    dataSource={recentShipments}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={false}
+                    size="small"
+                  />
+                </Card>
+              </>
+            )
+          },
+          {
+            key: "monitoring",
+            label: (
+              <span>
+                <MonitorOutlined />
+                系统监控
+              </span>
+            ),
+            children: (
+              <div style={{ padding: '16px 0' }}>
+                <Card>
+                  <h2 style={{ marginBottom: '16px' }}>📊 性能监控</h2>
+                  <p style={{ color: '#666', marginBottom: '16px' }}>系统性能监控和缓存策略管理</p>
+                  <PerformanceMonitoring />
+                </Card>
+              </div>
+            )
+          }
+        ]}
+      />
     </div>
   );
 };

@@ -295,16 +295,19 @@ const FinanceManagement: React.FC = () => {
       </div>
 
       {/* 2025-10-02 18:10:00 - 添加标签页来整合财务报表功能 */}
-      <Tabs defaultActiveKey="records" size="large">
-        <Tabs.TabPane 
-          tab={
-            <span>
-              <DollarOutlined />
-              财务记录
-            </span>
-          } 
-          key="records"
-        >
+      <Tabs 
+        defaultActiveKey="records" 
+        size="large"
+        items={[
+          {
+            key: "records",
+            label: (
+              <span>
+                <DollarOutlined />
+                财务记录
+              </span>
+            ),
+            children: (
           {/* 财务概览 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
@@ -466,26 +469,28 @@ const FinanceManagement: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-        </Tabs.TabPane>
-        
-        <Tabs.TabPane 
-          tab={
-            <span>
-              <BarChartOutlined />
-              财务报表
-            </span>
-          } 
-          key="reports"
-        >
-          <div style={{ padding: '16px 0' }}>
-            <Card>
-              <Title level={4}>📊 财务分析报表</Title>
-              <Text type="secondary">全面的财务数据分析和报表生成功能</Text>
-              <FinancialDashboard />
-            </Card>
-          </div>
-        </Tabs.TabPane>
-      </Tabs>
+            )
+          },
+          {
+            key: "reports",
+            label: (
+              <span>
+                <BarChartOutlined />
+                财务报表
+              </span>
+            ),
+            children: (
+              <div style={{ padding: '16px 0' }}>
+                <Card>
+                  <Title level={4}>📊 财务分析报表</Title>
+                  <Text type="secondary">全面的财务数据分析和报表生成功能</Text>
+                  <FinancialDashboard />
+                </Card>
+              </div>
+            )
+          }
+        ]}
+      />
       </div>
     </PageLayout>
   );

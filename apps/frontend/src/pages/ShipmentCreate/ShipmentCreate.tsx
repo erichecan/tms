@@ -837,7 +837,6 @@ const ShipmentCreate: React.FC = () => {
             name="priority"
             label="客户等级 (Customer Level)"
             style={{ marginBottom: 8 }}
-            initialValue="vip1"
           >
             <Select placeholder="VIP1">
               <Option value="vip1">VIP1</Option>
