@@ -14,7 +14,7 @@ import { DatabaseService } from './services/DatabaseService';
 import fs from 'fs';
 import path from 'path';
 
-// 手动加载.env文件 - 2025-10-03 19:48:00 修复路径
+// 手动加载.env文件 - 2025-10-03 19:52:00 修复环境变量加载顺序
 const envPath = path.resolve(__dirname, '../../../.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
@@ -25,11 +25,15 @@ if (fs.existsSync(envPath)) {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length > 0) {
         const value = valueParts.join('=').trim();
-        process.env[key.trim()] = value;
+        // 只有在环境变量不存在时才设置，避免被dotenv覆盖
+        if (!process.env[key.trim()]) {
+          process.env[key.trim()] = value;
+        }
       }
     }
   }
   console.log('Environment variables loaded manually from .env file');
+  console.log('GOOGLE_MAPS_API_KEY loaded:', process.env.GOOGLE_MAPS_API_KEY ? 'YES' : 'NO');
 } else {
   console.log('.env file not found at:', envPath);
 }

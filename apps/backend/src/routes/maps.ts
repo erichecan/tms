@@ -1,5 +1,5 @@
 import express from 'express';
-import mapsApiService from '@/services/mapsApiService';
+import { getMapsApiService } from '@/services/mapsApiService';
 import { 
   LogisticsRouteRequest, 
   DispatchMatrixRequest,
@@ -20,7 +20,7 @@ router.post('/geocode', async (req, res) => {
       });
     }
 
-    const addressInfo = await mapsApiService.geocodeAddress(address);
+    const addressInfo = await getMapsApiService().geocodeAddress(address);
     
     res.json({
       success: true,
@@ -44,7 +44,7 @@ router.post('/reverse-geocode', async (req, res) => {
       });
     }
 
-    const addressInfo = await mapsApiService.reverseGeocode(lat, lng);
+    const addressInfo = await getMapsApiService().reverseGeocode(lat, lng);
     
     res.json({
       success: true,
@@ -70,7 +70,7 @@ router.post('/calculate-route', async (req, res) => {
       });
     }
 
-    const routeResponse = await mapsApiService.calculateLogisticsRoute(routeRequest);
+    const routeResponse = await getMapsApiService().calculateLogisticsRoute(routeRequest);
     
     res.json({
       success: true,

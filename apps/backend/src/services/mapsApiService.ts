@@ -455,9 +455,9 @@ export class MapsApiService {
   }
 }
 
-// 创建默认配置的服务实例 - 2025-10-03 19:51:00 使用环境变量
+// 创建默认配置的服务实例 - 2025-10-03 19:55:00 临时硬编码API密钥
 const defaultConfig: GoogleMapsApiConfig = {
-  apiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+  apiKey: process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBrJZAt61Nrlhe-MRY8rmE0D0i9x-0OS28',
   baseUrl: 'https://maps.googleapis.com/maps/api',
   rateLimit: {
     requestsPerMinute: 50,
@@ -470,9 +470,22 @@ const defaultConfig: GoogleMapsApiConfig = {
   },
 };
 
-// 2025-10-03 19:49:00 添加调试日志
-console.log('Google Maps API Key loaded:', process.env.GOOGLE_MAPS_API_KEY ? 'YES' : 'NO');
-console.log('API Key length:', process.env.GOOGLE_MAPS_API_KEY?.length || 0);
+// 2025-10-03 19:54:00 延迟初始化mapsApiService，确保环境变量已加载
+let mapsApiService: MapsApiService | null = null;
 
-export const mapsApiService = new MapsApiService(defaultConfig);
-export default mapsApiService;
+export const getMapsApiService = (): MapsApiService => {
+  if (!mapsApiService) {
+    console.log('Initializing MapsApiService with API Key:', process.env.GOOGLE_MAPS_API_KEY ? 'YES' : 'NO');
+    console.log('API Key length:', process.env.GOOGLE_MAPS_API_KEY?.length || 0);
+    
+    const config = {
+      ...defaultConfig,
+      apiKey: process.env.GOOGLE_MAPS_API_KEY || defaultConfig.apiKey,
+    };
+    
+    mapsApiService = new MapsApiService(config);
+  }
+  return mapsApiService;
+};
+
+export default getMapsApiService();
