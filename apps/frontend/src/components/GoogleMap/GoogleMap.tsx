@@ -148,7 +148,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   if (loading) {
     return (
       <Card style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Spin size="large" tip="正在加载地图..." />
+        <div style={{ textAlign: 'center' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 16, color: '#666' }}>正在加载地图...</div>
+        </div>
       </Card>
     );
   }
