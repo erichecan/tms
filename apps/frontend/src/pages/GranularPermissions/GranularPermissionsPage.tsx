@@ -12,7 +12,7 @@ const { Title, Text } = Typography;
 const GranularPermissionsPage: React.FC = () => {
   return (
     <PageLayout>
-      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: 16 }}>
           <Title level={3}>🔐 细粒度权限控制</Title>
           <Text type="secondary">资源级权限控制和用户角色管理</Text>

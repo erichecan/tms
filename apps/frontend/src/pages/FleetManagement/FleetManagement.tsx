@@ -176,7 +176,7 @@ const FleetManagement: React.FC = () => {
 
   return (
     <PageLayout>
-      <div style={{ padding: '24px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: 16 }}>
           <Title level={3}>车队管理</Title>
           <Text type="secondary">

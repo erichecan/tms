@@ -26,7 +26,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showSidebar = true })
         <Content
           style={{
             margin: '0',
-            padding: '0',
+            padding: '24px',
             background: '#EFEFEF',
             minHeight: '100vh',
           }}
