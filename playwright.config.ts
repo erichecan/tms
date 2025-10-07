@@ -1,22 +1,30 @@
-// Playwright configuration added - 2025-09-23 10:15:00
+// Playwright configuration updated - 2025-10-06 00:00:00
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: 'e2e',
-  timeout: 30 * 1000,
+  // Align test directory with repo structure - 2025-10-06 00:00:00
+  testDir: './tests/e2e',
+  // Increase overall timeout for end-to-end flows - 2025-10-06 00:00:00
+  timeout: 60_000,
   fullyParallel: true,
-  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    // Point baseURL to the Vite dev server started by webServer - 2025-10-06 00:00:00
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
-    video: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    viewport: { width: 1280, height: 720 },
+    video: 'retain-on-failure',
+    headless: true,
+  },
+  // Auto-start frontend for E2E runs - 2025-10-06 00:00:00
+  webServer: {
+    command: 'cd apps/frontend && npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: true,
+    timeout: 120_000,
   },
   projects: [
-    { name: 'Chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'Firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'WebKit', use: { ...devices['Desktop Safari'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
 });
 

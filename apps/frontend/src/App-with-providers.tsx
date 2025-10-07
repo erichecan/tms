@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
-import Layout from './components/Layout/Layout';
+import PageLayout from './components/Layout/PageLayout';
 import Login from './pages/Auth/Login';
 import Home from './pages/Home/Home';
 import TestPage from './pages/Test/TestPage';
@@ -23,20 +23,10 @@ function App() {
             <Route path="/test" element={<TestPage />} />
             <Route path="/" element={<Home />} />
             <Route path="/create-shipment" element={<ShipmentCreate />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="rules" element={<RuleManagement />} />
-              <Route path="shipments" element={<ShipmentManagement />} />
-              <Route path="finance" element={<FinanceManagement />} />
-              {/* Add other protected routes here */}
-            </Route>
+            <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/shipments" element={<ProtectedRoute><PageLayout><ShipmentManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagement /></PageLayout></ProtectedRoute>} />
           </Routes>
         </TenantProvider>
       </AuthProvider>

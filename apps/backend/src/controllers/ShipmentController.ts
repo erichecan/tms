@@ -158,6 +158,41 @@ export class ShipmentController {
       }
 
       console.log('Creating shipment with data:', JSON.stringify(shipmentData, null, 2));
+      // 计费：在创建前同步触发计费规则引擎并落库 // 2025-10-06 00:12:30
+      try {
+        const { PricingEngineService } = await import('../services/PricingEngineService');
+        const pricingEngine = new PricingEngineService(this.dbService);
+
+        // 构建计费上下文（简化版） // 2025-10-06 00:12:30
+        const shipmentContext: any = {
+          shipmentId: undefined,
+          pickupAddress: shipmentData.pickupAddress,
+          deliveryAddress: shipmentData.deliveryAddress,
+          cargoInfo: shipmentData.cargoInfo,
+          customerId: shipmentData.customerId,
+          requestedServices: body.requestedServices || [],
+          scheduledAt: body.pickupTime || new Date().toISOString(),
+        };
+
+        // 默认模板回退 // 2025-10-06 00:12:30
+        let calculation = null as any;
+        try {
+          calculation = await pricingEngine.calculatePricing(shipmentContext);
+        } catch (err: any) {
+          // 如果未匹配上模板，使用默认模板ID（例如由环境变量或约定ID提供） // 2025-10-06 00:12:30
+          const defaultTemplateId = process.env.DEFAULT_PRICING_TEMPLATE_ID || undefined;
+          calculation = await pricingEngine.calculatePricing(shipmentContext, defaultTemplateId);
+        }
+
+        if (calculation) {
+          shipmentData.estimatedCost = calculation.totalRevenue ?? shipmentData.estimatedCost;
+          shipmentData.appliedRules = calculation.appliedRules ?? [];
+          // 可选：把分项明细写入扩展表由服务处理，这里只落核心字段 // 2025-10-06 00:12:30
+        }
+      } catch (pricingError) {
+        logger.warn('创建运单前计费失败，继续持久化但estimatedCost可能为空', pricingError);
+      }
+
       const shipment = await this.shipmentService.createShipment(tenantId, shipmentData);
       
       // 🚀 核心功能：运单创建后自动触发智能调度优化引擎

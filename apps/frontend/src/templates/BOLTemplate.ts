@@ -9,11 +9,50 @@ export interface BOLTemplateOptions {
 }
 
 export function generateBOLHtml(shipment: any, opts: BOLTemplateOptions = {}): string {
+  // 统一字段读取：优先使用后端结构的 pickupAddress/deliveryAddress // 2025-10-06 00:25:40
   const sx = (v?: string) => v || '';
-  const shipper = shipment.shipper || {};
-  const shipperAddr = shipment.shipperAddress || shipper.address || {};
-  const receiver = shipment.receiver || {};
-  const receiverAddr = shipment.receiverAddress || receiver.address || {};
+  const pickup = shipment.pickupAddress || {};
+  const delivery = shipment.deliveryAddress || {};
+
+  const shipper = shipment.shipper || {
+    name: shipment.customerName || shipment.customer?.name || '',
+    companyId: shipment.customer?.id || '',
+    address: {
+      addressLine1: pickup.addressLine1 || pickup.street || '',
+      city: pickup.city || '',
+      province: pickup.province || pickup.state || '',
+      postalCode: pickup.postalCode || '',
+      country: pickup.country || ''
+    }
+  };
+
+  const receiver = shipment.receiver || {
+    name: shipment.receiverName || '',
+    companyId: shipment.receiver?.id || '',
+    address: {
+      addressLine1: delivery.addressLine1 || delivery.street || '',
+      city: delivery.city || '',
+      province: delivery.province || delivery.state || '',
+      postalCode: delivery.postalCode || '',
+      country: delivery.country || ''
+    }
+  };
+
+  const shipperAddr = shipment.shipperAddress || shipper.address || {
+    addressLine1: pickup.addressLine1 || pickup.street || '',
+    city: pickup.city || '',
+    province: pickup.province || pickup.state || '',
+    postalCode: pickup.postalCode || '',
+    country: pickup.country || ''
+  };
+
+  const receiverAddr = shipment.receiverAddress || receiver.address || {
+    addressLine1: delivery.addressLine1 || delivery.street || '',
+    city: delivery.city || '',
+    province: delivery.province || delivery.state || '',
+    postalCode: delivery.postalCode || '',
+    country: delivery.country || ''
+  };
 
   const css = `
     <style>

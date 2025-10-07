@@ -36,7 +36,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
-import PageLayout from '../../components/Layout/PageLayout'; // 2025-01-27 17:00:00 添加页面布局组件
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -1653,7 +1653,7 @@ const ShipmentCreate: React.FC = () => {
   }
 
   return (
-    <PageLayout>
+    <div style={{ margin: '0 0 0 24px' }}>
       <div style={{ marginBottom: 16 }}>
         <Title level={3}>
           <TruckOutlined /> 创建运单
@@ -1661,7 +1661,7 @@ const ShipmentCreate: React.FC = () => {
         <Text type="secondary">请填写运单信息</Text>
       </div>
 
-        <Card>
+      <Card>
           <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 8px' }}>
             <Form
               form={form}
@@ -1716,9 +1716,9 @@ const ShipmentCreate: React.FC = () => {
               </div>
             </Form>
           </div>
-        </Card>
+      </Card>
 
-        {/* 快速创建客户模态框 - 与客户管理页面保持一致 // 2025-09-30 10:45:00 */}
+      {/* 快速创建客户模态框 - 与客户管理页面保持一致 // 2025-09-30 10:45:00 */}
       <Modal
         title="新增客户"
         open={isAddCustomerModalVisible}
@@ -1827,7 +1827,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </PageLayout>
+    </div>
   );
 };
 

@@ -86,6 +86,45 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [addVehicleForm] = Form.useForm(); // 2025-10-02 11:05:20 快速添加车辆表单
   const [isQuickAddDriverVisible, setIsQuickAddDriverVisible] = useState(false); // 2025-10-02 11:05:20
   const [isQuickAddVehicleVisible, setIsQuickAddVehicleVisible] = useState(false); // 2025-10-02 11:05:20
+  // 将后端运单结构映射到BOL模板所需结构 // 2025-10-06 00:18:45
+  const mapShipmentToBOLShape = (s: any) => {
+    const anyS: any = s || {};
+    const pickup = anyS.pickupAddress || anyS.shipperAddress || anyS.shipper?.address || {};
+    const delivery = anyS.deliveryAddress || anyS.receiverAddress || anyS.receiver?.address || {};
+    return {
+      ...anyS,
+      shipper: anyS.shipper || { name: anyS.customerName || anyS.customer?.name || '', address: {
+        addressLine1: pickup.addressLine1 || pickup.street || '',
+        city: pickup.city || '',
+        province: pickup.province || pickup.state || '',
+        postalCode: pickup.postalCode || '',
+        country: pickup.country || ''
+      }},
+      receiver: anyS.receiver || { name: anyS.receiverName || '', address: {
+        addressLine1: delivery.addressLine1 || delivery.street || '',
+        city: delivery.city || '',
+        province: delivery.province || delivery.state || '',
+        postalCode: delivery.postalCode || '',
+        country: delivery.country || ''
+      }},
+      shipperAddress: anyS.shipperAddress || {
+        addressLine1: pickup.addressLine1 || pickup.street || '',
+        city: pickup.city || '',
+        province: pickup.province || pickup.state || '',
+        postalCode: pickup.postalCode || '',
+        country: pickup.country || ''
+      },
+      receiverAddress: anyS.receiverAddress || {
+        addressLine1: delivery.addressLine1 || delivery.street || '',
+        city: delivery.city || '',
+        province: delivery.province || delivery.state || '',
+        postalCode: delivery.postalCode || '',
+        country: delivery.country || ''
+      },
+      billTo: anyS.billTo || anyS.customerName || anyS.customer?.name || '',
+    };
+  };
+
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string }> = {
       [ShipmentStatus.CREATED]: { color: 'blue', text: '已创建' },
@@ -172,6 +211,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   };
 
   const handlePrint = () => {
+    // 打印前进行BOL字段映射 // 2025-10-06 00:18:45
+    const mapped = mapShipmentToBOLShape(shipment);
     // 创建打印样式
     const printStyles = `
       <style>
@@ -186,7 +227,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       </style>
     `;
 
-    const bolHtml = generateBOLHtml(shipment, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null });
+    const bolHtml = generateBOLHtml(mapped, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null });
     const printContent = `${printStyles}<div id="bol-print-root">${bolHtml}</div>`;
 
     // 打开新窗口打印
@@ -205,13 +246,15 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   // 2025-10-02 11:15:00 将详情区域转成 PDF，可对接外部模板
   const handleDownloadPDF = async () => {
     try {
+      // 下载PDF前进行BOL字段映射 // 2025-10-06 00:18:45
+      const mapped = mapShipmentToBOLShape(shipment);
       const container = document.createElement('div');
       container.style.position = 'fixed';
       container.style.left = '-10000px';
       container.style.top = '0';
       container.style.width = '820px';
       container.style.padding = '12px';
-      container.innerHTML = `<div id="pdf-root">${generateBOLHtml(shipment, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null })}</div>`;
+      container.innerHTML = `<div id="pdf-root">${generateBOLHtml(mapped, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null })}</div>`;
       document.body.appendChild(container);
 
       const pdfEl = container.querySelector('#pdf-root') as HTMLElement;

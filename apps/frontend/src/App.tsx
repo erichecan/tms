@@ -33,6 +33,7 @@ import RuleVersionManagementPage from './pages/RuleVersionManagement/RuleVersion
 // import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage'; → 已整合到仪表板页面
 import GranularPermissionsPage from './pages/GranularPermissions/GranularPermissionsPage';
 import MapsDemo from './pages/MapsDemo/MapsDemo';
+import LayoutTest from './pages/LayoutTest/LayoutTest';
 import './App.css';
 
 function App() {
@@ -49,7 +50,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/" element={<Home />} />
-            <Route path="/create-shipment" element={<ProtectedRoute><ShipmentCreate /></ProtectedRoute>} />
+            <Route path="/create-shipment" element={<ProtectedRoute><PageLayout><ShipmentCreate /></PageLayout></ProtectedRoute>} />
             {/* 新增路由 - 符合PRD v3.0-PC设计 - 2025-09-29 13:35:00 移除路由层PageLayout，与创建运单页面保持一致 */}
             <Route path="/customers" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
             <Route path="/finance-settlement" element={<ProtectedRoute><FinanceManagement /></ProtectedRoute>} />
@@ -83,6 +84,9 @@ function App() {
             
             {/* Google Maps API 演示页面 - 2025-10-03 10:00:00 */}
             <Route path="/maps-demo" element={<ProtectedRoute><MapsDemo /></ProtectedRoute>} />
+            
+            {/* 布局测试页面 */}
+            <Route path="/layout-test" element={<ProtectedRoute><LayoutTest /></ProtectedRoute>} />
           </Routes>
         </TenantProvider>
       </AuthProvider>

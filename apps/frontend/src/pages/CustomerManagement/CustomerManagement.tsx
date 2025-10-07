@@ -292,7 +292,7 @@ const CustomerManagement: React.FC = () => {
   ];
 
   return (
-    <PageLayout>
+    <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>客户管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCustomer}>
@@ -930,7 +930,7 @@ const CustomerManagement: React.FC = () => {
           </div>
         </div>
       </Modal>
-    </PageLayout>
+    </div>
   );
 };
 

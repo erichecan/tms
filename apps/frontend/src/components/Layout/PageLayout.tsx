@@ -25,7 +25,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showSidebar = true })
       <Layout style={{ marginLeft: sidebarCollapsed ? 80 : 240 }}>
         <Content
           style={{
-            margin: '0',
+            margin: '0 0 0 24px',
             padding: '24px',
             background: '#ffffff',
             minHeight: '100vh',
