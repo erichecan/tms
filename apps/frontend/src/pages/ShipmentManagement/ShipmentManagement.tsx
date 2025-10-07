@@ -193,7 +193,7 @@ const ShipmentManagement: React.FC = () => {
         const vehicleText = (record as any).vehiclePlate || (record as any).vehicleName || '未分配';
         const assigned = Boolean(record.driverId);
         return (
-    <div style={{ margin: '0 0 0 24px' }}>
+    <div>
           <div style={{ maxWidth: 160, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               {assigned ? (
@@ -292,7 +292,7 @@ const ShipmentManagement: React.FC = () => {
   ];
 
   return (
-    <PageLayout>
+    <div style={{ margin: '0 0 0 24px' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>运单管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>{/* 跳转创建页 // 2025-10-02 02:55:10 */}
