@@ -14,7 +14,7 @@ import { Shipment, ShipmentStatus, Driver, Customer } from '../../types';
 import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; // 2025-09-27 03:10:00 恢复运单词情组件
 import { useLocation, useNavigate } from 'react-router-dom'; // 2025-10-02 02:55:10 导航至创建页
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
-import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:30:00 添加PageLayout导入
+
 
 const { Title, Text } = Typography;
 
@@ -193,6 +193,7 @@ const ShipmentManagement: React.FC = () => {
         const vehicleText = (record as any).vehiclePlate || (record as any).vehicleName || '未分配';
         const assigned = Boolean(record.driverId);
         return (
+    <div style={{ margin: '0 0 0 24px' }}>
           <div style={{ maxWidth: 160, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               {assigned ? (
@@ -418,7 +419,7 @@ const ShipmentManagement: React.FC = () => {
           </div>
         ) : null}
       </Modal>
-    </PageLayout>
+    </div>
   );
 };
 
