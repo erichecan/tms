@@ -211,6 +211,7 @@ const ShipmentManagement: React.FC = () => {
               </Text>
             </div>
           </div>
+          </div>
         );
       },
     },
