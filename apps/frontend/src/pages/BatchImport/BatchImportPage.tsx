@@ -4,21 +4,21 @@
 
 import React from 'react';
 import { Typography } from 'antd';
-import PageLayout from '../../components/Layout/PageLayout';
+
 import BatchImport from '../../components/BatchImport/BatchImport';
 
 const { Title, Text } = Typography;
 
 const BatchImportPage: React.FC = () => {
   return (
-    <PageLayout>
+    <div style={{ margin: '0 0 0 24px' }}>
       <div style={{ marginBottom: 16 }}>
         <Title level={3}>📥 运单批量导入</Title>
         <Text type="secondary">支持CSV格式文件批量导入运单数据，提高录入效率</Text>
       </div>
       
       <BatchImport />
-    </PageLayout>
+    </div>
   );
 };
 

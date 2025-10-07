@@ -26,7 +26,7 @@ import {
   SettingOutlined
 } from '@ant-design/icons';
 import { formatCurrency } from '../../utils/formatCurrency';
-import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:35:00 添加PageLayout导入
+
 
 const { Title, Text } = Typography;
 
@@ -281,7 +281,7 @@ const CurrencyManagement: React.FC = () => {
   ];
 
   return (
-    <PageLayout>
+    <div style={{ margin: '0 0 0 24px' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>货币管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCurrency}>
@@ -421,7 +421,7 @@ const CurrencyManagement: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </PageLayout>
+    </div>
   );
 };
 

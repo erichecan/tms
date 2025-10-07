@@ -29,7 +29,7 @@ import {
 } from '@ant-design/icons';
 import { financeApi, customersApi, driversApi } from '../../services/api';
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
-import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
+
 import { formatCurrency } from '../../utils/formatCurrency';
 import FinancialDashboard from '../../components/FinancialReports/FinancialDashboard'; // 2025-10-02 18:10:00 整合财务报表功能
 
@@ -275,7 +275,7 @@ const FinanceManagement: React.FC = () => {
   const netProfit = totalRevenue - totalExpenses;
 
   return (
-    <PageLayout>
+    <div style={{ margin: '0 0 0 24px' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'phase-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">财务管理</h1>
@@ -492,7 +492,7 @@ const FinanceManagement: React.FC = () => {
           }
         ]}
       />
-    </PageLayout>
+    </div>
   );
 };
 
