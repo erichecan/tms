@@ -6,7 +6,6 @@ import {
   Typography, 
   Table, 
   Tag, 
-  Space, 
   Button, 
   Badge, 
   List,
@@ -22,14 +21,12 @@ import {
 import { 
   TeamOutlined, 
   TruckOutlined, 
-  EyeOutlined,
   HistoryOutlined,
   EnvironmentOutlined,
-  TrophyOutlined,
   ToolOutlined,
   DollarOutlined
 } from '@ant-design/icons';
-import { Trip, TripStatus, Driver, Vehicle, Shipment, DriverStatus, VehicleStatus } from '../../types';
+import { Trip, TripStatus, Driver, Vehicle, DriverStatus, VehicleStatus } from '../../types';
 import { driversApi, vehiclesApi, tripsApi } from '../../services/api';
 import GoogleMap from '../../components/GoogleMap/GoogleMap';
 import { formatDateTime } from '../../utils/timeUtils';
@@ -65,15 +62,15 @@ const FleetManagement: React.FC = () => {
       ]);
 
       const allDrivers = driversRes.data?.data || [];
-      const availableDrivers = allDrivers.filter(driver => driver.status === DriverStatus.AVAILABLE);
+      const availableDrivers = allDrivers.filter((driver: Driver) => driver.status === DriverStatus.AVAILABLE);
       setAvailableDrivers(availableDrivers);
 
       const allVehicles = vehiclesRes.data?.data || [];
-      const availableVehicles = allVehicles.filter(vehicle => vehicle.status === VehicleStatus.AVAILABLE);
+      const availableVehicles = allVehicles.filter((vehicle: Vehicle) => vehicle.status === VehicleStatus.AVAILABLE);
       setAvailableVehicles(availableVehicles);
 
       const allTrips = tripsRes.data?.data || [];
-      const inTransitTrips = allTrips.filter(trip => trip.status === TripStatus.ONGOING);
+      const inTransitTrips = allTrips.filter((trip: Trip) => trip.status === TripStatus.ONGOING);
       setInTransitTrips(inTransitTrips);
 
     } catch (error) {
@@ -93,15 +90,28 @@ const FleetManagement: React.FC = () => {
   };
 
   const getDriverName = (driverId: string) => {
-    const allDrivers = [...availableDrivers, ...inTransitTrips.map(trip => ({ id: trip.driverId, name: `司机${trip.driverId}`, phone: '', status: DriverStatus.BUSY, tenantId: '', createdAt: '', updatedAt: '' }))];
-    const driver = allDrivers.find(d => d.id === driverId);
-    return driver ? driver.name : '未知司机';
+    const allDrivers = [...availableDrivers, ...inTransitTrips.map((trip: Trip) => ({ id: trip.driverId, name: `司机${trip.driverId}`, phone: '', status: DriverStatus.BUSY, tenantId: '', createdAt: '', updatedAt: '' }))];
+    const driver = allDrivers.find((d: Driver) => d.id === driverId);
+    return driver ? driver.name : '未分配';
   };
 
   const getVehiclePlate = (vehicleId: string) => {
-    const allVehicles = [...availableVehicles, ...inTransitTrips.map(trip => ({ id: trip.vehicleId, plateNumber: `车辆${trip.vehicleId}`, type: '', capacityKg: 0, status: VehicleStatus.BUSY, tenantId: '', createdAt: '', updatedAt: '' }))];
-    const vehicle = allVehicles.find(v => v.id === vehicleId);
-    return vehicle ? vehicle.plateNumber : '未知车辆';
+    const allVehicles = [...availableVehicles, ...inTransitTrips.map((trip: Trip) => ({ id: trip.vehicleId, plateNumber: `车辆${trip.vehicleId}`, type: '', capacityKg: 0, status: VehicleStatus.BUSY, tenantId: '', createdAt: '', updatedAt: '' }))];
+    const vehicle = allVehicles.find((v: Vehicle) => v.id === vehicleId);
+    return vehicle ? vehicle.plateNumber : '未分配';
+  };
+
+  // 检查是否需要显示指派按钮 - 2025-10-08 18:30:00
+  const needsAssignment = (record: Trip) => {
+    const driverName = getDriverName(record.driverId);
+    const vehiclePlate = getVehiclePlate(record.vehicleId);
+    return driverName === '未分配' || vehiclePlate === '未分配';
+  };
+
+  // 处理指派司机车辆 - 2025-10-08 18:30:00
+  const handleAssignDriverVehicle = (_trip: Trip) => {
+    message.info('指派功能开发中...');
+    // TODO: 实现指派司机车辆功能
   };
 
   const getStatusColor = (status: TripStatus) => {
@@ -140,11 +150,32 @@ const FleetManagement: React.FC = () => {
     {
       title: '司机 / 车辆',
       key: 'driverVehicle',
-      width: 140,
+      width: 180,
       render: (_: any, record: Trip) => (
         <div>
-          <div>{getDriverName(record.driverId)}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{getVehiclePlate(record.vehicleId)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ color: getDriverName(record.driverId) === '未分配' ? '#ff4d4f' : 'inherit' }}>
+                {getDriverName(record.driverId)}
+              </div>
+              <div style={{ fontSize: 12, color: getVehiclePlate(record.vehicleId) === '未分配' ? '#ff4d4f' : '#888' }}>
+                {getVehiclePlate(record.vehicleId)}
+              </div>
+            </div>
+            {needsAssignment(record) && (
+              <Button 
+                type="primary" 
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // 阻止行点击事件
+                  handleAssignDriverVehicle(record);
+                }}
+                style={{ marginLeft: 8 }}
+              >
+                指派
+              </Button>
+            )}
+          </div>
         </div>
       )
     },
