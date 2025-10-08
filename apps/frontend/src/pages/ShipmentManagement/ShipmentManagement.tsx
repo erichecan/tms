@@ -93,8 +93,74 @@ const ShipmentManagement: React.FC = () => {
     return found?.name || anyRec.customerEmail || '—';
   };
 
+  // 转换后端数据格式到前端期望格式 - 2025-10-08 18:40:00
+  const transformShipmentData = (backendShipment: any): Shipment => {
+    const anyS = backendShipment || {};
+    
+    return {
+      id: anyS.id,
+      shipmentNo: anyS.shipmentNumber || anyS.shipment_no || anyS.id, // 兼容不同字段名
+      customerId: anyS.customerId || anyS.customer_id,
+      status: anyS.status,
+      
+      // 地址信息转换
+      shipperAddress: anyS.shipperAddress || anyS.pickupAddress || {
+        country: anyS.pickup_address?.country || '',
+        province: anyS.pickup_address?.province || anyS.pickup_address?.state || '',
+        city: anyS.pickup_address?.city || '',
+        postalCode: anyS.pickup_address?.postalCode || anyS.pickup_address?.postal_code || '',
+        addressLine1: anyS.pickup_address?.addressLine1 || anyS.pickup_address?.street || '',
+        isResidential: anyS.pickup_address?.isResidential || false
+      },
+      receiverAddress: anyS.receiverAddress || anyS.deliveryAddress || {
+        country: anyS.delivery_address?.country || '',
+        province: anyS.delivery_address?.province || anyS.delivery_address?.state || '',
+        city: anyS.delivery_address?.city || '',
+        postalCode: anyS.delivery_address?.postalCode || anyS.delivery_address?.postal_code || '',
+        addressLine1: anyS.delivery_address?.addressLine1 || anyS.delivery_address?.street || '',
+        isResidential: anyS.delivery_address?.isResidential || false
+      },
+      
+      // 货物信息转换
+      weightKg: anyS.weightKg || anyS.weight_kg || anyS.cargoInfo?.weight || anyS.cargo_info?.weight || 0,
+      lengthCm: anyS.lengthCm || anyS.length_cm || anyS.cargoInfo?.dimensions?.length || anyS.cargo_info?.dimensions?.length || 0,
+      widthCm: anyS.widthCm || anyS.width_cm || anyS.cargoInfo?.dimensions?.width || anyS.cargo_info?.dimensions?.width || 0,
+      heightCm: anyS.heightCm || anyS.height_cm || anyS.cargoInfo?.dimensions?.height || anyS.cargo_info?.dimensions?.height || 0,
+      description: anyS.description || anyS.cargoInfo?.description || anyS.cargo_info?.description || '',
+      
+      // 费用信息
+      estimatedCost: anyS.estimatedCost || anyS.estimated_cost || anyS.previewCost || 0,
+      finalCost: anyS.finalCost || anyS.actual_cost || anyS.actualCost || 0,
+      
+      // 其他字段
+      tags: anyS.tags || [],
+      services: anyS.services || {},
+      pricingComponents: anyS.pricingComponents || anyS.pricing_components || [],
+      pricingRuleTrace: anyS.pricingRuleTrace || anyS.pricing_rule_trace || [],
+      costCurrency: anyS.costCurrency || anyS.cost_currency || 'CAD',
+      assignedDriverId: anyS.assignedDriverId || anyS.driver_id || anyS.assigned_driver_id,
+      assignedVehicleId: anyS.assignedVehicleId || anyS.assigned_vehicle_id,
+      tenantId: anyS.tenantId || anyS.tenant_id,
+      createdAt: anyS.createdAt || anyS.created_at,
+      updatedAt: anyS.updatedAt || anyS.updated_at,
+      
+      // 兼容字段
+      shipmentNumber: anyS.shipmentNumber || anyS.shipment_no || anyS.id,
+      pickupAddress: anyS.pickupAddress || anyS.pickup_address,
+      deliveryAddress: anyS.deliveryAddress || anyS.delivery_address,
+      cargoInfo: anyS.cargoInfo || anyS.cargo_info,
+      driverId: anyS.driverId || anyS.driver_id,
+      actualCost: anyS.actualCost || anyS.actual_cost,
+      additionalFees: anyS.additionalFees || anyS.additional_fees || [],
+      appliedRules: anyS.appliedRules || anyS.applied_rules || [],
+      timeline: anyS.timeline || {}
+    };
+  };
+
   const handleView = (shipment: Shipment) => {
-    setViewingShipment(shipment);
+    // 转换数据格式后再显示 - 2025-10-08 18:40:00
+    const transformedShipment = transformShipmentData(shipment);
+    setViewingShipment(transformedShipment);
     setIsViewModalVisible(true);
   };
 
