@@ -554,26 +554,27 @@ const ShipmentCreate: React.FC = () => {
     return Math.round(baseCost);
   };
 
-  // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-01 21:50:00
+  // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-08 11:25:00 修复字段名
   const calculateRealTimePricing = async (values: any) => {
-    // 检查是否有必要的字段
-    if (!values.shipperAddrLine1 || !values.receiverAddrLine1 || !values.cargoWeight) {
+    // 检查是否有必要的字段（修复：使用正确的字段名）
+    if (!values.shipperAddress1 || !values.receiverAddress1 || !values.cargoWeight) {
+      console.log('缺少必要字段，跳过计费计算');
       return;
     }
 
     setRealTimePricing(prev => ({ ...prev, loading: true }));
 
     try {
-      // 构建运单上下文用于后端计费引擎 - 匹配后端schema // 2025-10-01 21:50:00
+      // 构建运单上下文用于后端计费引擎 - 修复字段名 // 2025-10-08 11:25:00
       const shipmentContext = {
         shipmentId: 'preview-' + Date.now(), // 临时ID用于预览
         tenantId: '00000000-0000-0000-0000-000000000001',
         pickupLocation: {
-          address: values.shipperAddrLine1,
+          address: values.shipperAddress1, // 修复：使用正确的字段名
           city: values.shipperCity || 'Toronto'
         },
         deliveryLocation: {
-          address: values.receiverAddrLine1,
+          address: values.receiverAddress1, // 修复：使用正确的字段名
           city: values.receiverCity || 'Toronto'
         },
         distance: values.distance || 25, // 默认25km
@@ -581,13 +582,16 @@ const ShipmentCreate: React.FC = () => {
         volume: values.cargoLength && values.cargoWidth && values.cargoHeight 
           ? values.cargoLength * values.cargoWidth * values.cargoHeight / 1000000 // 转换为立方米
           : 1, // 默认1立方米
-        pallets: 1
+        pallets: values.cargoPalletCount || 1
       };
 
-      console.log('调用后端计费引擎:', shipmentContext);
+      console.log('📊 调用后端计费引擎:', shipmentContext);
 
-      // 调用后端计费引擎API
-      const response = await pricingApi.calculateCost(shipmentContext);
+      // 调用后端计费引擎API - 修复：包装请求参数 // 2025-10-08
+      const response = await pricingApi.calculateCost({
+        shipmentContext: shipmentContext,
+        forceRecalculate: false
+      });
       
       if (response.data && response.data.totalRevenue) {
         const pricingData = response.data;
@@ -613,19 +617,20 @@ const ShipmentCreate: React.FC = () => {
           loading: false
         });
 
-        console.log('计费引擎返回结果:', pricingData);
+        console.log('✅ 计费引擎返回结果:', pricingData);
       } else {
         throw new Error('计费引擎返回数据格式错误');
       }
 
     } catch (error) {
-      console.error('实时计费计算失败，降级到本地计算:', error);
+      console.error('⚠️ 实时计费计算失败，降级到本地计算:', error);
       
-      // 降级到本地计算
+      // 降级到本地计算 - 使用实际表单数据动态计算
       const baseFee = 100;
-      const distance = values.distance || 25;
+      const distance = values.distance || 0; // 不设默认值，让用户看到真实计算
       const distanceFee = distance * 2;
-      const weightFee = (values.cargoWeight || 0) * 0.5;
+      const weight = values.cargoWeight || 0;
+      const weightFee = weight * 0.5;
       
       let volumeFee = 0;
       if (values.cargoLength && values.cargoWidth && values.cargoHeight) {
@@ -651,16 +656,19 @@ const ShipmentCreate: React.FC = () => {
         },
         loading: false
       });
+
+      console.log('💡 本地计算结果:', { totalCost, distance, weight, volumeFee });
     }
   };
 
-  // 表单字段变化处理 - 2025-10-01 21:40:00
+  // 表单字段变化处理 - 2025-10-08 11:25:00 修复字段名
   const handleFormChange = (changedValues: any, allValues: any) => {
-    // 检查是否是需要触发计费的字段
+    // 检查是否是需要触发计费的字段（修复：使用正确的字段名）
     const pricingFields = [
-      'shipperAddrLine1', 'shipperCity', 'shipperState', 'shipperPostalCode',
-      'receiverAddrLine1', 'receiverCity', 'receiverState', 'receiverPostalCode',
+      'shipperAddress1', 'shipperCity', 'shipperProvince', 'shipperPostalCode',
+      'receiverAddress1', 'receiverCity', 'receiverProvince', 'receiverPostalCode',
       'cargoWeight', 'cargoLength', 'cargoWidth', 'cargoHeight',
+      'distance', 'cargoPalletCount',
       'insurance', 'requiresTailgate', 'requiresAppointment'
     ];
 
