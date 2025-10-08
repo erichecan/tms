@@ -51,9 +51,9 @@ function App() {
             <Route path="/test" element={<TestPage />} />
             <Route path="/" element={<Home />} />
             <Route path="/create-shipment" element={<ProtectedRoute><PageLayout><ShipmentCreate /></PageLayout></ProtectedRoute>} />
-            {/* 新增路由 - 符合PRD v3.0-PC设计 - 2025-09-29 13:35:00 移除路由层PageLayout，与创建运单页面保持一致 */}
-            <Route path="/customers" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
-            <Route path="/finance-settlement" element={<ProtectedRoute><FinanceManagement /></ProtectedRoute>} />
+            {/* 新增路由 - 符合PRD v3.0-PC设计 - 2025-10-08 添加PageLayout包裹，与其他管理页面保持一致 */}
+            <Route path="/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/finance-settlement" element={<ProtectedRoute><PageLayout><FinanceManagement /></PageLayout></ProtectedRoute>} />
             {/* 管理后台页面 - 2025-01-27 17:30:00 使用新的PageLayout - 2025-10-02 17:20:00 移除独立的司机、车辆、行程管理页面 */}
             <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
