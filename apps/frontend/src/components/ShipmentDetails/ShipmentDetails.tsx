@@ -379,20 +379,16 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             
             <Row gutter={[16, 16]}>
               <Col span={12}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <Text strong>预估费用：</Text>
-                    <Text>{formatCurrency(shipment.estimatedCost)}</Text>
-                  </div>
-                  <Button 
-                    type="link" 
-                    size="small" 
-                    onClick={() => setIsCostDetailVisible(true)}
-                    style={{ padding: 0 }}
-                  >
-                    费用明细
-                  </Button>
-                </div>
+                <Text strong>预估费用：</Text>
+                <Text>{formatCurrency(shipment.estimatedCost)}</Text>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => setIsCostDetailVisible(true)}
+                  style={{ padding: 0, marginLeft: 4 }}
+                >
+                  （费用明细）
+                </Button>
               </Col>
               <Col span={12}>
                 <Text strong>最终费用：</Text>
