@@ -86,6 +86,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [addVehicleForm] = Form.useForm(); // 2025-10-02 11:05:20 快速添加车辆表单
   const [isQuickAddDriverVisible, setIsQuickAddDriverVisible] = useState(false); // 2025-10-02 11:05:20
   const [isQuickAddVehicleVisible, setIsQuickAddVehicleVisible] = useState(false); // 2025-10-02 11:05:20
+  const [isCostDetailVisible, setIsCostDetailVisible] = useState(false); // 2025-10-08 17:25:00 费用明细弹窗
   // 将后端运单结构映射到BOL模板所需结构 // 2025-10-06 00:18:45
   const mapShipmentToBOLShape = (s: any) => {
     const anyS: any = s || {};
@@ -378,8 +379,20 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             
             <Row gutter={[16, 16]}>
               <Col span={12}>
-                <Text strong>预估费用：</Text>
-                <Text>{formatCurrency(shipment.estimatedCost)}</Text>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <Text strong>预估费用：</Text>
+                    <Text>{formatCurrency(shipment.estimatedCost)}</Text>
+                  </div>
+                  <Button 
+                    type="link" 
+                    size="small" 
+                    onClick={() => setIsCostDetailVisible(true)}
+                    style={{ padding: 0 }}
+                  >
+                    费用明细
+                  </Button>
+                </div>
               </Col>
               <Col span={12}>
                 <Text strong>最终费用：</Text>
@@ -845,6 +858,35 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* 费用明细弹窗 // 2025-10-08 17:25:00 */}
+      <Modal
+        title="费用明细"
+        open={isCostDetailVisible}
+        onCancel={() => setIsCostDetailVisible(false)}
+        footer={null}
+        width={520}
+      >
+        <div>
+          <div style={{ marginBottom: 12 }}>
+            <Text strong>运单号：</Text>
+            <Text code>{shipment.shipmentNumber}</Text>
+          </div>
+          <Divider />
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div><Text type="secondary">基础费用</Text><div>￥{Math.round(Number((shipment as any).breakdown?.baseFee || 100))}</div></div>
+            <div><Text type="secondary">距离费用</Text><div>￥{Math.round(Number((shipment as any).breakdown?.distanceFee || 0))}</div></div>
+            <div><Text type="secondary">重量费用</Text><div>￥{Math.round(Number((shipment as any).breakdown?.weightFee || 0))}</div></div>
+            <div><Text type="secondary">体积费用</Text><div>￥{Math.round(Number((shipment as any).breakdown?.volumeFee || 0))}</div></div>
+            <div><Text type="secondary">其他费用</Text><div>￥{Math.round(Number((shipment as any).breakdown?.additionalFees || 0))}</div></div>
+            <Divider style={{ margin: '8px 0' }} />
+            <div style={{ fontWeight: 600 }}>预估总额：￥{Math.round(Number(shipment.estimatedCost ?? (shipment as any).previewCost ?? 0))}</div>
+          </Space>
+          <div style={{ marginTop: 12 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>以上为预估结果，实际以计费引擎结算为准。</Text>
+          </div>
+        </div>
       </Modal>
     </div>
   );

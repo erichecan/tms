@@ -29,8 +29,6 @@ const ShipmentManagement: React.FC = () => {
   const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
   const [availableTrips, setAvailableTrips] = useState<any[]>([]); // 2025-10-02 15:12:30 可挂载行程列表
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null); // 2025-10-02 15:12:30 已选择的行程
-  const [isCostModalVisible, setIsCostModalVisible] = useState(false); // 费用明细弹窗 // 2025-10-02 02:55:10
-  const [costViewingShipment, setCostViewingShipment] = useState<Shipment | null>(null); // 2025-10-02 02:55:10
 
   const location = useLocation();
   const navigate = useNavigate(); // 2025-10-02 02:55:10
@@ -127,6 +125,26 @@ const ShipmentManagement: React.FC = () => {
     } catch (error) {
       console.error('挂载行程失败:', error); // 2025-10-02 15:12:30
       message.error('挂载行程失败');
+    }
+  };
+
+  // 稍后挂载处理函数 - 2025-10-08 17:15:00
+  const handleAssignLater = async () => {
+    if (!assigningShipment) {
+      return message.warning('请选择运单');
+    }
+    
+    try {
+      // 更新运单状态为待指派，稍后处理 // 2025-10-08 17:15:00
+      await shipmentsApi.updateShipmentStatus(assigningShipment.id, 'pending');
+      message.success('运单已标记为待指派，稍后可以重新分配行程');
+      setIsAssignModalVisible(false);
+      setAssigningShipment(null);
+      setSelectedTripId(null);
+      loadShipments();
+    } catch (error) {
+      console.error('更新运单状态失败:', error);
+      message.error('操作失败，请重试');
     }
   };
 
@@ -259,13 +277,7 @@ const ShipmentManagement: React.FC = () => {
       key: 'action',
       render: (_: any, record: Shipment) => (
         <Space size="small">
-          <Tooltip title="查看详情">
-            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          </Tooltip>
-          <Tooltip title="费用明细">
-            <Button type="text" size="small" onClick={() => { setCostViewingShipment(record); setIsCostModalVisible(true); }}>￥</Button>
-          </Tooltip>
-          <Tooltip title="编辑">
+          <Tooltip title="编辑运单">
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleView(record)} />
           </Tooltip>
           {!record.tripNo && (
@@ -345,10 +357,36 @@ const ShipmentManagement: React.FC = () => {
         onCancel={() => {
           setIsAssignModalVisible(false);
           setAssigningShipment(null);
+          setSelectedTripId(null);
         }}
         onOk={handleConfirmMountToTrip}
         okText="挂载到行程"
         width={640}
+        footer={[
+          <Button key="cancel" onClick={() => {
+            setIsAssignModalVisible(false);
+            setAssigningShipment(null);
+            setSelectedTripId(null);
+          }}>
+            取消
+          </Button>,
+          <Button 
+            key="later" 
+            type="default" 
+            onClick={handleAssignLater}
+            style={{ marginRight: 8 }}
+          >
+            稍后挂载
+          </Button>,
+          <Button 
+            key="assign" 
+            type="primary" 
+            onClick={handleConfirmMountToTrip}
+            disabled={!selectedTripId}
+          >
+            挂载到行程
+          </Button>
+        ]}
       >
         {assigningShipment && (
           <div>
@@ -379,8 +417,13 @@ const ShipmentManagement: React.FC = () => {
                     </Card>
                   ))}
                   {availableTrips.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: 12 }}>
-                      <Text type="secondary">暂无可用行程</Text>
+                    <div style={{ textAlign: 'center', padding: 20 }}>
+                      <Text type="secondary" style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>
+                        暂无可用行程
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        您可以点击"稍后挂载"将运单标记为待指派状态，稍后创建行程时再分配
+                      </Text>
                     </div>
                   )}
                 </Space>
@@ -390,36 +433,6 @@ const ShipmentManagement: React.FC = () => {
         )}
       </Modal>
 
-      {/* 费用明细弹窗 // 2025-10-02 02:55:10 */}
-      <Modal
-        title="费用明细"
-        open={isCostModalVisible}
-        onCancel={() => { setIsCostModalVisible(false); setCostViewingShipment(null); }}
-        footer={null}
-        width={520}
-      >
-        {costViewingShipment ? (
-          <div>
-            <div style={{ marginBottom: 12 }}>
-              <Text strong>运单号：</Text>
-              <Text code>{costViewingShipment.shipmentNumber}</Text>
-            </div>
-            <Divider />
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div><Text type="secondary">基础费用</Text><div>￥{Math.round(Number((costViewingShipment as any).breakdown?.baseFee || 100))}</div></div>
-              <div><Text type="secondary">距离费用</Text><div>￥{Math.round(Number((costViewingShipment as any).breakdown?.distanceFee || 0))}</div></div>
-              <div><Text type="secondary">重量费用</Text><div>￥{Math.round(Number((costViewingShipment as any).breakdown?.weightFee || 0))}</div></div>
-              <div><Text type="secondary">体积费用</Text><div>￥{Math.round(Number((costViewingShipment as any).breakdown?.volumeFee || 0))}</div></div>
-              <div><Text type="secondary">其他费用</Text><div>￥{Math.round(Number((costViewingShipment as any).breakdown?.additionalFees || 0))}</div></div>
-              <Divider style={{ margin: '8px 0' }} />
-              <div style={{ fontWeight: 600 }}>预估总额：￥{Math.round(Number(costViewingShipment.estimatedCost ?? (costViewingShipment as any).previewCost ?? 0))}</div>
-            </Space>
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>以上为预估结果，实际以计费引擎结算为准。</Text>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
     </div>
   );
 };
