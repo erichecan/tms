@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],
   use: {
     // Point baseURL to the Vite dev server started by webServer - 2025-10-06 00:00:00
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -19,7 +19,7 @@ export default defineConfig({
   // Auto-start frontend for E2E runs - 2025-10-06 00:00:00
   webServer: {
     command: 'cd apps/frontend && npm run dev',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 120_000,
   },
