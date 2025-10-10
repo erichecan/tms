@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio, Form, Input, InputNumber, Select, Row, Col } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程 // 2025-10-10 17:45:00 添加Form组件用于编辑
+import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio, Form, Input, InputNumber, Select, Row, Col, Tabs } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程 // 2025-10-10 17:45:00 添加Form组件用于编辑 // 2025-10-10 11:15:00 添加Tabs组件用于BOL切换
 import { 
   EyeOutlined, 
   EditOutlined, 
@@ -15,6 +15,7 @@ import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; 
 import { useLocation, useNavigate } from 'react-router-dom'; // 2025-10-02 02:55:10 导航至创建页
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
 import { smartDispatch } from '../../algorithms/dispatch'; // 2025-10-10 18:29:00 引入智能调度算法
+import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-10-10 11:15:00 引入BOL文档组件
 
 
 const { Title, Text } = Typography;
@@ -179,36 +180,95 @@ const ShipmentManagement: React.FC = () => {
   // 处理编辑运单 - 2025-10-10 18:26:00 完善编辑字段
   const handleEdit = () => {
     if (viewingShipment) {
-      // 将运单数据填充到编辑表单
+      // 调试：打印完整数据结构 - 2025-10-10 11:05:00
+      console.log('🔍 运单完整数据:', viewingShipment);
+      console.log('🔍 pickupAddress类型:', typeof viewingShipment.pickupAddress);
+      console.log('🔍 deliveryAddress类型:', typeof viewingShipment.deliveryAddress);
+      
+      // 将运单数据填充到编辑表单 - 修复字段映射问题
       editForm.setFieldsValue({
-        // 发货人信息
-        shipperName: viewingShipment.pickupAddress?.name || viewingShipment.shipperName,
-        shipperPhone: viewingShipment.pickupAddress?.phone || viewingShipment.shipperPhone,
-        shipperCompany: viewingShipment.pickupAddress?.company || viewingShipment.shipperCompany,
+        // 发货人信息 - 使用正确的字段路径
+        shipperName: viewingShipment.shipperName || '',
+        shipperPhone: viewingShipment.shipperPhone || '',
+        shipperCompany: viewingShipment.shipperCompany || '',
+        shipperAddress: viewingShipment.pickupAddress || '', // 使用实际字段
+        
         // 收货人信息
-        receiverName: viewingShipment.deliveryAddress?.name || viewingShipment.receiverName,
-        receiverPhone: viewingShipment.deliveryAddress?.phone || viewingShipment.receiverPhone,
-        receiverCompany: viewingShipment.deliveryAddress?.company || viewingShipment.receiverCompany,
+        receiverName: viewingShipment.receiverName || '',
+        receiverPhone: viewingShipment.receiverPhone || '',
+        receiverCompany: viewingShipment.receiverCompany || '',
+        receiverAddress: viewingShipment.deliveryAddress || '', // 使用实际字段
+        
         // 货物信息
-        cargoWeight: viewingShipment.cargoWeight,
-        cargoLength: viewingShipment.cargoLength,
-        cargoWidth: viewingShipment.cargoWidth,
-        cargoHeight: viewingShipment.cargoHeight,
-        cargoDescription: viewingShipment.cargoDescription,
+        cargoWeight: viewingShipment.cargoWeight || 0,
+        cargoLength: viewingShipment.cargoLength || 0,
+        cargoWidth: viewingShipment.cargoWidth || 0,
+        cargoHeight: viewingShipment.cargoHeight || 0,
+        cargoDescription: viewingShipment.cargoDescription || viewingShipment.description || '',
+        
         // 配送信息
-        deliveryInstructions: viewingShipment.deliveryInstructions,
-        estimatedCost: viewingShipment.estimatedCost
+        deliveryInstructions: viewingShipment.deliveryInstructions || '',
+        estimatedCost: viewingShipment.estimatedCost || 0
       });
+      
+      console.log('✅ 编辑表单数据已填充');
       setIsEditMode(true);
     }
   };
 
-  // 保存编辑 - 2025-10-10 17:45:00
+  // 判断是否需要重新计费 - 2025-10-10 11:20:00
+  const shouldRecalculatePrice = (newValues: any, oldShipment: Shipment) => {
+    return (
+      newValues.cargoWeight !== oldShipment.weightKg ||
+      newValues.cargoLength !== oldShipment.lengthCm ||
+      newValues.cargoWidth !== oldShipment.widthCm ||
+      newValues.cargoHeight !== oldShipment.heightCm ||
+      newValues.shipperAddress !== (oldShipment.shipperAddress?.addressLine1 || '') ||
+      newValues.receiverAddress !== (oldShipment.receiverAddress?.addressLine1 || '')
+    );
+  };
+
+  // 保存编辑 - 2025-10-10 17:45:00 增强版：支持重新计费
   const handleSaveEdit = async () => {
     try {
       const values = await editForm.validateFields();
+      
+      // 1. 更新运单基本信息
       await shipmentsApi.updateShipment(viewingShipment!.id, values);
-      message.success('运单更新成功');
+      
+      // 2. 检查是否需要重新计费
+      if (shouldRecalculatePrice(values, viewingShipment!)) {
+        console.log('🔄 检测到关键字段变更，重新计算费用...');
+        
+        try {
+          // 调用计费引擎重新计算
+          const pricingResult = await shipmentsApi.calculatePricing({
+            shipmentId: viewingShipment!.id,
+            weight: values.cargoWeight || viewingShipment!.weightKg,
+            length: values.cargoLength || viewingShipment!.lengthCm,
+            width: values.cargoWidth || viewingShipment!.widthCm,
+            height: values.cargoHeight || viewingShipment!.heightCm,
+            // 地址变更需要重新计算距离
+            pickupAddress: values.shipperAddress || (viewingShipment!.shipperAddress?.addressLine1 || ''),
+            deliveryAddress: values.receiverAddress || (viewingShipment!.receiverAddress?.addressLine1 || '')
+          });
+          
+          // 更新费用信息
+          await shipmentsApi.updateShipment(viewingShipment!.id, {
+            estimatedCost: pricingResult.totalCost,
+            pricingDetails: pricingResult.breakdown
+          });
+          
+          console.log('✅ 费用重新计算完成:', pricingResult);
+          message.success('运单更新成功，费用已重新计算');
+        } catch (pricingError) {
+          console.warn('⚠️ 重新计费失败，使用原费用:', pricingError);
+          message.warning('运单更新成功，但费用重新计算失败');
+        }
+      } else {
+        message.success('运单更新成功');
+      }
+      
       setIsEditMode(false);
       loadShipments();
       
@@ -608,12 +668,19 @@ const ShipmentManagement: React.FC = () => {
         width={1000}
       >
         {viewingShipment && !isEditMode && (
-          <ShipmentDetails 
-            shipment={viewingShipment}
-            onPrint={() => {
-              window.print();
-            }}
-          />
+          <Tabs defaultActiveKey="details">
+            <Tabs.TabPane tab="运单详情" key="details">
+              <ShipmentDetails 
+                shipment={viewingShipment}
+                onPrint={() => {
+                  window.print();
+                }}
+              />
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="BOL单据" key="bol">
+              <BOLDocument shipment={viewingShipment} />
+            </Tabs.TabPane>
+          </Tabs>
         )}
         
         {viewingShipment && isEditMode && (

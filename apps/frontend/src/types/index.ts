@@ -125,6 +125,27 @@ export interface Shipment {
   tenantId: string;
   createdAt: string;
   updatedAt: string;
+  
+  // BOL专用字段 - 2025-10-10 11:25:00
+  customerOrderNumber?: string;          // 客户订单号
+  purchaseOrderNumber?: string;          // 采购订单号
+  shipperName?: string;                  // 发货人姓名
+  shipperPhone?: string;                 // 发货人电话
+  shipperCompany?: string;               // 发货人公司
+  receiverName?: string;                 // 收货人姓名
+  receiverPhone?: string;                // 收货人电话
+  receiverCompany?: string;              // 收货人公司
+  paymentType?: 'prepaid' | 'collect' | 'third_party'; // 付款方式
+  declaredValue?: number;                // 申报价值
+  codAmount?: number;                    // 货到付款金额
+  deliveryInstructions?: string;         // 配送说明
+  pickupDate?: string;                   // 取件日期
+  deliveryDate?: string;                 // 配送日期
+  shipperSignature?: string;             // 发货人签名
+  driverSignature?: string;              // 司机签名
+  packageCount?: number;                 // 包裹数量
+  palletCount?: number;                  // 托盘数量
+  hazardousMaterial?: boolean;           // 危险品标识
 }
 
 export enum StatementType {
