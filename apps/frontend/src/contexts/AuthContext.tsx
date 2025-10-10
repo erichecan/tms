@@ -20,57 +20,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // 强制清除所有旧 token，使用新的有效 token // 2025-09-26 03:55:00
-    console.log('Clearing old tokens and setting new valid token...');
-    localStorage.removeItem('jwt_token');
-    
-        // 开发环境下注入演示用token，避免登录重定向循环
-        // 使用后端生成的真正JWT token - 2025-10-03 20:02:00 更新
-        const demoToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1OTUyMTcxOCwiZXhwIjoxNzYwMTI2NTE4fQ.NPx9IZ_YT-nORbmEEHygm_ewJYLY8dt29D7ucHR_a68';
-    localStorage.setItem('jwt_token', demoToken);
-    setToken(demoToken);
+    // 验证现有 token - 2025-10-10 18:10:00
     validateToken();
   }, []);
 
   const validateToken = async () => {
     try {
-      // 临时禁用token验证，直接设置用户信息
       const token = localStorage.getItem('jwt_token');
       if (token) {
-        try {
-          // 解析JWT token获取用户信息 // 2025-09-26 03:50:00
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const mockUser = {
-            id: payload.userId || '00000000-0000-0000-0000-000000000001',
-            email: 'admin@tms.com',
-            name: 'Admin User',
-            role: payload.role || 'admin',
-            tenantId: payload.tenantId || '00000000-0000-0000-0000-000000000001',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          setUser(mockUser);
-          console.log('Token validation bypassed, using mock user:', mockUser);
-        } catch (parseError) {
-          // 如果token解析失败，使用默认用户信息
+        // 开发环境下，由于后端跳过认证，直接设置用户信息 - 2025-10-10 18:10:00
+        if (import.meta.env.DEV) {
           const mockUser = {
             id: '00000000-0000-0000-0000-000000000001',
-            email: 'admin@tms.com',
-            name: 'Admin User',
+            email: 'dev@tms-platform.com',
+            name: 'Dev User',
             role: 'admin',
             tenantId: '00000000-0000-0000-0000-000000000001',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-          };
+          } as User;
           setUser(mockUser);
-          console.log('Using default mock user:', mockUser);
+          setToken(token);
+          console.log('[DEV MODE] Using mock user:', mockUser);
+        } else {
+          // 生产环境：调用后端验证 token - 2025-10-10 18:10:00
+          try {
+            const response = await authApi.getProfile();
+            setUser(response.data);
+            setToken(token);
+          } catch (error) {
+            console.error('Token validation failed:', error);
+            localStorage.removeItem('jwt_token');
+            setToken(null);
+            setUser(null);
+          }
         }
       }
     } catch (error) {
-      console.error('Token validation failed:', error);
-      localStorage.removeItem('jwt_token');
-      setToken(null);
-      setUser(null);
+      console.error('Failed to validate token:', error);
     } finally {
       setLoading(false);
     }

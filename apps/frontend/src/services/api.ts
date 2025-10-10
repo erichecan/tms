@@ -16,11 +16,6 @@ api.interceptors.request.use(
     const token = localStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-        // 开发环境下提供一个有效的默认JWT，避免401 // 2025-10-03 20:02:00 更新
-        // 使用后端生成的真正JWT token
-        const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1OTUyMTcxOCwiZXhwIjoxNzYwMTI2NTE4fQ.NPx9IZ_YT-nORbmEEHygm_ewJYLY8dt29D7ucHR_a68';
-      config.headers.Authorization = `Bearer ${devToken}`;
     }
     // 租户ID：开发环境默认绑定演示租户 // 2025-09-25 23:42:00
     const tenantId = localStorage.getItem('current_tenant_id') || '00000000-0000-0000-0000-000000000001';
@@ -32,15 +27,73 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling (e.g., redirect to login on 401)
+// Token 刷新状态 - 2025-10-10 18:15:00
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Response interceptor for error handling and token refresh - 2025-10-10 18:15:00
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Handle unauthorized errors, e.g., redirect to login
-      console.error('Unauthorized, redirecting to login...');
-      // window.location.href = '/login'; // Or use react-router-dom's navigate
+  async (error) => {
+    const originalRequest = error.config;
+
+    // 处理 401 错误
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      // 开发环境：直接重定向到登录页 - 2025-10-10 18:15:00
+      if (import.meta.env.DEV) {
+        console.log('[DEV MODE] 401 error, token may be invalid');
+        // 开发环境下由于后端跳过认证，401 不应该发生
+        // 如果发生了，可能是配置问题，直接放行
+        return Promise.reject(error);
+      }
+
+      // 生产环境：尝试刷新 token - 2025-10-10 18:15:00
+      if (isRefreshing) {
+        // 如果正在刷新，将请求加入队列
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await authApi.refreshToken();
+        const { token } = response.data;
+        localStorage.setItem('jwt_token', token);
+        api.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+        originalRequest.headers['Authorization'] = 'Bearer ' + token;
+        processQueue(null, token);
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        localStorage.removeItem('jwt_token');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
