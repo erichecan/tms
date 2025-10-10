@@ -47,7 +47,7 @@ import {
 import { formatCurrency } from '../../utils/formatCurrency';
 import jsPDF from 'jspdf'; // 2025-10-02 11:15:00 引入 jsPDF 以生成PDF
 import html2canvas from 'html2canvas'; // 2025-10-02 11:15:00 将DOM渲染为图片嵌入PDF
-import { generateBOLHtml } from '../../templates/BOLTemplate'; // 2025-10-02 11:20:30 引入BOL模板
+import BOLDocument from '../BOLDocument/BOLDocument'; // 2025-10-10 12:40:00 使用新的BOL组件
 import { driversApi, vehiclesApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API
 
 const { Title, Text } = Typography;
@@ -212,65 +212,236 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   };
 
   const handlePrint = () => {
-    // 打印前进行BOL字段映射 // 2025-10-06 00:18:45
-    const mapped = mapShipmentToBOLShape(shipment);
-    // 创建打印样式
-    const printStyles = `
-      <style>
-        @media print {
-          body { margin: 0; }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          #bol-print-root { width: 190mm; }
-          /* 强制一页 A4 打印 */
-          @page { size: A4 portrait; margin: 10mm; }
-        }
-      </style>
-    `;
+    // 使用新的BOL组件进行打印 - 2025-10-10 12:45:00
+    // 直接调用BOLDocument组件的打印功能
+    const bolElement = document.querySelector('.bol-document');
+    if (bolElement) {
+      // 如果找到了BOL元素，直接打印
+      window.print();
+    } else {
+      // 如果没有找到，创建一个临时的BOL文档用于打印
+      const printContainer = document.createElement('div');
+      printContainer.style.position = 'fixed';
+      printContainer.style.left = '-10000px';
+      printContainer.style.top = '0';
+      printContainer.style.width = '21cm';
+      
+      // 创建一个临时的BOL组件
+      const tempBolElement = document.createElement('div');
+      tempBolElement.className = 'bol-document';
+      tempBolElement.innerHTML = `
+        <div class="bol-header">
+          <div class="bol-title">BILL OF LADING</div>
+          <div class="bol-not-negotiable">NOT NEGOTIABLE</div>
+          <div class="company-info">
+            <div class="company-name">TMS Transport Ltd.</div>
+            <div>LTL Customer Service: 1-800-667-8556</div>
+          </div>
+        </div>
+        <div class="bol-meta">
+          <div class="bol-date">Date: ${new Date(shipment.createdAt).toLocaleDateString()}</div>
+          <div class="bol-number">BOL Number: ${shipment.shipmentNo || shipment.id}</div>
+        </div>
+        <div class="bol-section">
+          <div class="section-title">SHIPPER INFORMATION</div>
+          <div class="shipper-info">
+            <div>Shipper Name (FROM): ${shipment.shipperName || 'N/A'}</div>
+            <div>Street Address: ${shipment.shipperAddress?.addressLine1 || 'N/A'}</div>
+            <div>City/Town: ${shipment.shipperAddress?.city} Province/State: ${shipment.shipperAddress?.province}</div>
+            <div>Postal/Zip Code: ${shipment.shipperAddress?.postalCode} Phone #: ${shipment.shipperPhone || 'N/A'}</div>
+          </div>
+        </div>
+        <div class="bol-section">
+          <div class="section-title">CONSIGNEE INFORMATION</div>
+          <div class="consignee-info">
+            <div>Consignee Name (TO): ${shipment.receiverName || 'N/A'}</div>
+            <div>Street Address: ${shipment.receiverAddress?.addressLine1 || 'N/A'}</div>
+            <div>City/Town: ${shipment.receiverAddress?.city} Province/State: ${shipment.receiverAddress?.province}</div>
+            <div>Postal/Zip Code: ${shipment.receiverAddress?.postalCode} Phone #: ${shipment.receiverPhone || 'N/A'}</div>
+          </div>
+        </div>
+        <div class="bol-section">
+          <div class="section-title">COMMODITY/DESCRIPTION OF GOODS</div>
+          <table class="cargo-table">
+            <thead>
+              <tr>
+                <th>S</th>
+                <th>D</th>
+                <th>M</th>
+                <th>LBS</th>
+                <th>NO</th>
+                <th>LOO OH</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${shipment.packageCount || 1}</td>
+                <td>${shipment.description || 'General Cargo'}</td>
+                <td>KG</td>
+                <td>${shipment.weightKg}</td>
+                <td>${shipment.packageCount || 1}</td>
+                <td>${shipment.lengthCm || 0} x ${shipment.widthCm || 0} x ${shipment.heightCm || 0}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      printContainer.appendChild(tempBolElement);
+      document.body.appendChild(printContainer);
 
-    const bolHtml = generateBOLHtml(mapped, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null });
-    const printContent = `${printStyles}<div id="bol-print-root">${bolHtml}</div>`;
-
-    // 打开新窗口打印
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+      // 打开新窗口打印
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>BOL打印</title>
+            <style>
+              @page { size: A4; margin: 1cm; }
+              body { margin: 0; font-family: Arial, sans-serif; }
+              .bol-document { width: 21cm; min-height: 29.7cm; padding: 1cm; }
+              .bol-header { border: 2px solid #000; padding: 8px; text-align: center; margin-bottom: 8px; }
+              .bol-title { font-size: 18pt; font-weight: bold; margin-bottom: 4px; }
+              .bol-not-negotiable { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
+              .company-info { font-size: 8pt; }
+              .company-name { font-size: 12pt; font-weight: bold; margin-bottom: 2px; }
+              .bol-meta { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 9pt; }
+              .bol-section { border: 1px solid #000; margin-bottom: 6px; padding: 6px; }
+              .section-title { font-weight: bold; font-size: 9pt; margin-bottom: 4px; text-transform: uppercase; background-color: #f0f0f0; padding: 2px; }
+              .shipper-info, .consignee-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 8pt; }
+              .cargo-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 8pt; }
+              .cargo-table th, .cargo-table td { border: 1px solid #000; padding: 3px; text-align: left; }
+              .cargo-table th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+            </style>
+          </head>
+          <body>
+            ${tempBolElement.outerHTML}
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+          document.body.removeChild(printContainer);
+        }, 500);
+      }
     }
   };
 
-  // 2025-10-02 11:15:00 将详情区域转成 PDF，可对接外部模板
+  // 使用新的BOL组件生成PDF - 2025-10-10 12:45:00
   const handleDownloadPDF = async () => {
     try {
-      // 下载PDF前进行BOL字段映射 // 2025-10-06 00:18:45
-      const mapped = mapShipmentToBOLShape(shipment);
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-10000px';
-      container.style.top = '0';
-      container.style.width = '820px';
-      container.style.padding = '12px';
-      container.innerHTML = `<div id="pdf-root">${generateBOLHtml(mapped, { includeSignatures: !!signatureDataUrl, shipperSignature: signatureDataUrl || null })}</div>`;
-      document.body.appendChild(container);
+      // 创建一个隐藏的BOL组件用于PDF生成
+      const pdfContainer = document.createElement('div');
+      pdfContainer.style.position = 'fixed';
+      pdfContainer.style.left = '-10000px';
+      pdfContainer.style.top = '0';
+      pdfContainer.style.width = '21cm';
+      
+      // 创建一个临时的BOL组件
+      const tempBolElement = document.createElement('div');
+      tempBolElement.className = 'bol-document';
+      tempBolElement.innerHTML = `
+        <div class="bol-header">
+          <div class="bol-title">BILL OF LADING</div>
+          <div class="bol-not-negotiable">NOT NEGOTIABLE</div>
+          <div class="company-info">
+            <div class="company-name">TMS Transport Ltd.</div>
+            <div>LTL Customer Service: 1-800-667-8556</div>
+          </div>
+        </div>
+        <div class="bol-meta">
+          <div class="bol-date">Date: ${new Date(shipment.createdAt).toLocaleDateString()}</div>
+          <div class="bol-number">BOL Number: ${shipment.shipmentNo || shipment.id}</div>
+        </div>
+        <div class="bol-section">
+          <div class="section-title">SHIPPER INFORMATION</div>
+          <div class="shipper-info">
+            <div>Shipper Name (FROM): ${shipment.shipperName || 'N/A'}</div>
+            <div>Street Address: ${shipment.shipperAddress?.addressLine1 || 'N/A'}</div>
+            <div>City/Town: ${shipment.shipperAddress?.city} Province/State: ${shipment.shipperAddress?.province}</div>
+            <div>Postal/Zip Code: ${shipment.shipperAddress?.postalCode} Phone #: ${shipment.shipperPhone || 'N/A'}</div>
+          </div>
+        </div>
+        <div class="bol-section">
+          <div class="section-title">CONSIGNEE INFORMATION</div>
+          <div class="consignee-info">
+            <div>Consignee Name (TO): ${shipment.receiverName || 'N/A'}</div>
+            <div>Street Address: ${shipment.receiverAddress?.addressLine1 || 'N/A'}</div>
+            <div>City/Town: ${shipment.receiverAddress?.city} Province/State: ${shipment.receiverAddress?.province}</div>
+            <div>Postal/Zip Code: ${shipment.receiverAddress?.postalCode} Phone #: ${shipment.receiverPhone || 'N/A'}</div>
+          </div>
+        </div>
+        <div class="bol-section">
+          <div class="section-title">COMMODITY/DESCRIPTION OF GOODS</div>
+          <table class="cargo-table">
+            <thead>
+              <tr>
+                <th>S</th>
+                <th>D</th>
+                <th>M</th>
+                <th>LBS</th>
+                <th>NO</th>
+                <th>LOO OH</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${shipment.packageCount || 1}</td>
+                <td>${shipment.description || 'General Cargo'}</td>
+                <td>KG</td>
+                <td>${shipment.weightKg}</td>
+                <td>${shipment.packageCount || 1}</td>
+                <td>${shipment.lengthCm || 0} x ${shipment.widthCm || 0} x ${shipment.heightCm || 0}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      pdfContainer.appendChild(tempBolElement);
+      document.body.appendChild(pdfContainer);
 
-      const pdfEl = container.querySelector('#pdf-root') as HTMLElement;
-      const canvas = await html2canvas(pdfEl, { scale: 2 });
+      const bolElement = pdfContainer.querySelector('.bol-document') as HTMLElement;
+      const canvas = await html2canvas(bolElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+      
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth - 48; // margins
-      const imgHeight = canvas.height * (imgWidth / canvas.width);
-      const y = 24;
-      pdf.addImage(imgData, 'PNG', 24, y, imgWidth, Math.min(imgHeight, pageHeight - 48));
-      pdf.save(`${shipment.shipmentNumber || shipment.id}.pdf`);
-
-      document.body.removeChild(container);
+      
+      // 创建PDF文档
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      
+      let position = 0;
+      
+      // 添加第一页
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // 如果内容超过一页，添加新页面
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // 保存PDF
+      const fileName = `BOL-${shipment.shipmentNo || shipment.id}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+      
+      document.body.removeChild(pdfContainer);
       message.success('PDF 已下载');
     } catch (e) {
       console.error('PDF 生成失败', e);
@@ -581,6 +752,11 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           </Card>
         </div>
       )
+    },
+    {
+      key: 'bol',
+      label: 'BOL单据',
+      children: <BOLDocument shipment={shipment} showPrintButton={false} />
     }
   ];
 
