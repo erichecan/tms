@@ -35,6 +35,7 @@ interface DriverStats {
   completedTasks: number;
   totalIncome: number;
   onTimeRate: number;
+  podUploadRate: number; // POD上传完成率 - 2025-10-10 18:15:00
   avgIncomePerTask: number;
 }
 
@@ -87,7 +88,7 @@ const DriverSalarySimplified: React.FC = () => {
       // TODO: 调用真实API
       // const response = await driversApi.getStats(driverId);
       
-      // 临时模拟数据 - 2025-10-10 18:05:00
+      // 临时模拟数据 - 2025-10-10 18:15:00
       const driver = drivers.find(d => d.id === driverId);
       setDriverStats({
         driverId,
@@ -95,6 +96,7 @@ const DriverSalarySimplified: React.FC = () => {
         completedTasks: 24,
         totalIncome: 1850,
         onTimeRate: 95.8,
+        podUploadRate: 91.7, // POD上传完成率 - 2025-10-10 18:15:00
         avgIncomePerTask: 77.08,
       });
     } catch (error) {
@@ -229,49 +231,68 @@ const DriverSalarySimplified: React.FC = () => {
         </Space>
       </div>
 
-      {/* 本月统计 */}
+      {/* 本月统计 - 2025-10-10 18:15:00 更新为4个卡片 */}
       {driverStats && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={8}>
-            <Card>
-              <Statistic
-                title="完成任务数"
-                value={driverStats.completedTasks}
-                prefix={<TrophyOutlined />}
-                suffix="单"
-              />
-            </Card>
-          </Col>
-          <Col span={8}>
-            <Card>
-              <Statistic
-                title="总收入"
-                value={driverStats.totalIncome}
-                precision={2}
-                prefix="$"
-                valueStyle={{ color: '#52c41a' }}
-                suffix="CAD"
-              />
-            </Card>
-          </Col>
-          <Col span={8}>
-            <Card>
-              <Statistic
-                title="准时完成率"
-                value={driverStats.onTimeRate}
-                precision={1}
-                suffix="%"
-                valueStyle={{ color: driverStats.onTimeRate >= 95 ? '#52c41a' : '#faad14' }}
-              />
-              <Progress 
-                percent={driverStats.onTimeRate} 
-                showInfo={false}
-                strokeColor={driverStats.onTimeRate >= 95 ? '#52c41a' : '#faad14'}
-                style={{ marginTop: 8 }}
-              />
-            </Card>
-          </Col>
-        </Row>
+        <>
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="完成任务数"
+                  value={driverStats.completedTasks}
+                  prefix={<TrophyOutlined />}
+                  suffix="单"
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="总收入"
+                  value={driverStats.totalIncome}
+                  precision={2}
+                  prefix="$"
+                  valueStyle={{ color: '#52c41a' }}
+                  suffix="CAD"
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="准时完成率"
+                  value={driverStats.onTimeRate}
+                  precision={1}
+                  suffix="%"
+                  valueStyle={{ color: driverStats.onTimeRate >= 95 ? '#52c41a' : '#faad14' }}
+                />
+                <Progress 
+                  percent={driverStats.onTimeRate} 
+                  showInfo={false}
+                  strokeColor={driverStats.onTimeRate >= 95 ? '#52c41a' : '#faad14'}
+                  style={{ marginTop: 8 }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card>
+                <Statistic
+                  title="POD上传完成率"
+                  value={driverStats.podUploadRate}
+                  precision={1}
+                  suffix="%"
+                  valueStyle={{ color: driverStats.podUploadRate >= 90 ? '#52c41a' : '#faad14' }}
+                />
+                <Progress 
+                  percent={driverStats.podUploadRate} 
+                  showInfo={false}
+                  strokeColor={driverStats.podUploadRate >= 90 ? '#52c41a' : '#faad14'}
+                  style={{ marginTop: 8 }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </>
       )}
 
       {/* 任务明细列表 */}
