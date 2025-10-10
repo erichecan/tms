@@ -1,9 +1,6 @@
+/// <reference types="google.maps" />
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { Card, Spin } from 'antd';
-
-// 临时声明 google，避免缺少类型定义导致的编译错误。建议安装 @types/google.maps 后移除此声明。
-declare const google: any;
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -48,16 +45,14 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         if (!apiKey) {
           throw new Error('缺少 VITE_GOOGLE_MAPS_API_KEY 配置');
         }
-        const loader = new Loader({
-          apiKey,
-          version: 'weekly',
-          libraries: ['geometry', 'places'],
-        });
-
-        const { Map } = await loader.importLibrary('maps');
         
-        if (mapRef.current) {
-          const mapInstance = new Map(mapRef.current, {
+        // 2025-10-10 17:35:00 使用mapsService统一初始化，避免重复创建Loader
+        const mapsServiceInstance = (await import('../../services/mapsService')).default;
+        await mapsServiceInstance.initialize();
+        
+        // 直接使用全局google.maps对象
+        if (mapRef.current && window.google && window.google.maps) {
+          const mapInstance = new window.google.maps.Map(mapRef.current, {
             center,
             zoom,
             mapTypeId: 'roadmap',
@@ -83,9 +78,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     initMap();
   }, []);
 
-  // 更新标记
+  // 更新标记 - 2025-10-10 17:36:00 使用window.google.maps
   useEffect(() => {
-    if (!map) return;
+    if (!map || !window.google || !window.google.maps) return;
 
     // 清除现有标记
     markersRef.current.forEach(marker => marker.setMap(null));
@@ -93,18 +88,18 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
     // 添加新标记
     markers.forEach(markerData => {
-      const marker = new google.maps.Marker({
+      const marker = new window.google.maps.Marker({
         position: markerData.position,
         map,
         title: markerData.title,
         icon: {
           url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-          scaledSize: new google.maps.Size(32, 32),
+          scaledSize: new window.google.maps.Size(32, 32),
         },
       });
 
       if (markerData.info) {
-        const infoWindow = new google.maps.InfoWindow({
+        const infoWindow = new window.google.maps.InfoWindow({
           content: markerData.info,
         });
 
@@ -118,9 +113,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     });
   }, [map, markers, onMarkerClick]);
 
-  // 更新路线
+  // 更新路线 - 2025-10-10 17:36:00 使用window.google.maps
   useEffect(() => {
-    if (!map) return;
+    if (!map || !window.google || !window.google.maps) return;
 
     // 清除现有路线
     routesRef.current.forEach(route => route.setMap(null));
@@ -128,7 +123,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
     // 添加新路线
     routes.forEach(routeData => {
-      const polyline = new google.maps.Polyline({
+      const polyline = new window.google.maps.Polyline({
         path: [routeData.from, routeData.to],
         geodesic: true,
         strokeColor: routeData.color || '#FF0000',

@@ -607,17 +607,26 @@ const ShipmentCreate: React.FC = () => {
       // 调用后端计费引擎API - 修复：包装请求参数 // 2025-10-08
       const response = await pricingApi.calculateCost(requestPayload);
       
-      // 修复：后端返回 {success, data: {...}}，需要访问 response.data.data // 2025-10-08 14:40:00
+      // 修复：后端返回 {success, data: {...}}，需要访问 response.data.data // 2025-10-10 17:40:00
       if (response.data?.success && response.data.data?.totalRevenue) {
         const pricingData = response.data.data;
         
-        // 解析费用明细
+        // 调试日志 - 查看完整返回数据 // 2025-10-10 17:40:00
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 后端计费引擎返回完整数据:', JSON.stringify(pricingData, null, 2));
+          console.log('🔍 revenueBreakdown:', pricingData.revenueBreakdown);
+        }
+        
+        // 解析费用明细 - 2025-10-10 17:40:00 优化解析逻辑
+        const revenueBreakdown = pricingData.revenueBreakdown || [];
         const breakdown = {
-          baseFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'BASE_FEE')?.amount || 100,
-          distanceFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'DISTANCE_FEE')?.amount || 0,
-          weightFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'WEIGHT_FEE')?.amount || 0,
-          volumeFee: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'VOLUME_FEE')?.amount || 0,
-          additionalFees: pricingData.revenueBreakdown?.find((r: any) => r.componentCode === 'ADDITIONAL_FEES')?.amount || 0
+          baseFee: revenueBreakdown.find((r: any) => r.componentCode === 'BASE_FEE' || r.componentCode === 'BASE_PRICE')?.amount || 0,
+          distanceFee: revenueBreakdown.find((r: any) => r.componentCode === 'DISTANCE_FEE')?.amount || 0,
+          weightFee: revenueBreakdown.find((r: any) => r.componentCode === 'WEIGHT_FEE')?.amount || 0,
+          volumeFee: revenueBreakdown.find((r: any) => r.componentCode === 'VOLUME_FEE')?.amount || 0,
+          additionalFees: revenueBreakdown
+            .filter((r: any) => !['BASE_FEE', 'BASE_PRICE', 'DISTANCE_FEE', 'WEIGHT_FEE', 'VOLUME_FEE'].includes(r.componentCode))
+            .reduce((sum: number, r: any) => sum + (r.amount || 0), 0)
         };
 
         setRealTimePricing({
@@ -632,13 +641,16 @@ const ShipmentCreate: React.FC = () => {
           loading: false
         });
         
-        // 开发环境显示计费详情 // 2025-10-08 17:10:00
+        // 开发环境显示计费详情 // 2025-10-10 17:40:00
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ 计费计算完成 - 总费用:', pricingData.totalRevenue, '元');
+          console.log('✅ 计费引擎成功 - 总费用:', pricingData.totalRevenue, '元', '| 明细:', breakdown);
         }
-      } else {
-        throw new Error('计费引擎返回数据格式错误');
+        
+        return; // 成功后直接返回，不执行降级逻辑
       }
+      
+      // 如果响应格式不对，记录警告但继续降级 // 2025-10-10 17:40:00
+      console.warn('⚠️ 计费引擎返回格式不符合预期，降级到本地计算', response.data);
 
     } catch (error: any) {
       console.error('⚠️ 实时计费计算失败，降级到本地计算:', error);

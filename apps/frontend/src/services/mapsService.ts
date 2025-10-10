@@ -9,29 +9,55 @@ import {
 } from '@/types/maps';
 
 class MapsService {
-  private loader: Loader | null = null;
+  private static loaderInstance: Loader | null = null;
+  private static initPromise: Promise<void> | null = null;
   private maps: typeof google.maps | null = null;
   private isInitialized = false;
 
   constructor(private config: MapsConfig) {}
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    // 如果已初始化，直接返回
+    if (this.isInitialized && this.maps) {
+      return Promise.resolve();
+    }
 
+    // 如果正在初始化，返回同一个Promise
+    if (MapsService.initPromise) {
+      await MapsService.initPromise;
+      return;
+    }
+
+    // 创建初始化Promise
+    MapsService.initPromise = this.doInitialize();
+    
     try {
-      this.loader = new Loader({
-        apiKey: this.config.apiKey,
-        version: 'weekly',
-        libraries: this.config.libraries,
-        language: this.config.language,
-        region: this.config.region,
-      });
+      await MapsService.initPromise;
+    } finally {
+      // 初始化完成后清除Promise，但保持实例
+      MapsService.initPromise = null;
+    }
+  }
 
-      this.maps = await this.loader.load();
+  private async doInitialize(): Promise<void> {
+    try {
+      // 2025-10-10 17:35:00 使用单例Loader，统一libraries顺序
+      if (!MapsService.loaderInstance) {
+        MapsService.loaderInstance = new Loader({
+          apiKey: this.config.apiKey,
+          version: 'weekly',
+          libraries: ['places', 'geometry'], // 统一顺序
+          language: this.config.language,
+          region: this.config.region,
+        });
+      }
+
+      this.maps = await MapsService.loaderInstance.load();
       this.isInitialized = true;
-      console.log('Google Maps API initialized successfully');
+      console.log('✅ Google Maps API initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Google Maps API:', error);
+      console.error('❌ Failed to initialize Google Maps API:', error);
+      MapsService.initPromise = null; // 失败时清除Promise，允许重试
       throw error;
     }
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程
+import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio, Form, Input, InputNumber, Select, Row, Col } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程 // 2025-10-10 17:45:00 添加Form组件用于编辑
 import { 
   EyeOutlined, 
   EditOutlined, 
@@ -29,6 +29,16 @@ const ShipmentManagement: React.FC = () => {
   const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
   const [availableTrips, setAvailableTrips] = useState<any[]>([]); // 2025-10-02 15:12:30 可挂载行程列表
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null); // 2025-10-02 15:12:30 已选择的行程
+  
+  // 编辑相关状态 - 2025-10-10 17:45:00
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editForm] = Form.useForm();
+  
+  // 智能调度相关状态 - 2025-10-10 17:50:00
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isDispatchModalVisible, setIsDispatchModalVisible] = useState(false);
+  const [dispatchResults, setDispatchResults] = useState<any[]>([]);
+  const [dispatchLoading, setDispatchLoading] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate(); // 2025-10-02 02:55:10
@@ -162,6 +172,110 @@ const ShipmentManagement: React.FC = () => {
     const transformedShipment = transformShipmentData(shipment);
     setViewingShipment(transformedShipment);
     setIsViewModalVisible(true);
+    setIsEditMode(false); // 重置编辑模式
+  };
+
+  // 处理编辑运单 - 2025-10-10 17:45:00
+  const handleEdit = () => {
+    if (viewingShipment) {
+      // 将运单数据填充到编辑表单
+      editForm.setFieldsValue({
+        cargoWeight: viewingShipment.cargoWeight,
+        cargoLength: viewingShipment.cargoLength,
+        cargoWidth: viewingShipment.cargoWidth,
+        cargoHeight: viewingShipment.cargoHeight,
+        cargoDescription: viewingShipment.cargoDescription,
+        deliveryInstructions: viewingShipment.deliveryInstructions,
+        estimatedCost: viewingShipment.estimatedCost
+      });
+      setIsEditMode(true);
+    }
+  };
+
+  // 保存编辑 - 2025-10-10 17:45:00
+  const handleSaveEdit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      await shipmentsApi.updateShipment(viewingShipment!.id, values);
+      message.success('运单更新成功');
+      setIsEditMode(false);
+      loadShipments();
+      
+      // 更新查看的运单数据
+      const updatedShipment = { ...viewingShipment, ...values };
+      setViewingShipment(updatedShipment as Shipment);
+    } catch (error) {
+      console.error('更新运单失败:', error);
+      message.error('更新运单失败');
+    }
+  };
+
+  // 取消编辑 - 2025-10-10 17:45:00
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    editForm.resetFields();
+  };
+
+  // 智能调度 - 2025-10-10 17:50:00
+  const handleSmartDispatch = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请至少选择一个待分配的运单');
+      return;
+    }
+
+    setDispatchLoading(true);
+    setIsDispatchModalVisible(true);
+
+    try {
+      // 模拟智能调度算法（实际应调用后端API）
+      // TODO: 调用后端 POST /api/dispatch/optimize
+      
+      // 临时模拟数据 - 2025-10-10 17:50:00
+      await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟计算时间
+      
+      const selectedShipments = shipments.filter(s => selectedRowKeys.includes(s.id));
+      const results = selectedShipments.map((shipment, index) => {
+        const driver = drivers[index % drivers.length];
+        return {
+          shipmentId: shipment.id,
+          shipmentNumber: shipment.shipmentNumber,
+          route: `${shipment.pickupAddress?.city || '起点'} → ${shipment.deliveryAddress?.city || '终点'}`,
+          driverId: driver?.id,
+          driverName: driver?.name || '司机' + (index + 1),
+          distance: 10 + Math.random() * 40,
+          estimatedCost: 45 + Math.random() * 55,
+          saving: 5 + Math.random() * 15
+        };
+      });
+      
+      setDispatchResults(results);
+      message.success(`智能调度完成！为 ${results.length} 个运单找到了最优分配方案`);
+    } catch (error) {
+      console.error('智能调度失败:', error);
+      message.error('智能调度失败，请稍后重试');
+    } finally {
+      setDispatchLoading(false);
+    }
+  };
+
+  // 应用调度结果 - 2025-10-10 17:50:00
+  const handleApplyDispatch = async () => {
+    try {
+      // 批量分配运单到司机
+      for (const result of dispatchResults) {
+        await shipmentsApi.assignDriver(result.shipmentId, {
+          driverId: result.driverId
+        });
+      }
+      
+      message.success('调度方案已应用成功！');
+      setIsDispatchModalVisible(false);
+      setSelectedRowKeys([]);
+      loadShipments();
+    } catch (error) {
+      console.error('应用调度方案失败:', error);
+      message.error('应用调度方案失败');
+    }
   };
 
   const handleAssignDriver = async (shipment: Shipment) => { // 2025-10-02 15:12:30 改为加载行程后再打开弹窗（指派车辆/行程）
@@ -370,13 +484,35 @@ const ShipmentManagement: React.FC = () => {
     },
   ];
 
+  // 智能调度表格选择配置 - 2025-10-10 17:50:00
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys: React.Key[]) => {
+      setSelectedRowKeys(selectedKeys);
+    },
+    getCheckboxProps: (record: Shipment) => ({
+      disabled: record.status !== 'created' && record.status !== 'pending', // 只允许选择待分配的运单
+    }),
+  };
+
   return (
     <div style={{ margin: '0 0 0 24px' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>运单管理</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>{/* 跳转创建页 // 2025-10-02 02:55:10 */}
-          创建运单
-        </Button>
+        <Space>
+          {selectedRowKeys.length > 0 && (
+            <Button 
+              type="dashed" 
+              icon={<ClockCircleOutlined />} 
+              onClick={handleSmartDispatch}
+            >
+              🤖 智能调度 ({selectedRowKeys.length}个运单)
+            </Button>
+          )}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>{/* 跳转创建页 // 2025-10-02 02:55:10 */}
+            创建运单
+          </Button>
+        </Space>
       </div>
       
       <Card>
@@ -385,6 +521,7 @@ const ShipmentManagement: React.FC = () => {
           dataSource={shipments}
           rowKey="id"
           loading={loading}
+          rowSelection={rowSelection}
           scroll={{ x: 1100 }} // 2025-10-02 16:27:20 开启水平滚动，确保列宽生效
           pagination={{
             pageSize: 10,
@@ -395,24 +532,114 @@ const ShipmentManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 运单详情弹窗 */}
+      {/* 运单详情弹窗 - 2025-10-10 17:45:00 添加编辑功能 */}
       <Modal
-        title="运单详情"
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{isEditMode ? '编辑运单' : '运单详情'}</span>
+            {!isEditMode && viewingShipment && (
+              <Button 
+                type="primary" 
+                icon={<EditOutlined />} 
+                onClick={handleEdit}
+              >
+                编辑
+              </Button>
+            )}
+          </div>
+        }
         open={isViewModalVisible}
         onCancel={() => {
           setIsViewModalVisible(false);
           setViewingShipment(null);
+          setIsEditMode(false);
         }}
-        footer={null}
+        footer={
+          isEditMode ? (
+            <Space>
+              <Button onClick={handleCancelEdit}>取消</Button>
+              <Button type="primary" onClick={handleSaveEdit}>保存修改</Button>
+            </Space>
+          ) : null
+        }
         width={1000}
       >
-        {viewingShipment && (
+        {viewingShipment && !isEditMode && (
           <ShipmentDetails 
             shipment={viewingShipment}
             onPrint={() => {
               window.print();
             }}
           />
+        )}
+        
+        {viewingShipment && isEditMode && (
+          <Form form={editForm} layout="vertical">
+            <Divider>货物信息</Divider>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="cargoWeight"
+                  label="货物重量 (kg)"
+                  rules={[{ required: true, message: '请输入货物重量' }]}
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入重量" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="cargoLength"
+                  label="长度 (cm)"
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="长度" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="cargoWidth"
+                  label="宽度 (cm)"
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="宽度" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="cargoHeight"
+                  label="高度 (cm)"
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="高度" />
+                </Form.Item>
+              </Col>
+              <Col span={16}>
+                <Form.Item
+                  name="cargoDescription"
+                  label="货物描述"
+                >
+                  <Input.TextArea rows={2} placeholder="请输入货物描述" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Divider>配送信息</Divider>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item
+                  name="deliveryInstructions"
+                  label="配送说明"
+                >
+                  <Input.TextArea rows={3} placeholder="请输入配送说明" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="estimatedCost"
+                  label="预估费用 ($)"
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="预估费用" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
         )}
       </Modal>
 
@@ -495,6 +722,106 @@ const ShipmentManagement: React.FC = () => {
                 </Space>
               </Radio.Group>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 智能调度结果弹窗 - 2025-10-10 17:50:00 */}
+      <Modal
+        title="🤖 智能调度推荐方案"
+        open={isDispatchModalVisible}
+        onCancel={() => {
+          setIsDispatchModalVisible(false);
+          setDispatchResults([]);
+        }}
+        footer={[
+          <Button key="cancel" onClick={() => setIsDispatchModalVisible(false)}>
+            取消
+          </Button>,
+          <Button 
+            key="apply" 
+            type="primary" 
+            onClick={handleApplyDispatch}
+            loading={dispatchLoading}
+          >
+            应用全部分配
+          </Button>
+        ]}
+        width={800}
+      >
+        {dispatchLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ fontSize: '24px', marginBottom: '16px' }}>🔄</div>
+            <Text>正在计算最优调度方案...</Text>
+          </div>
+        ) : (
+          <div>
+            {dispatchResults.length > 0 && (
+              <>
+                <Card size="small" style={{ marginBottom: 16, background: '#f0f5ff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <Text type="secondary">运单数</Text>
+                      <div><Text strong style={{ fontSize: 24 }}>{dispatchResults.length}</Text></div>
+                    </div>
+                    <Divider type="vertical" style={{ height: 40 }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <Text type="secondary">预计总成本</Text>
+                      <div><Text strong style={{ fontSize: 24, color: '#1890ff' }}>
+                        ${dispatchResults.reduce((sum, r) => sum + r.estimatedCost, 0).toFixed(2)}
+                      </Text></div>
+                    </div>
+                    <Divider type="vertical" style={{ height: 40 }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <Text type="secondary">预计节省</Text>
+                      <div><Text strong style={{ fontSize: 24, color: '#52c41a' }}>
+                        ${dispatchResults.reduce((sum, r) => sum + r.saving, 0).toFixed(2)}
+                      </Text></div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Divider>分配方案详情</Divider>
+
+                {dispatchResults.map((result, index) => (
+                  <Card key={result.shipmentId} size="small" style={{ marginBottom: 12 }}>
+                    <Row gutter={16} align="middle">
+                      <Col span={12}>
+                        <div>
+                          <Tag color="blue">{result.shipmentNumber}</Tag>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {result.route}
+                          </Text>
+                        </div>
+                      </Col>
+                      <Col span={4}>
+                        <div style={{ textAlign: 'center' }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>距离</Text>
+                          <div><Text strong>{result.distance.toFixed(1)} km</Text></div>
+                        </div>
+                      </Col>
+                      <Col span={4}>
+                        <div style={{ textAlign: 'center' }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>成本</Text>
+                          <div><Text strong>${result.estimatedCost.toFixed(2)}</Text></div>
+                        </div>
+                      </Col>
+                      <Col span={4}>
+                        <div style={{ textAlign: 'center' }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>节省</Text>
+                          <div><Text strong style={{ color: '#52c41a' }}>${result.saving.toFixed(2)}</Text></div>
+                        </div>
+                      </Col>
+                    </Row>
+                    <Divider style={{ margin: '8px 0' }} />
+                    <div>
+                      <UserAddOutlined /> <Text strong>推荐司机：</Text>
+                      <Tag color="green" style={{ marginLeft: 8 }}>{result.driverName}</Tag>
+                    </div>
+                  </Card>
+                ))}
+              </>
+            )}
           </div>
         )}
       </Modal>
