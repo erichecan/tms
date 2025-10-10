@@ -11,6 +11,8 @@ import RuleManagement from './pages/RuleManagement/RuleManagement';
 import ShipmentManagement from './pages/ShipmentManagement/ShipmentManagement';
 import ShipmentCreate from './pages/ShipmentCreate/ShipmentCreate';
 import FinanceManagement from './pages/FinanceManagement/FinanceManagement';
+import FinanceManagementSimplified from './pages/FinanceManagement/FinanceManagementSimplified'; // 2025-10-10 18:25:00 简化版财务页面
+import DriverSalarySimplified from './pages/DriverSalary/DriverSalarySimplified'; // 2025-10-10 18:25:00 简化版司机薪酬页面
 import CustomerManagement from './pages/CustomerManagement/CustomerManagement';
 import CurrencyManagement from './pages/CurrencyManagement/CurrencyManagement';
 // 新增页面导入 - 符合PRD v3.0-PC设计
@@ -53,12 +55,13 @@ function App() {
             <Route path="/create-shipment" element={<ProtectedRoute><PageLayout><ShipmentCreate /></PageLayout></ProtectedRoute>} />
             {/* 新增路由 - 符合PRD v3.0-PC设计 - 2025-10-08 添加PageLayout包裹，与其他管理页面保持一致 */}
             <Route path="/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
-            <Route path="/finance-settlement" element={<ProtectedRoute><PageLayout><FinanceManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/finance-settlement" element={<ProtectedRoute><PageLayout><FinanceManagementSimplified /></PageLayout></ProtectedRoute>} />
             {/* 管理后台页面 - 2025-01-27 17:30:00 使用新的PageLayout - 2025-10-02 17:20:00 移除独立的司机、车辆、行程管理页面 */}
             <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/shipments" element={<ProtectedRoute><PageLayout><ShipmentManagement /></PageLayout></ProtectedRoute>} />
-            <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagementSimplified /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/driver-salary" element={<ProtectedRoute><PageLayout><DriverSalarySimplified /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/fleet" element={<ProtectedRoute><PageLayout><FleetManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/currencies" element={<ProtectedRoute><PageLayout><CurrencyManagement /></PageLayout></ProtectedRoute>} />

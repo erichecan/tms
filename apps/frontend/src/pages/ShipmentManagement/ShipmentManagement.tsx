@@ -14,6 +14,7 @@ import { Shipment, ShipmentStatus, Driver, Customer } from '../../types';
 import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; // 2025-09-27 03:10:00 恢复运单词情组件
 import { useLocation, useNavigate } from 'react-router-dom'; // 2025-10-02 02:55:10 导航至创建页
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
+import { smartDispatch } from '../../algorithms/dispatch'; // 2025-10-10 18:29:00 引入智能调度算法
 
 
 const { Title, Text } = Typography;
@@ -175,16 +176,26 @@ const ShipmentManagement: React.FC = () => {
     setIsEditMode(false); // 重置编辑模式
   };
 
-  // 处理编辑运单 - 2025-10-10 17:45:00
+  // 处理编辑运单 - 2025-10-10 18:26:00 完善编辑字段
   const handleEdit = () => {
     if (viewingShipment) {
       // 将运单数据填充到编辑表单
       editForm.setFieldsValue({
+        // 发货人信息
+        shipperName: viewingShipment.pickupAddress?.name || viewingShipment.shipperName,
+        shipperPhone: viewingShipment.pickupAddress?.phone || viewingShipment.shipperPhone,
+        shipperCompany: viewingShipment.pickupAddress?.company || viewingShipment.shipperCompany,
+        // 收货人信息
+        receiverName: viewingShipment.deliveryAddress?.name || viewingShipment.receiverName,
+        receiverPhone: viewingShipment.deliveryAddress?.phone || viewingShipment.receiverPhone,
+        receiverCompany: viewingShipment.deliveryAddress?.company || viewingShipment.receiverCompany,
+        // 货物信息
         cargoWeight: viewingShipment.cargoWeight,
         cargoLength: viewingShipment.cargoLength,
         cargoWidth: viewingShipment.cargoWidth,
         cargoHeight: viewingShipment.cargoHeight,
         cargoDescription: viewingShipment.cargoDescription,
+        // 配送信息
         deliveryInstructions: viewingShipment.deliveryInstructions,
         estimatedCost: viewingShipment.estimatedCost
       });
@@ -216,7 +227,7 @@ const ShipmentManagement: React.FC = () => {
     editForm.resetFields();
   };
 
-  // 智能调度 - 2025-10-10 17:50:00
+  // 智能调度 - 2025-10-10 18:30:00 使用真实算法（贪心+遗传）
   const handleSmartDispatch = async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请至少选择一个待分配的运单');
@@ -227,48 +238,80 @@ const ShipmentManagement: React.FC = () => {
     setIsDispatchModalVisible(true);
 
     try {
-      // 模拟智能调度算法（实际应调用后端API）
-      // TODO: 调用后端 POST /api/dispatch/optimize
-      
-      // 临时模拟数据 - 2025-10-10 17:50:00
-      await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟计算时间
-      
+      // 使用真实的智能调度算法 - 2025-10-10 18:30:00
       const selectedShipments = shipments.filter(s => selectedRowKeys.includes(s.id));
-      const results = selectedShipments.map((shipment, index) => {
-        const driver = drivers[index % drivers.length];
-        return {
-          shipmentId: shipment.id,
-          shipmentNumber: shipment.shipmentNumber,
-          route: `${shipment.pickupAddress?.city || '起点'} → ${shipment.deliveryAddress?.city || '终点'}`,
-          driverId: driver?.id,
-          driverName: driver?.name || '司机' + (index + 1),
-          distance: 10 + Math.random() * 40,
-          estimatedCost: 45 + Math.random() * 55,
-          saving: 5 + Math.random() * 15
-        };
+      
+      // 调用智能调度算法（贪心 + 遗传混合策略）
+      const dispatchResult = smartDispatch({
+        shipments: selectedShipments,
+        drivers: drivers,
+        constraints: {
+          maxDistance: 100, // 最大调度距离100km
+          maxDriverWorkload: 5 // 每个司机最多5个运单
+        }
       });
       
-      setDispatchResults(results);
-      message.success(`智能调度完成！为 ${results.length} 个运单找到了最优分配方案`);
+      setDispatchResults(dispatchResult.assignments);
+      
+      // 显示调度结果
+      message.success(
+        `🤖 智能调度完成！使用${dispatchResult.algorithm === 'greedy' ? '贪心算法' : '遗传算法'}为 ${dispatchResult.assignments.length} 个运单找到最优方案 ` +
+        `(耗时: ${dispatchResult.executionTime}ms, 节省: $${dispatchResult.totalSaving.toFixed(2)})`
+      , 8);
+      
+      console.log('📊 智能调度结果:', {
+        algorithm: dispatchResult.algorithm,
+        shipmentCount: dispatchResult.assignments.length,
+        totalCost: dispatchResult.totalCost,
+        totalSaving: dispatchResult.totalSaving,
+        executionTime: dispatchResult.executionTime
+      });
     } catch (error) {
       console.error('智能调度失败:', error);
       message.error('智能调度失败，请稍后重试');
+      setIsDispatchModalVisible(false);
     } finally {
       setDispatchLoading(false);
     }
   };
 
-  // 应用调度结果 - 2025-10-10 17:50:00
+  // 应用调度结果 - 2025-10-10 18:27:00 修复API调用格式
   const handleApplyDispatch = async () => {
+    let successCount = 0;
+    let failCount = 0;
+    const errors: string[] = [];
+    
     try {
       // 批量分配运单到司机
       for (const result of dispatchResults) {
-        await shipmentsApi.assignDriver(result.shipmentId, {
-          driverId: result.driverId
-        });
+        try {
+          // 修复API调用格式 - 2025-10-10 18:27:00
+          // assignDriver(shipmentId, driverId, notes)
+          await shipmentsApi.assignDriver(
+            result.shipmentId, 
+            result.driverId, 
+            '智能调度自动分配'
+          );
+          successCount++;
+        } catch (err: any) {
+          failCount++;
+          errors.push(`运单${result.shipmentNumber}: ${err.message || '分配失败'}`);
+          console.error(`分配运单${result.shipmentNumber}失败:`, err);
+        }
       }
       
-      message.success('调度方案已应用成功！');
+      // 显示结果统计
+      if (successCount > 0) {
+        message.success(`调度方案已应用！成功: ${successCount}个, 失败: ${failCount}个`);
+      } else {
+        message.error(`调度方案应用失败！所有${failCount}个运单都未能分配`);
+      }
+      
+      // 如果有错误，显示详情
+      if (errors.length > 0 && errors.length <= 3) {
+        errors.forEach(err => message.warning(err, 5));
+      }
+      
       setIsDispatchModalVisible(false);
       setSelectedRowKeys([]);
       loadShipments();
@@ -532,22 +575,9 @@ const ShipmentManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 运单详情弹窗 - 2025-10-10 17:45:00 添加编辑功能 */}
+      {/* 运单详情弹窗 - 2025-10-10 18:25:00 修复编辑按钮重叠问题 */}
       <Modal
-        title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>{isEditMode ? '编辑运单' : '运单详情'}</span>
-            {!isEditMode && viewingShipment && (
-              <Button 
-                type="primary" 
-                icon={<EditOutlined />} 
-                onClick={handleEdit}
-              >
-                编辑
-              </Button>
-            )}
-          </div>
-        }
+        title={isEditMode ? '编辑运单' : '运单详情'}
         open={isViewModalVisible}
         onCancel={() => {
           setIsViewModalVisible(false);
@@ -560,7 +590,20 @@ const ShipmentManagement: React.FC = () => {
               <Button onClick={handleCancelEdit}>取消</Button>
               <Button type="primary" onClick={handleSaveEdit}>保存修改</Button>
             </Space>
-          ) : null
+          ) : (
+            <Space>
+              <Button onClick={() => setIsViewModalVisible(false)}>关闭</Button>
+              {viewingShipment && (
+                <Button 
+                  type="primary" 
+                  icon={<EditOutlined />} 
+                  onClick={handleEdit}
+                >
+                  编辑运单
+                </Button>
+              )}
+            </Space>
+          )
         }
         width={1000}
       >
@@ -575,6 +618,66 @@ const ShipmentManagement: React.FC = () => {
         
         {viewingShipment && isEditMode && (
           <Form form={editForm} layout="vertical">
+            <Divider>发货人信息</Divider>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="shipperName"
+                  label="发货人姓名"
+                  rules={[{ required: true, message: '请输入发货人姓名' }]}
+                >
+                  <Input placeholder="请输入发货人姓名" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="shipperPhone"
+                  label="联系电话"
+                  rules={[{ required: true, message: '请输入联系电话' }]}
+                >
+                  <Input placeholder="请输入联系电话" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="shipperCompany"
+                  label="公司名称"
+                >
+                  <Input placeholder="请输入公司名称（可选）" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Divider>收货人信息</Divider>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="receiverName"
+                  label="收货人姓名"
+                  rules={[{ required: true, message: '请输入收货人姓名' }]}
+                >
+                  <Input placeholder="请输入收货人姓名" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="receiverPhone"
+                  label="联系电话"
+                  rules={[{ required: true, message: '请输入联系电话' }]}
+                >
+                  <Input placeholder="请输入联系电话" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="receiverCompany"
+                  label="公司名称"
+                >
+                  <Input placeholder="请输入公司名称（可选）" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
             <Divider>货物信息</Divider>
             <Row gutter={16}>
               <Col span={8}>
