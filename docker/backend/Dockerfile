@@ -33,5 +33,5 @@ COPY --from=builder /app/apps/backend/package.json /app/package.json
 # 暴露端口
 EXPOSE 8000
 
-# 启动应用
+# 启动应用 // 2025-10-10 15:37:50
 CMD ["node", "dist/index.js"]

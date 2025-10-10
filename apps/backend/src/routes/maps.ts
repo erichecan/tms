@@ -104,7 +104,7 @@ router.post('/dispatch-matrix', async (req, res) => {
       });
     }
 
-    const matrixResponse = await mapsApiService.calculateDispatchMatrix(matrixRequest);
+    const matrixResponse = await getMapsApiService().calculateDispatchMatrix(matrixRequest);
     
     res.json({
       success: true,
@@ -119,7 +119,7 @@ router.post('/dispatch-matrix', async (req, res) => {
 // 获取API使用统计
 router.get('/usage-stats', (req, res) => {
   try {
-    const stats = mapsApiService.getUsageStats();
+    const stats = getMapsApiService().getUsageStats();
     
     res.json({
       success: true,
@@ -150,7 +150,7 @@ router.delete('/cache', (req, res) => {
   }
 
   try {
-    mapsApiService.clearCache();
+    getMapsApiService().clearCache();
     
     res.json({
       success: true,

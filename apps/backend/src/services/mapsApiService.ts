@@ -6,7 +6,8 @@ import {
   DispatchMatrixRequest,
   DispatchMatrixResponse,
   GoogleMapsApiConfig,
-  MapsApiError 
+  MapsApiError,
+  CostBreakdown
 } from '@/types/maps';
 
 export class MapsApiService {
