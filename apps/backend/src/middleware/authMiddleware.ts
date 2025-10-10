@@ -30,6 +30,19 @@ const dbService = new DatabaseService();
  */
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // 开发环境跳过 JWT 验证 - 2025-10-10 15:45:00
+    if (process.env.NODE_ENV === 'development') {
+      req.user = {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'dev@tms-platform.com',
+        role: 'admin',
+        tenantId: '00000000-0000-0000-0000-000000000001'
+      };
+      console.log('[DEV MODE] Authentication bypassed, using default user');
+      next();
+      return;
+    }
+    
     const token = extractToken(req);
     
     if (!token) {
