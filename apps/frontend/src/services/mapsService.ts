@@ -240,7 +240,7 @@ const defaultConfig: MapsConfig = {
   language: 'en',
   region: 'CA',
   mapOptions: {
-    center: { lat: 43.6532, lng: -79.3832 }, // 多伦多
+    center: { lat: 43.7615, lng: -79.4635 }, // 3401 Dufferin St, North York, ON M6A 2T9
     zoom: 10,
     mapTypeControl: true,
     streetViewControl: false,

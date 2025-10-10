@@ -29,6 +29,7 @@ import {
 import { Trip, TripStatus, Driver, Vehicle, DriverStatus, VehicleStatus } from '../../types';
 import { driversApi, vehiclesApi, tripsApi } from '../../services/api';
 import GoogleMap from '../../components/GoogleMap/GoogleMap';
+import mapsService from '../../services/mapsService';
 import { formatDateTime } from '../../utils/timeUtils';
 import RealTimeTracking from '../../components/RealTimeTracking/RealTimeTracking';
 import DriverPerformance from '../../components/DriverPerformance/DriverPerformance';
@@ -47,8 +48,29 @@ const FleetManagement: React.FC = () => {
   const [driverForm] = Form.useForm();
   const [vehicleForm] = Form.useForm();
 
+  // 地图中心与标记 - 默认中心点: 3401 Dufferin St, North York, ON M6A 2T9
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 43.7615, lng: -79.4635 });
+  const [mapMarkers, setMapMarkers] = useState<Array<{ id: string; position: { lat: number; lng: number }; title?: string; info?: string }>>([]);
+
   useEffect(() => {
     loadFleetData();
+  }, []);
+
+  // 初始化地图服务并将默认中心设为 3401 Dufferin St, North York, ON M6A 2T9
+  useEffect(() => {
+    (async () => {
+      try {
+        await mapsService.initialize();
+        const addr = '3401 Dufferin St, North York, ON M6A 2T9';
+        const info = await mapsService.geocodeAddress(addr);
+        if (info?.latitude && info?.longitude) {
+          setMapCenter({ lat: info.latitude, lng: info.longitude });
+        }
+      } catch (e) {
+        // 保持默认中心（多伦多）即可
+        console.warn('地图服务初始化或地理编码失败，使用默认中心点', e);
+      }
+    })();
   }, []);
 
   const loadFleetData = async () => {
@@ -72,6 +94,43 @@ const FleetManagement: React.FC = () => {
       const allTrips = tripsRes.data?.data || [];
       const inTransitTrips = allTrips.filter((trip: Trip) => trip.status === TripStatus.ONGOING);
       setInTransitTrips(inTransitTrips);
+
+      // 组装地图标记：优先使用 trip 的当前位置，其次使用 vehicle 的当前位置
+      const getCoord = (obj: any) => {
+        const cl = obj?.currentLocation || {};
+        const lat = cl.lat ?? cl.latitude ?? obj?.latitude ?? obj?.lat;
+        const lng = cl.lng ?? cl.longitude ?? obj?.longitude ?? obj?.lng;
+        if (typeof lat === 'number' && typeof lng === 'number') return { lat, lng };
+        return null;
+      };
+
+      const tripMarkers = inTransitTrips
+        .map((t: any) => {
+          const pos = getCoord(t);
+          if (!pos) return null;
+          return {
+            id: `trip-${t.id}`,
+            position: pos,
+            title: t.tripNo || '行程',
+            info: `<div><strong>行程</strong>: ${t.tripNo || t.id}<br/>状态: ${t.status}</div>`
+          };
+        })
+        .filter(Boolean) as any[];
+
+      const vehicleMarkers = availableVehicles
+        .map((v: any) => {
+          const pos = getCoord(v);
+          if (!pos) return null;
+          return {
+            id: `vehicle-${v.id}`,
+            position: pos,
+            title: v.plateNumber || '车辆',
+            info: `<div><strong>车辆</strong>: ${v.plateNumber || v.id}<br/>状态: ${v.status}</div>`
+          };
+        })
+        .filter(Boolean) as any[];
+
+      setMapMarkers([...tripMarkers, ...vehicleMarkers]);
 
     } catch (error) {
       console.error('Failed to load fleet data:', error);
@@ -280,32 +339,26 @@ const FleetManagement: React.FC = () => {
                   <Col span={10}>
                     <Card title="车队实时位置">
                       <GoogleMap
-                        center={{ lat: 39.9042, lng: 116.4074 }}
-                        zoom={10}
+                        center={mapCenter}
+                        zoom={12}
                         height="600px"
-                        markers={[
-                          {
-                            id: 'trip-1',
-                            position: { lat: 39.9042, lng: 116.4074 },
-                            title: 'TRIP-20250127-001',
-                            info: '<div><strong>行程 TRIP-20250127-001</strong><br/>司机：张三<br/>车辆：京A12345<br/>状态：在途</div>',
-                          },
-                          {
-                            id: 'trip-2',
-                            position: { lat: 39.9142, lng: 116.4174 },
-                            title: 'TRIP-20250127-002',
-                            info: '<div><strong>行程 TRIP-20250127-002</strong><br/>司机：李四<br/>车辆：京B67890<br/>状态：在途</div>',
-                          },
-                        ]}
-                        routes={[
-                          {
-                            from: { lat: 39.9042, lng: 116.4074 },
-                            to: { lat: 39.9142, lng: 116.4174 },
-                            color: '#1890ff',
-                          },
-                        ]}
+                        markers={mapMarkers}
                         onMarkerClick={(markerId) => {
-                          console.log('点击标记:', markerId);
+                          // 2025-10-10 17:10:00 处理地图标记点击事件
+                          if (markerId.startsWith('trip-')) {
+                            const tripId = markerId.replace('trip-', '');
+                            const trip = inTransitTrips.find((t: Trip) => t.id === tripId);
+                            if (trip) {
+                              setSelectedTrip(trip);
+                              message.info(`查看行程: ${trip.tripNo || trip.id}`);
+                            }
+                          } else if (markerId.startsWith('vehicle-')) {
+                            const vehicleId = markerId.replace('vehicle-', '');
+                            const vehicle = availableVehicles.find((v: Vehicle) => v.id === vehicleId);
+                            if (vehicle) {
+                              message.info(`车辆: ${vehicle.plateNumber} - 状态: ${vehicle.status}`);
+                            }
+                          }
                         }}
                       />
                     </Card>

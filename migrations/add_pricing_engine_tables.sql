@@ -160,7 +160,7 @@ CREATE TABLE public.warehouses (
     -- 仓库基本信息
     name varchar(100) NOT NULL,
     code varchar(20) NOT NULL, -- WH_07, AMZ_YYZ9
-    type varchar(20) NOT NULL, -- OWN_WAREHOUSE, THIRD_PARTY_WAREHOUSE, DISPOSAL_SITE
+    type varchar(30) NOT NULL, -- OWN_WAREHOUSE, THIRD_PARTY_WAREHOUSE, DISPOSAL_SITE
     
     -- 位置信息
     address jsonb NOT NULL DEFAULT '{}',

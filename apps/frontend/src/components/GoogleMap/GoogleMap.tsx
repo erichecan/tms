@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-import { Card, Spin, message } from 'antd';
+import { Card, Spin } from 'antd';
+
+// 临时声明 google，避免缺少类型定义导致的编译错误。建议安装 @types/google.maps 后移除此声明。
+declare const google: any;
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -29,11 +32,11 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   onMarkerClick,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [map, setMap] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
-  const routesRef = useRef<google.maps.Polyline[]>([]);
+  const markersRef = useRef<any[]>([]);
+  const routesRef = useRef<any[]>([]);
 
   useEffect(() => {
     const initMap = async () => {
@@ -41,9 +44,12 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         setLoading(true);
         setError(null);
 
-        // 2025-01-27 17:15:00 使用模拟的Google Maps API Key
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) {
+          throw new Error('缺少 VITE_GOOGLE_MAPS_API_KEY 配置');
+        }
         const loader = new Loader({
-          apiKey: 'AIzaSyBvOkBw-1234567890abcdefghijklmnop', // 模拟API Key
+          apiKey,
           version: 'weekly',
           libraries: ['geometry', 'places'],
         });
@@ -68,9 +74,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         }
       } catch (err) {
         console.error('Google Maps加载失败:', err);
-        setError('地图加载失败，使用模拟数据');
-        // 2025-01-27 17:15:00 模拟地图加载成功
-        setMap(null);
+        setError('地图加载失败，请检查API密钥配置');
       } finally {
         setLoading(false);
       }
@@ -163,7 +167,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
           <div style={{ color: '#666' }}>{error}</div>
           <div style={{ color: '#999', fontSize: '12px', marginTop: '8px' }}>
-            模拟地图数据：显示 {markers.length} 个标记点
+            请在环境变量中设置 VITE_GOOGLE_MAPS_API_KEY 并刷新页面
           </div>
         </div>
       </Card>

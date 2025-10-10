@@ -607,9 +607,22 @@ export class PricingEngineService {
 
   /**
    * 保存计费明细
+   * 2025-10-08 14:25:00 跳过不存在的运单（预览场景）
    */
   private async savePricingDetails(calculation: PricingCalculation): Promise<void> {
     try {
+      // 检查运单是否存在 - 2025-10-08 14:25:00
+      // 注意：db.query() 直接返回 rows 数组，不是 {rows: []} 对象
+      const shipmentCheck = await this.db.query(
+        'SELECT id FROM shipments WHERE id = $1',
+        [calculation.shipmentId]
+      );
+      
+      if (shipmentCheck.length === 0) {  // 修复：直接检查数组长度 // 2025-10-08 14:35:00
+        logger.info(`运单 ${calculation.shipmentId} 不存在，跳过保存计费明细（预览场景）`);
+        return; // 跳过保存，不报错
+      }
+      
       // 2025-10-01 14:50:20 使用公开的 getConnection 进行事务
       const client = await this.db.getConnection();
       

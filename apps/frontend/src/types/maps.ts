@@ -1,4 +1,6 @@
-// Google Maps API 类型定义
+// Google Maps 相关类型定义
+// 创建时间: 2025-10-10 16:35:00
+
 export interface AddressInfo {
   formattedAddress: string;
   latitude: number;
@@ -8,70 +10,54 @@ export interface AddressInfo {
   province?: string;
   postalCode?: string;
   country?: string;
-}
-
-export interface RouteSegment {
-  distance: number; // 距离（米）
-  duration: number; // 时间（秒）
-  startAddress: AddressInfo;
-  endAddress: AddressInfo;
-  polyline?: string;
-  instructions?: string[];
+  street?: string;
 }
 
 export interface LogisticsRoute {
-  // 基础信息
-  shipmentId?: string;
-  businessType: 'WASTE_COLLECTION' | 'WAREHOUSE_TRANSFER' | 'CUSTOMER_DELIVERY' | 'MULTI_ORDER';
-  
-  // 货物信息
+  businessType: 'WASTE_COLLECTION' | 'WAREHOUSE_TRANSFER' | 'CUSTOMER_DELIVERY' | 'MULTI_DELIVERY';
   cargoInfo: {
-    weight: number; // 重量（kg）
-    volume: number; // 体积（m³）
-    pallets: number; // 托盘数量
-    hazardous: boolean; // 危险品
+    weight: number;
+    volume: number;
+    pallets: number;
+    hazardous: boolean;
   };
-  
-  // 地址信息
   pickupAddress: AddressInfo;
   deliveryAddress: AddressInfo;
-  
-  // 物流特定信息
   warehouseId?: string;
   requiresAppointment: boolean;
   appointmentTime?: string;
-  waitingTimeLimit: number; // 等待时间限制（分钟）
-  
-  // 路径优化结果
+  waitingTimeLimit: number;
   optimalRoute: {
-    distance: number; // 总距离（km）
-    duration: number; // 总时间（分钟）
-    fuelCost: number; // 燃油成本（CAD）
-    tolls?: number; // 过路费
-    returnRoute?: RouteSegment; // 返程路径
-    segments: RouteSegment[];
+    distance: number; // km
+    duration: number; // minutes
+    fuelCost: number; // CAD
+    tolls?: number;
+    returnRoute?: RouteSegment;
+    segments?: RouteSegment[];
   };
 }
 
-export interface DispatchAssignment {
-  driverId: string;
-  shipmentId: string;
-  vehicleId: string;
-  estimatedArrival: string;
-  route: LogisticsRoute;
-  costBreakdown: CostBreakdown;
+export interface RouteSegment {
+  distance: number;
+  duration: number;
+  startAddress: AddressInfo;
+  endAddress: AddressInfo;
+  instructions?: string[];
 }
 
-export interface CostBreakdown {
-  baseCost: number;
-  distanceCost: number;
-  cargoHandlingCost: number;
-  waitingCost: number;
-  fuelCost: number;
-  tollCost: number;
-  scenarioAdjustment: number;
-  customerPremium: number;
-  totalCost: number;
+export interface GeocodingResponse {
+  results: google.maps.GeocoderResult[];
+  status: string;
+}
+
+export interface DirectionsResponse {
+  routes: google.maps.DirectionsRoute[];
+  status: string;
+}
+
+export interface DistanceMatrixResponse {
+  rows: google.maps.DistanceMatrixResponseRow[];
+  status: string;
 }
 
 export interface MapsConfig {
@@ -79,57 +65,27 @@ export interface MapsConfig {
   libraries: string[];
   language: string;
   region: string;
-  mapOptions: {
+  mapOptions?: {
     center: { lat: number; lng: number };
     zoom: number;
-    mapTypeControl: boolean;
-    streetViewControl: boolean;
+    mapTypeControl?: boolean;
+    streetViewControl?: boolean;
   };
 }
 
-// Google Maps API 响应类型
-export interface GeocodingResponse {
-  results: Array<{
-    formatted_address: string;
-    geometry: {
-      location: { lat: number; lng: number };
-    };
-    place_id: string;
-    address_components: Array<{
-      long_name: string;
-      short_name: string;
-      types: string[];
-    }>;
-  }>;
-  status: string;
-}
-
-export interface DirectionsResponse {
-  routes: Array<{
-    legs: Array<{
-      distance: { value: number; text: string };
-      duration: { value: number; text: string };
-      start_address: string;
-      end_address: string;
-      steps: Array<{
-        distance: { value: number; text: string };
-        duration: { value: number; text: string };
-        html_instructions: string;
-        polyline: { points: string };
-      }>;
-    }>;
-    overview_polyline: { points: string };
-  }>;
-  status: string;
-}
-
-export interface DistanceMatrixResponse {
-  rows: Array<{
-    elements: Array<{
-      distance: { value: number; text: string };
-      duration: { value: number; text: string };
-      status: string;
-    }>;
-  }>;
-  status: string;
+export interface RoutePricingInfo {
+  distance: number;
+  duration: number;
+  baseCost: number;
+  distanceCost: number;
+  fuelCost: number;
+  tollCost: number;
+  totalCost: number;
+  breakdown: {
+    basePrice: number;
+    distanceFee: number;
+    fuelFee: number;
+    tollFee: number;
+    surcharges: number;
+  };
 }

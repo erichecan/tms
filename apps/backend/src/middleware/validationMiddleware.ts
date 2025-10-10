@@ -299,10 +299,13 @@ export const shipmentCreateSchema = Joi.object({
  */
 export const shipmentCreateFormSchema = Joi.object({
   shipmentNumber: Joi.string().optional(),
+  customerId: Joi.string().uuid().required(), // 2025-10-08 14:45:00 添加客户ID
+  salesChannel: Joi.string().valid('DIRECT', 'API', 'IMPORT', 'WEBHOOK').optional(), // 2025-10-08 14:45:00
+  sellerNotes: Joi.string().allow('', null).optional(), // 2025-10-08 14:45:00
   customerName: Joi.string().required(),
   customerPhone: Joi.string().required(),
-  customerEmail: Joi.string().email().optional(),
-  priority: Joi.string().valid('low', 'normal', 'high', 'urgent').default('normal'),
+  customerEmail: Joi.string().email().allow('', null).optional(),
+  priority: Joi.string().valid('low', 'normal', 'high', 'urgent', 'vip1', 'vip2', 'vip3', 'vip4', 'vip5').default('normal'), // 2025-10-08 14:45:00 添加VIP等级
   shipper: Joi.object({
     name: Joi.string().required(),
     company: Joi.string().optional(),
@@ -347,12 +350,19 @@ export const shipmentCreateFormSchema = Joi.object({
   cargoDescription: Joi.string().optional(),
   cargoIsFragile: Joi.boolean().default(false),
   cargoIsDangerous: Joi.boolean().default(false),
+  // 安全合规字段 - 2025-10-08 14:45:00
+  cargoType: Joi.string().valid('GENERAL', 'SENSITIVE', 'DANGEROUS', 'PERISHABLE', 'FRAGILE', 'LIQUID').optional(),
+  dangerousGoodsCode: Joi.string().allow('', null).optional(),
+  requiresColdChain: Joi.boolean().default(false),
+  needSignature: Joi.boolean().default(false),
+  deliveryNote: Joi.string().allow('', null).optional(),
+  // 服务与保险
   insurance: Joi.boolean().default(false),
   insuranceValue: Joi.number().min(0).optional(),
   requiresTailgate: Joi.boolean().default(false),
   requiresAppointment: Joi.boolean().default(false),
   waitingTime: Joi.number().min(0).optional(),
-  deliveryInstructions: Joi.string().optional(),
+  deliveryInstructions: Joi.string().allow('', null).optional(),
   specialRequirements: Joi.array().items(Joi.string()).optional(),
   status: Joi.string().valid('pending', 'created', 'in_transit', 'delivered', 'cancelled').optional(),
   estimatedCost: Joi.number().min(0).optional()

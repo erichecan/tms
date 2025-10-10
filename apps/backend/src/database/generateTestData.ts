@@ -360,10 +360,42 @@ export class TestDataGenerator {
       console.log('\n开始插入数据库...');
       const tenantId = '00000000-0000-0000-0000-000000000001';
 
-      // 插入司机数据 - 修复字段匹配问题 // 2025-10-01 21:35:00
-      for (const driver of drivers) {
+      // 收集已创建实体的ID，后续用于挂载
+      const createdCustomers: { id: string; name: string }[] = [];
+      const createdDrivers: { id: string; name: string }[] = [];
+      const createdVehicles: { id: string; plateNumber: string }[] = [];
+      const createdShipments: { id: string; shipmentNumber: string }[] = [];
+
+      // 先插入客户，确保运单能关联客户
+      for (const c of customers.slice(0, 5)) {
         try {
-          await this.dbService.createDriver(tenantId, {
+          const created = await this.dbService.createCustomer(tenantId, {
+            name: c.name,
+            level: c.level,
+            phone: c.phone,
+            email: c.email,
+            contactInfo: c.contactInfo,
+            billingInfo: c.billingInfo,
+            defaultPickupAddress: {
+              country: '中国',
+              province: c.contactInfo.address.state,
+              city: c.contactInfo.address.city,
+              postalCode: c.contactInfo.address.postalCode,
+              street: c.contactInfo.address.street
+            },
+            defaultDeliveryAddress: null
+          } as any);
+          createdCustomers.push({ id: created.id, name: created.name });
+          console.log(`✓ 客户 ${created.name} 插入成功`);
+        } catch (error: any) {
+          console.log(`⚠ 客户 ${c.name} 插入失败:`, error.message);
+        }
+      }
+
+      // 插入司机并收集ID - 修复字段匹配问题 // 2025-10-01 21:35:00
+      for (const driver of drivers.slice(0, 6)) {
+        try {
+          const created = await this.dbService.createDriver(tenantId, {
             name: driver.name,
             phone: driver.phone,
             licenseNumber: driver.licenseNumber,
@@ -382,28 +414,104 @@ export class TestDataGenerator {
               customerSatisfaction: 0.85 + Math.random() * 0.15
             }
           });
+          createdDrivers.push({ id: created.id, name: created.name });
           console.log(`✓ 司机 ${driver.name} 插入成功`);
-        } catch (error) {
+        } catch (error: any) {
           console.log(`⚠ 司机 ${driver.name} 插入失败:`, error.message);
         }
       }
 
-      // 插入车辆数据 - 修复字段匹配问题 // 2025-10-01 21:35:00
-      for (const vehicle of vehicles) {
+      // 插入车辆并收集ID - 修复字段匹配问题 // 2025-10-01 21:35:00
+      for (const vehicle of vehicles.slice(0, 8)) {
         try {
-          await this.dbService.createVehicle({
+          const created = await this.dbService.createVehicle({
             plateNumber: vehicle.plateNumber,
             vehicleType: vehicle.type,
             capacity: vehicle.capacityKg,
             status: vehicle.status
           });
+          createdVehicles.push({ id: created.id, plateNumber: created.plateNumber });
           console.log(`✓ 车辆 ${vehicle.plateNumber} 插入成功`);
-        } catch (error) {
+        } catch (error: any) {
           console.log(`⚠ 车辆 ${vehicle.plateNumber} 插入失败:`, error.message);
         }
       }
 
-      console.log('\n测试数据插入完成！');
+      // 准备创建若干运单，状态为 assigned，便于挂载测试
+      const useDriverId = createdDrivers[0]?.id || null;
+      const useVehicleId = createdVehicles[0]?.id || null; // 车辆不是必须，但留作行程使用
+      const customerPool = createdCustomers.length > 0 ? createdCustomers : [{ id: '00000000-0000-0000-0000-000000000001', name: '默认客户' }];
+
+      for (let i = 1; i <= 4; i++) {
+        const customerRef = customerPool[i % customerPool.length];
+        try {
+          const created = await this.dbService.createShipment(tenantId, {
+            shipmentNumber: `TMS${dayjs().format('YYYYMMDD')}${String(i).padStart(4, '0')}`,
+            customerId: customerRef.id,
+            driverId: useDriverId || undefined,
+            pickupAddress: {
+              country: '中国',
+              province: '北京',
+              city: '北京市',
+              postalCode: '100000',
+              street: `朝阳区望京街道测试路${i}号`
+            },
+            deliveryAddress: {
+              country: '中国',
+              province: '上海',
+              city: '上海市',
+              postalCode: '200000',
+              street: `浦东新区测试大道${i}号`
+            },
+            cargoInfo: {
+              description: `测试货物${i}`,
+              weight: 500 + i * 20,
+              volume: 2.5 + i * 0.1,
+              type: 'GENERAL_MERCHANDISE'
+            },
+            estimatedCost: 800 + i * 50,
+            actualCost: null as any,
+            additionalFees: [],
+            appliedRules: [],
+            status: 'assigned',
+            timeline: { created: new Date(), assigned: new Date() }
+          } as any);
+          createdShipments.push({ id: created.id, shipmentNumber: created.shipmentNumber });
+          console.log(`✓ 运单 ${created.shipmentNumber} 插入成功`);
+        } catch (error: any) {
+          console.log(`⚠ 运单 ${i} 插入失败:`, error.message);
+        }
+      }
+
+      // 创建一个行程并挂载上面的运单
+      try {
+        const tripNo = `TRIP-${dayjs().format('YYYYMMDD')}-${Math.floor(Math.random() * 900 + 100)}`;
+        const startTimePlanned = dayjs().add(1, 'day').startOf('hour').toISOString();
+        const endTimePlanned = dayjs(startTimePlanned).add(6, 'hour').toISOString();
+
+        const createdTrip = await this.dbService.createTrip(tenantId, {
+          tripNo,
+          status: 'planning',
+          driverId: useDriverId || null,
+          vehicleId: useVehicleId || null,
+          legs: [],
+          shipments: [],
+          startTimePlanned,
+          endTimePlanned
+        });
+
+        const shipmentIds = createdShipments.map(s => s.id);
+        const mountedTrip = await this.dbService.mountShipmentsToTrip(tenantId, createdTrip.id, shipmentIds);
+
+        console.log('\n✓ 行程创建并完成挂载：');
+        console.log(`- tripId: ${mountedTrip.id}, tripNo: ${mountedTrip.tripNo}`);
+        console.log(`- 挂载的运单数量: ${shipmentIds.length}`);
+        console.log(`- shipmentIds: ${shipmentIds.join(', ')}`);
+      } catch (error: any) {
+        console.log('⚠ 行程创建或挂载失败:', error.message);
+      }
+
+      console.log('\n测试数据插入完成！现在可以调用挂载接口或在前端进行流程测试。');
     } catch (error) {
       console.error('生成测试数据失败:', error);
       throw error;

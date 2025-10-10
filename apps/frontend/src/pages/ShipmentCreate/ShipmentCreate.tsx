@@ -36,6 +36,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
+import { v4 as uuidv4 } from 'uuid'; // UUID 生成库 // 2025-10-08 14:20:00
+import GoogleMap from '../../components/GoogleMap/GoogleMap'; // Google地图组件 // 2025-10-10 16:40:00
+import AddressAutocomplete from '../../components/AddressAutocomplete/AddressAutocomplete'; // 地址自动完成 // 2025-10-10 16:40:00
+import mapsService from '../../services/mapsService'; // 地图服务 // 2025-10-10 16:40:00
+import { AddressInfo, LogisticsRoute } from '../../types/maps'; // 地图类型 // 2025-10-10 16:40:00
 
 
 const { Title, Text } = Typography;
@@ -80,6 +85,15 @@ const ShipmentCreate: React.FC = () => {
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
+
+  // Google Maps 地图和路径计算状态 - 2025-10-10 16:45:00
+  const [pickupAddressInfo, setPickupAddressInfo] = useState<AddressInfo | null>(null);
+  const [deliveryAddressInfo, setDeliveryAddressInfo] = useState<AddressInfo | null>(null);
+  const [routeInfo, setRouteInfo] = useState<LogisticsRoute | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 43.7615, lng: -79.4635 }); // 3401 Dufferin St, North York, ON M6A 2T9
+  const [mapMarkers, setMapMarkers] = useState<Array<{ id: string; position: { lat: number; lng: number }; title?: string; info?: string }>>([]);
+  const [mapRoutes, setMapRoutes] = useState<Array<{ from: { lat: number; lng: number }; to: { lat: number; lng: number }; color?: string }>>([]);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
 
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
@@ -497,8 +511,6 @@ const ShipmentCreate: React.FC = () => {
     
     setLoading(true);
     try {
-      console.log('Sending shipment data:', submittedData);
-      
       const createRes = await shipmentsApi.createShipment(submittedData);
       const createdId = createRes?.data?.id || createRes?.data?.data?.id; // 兼容不同返回结构 // 2025-10-01 14:06:30
       
@@ -554,20 +566,20 @@ const ShipmentCreate: React.FC = () => {
     return Math.round(baseCost);
   };
 
-  // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-08 11:25:00 修复字段名
+  // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-08 14:30:00 修复API参数格式
   const calculateRealTimePricing = async (values: any) => {
-    // 检查是否有必要的字段（修复：使用正确的字段名）
+    // 检查是否有必要的字段（修复：使用正确的字段名）// 2025-10-08 17:10:00
     if (!values.shipperAddress1 || !values.receiverAddress1 || !values.cargoWeight) {
-      console.log('缺少必要字段，跳过计费计算');
+      // 静默返回，等待用户填写完所有必要字段 // 2025-10-08 17:10:00
       return;
     }
 
     setRealTimePricing(prev => ({ ...prev, loading: true }));
 
     try {
-      // 构建运单上下文用于后端计费引擎 - 修复字段名 // 2025-10-08 11:25:00
+      // 构建运单上下文用于后端计费引擎 - 修复字段名并使用Google Maps距离 // 2025-10-10 17:15:00
       const shipmentContext = {
-        shipmentId: 'preview-' + Date.now(), // 临时ID用于预览
+        shipmentId: uuidv4(), // 使用真实 UUID 用于预览 // 2025-10-08 14:20:00
         tenantId: '00000000-0000-0000-0000-000000000001',
         pickupLocation: {
           address: values.shipperAddress1, // 修复：使用正确的字段名
@@ -577,7 +589,8 @@ const ShipmentCreate: React.FC = () => {
           address: values.receiverAddress1, // 修复：使用正确的字段名
           city: values.receiverCity || 'Toronto'
         },
-        distance: values.distance || 25, // 默认25km
+        // 使用Google Maps计算的实际距离，如果没有则使用默认值 // 2025-10-10 17:15:00
+        distance: routeInfo?.optimalRoute?.distance || values.distance || 25,
         weight: values.cargoWeight || 100, // 默认100kg
         volume: values.cargoLength && values.cargoWidth && values.cargoHeight 
           ? values.cargoLength * values.cargoWidth * values.cargoHeight / 1000000 // 转换为立方米
@@ -585,16 +598,18 @@ const ShipmentCreate: React.FC = () => {
         pallets: values.cargoPalletCount || 1
       };
 
-      console.log('📊 调用后端计费引擎:', shipmentContext);
-
-      // 调用后端计费引擎API - 修复：包装请求参数 // 2025-10-08
-      const response = await pricingApi.calculateCost({
+      // 构建完整请求参数 - 2025-10-08 14:30:00
+      const requestPayload = {
         shipmentContext: shipmentContext,
         forceRecalculate: false
-      });
+      };
+
+      // 调用后端计费引擎API - 修复：包装请求参数 // 2025-10-08
+      const response = await pricingApi.calculateCost(requestPayload);
       
-      if (response.data && response.data.totalRevenue) {
-        const pricingData = response.data;
+      // 修复：后端返回 {success, data: {...}}，需要访问 response.data.data // 2025-10-08 14:40:00
+      if (response.data?.success && response.data.data?.totalRevenue) {
+        const pricingData = response.data.data;
         
         // 解析费用明细
         const breakdown = {
@@ -616,14 +631,26 @@ const ShipmentCreate: React.FC = () => {
           },
           loading: false
         });
-
-        console.log('✅ 计费引擎返回结果:', pricingData);
+        
+        // 开发环境显示计费详情 // 2025-10-08 17:10:00
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ 计费计算完成 - 总费用:', pricingData.totalRevenue, '元');
+        }
       } else {
         throw new Error('计费引擎返回数据格式错误');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('⚠️ 实时计费计算失败，降级到本地计算:', error);
+      
+      // 打印详细错误信息以便调试 - 2025-10-08 14:30:00
+      if (error.response) {
+        console.error('后端返回错误:', {
+          status: error.response.status,
+          data: error.response.data,
+          message: error.response.data?.error?.message || error.response.data?.message
+        });
+      }
       
       // 降级到本地计算 - 使用实际表单数据动态计算
       const baseFee = 100;
@@ -656,8 +683,105 @@ const ShipmentCreate: React.FC = () => {
         },
         loading: false
       });
+      
+      // 开发环境显示本地计算详情 // 2025-10-08 17:10:00
+      if (process.env.NODE_ENV === 'development') {
+        console.log('💡 降级到本地计算 - 总费用:', totalCost, '元');
+      }
+    }
+  };
 
-      console.log('💡 本地计算结果:', { totalCost, distance, weight, volumeFee });
+  // Google Maps 路径计算函数 - 2025-10-10 16:50:00
+  const calculateRoute = async (pickup: AddressInfo, delivery: AddressInfo) => {
+    if (!pickup || !delivery) return;
+
+    setIsCalculatingRoute(true);
+    try {
+      // 初始化地图服务
+      await mapsService.initialize();
+
+      // 计算路径
+      const route = await mapsService.calculateRoute(pickup, delivery);
+      setRouteInfo(route);
+
+      // 更新地图标记
+      const markers = [
+        {
+          id: 'pickup',
+          position: { lat: pickup.latitude, lng: pickup.longitude },
+          title: '取货地址',
+          info: `<div><strong>取货地址</strong><br/>${pickup.formattedAddress}</div>`
+        },
+        {
+          id: 'delivery',
+          position: { lat: delivery.latitude, lng: delivery.longitude },
+          title: '送货地址',
+          info: `<div><strong>送货地址</strong><br/>${delivery.formattedAddress}</div>`
+        }
+      ];
+      setMapMarkers(markers);
+
+      // 更新地图路线
+      const routes = [{
+        from: { lat: pickup.latitude, lng: pickup.longitude },
+        to: { lat: delivery.latitude, lng: delivery.longitude },
+        color: '#1890ff'
+      }];
+      setMapRoutes(routes);
+
+      // 调整地图中心到两点中间
+      const centerLat = (pickup.latitude + delivery.latitude) / 2;
+      const centerLng = (pickup.longitude + delivery.longitude) / 2;
+      setMapCenter({ lat: centerLat, lng: centerLng });
+
+      // 触发费用重新计算
+      const formValues = form.getFieldsValue();
+      await calculateRealTimePricing(formValues);
+
+      message.success(`路径计算完成 - 距离: ${route.optimalRoute.distance.toFixed(1)} km, 预计时间: ${Math.round(route.optimalRoute.duration)} 分钟`);
+    } catch (error) {
+      console.error('路径计算失败:', error);
+      message.error('路径计算失败，请检查地址是否正确');
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
+
+  // 处理取货地址选择 - 2025-10-10 16:50:00
+  const handlePickupAddressSelected = async (addressInfo: AddressInfo) => {
+    setPickupAddressInfo(addressInfo);
+    
+    // 自动填充地址字段
+    form.setFieldsValue({
+      shipperAddress1: addressInfo.formattedAddress,
+      shipperCity: addressInfo.city || '',
+      shipperProvince: addressInfo.province || '',
+      shipperPostalCode: addressInfo.postalCode || '',
+      shipperCountry: addressInfo.country === 'Canada' ? 'CA' : (addressInfo.country === 'United States' ? 'US' : 'CA')
+    });
+
+    // 如果送货地址也已选择，计算路径
+    if (deliveryAddressInfo) {
+      await calculateRoute(addressInfo, deliveryAddressInfo);
+    }
+  };
+
+  // 处理送货地址选择 - 2025-10-10 16:50:00
+  const handleDeliveryAddressSelected = async (addressInfo: AddressInfo) => {
+    setDeliveryAddressInfo(addressInfo);
+    
+    // 自动填充地址字段
+    form.setFieldsValue({
+      receiverAddress1: addressInfo.formattedAddress,
+      receiverCity: addressInfo.city || '',
+      receiverProvince: addressInfo.province || '',
+      receiverPostalCode: addressInfo.postalCode || '',
+      receiverCountry: addressInfo.country === 'Canada' ? 'CA' : (addressInfo.country === 'United States' ? 'US' : 'CA')
+    });
+
+    // 如果取货地址也已选择，计算路径
+    if (pickupAddressInfo) {
+      await calculateRoute(pickupAddressInfo, addressInfo);
     }
   };
 
@@ -934,11 +1058,15 @@ const ShipmentCreate: React.FC = () => {
               <Col span={24}>
                 <Form.Item
                   name="shipperAddress1"
-                  label="地址行1 (Address Line 1)"
+                  label="地址行1 (Address Line 1) 🌍"
                   rules={[{ required: true, message: '请输入地址行1' }]}
                   style={{ marginBottom: 8 }}
+                  tooltip="使用Google Maps自动完成,选择地址后将自动填充其他字段"
                 >
-                  <Input placeholder="请输入街道地址" />
+                  <AddressAutocomplete 
+                    placeholder="输入街道地址..." 
+                    onAddressSelected={handlePickupAddressSelected}
+                  />
           </Form.Item>
         </Col>
               <Col span={24}>
@@ -1069,11 +1197,15 @@ const ShipmentCreate: React.FC = () => {
               <Col span={24}>
                 <Form.Item
                   name="receiverAddress1"
-                  label="地址行1 (Address Line 1)"
+                  label="地址行1 (Address Line 1) 🌍"
                   rules={[{ required: true, message: '请输入地址行1' }]}
                   style={{ marginBottom: 8 }}
+                  tooltip="使用Google Maps自动完成,选择地址后将自动填充其他字段"
                 >
-                  <Input placeholder="请输入街道地址" />
+                  <AddressAutocomplete 
+                    placeholder="输入街道地址..." 
+                    onAddressSelected={handleDeliveryAddressSelected}
+                  />
           </Form.Item>
         </Col>
               <Col span={24}>
@@ -1702,6 +1834,78 @@ const ShipmentCreate: React.FC = () => {
 
               {/* 实时费用预估组件 - 2025-10-01 21:40:00 */}
               {renderRealTimePricing()}
+
+              {/* 地图和路径显示 - 2025-10-10 17:00:00 */}
+              {(pickupAddressInfo || deliveryAddressInfo) && (
+                <Card 
+                  title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>📍 路径预览与费用计算</span>
+                      {isCalculatingRoute && <Spin size="small" />}
+                    </div>
+                  } 
+                  style={{ marginBottom: 12 }}
+                >
+                  <Row gutter={16}>
+                    <Col span={16}>
+                      <GoogleMap
+                        center={mapCenter}
+                        zoom={11}
+                        markers={mapMarkers}
+                        routes={mapRoutes}
+                        height="400px"
+                      />
+                    </Col>
+                    <Col span={8}>
+                      {routeInfo && (
+                        <div>
+                          <Title level={5}>路径信息</Title>
+                          <Divider style={{ margin: '12px 0' }} />
+                          <Space direction="vertical" style={{ width: '100%' }} size="small">
+                            <div>
+                              <Text type="secondary">总距离：</Text>
+                              <Text strong>{routeInfo.optimalRoute.distance.toFixed(1)} km</Text>
+                            </div>
+                            <div>
+                              <Text type="secondary">预计时间：</Text>
+                              <Text strong>{Math.round(routeInfo.optimalRoute.duration)} 分钟</Text>
+                            </div>
+                            <div>
+                              <Text type="secondary">燃油成本：</Text>
+                              <Text strong>${routeInfo.optimalRoute.fuelCost.toFixed(2)}</Text>
+                            </div>
+                            <Divider style={{ margin: '12px 0' }} />
+                            <div>
+                              <Text type="secondary">起点：</Text>
+                              <div style={{ marginTop: 4 }}>
+                                <Text ellipsis style={{ fontSize: '12px' }}>
+                                  {pickupAddressInfo?.formattedAddress}
+                                </Text>
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary">终点：</Text>
+                              <div style={{ marginTop: 4 }}>
+                                <Text ellipsis style={{ fontSize: '12px' }}>
+                                  {deliveryAddressInfo?.formattedAddress}
+                                </Text>
+                              </div>
+                            </div>
+                          </Space>
+                        </div>
+                      )}
+                      {!routeInfo && (pickupAddressInfo || deliveryAddressInfo) && (
+                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                          <Text type="secondary">
+                            {pickupAddressInfo && !deliveryAddressInfo && '请选择送货地址以计算路径'}
+                            {!pickupAddressInfo && deliveryAddressInfo && '请选择取货地址以计算路径'}
+                          </Text>
+                        </div>
+                      )}
+                    </Col>
+                  </Row>
+                </Card>
+              )}
 
               {/* 2025-10-01 15:00:45 将"订单元信息"模块移动到创建页最底部 */}
               {renderOrderInfoSection()}
