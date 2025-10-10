@@ -80,9 +80,18 @@ export function greedyDispatch(input: DispatchInput): DispatchResult {
   const startTime = Date.now();
   const { shipments, drivers } = input;
   const assignments: Assignment[] = [];
-  const availableDrivers = [...drivers].filter(d => d.status === 'available' || d.status === 'idle');
+  // 修复：使用正确的司机状态枚举值 - 2025-10-10 18:35:00
+  const availableDrivers = [...drivers].filter(d => d.status === 'available' || d.status === 'AVAILABLE');
+  
+  console.log('🔍 智能调度调试信息:', {
+    totalDrivers: drivers.length,
+    availableDrivers: availableDrivers.length,
+    driverStatuses: drivers.map(d => ({ name: d.name, status: d.status })),
+    totalShipments: shipments.length
+  });
   
   if (availableDrivers.length === 0) {
+    console.warn('⚠️ 没有可用司机进行调度');
     return {
       assignments: [],
       totalCost: 0,
@@ -100,9 +109,23 @@ export function greedyDispatch(input: DispatchInput): DispatchResult {
     // 遍历所有可用司机
     for (let i = 0; i < availableDrivers.length; i++) {
       const driver = availableDrivers[i];
+      
+      // 修复：司机可能没有currentLocation，使用默认位置 - 2025-10-10 18:36:00
+      const driverLocation = driver.currentLocation || { 
+        lat: 43.7615 + (Math.random() - 0.5) * 0.1, // 在默认中心附近随机位置
+        lng: -79.4635 + (Math.random() - 0.5) * 0.1 
+      };
+      
+      // 修复：运单可能没有pickupAddress，使用默认地址 - 2025-10-10 18:37:00
+      const pickupLocation = shipment.pickupAddress || {
+        lat: 43.7615,
+        lng: -79.4635,
+        city: 'North York'
+      };
+      
       const distance = calculateDistance(
-        driver.currentLocation,
-        shipment.pickupAddress
+        driverLocation,
+        pickupLocation
       );
       
       if (distance < minDistance) {
@@ -131,6 +154,17 @@ export function greedyDispatch(input: DispatchInput): DispatchResult {
       availableDrivers.splice(bestDriverIndex, 1);
     }
   }
+  
+  console.log('🎯 贪心算法调度结果:', {
+    totalAssignments: assignments.length,
+    assignments: assignments.map(a => ({
+      shipmentNumber: a.shipmentNumber,
+      driverName: a.driverName,
+      distance: a.distance.toFixed(2) + 'km',
+      cost: '$' + a.estimatedCost.toFixed(2),
+      saving: '$' + a.saving.toFixed(2)
+    }))
+  });
   
   return {
     assignments,
@@ -178,10 +212,18 @@ function calculateFitness(
     
     if (!driver) continue;
     
-    const distance = calculateDistance(
-      driver.currentLocation,
-      shipment.pickupAddress
-    );
+    // 修复：使用默认位置 - 2025-10-10 18:38:00
+    const driverLocation = driver.currentLocation || { 
+      lat: 43.7615 + (Math.random() - 0.5) * 0.1,
+      lng: -79.4635 + (Math.random() - 0.5) * 0.1 
+    };
+    const pickupLocation = shipment.pickupAddress || {
+      lat: 43.7615,
+      lng: -79.4635,
+      city: 'North York'
+    };
+    
+    const distance = calculateDistance(driverLocation, pickupLocation);
     const cost = calculateCost(distance, shipment);
     totalCost += cost;
   }
@@ -271,7 +313,19 @@ export function geneticDispatch(input: DispatchInput): DispatchResult {
   // 转换为结果格式
   const assignments: Assignment[] = shipments.map((shipment, index) => {
     const driver = drivers[best.genes[index]];
-    const distance = calculateDistance(driver.currentLocation, shipment.pickupAddress);
+    
+    // 修复：使用默认位置 - 2025-10-10 18:39:00
+    const driverLocation = driver.currentLocation || { 
+      lat: 43.7615 + (Math.random() - 0.5) * 0.1,
+      lng: -79.4635 + (Math.random() - 0.5) * 0.1 
+    };
+    const pickupLocation = shipment.pickupAddress || {
+      lat: 43.7615,
+      lng: -79.4635,
+      city: 'North York'
+    };
+    
+    const distance = calculateDistance(driverLocation, pickupLocation);
     const cost = calculateCost(distance, shipment);
     const saving = calculateSaving(distance, shipment);
     
@@ -302,7 +356,13 @@ export function geneticDispatch(input: DispatchInput): DispatchResult {
  * - 运单数 >= 50: 使用遗传算法（全局优化）
  */
 export function smartDispatch(input: DispatchInput): DispatchResult {
-  const { shipments } = input;
+  const { shipments, drivers } = input;
+  
+  console.log('🚀 智能调度开始:', {
+    shipmentCount: shipments.length,
+    driverCount: drivers.length,
+    availableDrivers: drivers.filter(d => d.status === 'available' || d.status === 'AVAILABLE').length
+  });
   
   if (shipments.length < 50) {
     console.log(`📊 使用贪心算法调度 ${shipments.length} 个运单`);
