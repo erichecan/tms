@@ -26,24 +26,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const validateToken = async () => {
     try {
-      const token = localStorage.getItem('jwt_token');
-      if (token) {
-        // 开发环境下，由于后端跳过认证，直接设置用户信息 - 2025-10-10 18:10:00
-        if (import.meta.env.DEV) {
-          const mockUser = {
-            id: '00000000-0000-0000-0000-000000000001',
-            email: 'dev@tms-platform.com',
-            name: 'Dev User',
-            role: 'admin',
-            tenantId: '00000000-0000-0000-0000-000000000001',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          } as User;
-          setUser(mockUser);
-          setToken(token);
-          console.log('[DEV MODE] Using mock user:', mockUser);
-        } else {
-          // 生产环境：调用后端验证 token - 2025-10-10 18:10:00
+      // 开发环境下，自动设置用户信息（不需要 token）- 2025-10-10 18:35:00
+      if (import.meta.env.DEV) {
+        let token = localStorage.getItem('jwt_token');
+        // 如果没有 token，创建一个临时的
+        if (!token) {
+          token = 'dev-mode-auto-token-' + Date.now();
+          localStorage.setItem('jwt_token', token);
+        }
+        
+        const mockUser = {
+          id: '00000000-0000-0000-0000-000000000001',
+          email: 'dev@tms-platform.com',
+          name: 'Dev User',
+          role: 'admin',
+          tenantId: '00000000-0000-0000-0000-000000000001',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } as User;
+        setUser(mockUser);
+        setToken(token);
+        console.log('[DEV MODE] Auto-login with mock user:', mockUser);
+      } else {
+        // 生产环境：验证 token - 2025-10-10 18:35:00
+        const token = localStorage.getItem('jwt_token');
+        if (token) {
           try {
             const response = await authApi.getProfile();
             setUser(response.data);
