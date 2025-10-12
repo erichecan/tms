@@ -26,6 +26,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { financeApi, shipmentsApi } from '../../services/api';
+import FinancialDashboard from '../../components/FinancialReports/FinancialDashboard'; // 2025-10-12 09:33:00
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
