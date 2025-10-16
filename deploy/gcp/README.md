@@ -1,5 +1,38 @@
 # Google Cloud Platform 部署指南
 
+**最后更新：** 2025-10-16 17:14:00  
+**版本：** 2.0
+
+## 📚 文档导航
+
+本目录包含完整的 GCP 部署资源：
+
+- **[DEPLOYMENT_STEPS.md](./DEPLOYMENT_STEPS.md)** - 详细的分步部署指南
+- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - 部署前后检查清单
+- **[setup-gcp.sh](./setup-gcp.sh)** - 自动化初始化脚本
+- **[cloudbuild.yaml](./cloudbuild.yaml)** - Cloud Build 配置文件
+- **[deploy.sh](./deploy.sh)** - 手动部署脚本
+
+## 🎯 快速开始
+
+### 选项 1：使用自动化脚本（推荐）
+
+```bash
+cd deploy/gcp
+./setup-gcp.sh
+```
+
+脚本会引导您完成：
+- ✅ GCP 项目设置
+- ✅ API 启用
+- ✅ Cloud SQL 创建
+- ✅ Secret Manager 配置
+- ✅ IAM 权限设置
+
+### 选项 2：手动部署
+
+按照 [DEPLOYMENT_STEPS.md](./DEPLOYMENT_STEPS.md) 中的详细说明操作。
+
 ## 概述
 
 本文档说明如何将 TMS 应用部署到 Google Cloud Platform，包括：

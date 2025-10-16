@@ -30,8 +30,11 @@ COPY --from=builder /app/packages /app/packages
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/backend/package.json /app/package.json
 
-# 暴露端口
-EXPOSE 8000
+# 设置默认端口（Cloud Run 使用 8080，但可通过环境变量覆盖）// 2025-10-16 17:04:00
+ENV PORT=8080
 
-# 启动应用 // 2025-10-10 15:37:50
+# 暴露端口
+EXPOSE 8080
+
+# 启动应用 // 2025-10-16 17:04:00
 CMD ["node", "dist/index.js"]

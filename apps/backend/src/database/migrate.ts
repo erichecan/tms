@@ -16,8 +16,10 @@ async function runMigration() {
   try {
     logger.info('开始数据库迁移...');
     
-    // 读取初始化SQL文件
-    const initSqlPath = join(__dirname, '../../../docker/postgres/init.sql');
+    // 读取初始化SQL文件 // 2025-10-16 17:28:00
+    // 使用项目根目录的database_schema.sql文件
+    const projectRoot = join(__dirname, '../../../../');
+    const initSqlPath = join(projectRoot, 'database_schema.sql');
     const initSql = readFileSync(initSqlPath, 'utf8');
     
     // 执行SQL

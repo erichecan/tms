@@ -1,27 +1,59 @@
 # Google Cloud Build 配置文件
 # 用于构建和部署 TMS 应用
-# 2025-01-27 10:40:00
+# 更新时间：2025-10-16 17:05:00
 
 steps:
-  # 构建后端 Docker 镜像
+  # 构建后端 Docker 镜像（使用根目录作为 context）// 2025-10-16 17:05:00
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA', '-f', 'docker/backend/Dockerfile', 'apps/backend']
-    dir: '.'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/tms-backend:latest'
+      - '-f'
+      - 'docker/backend/Dockerfile'
+      - '.'
 
-  # 构建前端 Docker 镜像
+  # 构建前端 Docker 镜像（使用根目录作为 context，传递构建参数）// 2025-10-16 17:05:00
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA', '-f', 'docker/frontend/Dockerfile', 'apps/frontend']
-    dir: '.'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/tms-frontend:latest'
+      - '--build-arg'
+      - 'VITE_API_BASE_URL=${_BACKEND_URL}'
+      - '--build-arg'
+      - 'VITE_GOOGLE_MAPS_API_KEY=${_GOOGLE_MAPS_API_KEY}'
+      - '-f'
+      - 'docker/frontend/Dockerfile'
+      - '.'
 
-  # 推送后端镜像到 Container Registry
+  # 推送后端镜像到 Container Registry // 2025-10-16 17:06:00
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA']
-
-  # 推送前端镜像到 Container Registry
+    args: 
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
+  
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA']
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/tms-backend:latest'
 
-  # 部署后端到 Cloud Run
+  # 推送前端镜像到 Container Registry // 2025-10-16 17:06:00
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
+  
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/tms-frontend:latest'
+
+  # 部署后端到 Cloud Run // 2025-10-16 17:07:00
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -29,17 +61,31 @@ steps:
       - 'deploy'
       - 'tms-backend'
       - '--image=gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
-      - '--region=asia-east1'
+      - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
+      - '--port=8080'
       - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
-      - '--set-env-vars=PORT=8080,NODE_ENV=production,CORS_ORIGIN=https://YOUR_FRONTEND_DOMAIN.com'
+      - '--set-env-vars=PORT=8080,NODE_ENV=production,CORS_ORIGIN=${_CORS_ORIGIN}'
       - '--memory=2Gi'
       - '--cpu=2'
       - '--min-instances=1'
       - '--max-instances=10'
+      - '--timeout=300'
+      - '--add-cloudsql-instances=${_CLOUDSQL_INSTANCE}'
 
-  # 部署前端到 Cloud Run (可选，也可以使用 Firebase Hosting)
+  # 获取后端服务 URL 用于前端配置 // 2025-10-16 17:08:00
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run services describe tms-backend \
+          --region=${_REGION} \
+          --format='value(status.url)' > /workspace/backend-url.txt
+        echo "Backend URL: $(cat /workspace/backend-url.txt)"
+
+  # 部署前端到 Cloud Run // 2025-10-16 17:08:00
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -47,22 +93,38 @@ steps:
       - 'deploy'
       - 'tms-frontend'
       - '--image=gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
-      - '--region=asia-east1'
+      - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-HASH-uc.a.run.app'
-      - '--memory=1Gi'
+      - '--port=80'
+      - '--memory=512Mi'
       - '--cpu=1'
       - '--min-instances=0'
       - '--max-instances=5'
+      - '--timeout=60'
 
-# 镜像标签
+# 镜像标签 // 2025-10-16 17:09:00
 images:
   - 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/tms-backend:latest'
   - 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/tms-frontend:latest'
 
-# 构建选项
+# 构建选项 // 2025-10-16 17:09:00
 options:
   machineType: 'E2_HIGHCPU_8'
   diskSizeGb: 100
   logging: CLOUD_LOGGING_ONLY
+
+# 替代变量（在 Cloud Build 触发器中配置）// 2025-10-16 17:09:00
+# _REGION: 部署区域（如 asia-east1）
+# _BACKEND_URL: 后端 API 地址（用于前端构建）
+# _GOOGLE_MAPS_API_KEY: Google Maps API 密钥
+# _CORS_ORIGIN: 允许的跨域源（前端 URL）
+# _CLOUDSQL_INSTANCE: Cloud SQL 实例连接名（格式：PROJECT_ID:REGION:INSTANCE_NAME）
+substitutions:
+  _REGION: 'asia-east1'
+  _BACKEND_URL: 'https://tms-backend-replace-me.run.app'
+  _GOOGLE_MAPS_API_KEY: 'YOUR_GOOGLE_MAPS_API_KEY'
+  _CORS_ORIGIN: 'https://tms-frontend-replace-me.run.app'
+  _CLOUDSQL_INSTANCE: 'PROJECT_ID:asia-east1:tms-postgres'
