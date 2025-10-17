@@ -90,12 +90,12 @@ build_and_push() {
     
     # 构建后端镜像
     echo -e "${YELLOW}📦 构建后端镜像...${NC}"
-    docker build -t gcr.io/$PROJECT_ID/tms-backend:latest -f docker/backend/Dockerfile apps/backend/
+    docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/tms-backend:latest -f docker/backend/Dockerfile .
     docker push gcr.io/$PROJECT_ID/tms-backend:latest
     
     # 构建前端镜像
     echo -e "${YELLOW}📦 构建前端镜像...${NC}"
-    docker build -t gcr.io/$PROJECT_ID/tms-frontend:latest -f docker/frontend/Dockerfile apps/frontend/
+    docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/tms-frontend:latest -f docker/frontend/Dockerfile .
     docker push gcr.io/$PROJECT_ID/tms-frontend:latest
 }
 
@@ -111,7 +111,7 @@ deploy_services() {
         --platform=managed \
         --allow-unauthenticated \
         --set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest \
-        --set-env-vars=PORT=8080,NODE_ENV=production,CORS_ORIGIN=https://YOUR_FRONTEND_DOMAIN.com \
+        --set-env-vars=NODE_ENV=production,CORS_ORIGIN=https://YOUR_FRONTEND_DOMAIN.com \
         --memory=2Gi \
         --cpu=2 \
         --min-instances=1 \
@@ -157,7 +157,7 @@ show_results() {
 main() {
     check_dependencies
     setup_project
-    create_secrets
+    # create_secrets
     build_and_push
     deploy_services
     show_results

@@ -28,7 +28,11 @@ export class DatabaseService {
         // 在 Cloud Run 中，使用 Unix socket 连接
         // 从连接字符串中提取密码：postgresql://user:password@host/db
         const match = envUrl.match(/postgresql:\/\/([^:]+):([^@]+)@/);
-        const password = match ? match[2] : envUrl; // 提取密码部分
+        if (!match) {
+          logger.error('Malformed DATABASE_URL for Cloud Run environment. Expected format: postgresql://user:password@host/db');
+          throw new Error('Invalid DATABASE_URL format for Cloud Run. Could not extract password.');
+        }
+        const password = match[2];
         const connectionName = 'aponytms:northamerica-northeast2:tms-database-toronto';
         const database = 'tms_platform';
         const user = 'tms_user';
