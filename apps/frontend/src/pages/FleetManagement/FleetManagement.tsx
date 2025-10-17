@@ -31,7 +31,6 @@ import { driversApi, vehiclesApi, tripsApi } from '../../services/api';
 import GoogleMap from '../../components/GoogleMap/GoogleMap';
 import mapsService from '../../services/mapsService';
 import { formatDateTime } from '../../utils/timeUtils';
-import RealTimeTracking from '../../components/RealTimeTracking/RealTimeTracking';
 import DriverPerformance from '../../components/DriverPerformance/DriverPerformance';
 import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
 
@@ -95,12 +94,33 @@ const FleetManagement: React.FC = () => {
       const inTransitTrips = allTrips.filter((trip: Trip) => trip.status === TripStatus.ONGOING);
       setInTransitTrips(inTransitTrips);
 
-      // 组装地图标记：优先使用 trip 的当前位置，其次使用 vehicle 的当前位置
+      // 组装地图标记：从 current_location JSONB 字段提取坐标
       const getCoord = (obj: any) => {
-        const cl = obj?.currentLocation || {};
-        const lat = cl.lat ?? cl.latitude ?? obj?.latitude ?? obj?.lat;
-        const lng = cl.lng ?? cl.longitude ?? obj?.longitude ?? obj?.lng;
-        if (typeof lat === 'number' && typeof lng === 'number') return { lat, lng };
+        // 尝试多种可能的位置数据格式
+        const cl = obj?.currentLocation || obj?.current_location || {};
+        
+        // 如果是JSONB对象，直接使用
+        const lat = cl?.latitude ?? cl?.lat ?? obj?.latitude ?? obj?.lat;
+        const lng = cl?.longitude ?? cl?.lng ?? obj?.longitude ?? obj?.lng;
+        
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          return { lat, lng };
+        }
+        
+        // 尝试从字符串解析
+        if (typeof cl === 'string') {
+          try {
+            const parsed = JSON.parse(cl);
+            const parsedLat = parsed?.latitude ?? parsed?.lat;
+            const parsedLng = parsed?.longitude ?? parsed?.lng;
+            if (typeof parsedLat === 'number' && typeof parsedLng === 'number') {
+              return { lat: parsedLat, lng: parsedLng };
+            }
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+        
         return null;
       };
 
@@ -376,24 +396,6 @@ const FleetManagement: React.FC = () => {
                     查看历史记录
                   </Button>
                 </div>
-              </div>
-            )
-          },
-          {
-            key: "tracking",
-            label: (
-              <span>
-                <EnvironmentOutlined />
-                实时跟踪
-              </span>
-            ),
-            children: (
-              <div style={{ padding: '16px 0' }}>
-                <Card>
-                  <Title level={4}>📍 实时位置跟踪</Title>
-                  <Text type="secondary">车队实时位置监控和跟踪管理</Text>
-                  <RealTimeTracking />
-                </Card>
               </div>
             )
           },

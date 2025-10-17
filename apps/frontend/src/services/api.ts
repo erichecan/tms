@@ -277,4 +277,46 @@ export const healthApi = {
   checkServices: () => api.get('/health/services'),
 };
 
+// Location tracking related API calls - 2025-10-17 23:25:00
+export const locationApi = {
+  // 获取实时位置列表
+  getRealTimeLocations: () => api.get('/location/realtime'),
+  
+  // 更新车辆位置
+  updateVehicleLocation: (vehicleId: string, location: {
+    latitude: number;
+    longitude: number;
+    speed?: number;
+    direction?: number;
+    accuracy?: number;
+  }) => api.post(`/location/vehicles/${vehicleId}`, location),
+  
+  // 更新司机位置
+  updateDriverLocation: (driverId: string, location: {
+    latitude: number;
+    longitude: number;
+    speed?: number;
+    direction?: number;
+    accuracy?: number;
+  }) => api.post(`/location/drivers/${driverId}`, location),
+  
+  // 获取位置历史轨迹
+  getLocationHistory: (entityType: string, entityId: string, params?: {
+    startTime?: string;
+    endTime?: string;
+    limit?: number;
+  }) => api.get(`/location/history/${entityType}/${entityId}`, { params }),
+  
+  // 批量更新位置（用于模拟器）
+  bulkUpdateLocations: (updates: Array<{
+    entityType: string;
+    entityId: string;
+    latitude: number;
+    longitude: number;
+    speed?: number;
+    direction?: number;
+    accuracy?: number;
+  }>) => api.post('/location/bulk-update', { updates })
+};
+
 export default api;

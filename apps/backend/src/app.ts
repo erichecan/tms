@@ -15,6 +15,7 @@ import financeRoutes from './routes/financeRoutes';
 import ruleRoutes from './routes/ruleRoutes';
 import dbRoutes from './routes/dbRoutes'; // DB连通性路由 // 2025-10-02 02:41:10
 import mapsRoutes from './routes/maps'; // Google Maps API路由 // 2025-10-03 10:00:00
+import locationRoutes from './routes/locationRoutes'; // 位置跟踪路由 // 2025-10-17 23:20:00
 
 // 初始化 Express 应用 // 2025-09-23 10:00:00
 const app = express();
@@ -58,6 +59,7 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/rules', ruleRoutes);
 app.use('/api/db', dbRoutes); // 注册DB路由 // 2025-10-02 02:41:10
 app.use('/api/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
+app.use('/api/location', locationRoutes); // 注册位置跟踪路由 // 2025-10-17 23:20:00
 
 // 2025-10-02 18:45:00 - 确保财务路由可用
 console.log('财务路由已注册:', '/api/finance');

@@ -1,0 +1,68 @@
+-- 最小化迁移脚本（跳过trips表）
+
+-- 创建位置跟踪历史表
+CREATE TABLE IF NOT EXISTS location_tracking (
+    id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id uuid NOT NULL,
+    latitude NUMERIC(10, 7) NOT NULL,
+    longitude NUMERIC(10, 7) NOT NULL,
+    speed NUMERIC(5, 2) DEFAULT 0,
+    direction NUMERIC(5, 2) DEFAULT 0,
+    accuracy NUMERIC(5, 2) DEFAULT 10,
+    altitude NUMERIC(10, 2),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_location_tracking_entity 
+ON location_tracking(entity_type, entity_id, timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_location_tracking_timestamp 
+ON location_tracking(timestamp DESC);
+
+-- 为vehicles和drivers表的位置字段创建 GIN 索引
+CREATE INDEX IF NOT EXISTS idx_vehicles_current_location 
+ON vehicles USING GIN (current_location);
+
+CREATE INDEX IF NOT EXISTS idx_drivers_current_location 
+ON drivers USING GIN (current_location);
+
+-- 创建距离计算函数
+CREATE OR REPLACE FUNCTION calculate_distance(
+    lat1 NUMERIC, lng1 NUMERIC, 
+    lat2 NUMERIC, lng2 NUMERIC
+) 
+RETURNS NUMERIC AS $$
+DECLARE
+    R NUMERIC := 6371;
+    dLat NUMERIC;
+    dLng NUMERIC;
+    a NUMERIC;
+    c NUMERIC;
+BEGIN
+    dLat := RADIANS(lat2 - lat1);
+    dLng := RADIANS(lng2 - lng1);
+    
+    a := SIN(dLat/2) * SIN(dLat/2) + 
+         COS(RADIANS(lat1)) * COS(RADIANS(lat2)) * 
+         SIN(dLng/2) * SIN(dLng/2);
+    
+    c := 2 * ATAN2(SQRT(a), SQRT(1-a));
+    
+    RETURN R * c;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- 授权给tms_user（如果表创建成功）
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'location_tracking') THEN
+        GRANT ALL PRIVILEGES ON TABLE location_tracking TO tms_user;
+    END IF;
+END $$;
+
+SELECT 'Minimal migrations completed - vehicles and drivers have location tracking' as status;
+
