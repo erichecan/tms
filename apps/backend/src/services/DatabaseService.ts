@@ -12,16 +12,45 @@ export class DatabaseService {
     console.log('DatabaseService constructor - DATABASE_URL:', process.env.DATABASE_URL); // 调试信息
     console.log('DatabaseService constructor - DB_HOST:', process.env.DB_HOST); // 调试信息
     console.log('DatabaseService constructor - DB_NAME:', process.env.DB_NAME); // 调试信息
+    console.log('DatabaseService constructor - K_SERVICE:', process.env.K_SERVICE); // Cloud Run 环境检测
+    
     // 连接配置兼容性处理 // 2025-09-25 23:38:00
-    // 有些环境下仅提供分散的DB_*变量，或DATABASE_URL未定义/类型异常，导致pg解析密码报错
-    // 这里统一构建一个可靠的配置对象，确保password为字符串类型
+    // 2025-10-17T15:15:00 - 添加 Cloud SQL Unix socket 支持
     const envUrl = process.env.DATABASE_URL;
     let poolConfig: any;
 
+    // 检测是否在 Cloud Run 环境（通过 K_SERVICE 环境变量）
+    const isCloudRun = process.env.K_SERVICE;
+    
     if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
-      poolConfig = { connectionString: envUrl };
-      console.log('Using DATABASE_URL connection string:', envUrl); // 调试信息
+      // 如果是 Cloud Run 环境，需要特殊处理连接字符串
+      if (isCloudRun) {
+        // 在 Cloud Run 中，使用 Unix socket 连接
+        const password = envUrl; // DATABASE_URL 在 Cloud Run 中只包含密码
+        const connectionName = 'aponytms:northamerica-northeast2:tms-database-toronto';
+        const database = 'tms_platform';
+        const user = 'tms_user';
+        
+        poolConfig = {
+          host: `/cloudsql/${connectionName}`,
+          database: database,
+          user: user,
+          password: password,
+          // Cloud SQL 通过 Unix socket 连接不需要端口
+        };
+        console.log('Using Cloud SQL Unix socket connection:', { 
+          host: `/cloudsql/${connectionName}`, 
+          database, 
+          user, 
+          password: '***' 
+        });
+      } else {
+        // 本地开发环境使用完整连接字符串
+        poolConfig = { connectionString: envUrl };
+        console.log('Using DATABASE_URL connection string:', envUrl);
+      }
     } else {
+      // 使用独立的环境变量配置
       const host = process.env.DB_HOST || 'localhost';
       const port = parseInt(process.env.DB_PORT || '5432', 10);
       const database = process.env.DB_NAME || 'tms_platform';
@@ -29,7 +58,7 @@ export class DatabaseService {
       const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
 
       poolConfig = { host, port, database, user, password };
-      console.log('Using individual DB config:', { host, port, database, user, password: '***' }); // 调试信息
+      console.log('Using individual DB config:', { host, port, database, user, password: '***' });
     }
 
     this.pool = new Pool({

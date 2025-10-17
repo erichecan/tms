@@ -66,7 +66,7 @@ class MapsService {
   async geocodeAddress(address: string): Promise<AddressInfo> {
     if (!this.maps) throw new Error('Maps service not initialized');
 
-    const geocoder = new this.maps.Geocoder();
+    const geocoder = new google.maps.Geocoder(); // 2025-10-17T15:20:00 修复 Geocoder 构造函数调用
     
     return new Promise((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
@@ -104,7 +104,7 @@ class MapsService {
   async reverseGeocode(lat: number, lng: number): Promise<AddressInfo> {
     if (!this.maps) throw new Error('Maps service not initialized');
 
-    const geocoder = new this.maps.Geocoder();
+    const geocoder = new google.maps.Geocoder(); // 2025-10-17T15:20:00 修复 Geocoder 构造函数调用
     
     return new Promise((resolve, reject) => {
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
