@@ -1469,30 +1469,31 @@ export class DatabaseService {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
     
-    let whereClause = 'WHERE tenant_id = $1';
-    const queryParams: any[] = [tenantId];
-    let paramIndex = 2;
+    // trips 表没有 tenant_id 字段，所以不使用租户过滤 // 2025-10-17T21:25:00
+    let whereClause = '';
+    const queryParams: any[] = [];
+    let paramIndex = 1;
     
     if (search) {
-      whereClause += ` AND (trip_no ILIKE $${paramIndex} OR status ILIKE $${paramIndex})`;
+      whereClause += ` WHERE (status ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
     
     if (filters?.status) {
-      whereClause += ` AND status = $${paramIndex}`;
+      whereClause += whereClause ? ` AND status = $${paramIndex}` : ` WHERE status = $${paramIndex}`;
       queryParams.push(filters.status);
       paramIndex++;
     }
     
     if (filters?.driverId) {
-      whereClause += ` AND driver_id = $${paramIndex}`;
+      whereClause += whereClause ? ` AND driver_id = $${paramIndex}` : ` WHERE driver_id = $${paramIndex}`;
       queryParams.push(filters.driverId);
       paramIndex++;
     }
     
     if (filters?.vehicleId) {
-      whereClause += ` AND vehicle_id = $${paramIndex}`;
+      whereClause += whereClause ? ` AND vehicle_id = $${paramIndex}` : ` WHERE vehicle_id = $${paramIndex}`;
       queryParams.push(filters.vehicleId);
       paramIndex++;
     }
@@ -1694,18 +1695,21 @@ export class DatabaseService {
   private mapTripFromDb(row: any): any {
     return {
       id: row.id,
-      tenantId: row.tenant_id,
-      tripNo: row.trip_no,
+      // trips 表没有 tenant_id 字段 // 2025-10-17T21:25:00
+      // tenantId: row.tenant_id,
+      // trips 表没有 trip_no 字段，使用 id 作为 tripNo
+      tripNo: row.id,
       status: row.status,
       driverId: row.driver_id,
       vehicleId: row.vehicle_id,
-      legs: row.legs || [],
-      shipments: row.shipments || [],
-      startTimePlanned: row.start_time_planned,
-      endTimePlanned: row.end_time_planned,
-      startTimeActual: row.start_time_actual,
-      endTimeActual: row.end_time_actual,
-      routePath: row.route_path,
+      // trips 表没有这些字段，使用默认值
+      legs: [],
+      shipments: [],
+      startTimePlanned: row.start_time,
+      endTimePlanned: row.end_time,
+      startTimeActual: row.start_time,
+      endTimeActual: row.end_time,
+      routePath: row.route || {},
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
