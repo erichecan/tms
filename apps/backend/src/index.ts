@@ -71,11 +71,25 @@ const PORT = process.env.PORT || 8000;
 const dbService = new DatabaseService();
 
 // 中间件配置
+// 2025-10-17T15:00:00 - 修复 CORS 配置，使用环境变量
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+
+console.log('CORS Configuration:', {
+  NODE_ENV: process.env.NODE_ENV,
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
+  allowedOrigins
+});
+
 app.use(helmet()); // 安全头
 app.use(compression()); // 响应压缩
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id']
 }));
 
 // 请求日志

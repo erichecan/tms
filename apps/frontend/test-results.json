@@ -1,0 +1,601 @@
+{
+  "config": {
+    "configFile": "/Users/apony-it/Desktop/tms/apps/frontend/playwright.config.ts",
+    "rootDir": "/Users/apony-it/Desktop/tms/apps/frontend/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/apony-it/Desktop/tms/apps/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/apony-it/Desktop/tms/apps/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "comprehensive.spec.ts",
+      "file": "comprehensive.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "综合页面错误检测",
+          "file": "comprehensive.spec.ts",
+          "line": 18,
+          "column": 6,
+          "specs": [
+            {
+              "title": "检测 首页 (/) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5084,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 首页 (/) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:26.206Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-d1c77da94a1cae0224db",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 登录页 (/login) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 4382,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 登录页 (/login) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:26.227Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-e8cc064c8ff4d26ad311",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 Dashboard (/admin) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 4486,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== Dashboard (/admin) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:26.212Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-f3e306a18caeb5889259",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 货运管理 (/admin/shipments) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 4466,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 货运管理 (/admin/shipments) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:26.222Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-2cc1ae18bd7004f44b1d",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 客户管理 (/admin/customers) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 3803,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 客户管理 (/admin/customers) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:31.234Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-39945250619d1b059c97",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 财务管理 (/admin/finance) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 4421,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 财务管理 (/admin/finance) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:31.259Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-f9e059ecd966d93c6a55",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 车队管理 (/admin/fleet) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 3628,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 车队管理 (/admin/fleet) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:31.280Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-178d721cfac9e7d6062c",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 定价引擎 (/admin/pricing) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3819,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 定价引擎 (/admin/pricing) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:31.855Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-78857fa324e0392a251f",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            },
+            {
+              "title": "检测 创建货运 (/create-shipment) 的错误",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 3824,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 创建货运 (/create-shipment) ==========\n"
+                        },
+                        {
+                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
+                        },
+                        {
+                          "text": "页面标题: TMS 智能物流运营平台\n"
+                        },
+                        {
+                          "text": "\n✅ 未发现错误\n"
+                        },
+                        {
+                          "text": "==========================================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:34.935Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-808208d829b80e1a61b7",
+              "file": "comprehensive.spec.ts",
+              "line": 20,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "性能和资源检测",
+          "file": "comprehensive.spec.ts",
+          "line": 117,
+          "column": 6,
+          "specs": [
+            {
+              "title": "检测页面加载性能",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1385,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n========== 性能指标 ==========\n"
+                        },
+                        {
+                          "text": "页面加载时间: 429ms\n"
+                        },
+                        {
+                          "text": "DOM 就绪时间: 429ms\n"
+                        },
+                        {
+                          "text": "响应时间: 18ms\n"
+                        },
+                        {
+                          "text": "==============================\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-17T17:07:35.053Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ee7a9684fd9fecf71bb2-986a117f59203b077ad5",
+              "file": "comprehensive.spec.ts",
+              "line": 118,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-10-17T17:07:25.728Z",
+    "duration": 13158.105,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

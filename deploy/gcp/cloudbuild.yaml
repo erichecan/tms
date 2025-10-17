@@ -65,7 +65,7 @@ steps:
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--port=8080'
-      - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
+      - '--set-secrets=DATABASE_URL=db-password:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
       - '--set-env-vars=PORT=8080,NODE_ENV=production,CORS_ORIGIN=${_CORS_ORIGIN}'
       - '--memory=2Gi'
       - '--cpu=2'
@@ -123,8 +123,8 @@ options:
 # _CORS_ORIGIN: 允许的跨域源（前端 URL）
 # _CLOUDSQL_INSTANCE: Cloud SQL 实例连接名（格式：PROJECT_ID:REGION:INSTANCE_NAME）
 substitutions:
-  _REGION: 'asia-east1'
+  _REGION: 'northamerica-northeast2'
   _BACKEND_URL: 'https://tms-backend-replace-me.run.app'
   _GOOGLE_MAPS_API_KEY: 'YOUR_GOOGLE_MAPS_API_KEY'
   _CORS_ORIGIN: 'https://tms-frontend-replace-me.run.app'
-  _CLOUDSQL_INSTANCE: 'PROJECT_ID:asia-east1:tms-postgres'
+  _CLOUDSQL_INSTANCE: 'aponytms:northamerica-northeast2:tms-database-toronto'

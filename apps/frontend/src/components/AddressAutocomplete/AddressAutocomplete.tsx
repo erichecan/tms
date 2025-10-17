@@ -39,8 +39,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
         const maps = mapsService.getMaps();
         
-        // 创建自动完成实例
-        const autocompleteInstance = new maps.places.Autocomplete(
+        // 创建自动完成实例 // 2025-10-17T20:30:00 修复 Autocomplete 构造函数
+        const autocompleteInstance = new google.maps.places.Autocomplete(
           inputRef.current.input,
           {
             types: ['address'],

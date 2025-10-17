@@ -9,8 +9,8 @@ COPY . .
 # 安装所有依赖 (包括dev-dependencies用于构建)
 RUN npm install
 
-# 构建后端应用
-RUN npm run build:backend
+# 构建后端应用 - 2025-10-17T15:05:00 修复构建脚本
+RUN npm run build
 
 # 移除开发依赖, 准备生产环境的node_modules
 RUN npm prune --production
@@ -29,6 +29,9 @@ COPY --from=builder /app/packages /app/packages
 # 使用根 workspace 的生产依赖
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/backend/package.json /app/package.json
+# 拷贝数据库schema文件 // 2025-10-17T17:26:00
+COPY --from=builder /app/database_schema.sql /database_schema.sql
+COPY --from=builder /app/init_users.sql /init_users.sql
 
 # 设置默认端口（Cloud Run 使用 8080，但可通过环境变量覆盖）// 2025-10-16 17:04:00
 ENV PORT=8080

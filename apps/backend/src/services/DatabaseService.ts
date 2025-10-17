@@ -26,7 +26,9 @@ export class DatabaseService {
       // 如果是 Cloud Run 环境，需要特殊处理连接字符串
       if (isCloudRun) {
         // 在 Cloud Run 中，使用 Unix socket 连接
-        const password = envUrl; // DATABASE_URL 在 Cloud Run 中只包含密码
+        // 从连接字符串中提取密码：postgresql://user:password@host/db
+        const match = envUrl.match(/postgresql:\/\/([^:]+):([^@]+)@/);
+        const password = match ? match[2] : envUrl; // 提取密码部分
         const connectionName = 'aponytms:northamerica-northeast2:tms-database-toronto';
         const database = 'tms_platform';
         const user = 'tms_user';
@@ -42,7 +44,8 @@ export class DatabaseService {
           host: `/cloudsql/${connectionName}`, 
           database, 
           user, 
-          password: '***' 
+          password: '***',
+          extractedPassword: password.substring(0, 10) + '...' // 调试信息
         });
       } else {
         // 本地开发环境使用完整连接字符串

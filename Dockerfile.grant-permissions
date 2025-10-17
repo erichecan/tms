@@ -1,0 +1,7 @@
+FROM postgres:15-alpine
+
+COPY grant-permissions-job.sh /grant-permissions-job.sh
+RUN chmod +x /grant-permissions-job.sh
+
+CMD ["/grant-permissions-job.sh"]
+

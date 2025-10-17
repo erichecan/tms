@@ -19,13 +19,25 @@ import mapsRoutes from './routes/maps'; // Google Maps API路由 // 2025-10-03 1
 // 初始化 Express 应用 // 2025-09-23 10:00:00
 const app = express();
 
+// 2025-10-17T15:00:00 - 修复 CORS 配置，使用环境变量
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+
+console.log('CORS Configuration:', {
+  NODE_ENV: process.env.NODE_ENV,
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
+  allowedOrigins
+});
+
 app.use(helmet()); // 基础安全头 // 2025-09-23 10:00:00
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'],
+  origin: allowedOrigins,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID']
-})); // 跨域支持 // 2025-10-01 21:45:00
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id']
+})); // 跨域支持 // 2025-10-17 15:00:00
 app.use(compression()); // 压缩 // 2025-09-23 10:00:00
 app.use(express.json({ limit: '2mb' })); // JSON 解析 // 2025-09-23 10:00:00
 app.use(morgan('dev')); // 请求日志 // 2025-09-23 10:00:00

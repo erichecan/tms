@@ -11,8 +11,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 配置变量
-PROJECT_ID="${PROJECT_ID:-your-project-id}"
-REGION="${REGION:-asia-east1}"
+PROJECT_ID="${PROJECT_ID:-aponytms}"
+REGION="${REGION:-northamerica-northeast2}"
 BACKEND_SERVICE="tms-backend"
 FRONTEND_SERVICE="tms-frontend"
 
