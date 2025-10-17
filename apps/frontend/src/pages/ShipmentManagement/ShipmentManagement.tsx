@@ -15,6 +15,7 @@ import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; 
 import { useLocation, useNavigate } from 'react-router-dom'; // 2025-10-02 02:55:10 导航至创建页
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
 import { smartDispatch } from '../../algorithms/dispatch'; // 2025-10-10 18:29:00 引入智能调度算法
+import { smartDispatchOptimized } from '../../algorithms/dispatchOptimized'; // 2025-10-17 23:55:00 引入优化调度算法（Google Maps）
 import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-10-10 11:15:00 引入BOL文档组件
 
 
@@ -287,7 +288,7 @@ const ShipmentManagement: React.FC = () => {
     editForm.resetFields();
   };
 
-  // 智能调度 - 2025-10-10 18:30:00 使用真实算法（贪心+遗传）
+  // 智能调度 - 2025-10-17 23:55:00 使用优化算法（Google Maps Distance Matrix API）
   const handleSmartDispatch = async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请至少选择一个待分配的运单');
@@ -298,11 +299,13 @@ const ShipmentManagement: React.FC = () => {
     setIsDispatchModalVisible(true);
 
     try {
-      // 使用真实的智能调度算法 - 2025-10-10 18:30:00
+      // 使用优化的智能调度算法 - 2025-10-17 23:55:00
       const selectedShipments = shipments.filter(s => selectedRowKeys.includes(s.id));
       
-      // 调用智能调度算法（贪心 + 遗传混合策略）
-      const dispatchResult = smartDispatch({
+      console.log('🚀 开始智能调度...');
+      
+      // 调用优化的智能调度算法（集成Google Maps Distance Matrix API）
+      const dispatchResult = await smartDispatchOptimized({
         shipments: selectedShipments,
         drivers: drivers,
         constraints: {
@@ -313,18 +316,28 @@ const ShipmentManagement: React.FC = () => {
       
       setDispatchResults(dispatchResult.assignments);
       
-      // 显示调度结果
+      // 显示调度结果（包含Google Maps使用状态）
+      const algorithmName = dispatchResult.algorithm === 'optimized-greedy' ? '优化贪心算法' : '贪心算法';
+      const mapsStatus = dispatchResult.usedGoogleMaps ? '🗺️ Google Maps API' : '📏 直线距离估算';
+      
       message.success(
-        `🤖 智能调度完成！使用${dispatchResult.algorithm === 'greedy' ? '贪心算法' : '遗传算法'}为 ${dispatchResult.assignments.length} 个运单找到最优方案 ` +
-        `(耗时: ${dispatchResult.executionTime}ms, 节省: $${dispatchResult.totalSaving.toFixed(2)})`
-      , 8);
+        `🤖 智能调度完成！使用${algorithmName} (${mapsStatus}) ` +
+        `为 ${dispatchResult.assignments.length} 个运单找到最优方案\n` +
+        `总距离: ${dispatchResult.totalDistance.toFixed(2)} km | ` +
+        `预计时间: ${dispatchResult.totalTime.toFixed(0)} min | ` +
+        `节省: $${dispatchResult.totalSaving.toFixed(2)} | ` +
+        `耗时: ${dispatchResult.executionTime}ms`
+      , 10);
       
       console.log('📊 智能调度结果:', {
         algorithm: dispatchResult.algorithm,
+        usedGoogleMaps: dispatchResult.usedGoogleMaps,
         shipmentCount: dispatchResult.assignments.length,
-        totalCost: dispatchResult.totalCost,
-        totalSaving: dispatchResult.totalSaving,
-        executionTime: dispatchResult.executionTime
+        totalDistance: dispatchResult.totalDistance + ' km',
+        totalTime: dispatchResult.totalTime + ' min',
+        totalCost: '$' + dispatchResult.totalCost.toFixed(2),
+        totalSaving: '$' + dispatchResult.totalSaving.toFixed(2),
+        executionTime: dispatchResult.executionTime + ' ms'
       });
     } catch (error) {
       console.error('智能调度失败:', error);
