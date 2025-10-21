@@ -2,7 +2,7 @@
 // 创建时间: 2025-10-17 23:55:00
 // 特性: 使用实际道路距离而非直线距离，考虑实时交通
 
-import { Shipment, Driver } from '../types';
+import { Shipment, Driver, DriverStatus } from '../types';
 import mapsService from '../services/mapsService';
 import { AddressInfo } from '@/types/maps';
 
@@ -109,7 +109,7 @@ export async function optimizedGreedyDispatch(input: DispatchInput): Promise<Dis
   const startTime = Date.now();
   const { shipments, drivers } = input;
   const assignments: Assignment[] = [];
-  const availableDrivers = [...drivers].filter(d => d.status === 'available' || d.status === 'AVAILABLE');
+  const availableDrivers = [...drivers].filter(d => d.status === DriverStatus.AVAILABLE);
   
   console.log('🚀 优化调度开始:', {
     totalDrivers: drivers.length,
@@ -207,7 +207,9 @@ export async function optimizedGreedyDispatch(input: DispatchInput): Promise<Dis
           lng: -79.4635
         };
         
-        distance = calculateHaversineDistance(driverLocation, pickupLocation);
+        const driverCoords = extractCoordinates(driverLocation);
+        const pickupCoords = extractCoordinates(pickupLocation);
+        distance = calculateHaversineDistance(driverCoords, pickupCoords);
         estimatedTime = (distance / 30) * 60; // 直线距离，假设平均速度30km/h
       }
       

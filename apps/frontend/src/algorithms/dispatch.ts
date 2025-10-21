@@ -2,7 +2,7 @@
 // 创建时间: 2025-10-10 18:28:00
 // 算法: 贪心算法 + 遗传算法混合策略
 
-import { Shipment, Driver } from '../types';
+import { Shipment, Driver, DriverStatus } from '../types';
 
 interface DispatchInput {
   shipments: Shipment[];
@@ -30,6 +30,24 @@ interface DispatchResult {
   totalSaving: number;
   algorithm: 'greedy' | 'genetic' | 'hybrid';
   executionTime: number;
+}
+
+// 从地址对象中提取坐标信息
+function extractCoordinates(location: any): { lat?: number; lng?: number; latitude?: number; longitude?: number } {
+  if (!location) return { lat: 43.7615, lng: -79.4635 };
+  
+  // 如果是 ShipmentAddress 类型
+  if (location.latitude !== undefined && location.longitude !== undefined) {
+    return { latitude: location.latitude, longitude: location.longitude };
+  }
+  
+  // 如果是包含 lat/lng 的对象
+  if (location.lat !== undefined && location.lng !== undefined) {
+    return { lat: location.lat, lng: location.lng };
+  }
+  
+  // 默认位置
+  return { lat: 43.7615, lng: -79.4635 };
 }
 
 // 计算两点之间的距离（哈弗辛公式）
@@ -81,7 +99,7 @@ export function greedyDispatch(input: DispatchInput): DispatchResult {
   const { shipments, drivers } = input;
   const assignments: Assignment[] = [];
   // 修复：使用正确的司机状态枚举值 - 2025-10-10 18:35:00
-  const availableDrivers = [...drivers].filter(d => d.status === 'available' || d.status === 'AVAILABLE');
+  const availableDrivers = [...drivers].filter(d => d.status === DriverStatus.AVAILABLE);
   
   console.log('🔍 智能调度调试信息:', {
     totalDrivers: drivers.length,
@@ -123,10 +141,9 @@ export function greedyDispatch(input: DispatchInput): DispatchResult {
         city: 'North York'
       };
       
-      const distance = calculateDistance(
-        driverLocation,
-        pickupLocation
-      );
+      const driverCoords = extractCoordinates(driverLocation);
+      const pickupCoords = extractCoordinates(pickupLocation);
+      const distance = calculateDistance(driverCoords, pickupCoords);
       
       if (distance < minDistance) {
         minDistance = distance;
@@ -223,7 +240,9 @@ function calculateFitness(
       city: 'North York'
     };
     
-    const distance = calculateDistance(driverLocation, pickupLocation);
+    const driverCoords = extractCoordinates(driverLocation);
+    const pickupCoords = extractCoordinates(pickupLocation);
+    const distance = calculateDistance(driverCoords, pickupCoords);
     const cost = calculateCost(distance, shipment);
     totalCost += cost;
   }
@@ -325,7 +344,9 @@ export function geneticDispatch(input: DispatchInput): DispatchResult {
       city: 'North York'
     };
     
-    const distance = calculateDistance(driverLocation, pickupLocation);
+    const driverCoords = extractCoordinates(driverLocation);
+    const pickupCoords = extractCoordinates(pickupLocation);
+    const distance = calculateDistance(driverCoords, pickupCoords);
     const cost = calculateCost(distance, shipment);
     const saving = calculateSaving(distance, shipment);
     
@@ -361,7 +382,7 @@ export function smartDispatch(input: DispatchInput): DispatchResult {
   console.log('🚀 智能调度开始:', {
     shipmentCount: shipments.length,
     driverCount: drivers.length,
-    availableDrivers: drivers.filter(d => d.status === 'available' || d.status === 'AVAILABLE').length
+    availableDrivers: drivers.filter(d => d.status === DriverStatus.AVAILABLE).length
   });
   
   if (shipments.length < 50) {

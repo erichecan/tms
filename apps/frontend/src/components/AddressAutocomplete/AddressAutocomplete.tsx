@@ -1,5 +1,6 @@
 // 地址自动完成组件
 // 创建时间: 2025-10-10 16:30:00
+// 更新时间: 2025-10-19 - 修复 setIsInitialized 错误
 // 用途: 集成Google Places API实现地址自动完成和地理编码
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -38,8 +39,9 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         }
 
         const maps = mapsService.getMaps();
+        console.log('Google Maps API loaded:', maps);
         
-        // 创建自动完成实例 // 2025-10-17T20:30:00 修复 Autocomplete 构造函数
+        // 创建自动完成实例
         const autocompleteInstance = new google.maps.places.Autocomplete(
           inputRef.current.input,
           {
@@ -86,7 +88,6 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         });
 
         setAutocomplete(autocompleteInstance);
-        setIsInitialized(true);
       } catch (error) {
         console.error('初始化地址自动完成失败:', error);
         message.error('地图服务初始化失败，请刷新页面重试');

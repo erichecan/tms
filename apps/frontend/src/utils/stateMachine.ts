@@ -14,6 +14,22 @@ export class ShipmentStateMachine {
       ShipmentStatus.CANCELED,
       ShipmentStatus.EXCEPTION
     ],
+    [ShipmentStatus.PENDING]: [
+      ShipmentStatus.QUOTED,
+      ShipmentStatus.CONFIRMED,
+      ShipmentStatus.CANCELED,
+      ShipmentStatus.EXCEPTION
+    ],
+    [ShipmentStatus.QUOTED]: [
+      ShipmentStatus.CONFIRMED,
+      ShipmentStatus.CANCELED,
+      ShipmentStatus.EXCEPTION
+    ],
+    [ShipmentStatus.CONFIRMED]: [
+      ShipmentStatus.ASSIGNED,
+      ShipmentStatus.CANCELED,
+      ShipmentStatus.EXCEPTION
+    ],
     [ShipmentStatus.ASSIGNED]: [
       ShipmentStatus.PICKED_UP,
       ShipmentStatus.CANCELED,
@@ -33,6 +49,7 @@ export class ShipmentStateMachine {
     ],
     [ShipmentStatus.COMPLETED]: [], // 终态
     [ShipmentStatus.CANCELED]: [], // 终态
+    [ShipmentStatus.CANCELLED]: [], // 终态
     [ShipmentStatus.EXCEPTION]: [
       ShipmentStatus.ASSIGNED,
       ShipmentStatus.PICKED_UP,
@@ -83,12 +100,16 @@ export class ShipmentStateMachine {
   static getStatusText(status: ShipmentStatus): string {
     const statusMap: Record<ShipmentStatus, string> = {
       [ShipmentStatus.CREATED]: '已创建',
+      [ShipmentStatus.PENDING]: '待处理',
+      [ShipmentStatus.QUOTED]: '已报价',
+      [ShipmentStatus.CONFIRMED]: '已确认',
       [ShipmentStatus.ASSIGNED]: '已分配',
       [ShipmentStatus.PICKED_UP]: '已取货',
       [ShipmentStatus.IN_TRANSIT]: '运输中',
       [ShipmentStatus.DELIVERED]: '已送达',
       [ShipmentStatus.COMPLETED]: '已完成',
       [ShipmentStatus.CANCELED]: '已取消',
+      [ShipmentStatus.CANCELLED]: '已取消',
       [ShipmentStatus.EXCEPTION]: '异常'
     };
     return statusMap[status] || '未知';
@@ -100,12 +121,16 @@ export class ShipmentStateMachine {
   static getStatusColor(status: ShipmentStatus): string {
     const colorMap: Record<ShipmentStatus, string> = {
       [ShipmentStatus.CREATED]: 'blue',
+      [ShipmentStatus.PENDING]: 'orange',
+      [ShipmentStatus.QUOTED]: 'blue',
+      [ShipmentStatus.CONFIRMED]: 'cyan',
       [ShipmentStatus.ASSIGNED]: 'purple',
       [ShipmentStatus.PICKED_UP]: 'geekblue',
       [ShipmentStatus.IN_TRANSIT]: 'cyan',
       [ShipmentStatus.DELIVERED]: 'green',
       [ShipmentStatus.COMPLETED]: 'success',
       [ShipmentStatus.CANCELED]: 'red',
+      [ShipmentStatus.CANCELLED]: 'red',
       [ShipmentStatus.EXCEPTION]: 'red'
     };
     return colorMap[status] || 'default';
@@ -372,6 +397,9 @@ export const StateMachineUtils = {
   getShipmentProgress(status: ShipmentStatus): number {
     const statusOrder = [
       ShipmentStatus.CREATED,
+      ShipmentStatus.PENDING,
+      ShipmentStatus.QUOTED,
+      ShipmentStatus.CONFIRMED,
       ShipmentStatus.ASSIGNED,
       ShipmentStatus.PICKED_UP,
       ShipmentStatus.IN_TRANSIT,
@@ -391,6 +419,9 @@ export const StateMachineUtils = {
   getShipmentSteps(status: ShipmentStatus): Array<{ title: string; status: 'wait' | 'process' | 'finish' | 'error' }> {
     const steps = [
       { title: '已创建', status: 'wait' as const },
+      { title: '待处理', status: 'wait' as const },
+      { title: '已报价', status: 'wait' as const },
+      { title: '已确认', status: 'wait' as const },
       { title: '已分配', status: 'wait' as const },
       { title: '已取货', status: 'wait' as const },
       { title: '运输中', status: 'wait' as const },
@@ -400,6 +431,9 @@ export const StateMachineUtils = {
 
     const statusOrder = [
       ShipmentStatus.CREATED,
+      ShipmentStatus.PENDING,
+      ShipmentStatus.QUOTED,
+      ShipmentStatus.CONFIRMED,
       ShipmentStatus.ASSIGNED,
       ShipmentStatus.PICKED_UP,
       ShipmentStatus.IN_TRANSIT,
@@ -411,7 +445,7 @@ export const StateMachineUtils = {
     
     if (currentIndex === -1) {
       // 异常状态
-      if (status === ShipmentStatus.CANCELED) {
+      if (status === ShipmentStatus.CANCELED || status === ShipmentStatus.CANCELLED) {
         return steps.map(step => ({ ...step, status: 'error' as const }));
       }
       if (status === ShipmentStatus.EXCEPTION) {

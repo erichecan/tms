@@ -1,17 +1,14 @@
 import { Loader } from '@googlemaps/js-api-loader';
 import { 
   AddressInfo, 
-  LogisticsRoute, 
-  GeocodingResponse, 
-  DirectionsResponse,
-  DistanceMatrixResponse,
+  LogisticsRoute,
   MapsConfig 
 } from '@/types/maps';
 
 class MapsService {
   private static loaderInstance: Loader | null = null;
   private static initPromise: Promise<void> | null = null;
-  private maps: typeof google.maps | null = null;
+  private maps: any = null;
   private isInitialized = false;
 
   constructor(private config: MapsConfig) {}
@@ -45,7 +42,7 @@ class MapsService {
       if (!MapsService.loaderInstance) {
         MapsService.loaderInstance = new Loader({
           apiKey: this.config.apiKey,
-          version: 'weekly',
+          version: 'weekly', // 使用稳定版本
           libraries: ['places', 'geometry'], // 统一顺序
           language: this.config.language,
           region: this.config.region,
@@ -248,7 +245,7 @@ class MapsService {
   }
 
   // 获取地图实例
-  getMaps(): typeof google.maps {
+  getMaps(): any {
     if (!this.maps) throw new Error('Maps service not initialized');
     return this.maps;
   }

@@ -73,6 +73,9 @@ export interface Rule {
 // 运单状态枚举 - 符合PRD v3.0-PC状态机设计
 export enum ShipmentStatus {
   CREATED = 'created',           // 运单已创建 = 已确认
+  PENDING = 'pending',           // 待处理
+  QUOTED = 'quoted',             // 已报价
+  CONFIRMED = 'confirmed',       // 已确认
   ASSIGNED = 'assigned',         // 已指派司机
   PICKED_UP = 'picked_up',       // 已取货
   IN_TRANSIT = 'in_transit',     // 运输途中
@@ -80,6 +83,7 @@ export enum ShipmentStatus {
   COMPLETED = 'completed',       // 完成闭环，已生成财务
   EXCEPTION = 'exception',       // 异常中断
   CANCELED = 'canceled',         // 终止
+  CANCELLED = 'cancelled',       // 已取消（兼容性字段）
 }
 
 // 地址接口 - 符合PRD v3.0-PC设计
@@ -146,6 +150,20 @@ export interface Shipment {
   packageCount?: number;                 // 包裹数量
   palletCount?: number;                  // 托盘数量
   hazardousMaterial?: boolean;           // 危险品标识
+  
+  // 兼容性字段 - 用于修复编译错误
+  cargoWeight?: number;                   // 货物重量
+  cargoLength?: number;                   // 货物长度
+  cargoWidth?: number;                    // 货物宽度
+  cargoHeight?: number;                   // 货物高度
+  cargoDescription?: string;              // 货物描述
+  shipmentNumber?: string;                // 运单编号
+  pickupAddress?: ShipmentAddress;        // 取货地址
+  deliveryAddress?: ShipmentAddress;      // 送货地址
+  currentLocation?: any;                  // 当前位置
+  driverName?: string;                    // 司机姓名
+  driverId?: string;                      // 司机ID
+  tripNo?: string;                       // 行程编号
 }
 
 export enum StatementType {
@@ -212,6 +230,7 @@ export interface Driver {
   level?: string;                    // 司机等级(预留)
   homeCity?: string;                 // 家乡城市(预留)
   currentTripId?: string;            // 当前行程ID
+  currentLocation?: any;             // 当前位置
   createdAt: string;
   updatedAt: string;
 }
