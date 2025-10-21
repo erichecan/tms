@@ -321,13 +321,10 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- 授予权限
-DO $$ 
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'tms_user') THEN
-        GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO tms_user;
-        GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO tms_user;
-    END IF;
-END $$;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO tms_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO tms_user;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO tms_user;
+GRANT ALL PRIVILEGES ON SCHEMA public TO tms_user;
 
 SELECT 'Database schema created successfully!' as status;
 

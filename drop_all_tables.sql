@@ -1,0 +1,28 @@
+-- 清理所有表的脚本
+-- 创建时间: 2025-10-21 16:15:00
+-- 功能: 删除所有现有表、函数和序列，为重新导入做准备
+
+-- 删除所有表（级联删除外键约束）
+DROP TABLE IF EXISTS location_tracking CASCADE;
+DROP TABLE IF EXISTS trips CASCADE;
+DROP TABLE IF EXISTS rule_executions CASCADE;
+DROP TABLE IF EXISTS rules CASCADE;
+DROP TABLE IF EXISTS proof_of_delivery CASCADE;
+DROP TABLE IF EXISTS statements CASCADE;
+DROP TABLE IF EXISTS financial_records CASCADE;
+DROP TABLE IF EXISTS timeline_events CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS assignments CASCADE;
+DROP TABLE IF EXISTS shipments CASCADE;
+DROP TABLE IF EXISTS drivers CASCADE;
+DROP TABLE IF EXISTS vehicles CASCADE;
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS tenants CASCADE;
+
+-- 删除函数
+DROP FUNCTION IF EXISTS calculate_distance(NUMERIC, NUMERIC, NUMERIC, NUMERIC);
+DROP FUNCTION IF EXISTS random_toronto_location();
+
+SELECT '✅ 所有表已清理，可以重新导入！' as status;
+
