@@ -35,6 +35,8 @@ import RuleVersionManagementPage from './pages/RuleVersionManagement/RuleVersion
 // import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage'; → 已整合到仪表板页面
 import GranularPermissionsPage from './pages/GranularPermissions/GranularPermissionsPage';
 import MapsDemo from './pages/MapsDemo/MapsDemo';
+import MapsTest from './pages/MapsTest/MapsTest';
+import MapsDebug from './pages/MapsDebug/MapsDebug';
 import LayoutTest from './pages/LayoutTest/LayoutTest';
 import './App.css';
 
@@ -87,6 +89,12 @@ function App() {
             
             {/* Google Maps API 演示页面 - 2025-10-03 10:00:00 */}
             <Route path="/maps-demo" element={<ProtectedRoute><MapsDemo /></ProtectedRoute>} />
+            
+            {/* 地图API测试页面 */}
+            <Route path="/maps-test" element={<ProtectedRoute><MapsTest /></ProtectedRoute>} />
+            
+            {/* 地图调试页面（无需认证） */}
+            <Route path="/maps-debug" element={<MapsDebug />} />
             
             {/* 布局测试页面 */}
             <Route path="/layout-test" element={<ProtectedRoute><LayoutTest /></ProtectedRoute>} />

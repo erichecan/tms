@@ -52,7 +52,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 60000
       }
     ],
     "shard": null,
@@ -64,25 +64,25 @@
   },
   "suites": [
     {
-      "title": "comprehensive.spec.ts",
-      "file": "comprehensive.spec.ts",
+      "title": "maps-test.spec.ts",
+      "file": "maps-test.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "综合页面错误检测",
-          "file": "comprehensive.spec.ts",
-          "line": 18,
+          "title": "地图API测试页面",
+          "file": "maps-test.spec.ts",
+          "line": 4,
           "column": 6,
           "specs": [
             {
-              "title": "检测 首页 (/) 的错误",
-              "ok": true,
+              "title": "应该能够访问地图测试页面",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -91,48 +91,67 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 5084,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 首页 (/) ==========\n"
+                      "status": "failed",
+                      "duration": 8725,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h2').first()\nExpected substring: \u001b[32m\"Google Maps API 测试页面\"\u001b[39m\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h2').first()\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h2').first()\nExpected substring: \u001b[32m\"Google Maps API 测试页面\"\u001b[39m\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h2').first()\u001b[22m\n\n    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:14:46",
+                        "location": {
+                          "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                          "column": 46,
+                          "line": 14
                         },
+                        "snippet": "\u001b[0m \u001b[90m 12 |\u001b[39m     \n \u001b[90m 13 |\u001b[39m     \u001b[90m// 检查页面标题\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'h2'\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoContainText(\u001b[32m'Google Maps API 测试页面'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 15 |\u001b[39m     \n \u001b[90m 16 |\u001b[39m     \u001b[90m// 检查测试配置区域\u001b[39m\n \u001b[90m 17 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'h4'\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoContainText(\u001b[32m'测试配置'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
                         {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
+                          "location": {
+                            "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                            "column": 46,
+                            "line": 14
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h2').first()\nExpected substring: \u001b[32m\"Google Maps API 测试页面\"\u001b[39m\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h2').first()\u001b[22m\n\n\n\u001b[0m \u001b[90m 12 |\u001b[39m     \n \u001b[90m 13 |\u001b[39m     \u001b[90m// 检查页面标题\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'h2'\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoContainText(\u001b[32m'Google Maps API 测试页面'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 15 |\u001b[39m     \n \u001b[90m 16 |\u001b[39m     \u001b[90m// 检查测试配置区域\u001b[39m\n \u001b[90m 17 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'h4'\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoContainText(\u001b[32m'测试配置'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:14:46\u001b[22m"
                         }
                       ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-17T17:07:26.206Z",
+                      "startTime": "2025-10-22T13:12:36.652Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该能够访问地图测试页面-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该能够访问地图测试页面-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                        "column": 46,
+                        "line": 14
+                      }
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "ee7a9684fd9fecf71bb2-d1c77da94a1cae0224db",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
+              "id": "a23bc7c78dd20cb45e30-34c8d8acc3f479986b0a",
+              "file": "maps-test.spec.ts",
+              "line": 5,
+              "column": 3
             },
             {
-              "title": "检测 登录页 (/login) 的错误",
-              "ok": true,
+              "title": "应该显示测试结果",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -141,48 +160,67 @@
                     {
                       "workerIndex": 1,
                       "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 4382,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 登录页 (/login) ==========\n"
+                      "status": "failed",
+                      "duration": 13402,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h4:has-text(\"测试结果\")')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h4:has-text(\"测试结果\")')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h4:has-text(\"测试结果\")')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h4:has-text(\"测试结果\")')\u001b[22m\n\n    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:33:34",
+                        "location": {
+                          "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                          "column": 34,
+                          "line": 33
                         },
+                        "snippet": "\u001b[0m \u001b[90m 31 |\u001b[39m     \u001b[90m// 检查是否显示测试结果区域\u001b[39m\n \u001b[90m 32 |\u001b[39m     \u001b[36mconst\u001b[39m resultsSection \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'h4:has-text(\"测试结果\")'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 33 |\u001b[39m     \u001b[36mawait\u001b[39m expect(resultsSection)\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// 检查测试项目\u001b[39m\n \u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=地图服务初始化'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
                         {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
+                          "location": {
+                            "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                            "column": 34,
+                            "line": 33
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h4:has-text(\"测试结果\")')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h4:has-text(\"测试结果\")')\u001b[22m\n\n\n\u001b[0m \u001b[90m 31 |\u001b[39m     \u001b[90m// 检查是否显示测试结果区域\u001b[39m\n \u001b[90m 32 |\u001b[39m     \u001b[36mconst\u001b[39m resultsSection \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'h4:has-text(\"测试结果\")'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 33 |\u001b[39m     \u001b[36mawait\u001b[39m expect(resultsSection)\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// 检查测试项目\u001b[39m\n \u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=地图服务初始化'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:33:34\u001b[22m"
                         }
                       ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-17T17:07:26.227Z",
+                      "startTime": "2025-10-22T13:12:36.648Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该显示测试结果-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该显示测试结果-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                        "column": 34,
+                        "line": 33
+                      }
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "ee7a9684fd9fecf71bb2-e8cc064c8ff4d26ad311",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
+              "id": "a23bc7c78dd20cb45e30-31b0d55eed4489f52355",
+              "file": "maps-test.spec.ts",
+              "line": 22,
+              "column": 3
             },
             {
-              "title": "检测 Dashboard (/admin) 的错误",
-              "ok": true,
+              "title": "应该能够手动运行测试",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -191,48 +229,59 @@
                     {
                       "workerIndex": 2,
                       "parallelIndex": 2,
-                      "status": "passed",
-                      "duration": 4486,
-                      "errors": [],
-                      "stdout": [
+                      "status": "timedOut",
+                      "duration": 61593,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
                         {
-                          "text": "\n========== Dashboard (/admin) ==========\n"
+                          "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
                         },
                         {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
+                          "location": {
+                            "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                            "column": 16,
+                            "line": 59
+                          },
+                          "message": "Error: page.fill: Test timeout of 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder*=\"测试地址\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 57 |\u001b[39m     \n \u001b[90m 58 |\u001b[39m     \u001b[90m// 修改测试地址\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 59 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder*=\"测试地址\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'CN Tower, Toronto, ON'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 60 |\u001b[39m     \n \u001b[90m 61 |\u001b[39m     \u001b[90m// 点击运行测试按钮\u001b[39m\n \u001b[90m 62 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button:has-text(\"运行地图API测试\")'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:59:16\u001b[22m"
                         }
                       ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-17T17:07:26.212Z",
+                      "startTime": "2025-10-22T13:12:36.654Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该能够手动运行测试-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该能够手动运行测试-chromium/video.webm"
+                        }
+                      ]
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "ee7a9684fd9fecf71bb2-f3e306a18caeb5889259",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
+              "id": "a23bc7c78dd20cb45e30-d981f389bb7f9892cca9",
+              "file": "maps-test.spec.ts",
+              "line": 52,
+              "column": 3
             },
             {
-              "title": "检测 货运管理 (/admin/shipments) 的错误",
-              "ok": true,
+              "title": "应该显示故障排除指南",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -241,347 +290,149 @@
                     {
                       "workerIndex": 3,
                       "parallelIndex": 3,
-                      "status": "passed",
-                      "duration": 4466,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 货运管理 (/admin/shipments) ==========\n"
+                      "status": "failed",
+                      "duration": 8832,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h4:has-text(\"故障排除指南\")')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h4:has-text(\"故障排除指南\")')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h4:has-text(\"故障排除指南\")')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h4:has-text(\"故障排除指南\")')\u001b[22m\n\n    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:78:57",
+                        "location": {
+                          "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                          "column": 57,
+                          "line": 78
                         },
+                        "snippet": "\u001b[0m \u001b[90m 76 |\u001b[39m     \n \u001b[90m 77 |\u001b[39m     \u001b[90m// 检查故障排除指南\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 78 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'h4:has-text(\"故障排除指南\")'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 79 |\u001b[39m     \n \u001b[90m 80 |\u001b[39m     \u001b[90m// 检查警告信息\u001b[39m\n \u001b[90m 81 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Google Maps API 计费问题'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
                         {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
+                          "location": {
+                            "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                            "column": 57,
+                            "line": 78
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('h4:has-text(\"故障排除指南\")')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('h4:has-text(\"故障排除指南\")')\u001b[22m\n\n\n\u001b[0m \u001b[90m 76 |\u001b[39m     \n \u001b[90m 77 |\u001b[39m     \u001b[90m// 检查故障排除指南\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 78 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'h4:has-text(\"故障排除指南\")'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 79 |\u001b[39m     \n \u001b[90m 80 |\u001b[39m     \u001b[90m// 检查警告信息\u001b[39m\n \u001b[90m 81 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Google Maps API 计费问题'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:78:57\u001b[22m"
                         }
                       ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-17T17:07:26.222Z",
+                      "startTime": "2025-10-22T13:12:36.637Z",
                       "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee7a9684fd9fecf71bb2-2cc1ae18bd7004f44b1d",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
-            },
-            {
-              "title": "检测 客户管理 (/admin/customers) 的错误",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 3803,
-                      "errors": [],
-                      "stdout": [
+                      "attachments": [
                         {
-                          "text": "\n========== 客户管理 (/admin/customers) ==========\n"
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该显示故障排除指南-chromium/test-failed-1.png"
                         },
                         {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API测试页面-应该显示故障排除指南-chromium/video.webm"
                         }
                       ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-17T17:07:31.234Z",
-                      "annotations": [],
-                      "attachments": []
+                      "errorLocation": {
+                        "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                        "column": 57,
+                        "line": 78
+                      }
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "ee7a9684fd9fecf71bb2-39945250619d1b059c97",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
-            },
-            {
-              "title": "检测 财务管理 (/admin/finance) 的错误",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 2,
-                      "parallelIndex": 2,
-                      "status": "passed",
-                      "duration": 4421,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 财务管理 (/admin/finance) ==========\n"
-                        },
-                        {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-17T17:07:31.259Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee7a9684fd9fecf71bb2-f9e059ecd966d93c6a55",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
-            },
-            {
-              "title": "检测 车队管理 (/admin/fleet) 的错误",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 3,
-                      "status": "passed",
-                      "duration": 3628,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 车队管理 (/admin/fleet) ==========\n"
-                        },
-                        {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-17T17:07:31.280Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee7a9684fd9fecf71bb2-178d721cfac9e7d6062c",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
-            },
-            {
-              "title": "检测 定价引擎 (/admin/pricing) 的错误",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3819,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 定价引擎 (/admin/pricing) ==========\n"
-                        },
-                        {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-17T17:07:31.855Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee7a9684fd9fecf71bb2-78857fa324e0392a251f",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
-            },
-            {
-              "title": "检测 创建货运 (/create-shipment) 的错误",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 3,
-                      "status": "passed",
-                      "duration": 3824,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n========== 创建货运 (/create-shipment) ==========\n"
-                        },
-                        {
-                          "text": "当前 URL: https://tms-frontend-1038443972557.northamerica-northeast2.run.app/login\n"
-                        },
-                        {
-                          "text": "页面标题: TMS 智能物流运营平台\n"
-                        },
-                        {
-                          "text": "\n✅ 未发现错误\n"
-                        },
-                        {
-                          "text": "==========================================\n\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-17T17:07:34.935Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "ee7a9684fd9fecf71bb2-808208d829b80e1a61b7",
-              "file": "comprehensive.spec.ts",
-              "line": 20,
-              "column": 5
+              "id": "a23bc7c78dd20cb45e30-5f0e3749733fee478f71",
+              "file": "maps-test.spec.ts",
+              "line": 71,
+              "column": 3
             }
           ]
         },
         {
-          "title": "性能和资源检测",
-          "file": "comprehensive.spec.ts",
-          "line": 117,
+          "title": "地图API错误分析",
+          "file": "maps-test.spec.ts",
+          "line": 87,
           "column": 6,
           "specs": [
             {
-              "title": "检测页面加载性能",
-              "ok": true,
+              "title": "收集地图API错误信息",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 1385,
-                      "errors": [],
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 61570,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts",
+                            "column": 64,
+                            "line": 152
+                          },
+                          "message": "Error: locator.textContent: Test timeout of 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ant-card').nth(1)\u001b[22m\n\n\n\u001b[0m \u001b[90m 150 |\u001b[39m     \n \u001b[90m 151 |\u001b[39m     \u001b[90m// 检查测试结果\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 152 |\u001b[39m     \u001b[36mconst\u001b[39m testResults \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'.ant-card'\u001b[39m)\u001b[33m.\u001b[39mnth(\u001b[35m1\u001b[39m)\u001b[33m.\u001b[39mtextContent()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 153 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'\\n4. 测试结果摘要:'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 154 |\u001b[39m     console\u001b[33m.\u001b[39mlog(testResults)\u001b[33m;\u001b[39m\n \u001b[90m 155 |\u001b[39m     \u001b[0m\n\u001b[2m    at /Users/apony-it/Desktop/tms/apps/frontend/e2e/maps-test.spec.ts:152:64\u001b[22m"
+                        }
+                      ],
                       "stdout": [
                         {
-                          "text": "\n========== 性能指标 ==========\n"
+                          "text": "\n=== 地图API错误分析报告 ===\n"
                         },
                         {
-                          "text": "页面加载时间: 429ms\n"
+                          "text": "\n1. 控制台错误:\n"
                         },
                         {
-                          "text": "DOM 就绪时间: 429ms\n"
+                          "text": "   无错误\n"
                         },
                         {
-                          "text": "响应时间: 18ms\n"
+                          "text": "\n2. 控制台警告:\n"
                         },
                         {
-                          "text": "==============================\n\n"
+                          "text": "   无警告\n"
+                        },
+                        {
+                          "text": "\n3. Google API 请求状态:\n"
+                        },
+                        {
+                          "text": "   无Google API请求\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-17T17:07:35.053Z",
+                      "startTime": "2025-10-22T13:12:48.549Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API错误分析-收集地图API错误信息-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/apony-it/Desktop/tms/apps/frontend/test-results/maps-test-地图API错误分析-收集地图API错误信息-chromium/video.webm"
+                        }
+                      ]
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "ee7a9684fd9fecf71bb2-986a117f59203b077ad5",
-              "file": "comprehensive.spec.ts",
-              "line": 118,
+              "id": "a23bc7c78dd20cb45e30-c4edd434e7cbd3466898",
+              "file": "maps-test.spec.ts",
+              "line": 88,
               "column": 3
             }
           ]
@@ -591,11 +442,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-17T17:07:25.728Z",
-    "duration": 13158.105,
-    "expected": 10,
+    "startTime": "2025-10-22T13:12:35.966Z",
+    "duration": 74624.209,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 5,
     "flaky": 0
   }
 }
