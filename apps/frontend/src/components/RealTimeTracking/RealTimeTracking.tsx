@@ -42,7 +42,12 @@ import {
   GlobalOutlined,
   AimOutlined,
 } from '@ant-design/icons';
-import GoogleMap from '../GoogleMap/GoogleMap';
+// ============================================================================
+// 地图相关组件导入 - 二期开发功能 (2025-01-27 18:15:00)
+// 状态: 已注释，二期恢复
+// 说明: 以下导入的地图组件在一期版本中暂时不使用，二期时取消注释
+// ============================================================================
+// import GoogleMap from '../GoogleMap/GoogleMap';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -316,8 +321,12 @@ const RealTimeTracking: React.FC = () => {
       </Card>
 
       <Row gutter={[16, 16]}>
-        {/* 地图区域 */}
-        <Col xs={24} lg={16}>
+        {/* ============================================================================ */}
+        {/* 地图区域 - 二期开发功能 (2025-01-27 18:15:00) */}
+        {/* 状态: 已注释，二期恢复 */}
+        {/* 说明: 以下地图组件在一期版本中暂时不使用，二期时取消注释 */}
+        {/* ============================================================================ */}
+        {/* <Col xs={24} lg={16}>
           <Card title="实时位置地图" extra={<AimOutlined />}>
             <div style={{ height: '500px' }}>
               <GoogleMap
@@ -330,6 +339,32 @@ const RealTimeTracking: React.FC = () => {
                   if (vehicle) handleVehicleClick(vehicle);
                 }}
               />
+            </div>
+          </Card>
+        </Col> */}
+        
+        {/* 一期版本替代显示 */}
+        <Col xs={24} lg={16}>
+          <Card title="车辆位置信息" extra={<AimOutlined />}>
+            <div style={{ height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <GlobalOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
+                <Title level={5}>地图功能将在二期版本提供</Title>
+                <Text type="secondary">
+                  当前版本暂不支持地图显示，但车辆状态信息完全可用
+                </Text>
+                <div style={{ marginTop: '20px' }}>
+                  <Text type="secondary">车辆位置信息：</Text>
+                  <div style={{ marginTop: '10px', fontSize: '12px' }}>
+                    {vehicleLocations.map((location, index) => (
+                      <div key={index} style={{ marginBottom: '5px' }}>
+                        <Text strong>{location.vehiclePlate}:</Text>
+                        <Text> 经度 {location.longitude.toFixed(6)}, 纬度 {location.latitude.toFixed(6)}</Text>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
         </Col>

@@ -3,8 +3,20 @@
 // 特性: 使用实际道路距离而非直线距离，考虑实时交通
 
 import { Shipment, Driver, DriverStatus } from '../types';
-import mapsService from '../services/mapsService';
-import { AddressInfo } from '@/types/maps';
+// ============================================================================
+// 地图相关导入 - 二期开发功能 (2025-01-27 18:20:00)
+// 状态: 已注释，二期恢复
+// 说明: 以下地图相关导入在一期版本中暂时不使用，二期时取消注释
+// ============================================================================
+// import mapsService from '../services/mapsService';
+// import { AddressInfo } from '@/types/maps';
+
+// 一期版本临时类型定义
+interface AddressInfo {
+  latitude: number;
+  longitude: number;
+  formattedAddress: string;
+}
 
 interface DispatchInput {
   shipments: Shipment[];
@@ -115,7 +127,7 @@ export async function optimizedGreedyDispatch(input: DispatchInput): Promise<Dis
     totalDrivers: drivers.length,
     availableDrivers: availableDrivers.length,
     totalShipments: shipments.length,
-    mapsAvailable: mapsService.isReady()
+    mapsAvailable: false // 一期版本暂时禁用地图API
   });
   
   if (availableDrivers.length === 0) {
@@ -136,42 +148,40 @@ export async function optimizedGreedyDispatch(input: DispatchInput): Promise<Dis
   let distanceMatrix: number[][] | null = null;
   
   try {
-    // 尝试使用 Google Maps Distance Matrix API
-    await mapsService.initialize();
+    // 一期版本暂时禁用 Google Maps Distance Matrix API
+    // await mapsService.initialize();
     
-    // 准备司机位置
-    const driverLocations: AddressInfo[] = availableDrivers.map(driver => {
-      const loc = extractCoordinates(driver.currentLocation || driver);
-      return loc || {
-        latitude: 43.7615 + (Math.random() - 0.5) * 0.1,
-        longitude: -79.4635 + (Math.random() - 0.5) * 0.1,
-        formattedAddress: 'Toronto, ON'
-      };
-    });
+    // 一期版本暂时禁用地图API调用，使用直线距离计算
+    // const driverLocations: AddressInfo[] = availableDrivers.map(driver => {
+    //   const loc = extractCoordinates(driver.currentLocation || driver);
+    //   return loc || {
+    //     latitude: 43.7615 + (Math.random() - 0.5) * 0.1,
+    //     longitude: -79.4635 + (Math.random() - 0.5) * 0.1,
+    //     formattedAddress: 'Toronto, ON'
+    //   };
+    // });
     
-    // 准备运单取货位置
-    const shipmentLocations: AddressInfo[] = shipments.map(shipment => {
-      const loc = extractCoordinates(shipment.pickupAddress);
-      return loc || {
-        latitude: 43.7615,
-        longitude: -79.4635,
-        formattedAddress: 'Toronto, ON'
-      };
-    });
+    // const shipmentLocations: AddressInfo[] = shipments.map(shipment => {
+    //   const loc = extractCoordinates(shipment.pickupAddress);
+    //   return loc || {
+    //     latitude: 43.7615,
+    //     longitude: -79.4635,
+    //     formattedAddress: 'Toronto, ON'
+    //   };
+    // });
     
-    console.log('📍 准备调用 Google Maps Distance Matrix API...');
-    console.log(`   司机位置: ${driverLocations.length}`, driverLocations.slice(0, 2));
-    console.log(`   运单位置: ${shipmentLocations.length}`, shipmentLocations.slice(0, 2));
+    // console.log('📍 准备调用 Google Maps Distance Matrix API...');
+    // console.log(`   司机位置: ${driverLocations.length}`, driverLocations.slice(0, 2));
+    // console.log(`   运单位置: ${shipmentLocations.length}`, shipmentLocations.slice(0, 2));
     
-    // 调用 Distance Matrix API
-    distanceMatrix = await mapsService.calculateDistanceMatrix(
-      driverLocations,
-      shipmentLocations
-    );
+    // distanceMatrix = await mapsService.calculateDistanceMatrix(
+    //   driverLocations,
+    //   shipmentLocations
+    // );
     
-    usedGoogleMaps = true;
-    console.log('✅ Google Maps Distance Matrix API 调用成功');
-    console.log(`   距离矩阵大小: ${distanceMatrix.length} × ${distanceMatrix[0]?.length}`);
+    // usedGoogleMaps = true;
+    // console.log('✅ Google Maps Distance Matrix API 调用成功');
+    // console.log(`   距离矩阵大小: ${distanceMatrix.length} × ${distanceMatrix[0]?.length}`);
     
   } catch (error) {
     console.warn('⚠️ Google Maps API 调用失败，降级到哈弗辛公式:', error);

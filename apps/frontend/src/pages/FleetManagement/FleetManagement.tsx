@@ -28,8 +28,13 @@ import {
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, DriverStatus, VehicleStatus } from '../../types';
 import { driversApi, vehiclesApi, tripsApi } from '../../services/api';
-import GoogleMap from '../../components/GoogleMap/GoogleMap';
-import mapsService from '../../services/mapsService';
+// ============================================================================
+// 地图相关组件导入 - 二期开发功能 (2025-01-27 18:10:00)
+// 状态: 已注释，二期恢复
+// 说明: 以下导入的地图组件在一期版本中暂时不使用，二期时取消注释
+// ============================================================================
+// import GoogleMap from '../../components/GoogleMap/GoogleMap';
+// import mapsService from '../../services/mapsService';
 import { formatDateTime } from '../../utils/timeUtils';
 import DriverPerformance from '../../components/DriverPerformance/DriverPerformance';
 import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
@@ -47,32 +52,42 @@ const FleetManagement: React.FC = () => {
   const [driverForm] = Form.useForm();
   const [vehicleForm] = Form.useForm();
 
+  // ============================================================================
+  // 地图相关状态 - 二期开发功能 (2025-01-27 18:10:00)
+  // 状态: 已注释，二期恢复
+  // 说明: 以下地图相关状态在一期版本中暂时不使用，二期时取消注释
+  // ============================================================================
   // 地图中心与标记 - 默认中心点: 3401 Dufferin St, North York, ON M6A 2T9
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 43.7615, lng: -79.4635 });
-  const [mapMarkers, setMapMarkers] = useState<Array<{ id: string; position: { lat: number; lng: number }; title?: string; info?: string }>>([]);
+  // const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 43.7615, lng: -79.4635 });
+  // const [mapMarkers, setMapMarkers] = useState<Array<{ id: string; position: { lat: number; lng: number }; title?: string; info?: string }>>([]);
 
   useEffect(() => {
     loadFleetData();
   }, []);
 
+  // ============================================================================
+  // 地图初始化逻辑 - 二期开发功能 (2025-01-27 18:10:00)
+  // 状态: 已注释，二期恢复
+  // 说明: 以下地图初始化逻辑在一期版本中暂时不使用，二期时取消注释
+  // ============================================================================
   // 初始化地图服务并将默认中心设为 3401 Dufferin St, North York, ON M6A 2T9
-  useEffect(() => {
-    (async () => {
-      try {
-        await mapsService.initialize();
-        const addr = '3401 Dufferin St, North York, ON M6A 2T9';
-        const info = await mapsService.geocodeAddress(addr);
-        if (info?.latitude && info?.longitude) {
-          setMapCenter({ lat: info.latitude, lng: info.longitude });
-        }
-      } catch (e) {
-        // 保持默认中心（多伦多）即可
-        console.warn('地图服务初始化或地理编码失败，使用默认中心点', e);
-        // 显示用户友好的错误信息
-        message.warning('地图服务暂时不可用，但页面功能正常');
-      }
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       await mapsService.initialize();
+  //       const addr = '3401 Dufferin St, North York, ON M6A 2T9';
+  //       const info = await mapsService.geocodeAddress(addr);
+  //       if (info?.latitude && info?.longitude) {
+  //         setMapCenter({ lat: info.latitude, lng: info.longitude });
+  //       }
+  //     } catch (e) {
+  //       // 保持默认中心（多伦多）即可
+  //       console.warn('地图服务初始化或地理编码失败，使用默认中心点', e);
+  //       // 显示用户友好的错误信息
+  //       message.warning('地图服务暂时不可用，但页面功能正常');
+  //     }
+  //   })();
+  // }, []);
 
   const loadFleetData = async () => {
     try {
@@ -179,7 +194,7 @@ const FleetManagement: React.FC = () => {
         })
         .filter(Boolean) as any[];
 
-      setMapMarkers([...tripMarkers, ...vehicleMarkers]);
+      // setMapMarkers([...tripMarkers, ...vehicleMarkers]); // 一期版本暂时禁用地图标记
 
     } catch (error) {
       console.error('Failed to load fleet data:', error);
@@ -387,7 +402,12 @@ const FleetManagement: React.FC = () => {
                   
                   <Col span={10}>
                     <Card title="车队实时位置">
-                      <GoogleMap
+                      {/* ============================================================================ */}
+                      {/* 地图组件渲染 - 二期开发功能 (2025-01-27 18:10:00) */}
+                      {/* 状态: 已注释，二期恢复 */}
+                      {/* 说明: 以下地图组件在一期版本中暂时不使用，二期时取消注释 */}
+                      {/* ============================================================================ */}
+                      {/* <GoogleMap
                         center={mapCenter}
                         zoom={12}
                         height="600px"
@@ -409,7 +429,16 @@ const FleetManagement: React.FC = () => {
                             }
                           }
                         }}
-                      />
+                      /> */}
+                      
+                      {/* 一期版本替代显示 */}
+                      <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f5f5f5', borderRadius: '8px' }}>
+                        <EnvironmentOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
+                        <Title level={5}>地图功能将在二期版本提供</Title>
+                        <Text type="secondary">
+                          当前版本暂不支持地图显示，但车辆和司机管理功能完全可用
+                        </Text>
+                      </div>
                     </Card>
                   </Col>
                 </Row>

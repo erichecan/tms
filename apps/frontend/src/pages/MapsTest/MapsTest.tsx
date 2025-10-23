@@ -1,3 +1,11 @@
+// ============================================================================
+// 地图测试页面 - 二期开发功能
+// 创建时间: 2025-10-10
+// 状态: 已注释，二期恢复
+// 说明: 此页面包含Google Maps API测试功能，在一期版本中暂时不使用
+// 二期恢复时，请取消注释并确保API密钥配置正确
+// ============================================================================
+
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Typography, Alert, Spin, Form, Input, message } from 'antd';
 import { EnvironmentOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';

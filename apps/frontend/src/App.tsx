@@ -34,9 +34,14 @@ import RuleVersionManagementPage from './pages/RuleVersionManagement/RuleVersion
 // 2025-10-02 18:35:00 - 以下页面已整合，移除独立导入:
 // import PerformanceMonitoringPage from './pages/PerformanceMonitoring/PerformanceMonitoringPage'; → 已整合到仪表板页面
 import GranularPermissionsPage from './pages/GranularPermissions/GranularPermissionsPage';
-import MapsDemo from './pages/MapsDemo/MapsDemo';
-import MapsTest from './pages/MapsTest/MapsTest';
-import MapsDebug from './pages/MapsDebug/MapsDebug';
+// ============================================================================
+// 地图相关页面导入 - 二期开发功能 (2025-01-27 17:45:00)
+// 状态: 已注释，二期恢复
+// 说明: 以下导入的地图页面在一期版本中暂时不使用，二期时取消注释
+// ============================================================================
+// import MapsDemo from './pages/MapsDemo/MapsDemo';
+// import MapsTest from './pages/MapsTest/MapsTest';
+// import MapsDebug from './pages/MapsDebug/MapsDebug';
 import LayoutTest from './pages/LayoutTest/LayoutTest';
 import './App.css';
 
@@ -87,14 +92,19 @@ function App() {
             {/* 细粒度权限控制路由 - 2025-09-29 22:10:00 */}
             <Route path="/admin/granular-permissions" element={<ProtectedRoute><PageLayout><GranularPermissionsPage /></PageLayout></ProtectedRoute>} />
             
+            {/* ============================================================================ */}
+            {/* 地图相关路由 - 二期开发功能 (2025-01-27 17:45:00) */}
+            {/* 状态: 已注释，二期恢复 */}
+            {/* 说明: 以下路由在一期版本中暂时不使用，二期时取消注释 */}
+            {/* ============================================================================ */}
             {/* Google Maps API 演示页面 - 2025-10-03 10:00:00 */}
-            <Route path="/maps-demo" element={<ProtectedRoute><MapsDemo /></ProtectedRoute>} />
+            {/* <Route path="/maps-demo" element={<ProtectedRoute><MapsDemo /></ProtectedRoute>} /> */}
             
             {/* 地图API测试页面 */}
-            <Route path="/maps-test" element={<ProtectedRoute><MapsTest /></ProtectedRoute>} />
+            {/* <Route path="/maps-test" element={<ProtectedRoute><MapsTest /></ProtectedRoute>} /> */}
             
             {/* 地图调试页面（无需认证） */}
-            <Route path="/maps-debug" element={<MapsDebug />} />
+            {/* <Route path="/maps-debug" element={<MapsDebug />} /> */}
             
             {/* 布局测试页面 */}
             <Route path="/layout-test" element={<ProtectedRoute><LayoutTest /></ProtectedRoute>} />
