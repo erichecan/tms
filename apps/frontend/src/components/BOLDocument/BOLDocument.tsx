@@ -66,7 +66,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
 
   return (
     <div className="bol-document">
-      {/* BOL Header */}
+      
       <div className="bol-header">
         <div className="bol-title">BILL OF LADING</div>
         <div className="bol-not-negotiable">NOT NEGOTIABLE</div>
@@ -77,13 +77,13 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Date and BOL Number */}
+      
       <div className="bol-meta">
         <div className="bol-date">Date: {new Date(shipment.createdAt).toLocaleDateString()}</div>
         <div className="bol-number">BOL Number: {shipment.shipmentNo || shipment.id}</div>
       </div>
 
-      {/* Shipper Information */}
+      
       <div className="bol-section">
         <div className="section-title">SHIPPER INFORMATION</div>
         <div className="shipper-info">
@@ -94,7 +94,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Consignee Information */}
+      
       <div className="bol-section">
         <div className="section-title">CONSIGNEE INFORMATION</div>
         <div className="consignee-info">
@@ -105,7 +105,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* BOL and Order Numbers */}
+      
       <div className="bol-section">
         <div className="section-title">ORDER INFORMATION</div>
         <div className="order-info">
@@ -116,7 +116,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Freight Charges */}
+      
       <div className="freight-section">
         <div>Freight Charges (*Check One)</div>
         <div className="freight-options">
@@ -127,7 +127,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         <div className="freight-note">*If not marked Shipment will move COLLECT</div>
       </div>
 
-      {/* Cargo Details Table */}
+      
       <div className="cargo-section">
         <div className="section-title">COMMODITY/DESCRIPTION OF GOODS</div>
         <table className="cargo-table">
@@ -156,7 +156,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         <div className="dimension-note">*If no Dimensions are provided, shipments will move at 2,000 lbs per skid spot</div>
       </div>
 
-      {/* Weight and Emergency Contact */}
+      
       <div className="weight-section">
         <div className="weight-info">
           <div>Total Weight: {shipment.weightKg} kg</div>
@@ -164,7 +164,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Additional Services */}
+      
       <div className="services-section">
         <div className="section-title">Additional Services (additional charges applicable)</div>
         <div className="services-grid">
@@ -181,7 +181,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Declared Value */}
+      
       <div className="declared-value-section">
         <div className="declared-value">
           <div>Declared Value: $ {shipment.declaredValue || 0}</div>
@@ -195,7 +195,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Terms and Conditions */}
+      
       <div className="terms-section">
         <div className="section-title">TERMS AND CONDITIONS</div>
         <div className="terms-text">
@@ -203,7 +203,7 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Signatures */}
+      
       <div className="signatures">
         <div className="signature-section">
           <div className="signature-title">Shipper Signatures</div>
@@ -230,12 +230,12 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
         </div>
       </div>
 
-      {/* Footer */}
+      
       <div className="bol-footer">
         connecting the continent tms-platform.com
       </div>
 
-      {/* Print Button (hidden when printing) */}
+      
       {showPrintButton && (
         <div className="print-actions no-print">
           <button onClick={handlePrint} className="print-btn">打印 BOL</button>

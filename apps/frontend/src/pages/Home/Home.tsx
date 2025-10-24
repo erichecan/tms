@@ -58,7 +58,7 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
-      {/* 顶部导航栏 */}
+      
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <TruckOutlined style={{ color: '#1890ff', fontSize: '24px', marginRight: '12px' }} />
@@ -102,7 +102,7 @@ const Home: React.FC = () => {
         </Paragraph>
       </div>
 
-      {/* 首页三大模块入口 - 符合PRD v3.0-PC设计 */}
+      
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} sm={12} md={8}>
           <Card
@@ -178,7 +178,7 @@ const Home: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 快速操作区域 */}
+      
       <Divider style={{ margin: '40px 0' }} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={6}>

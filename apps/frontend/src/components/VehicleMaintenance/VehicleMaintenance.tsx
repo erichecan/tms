@@ -491,7 +491,7 @@ const VehicleMaintenance: React.FC = () => {
 
   return (
     <div>
-      {/* 统计概览 */}
+      
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
@@ -543,10 +543,10 @@ const VehicleMaintenance: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 主要内容 */}
+      
       <Tabs defaultActiveKey="records" items={tabItems} />
 
-      {/* 添加/编辑模态框 */}
+      
       <Modal
         title={editingRecord ? '编辑维护记录' : '添加维护记录'}
         open={isModalVisible}

@@ -265,7 +265,7 @@ const RealTimeTracking: React.FC = () => {
 
   return (
     <div>
-      {/* 控制面板 */}
+      
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={8}>
@@ -321,29 +321,14 @@ const RealTimeTracking: React.FC = () => {
       </Card>
 
       <Row gutter={[16, 16]}>
-        {/* ============================================================================ */}
-        {/* 地图区域 - 二期开发功能 (2025-01-27 18:15:00) */}
-        {/* 状态: 已注释，二期恢复 */}
-        {/* 说明: 以下地图组件在一期版本中暂时不使用，二期时取消注释 */}
-        {/* ============================================================================ */}
-        {/* <Col xs={24} lg={16}>
-          <Card title="实时位置地图" extra={<AimOutlined />}>
-            <div style={{ height: '500px' }}>
-              <GoogleMap
-                center={{ lat: 39.9042, lng: 116.4074 }}
-                zoom={12}
-                height="100%"
-                markers={mapMarkers}
-                onMarkerClick={(markerId) => {
-                  const vehicle = vehicleLocations.find(v => v.id === markerId);
-                  if (vehicle) handleVehicleClick(vehicle);
-                }}
-              />
-            </div>
-          </Card>
-        </Col> */}
         
-        {/* 一期版本替代显示 */}
+        
+        
+        
+        
+        
+        
+        
         <Col xs={24} lg={16}>
           <Card title="车辆位置信息" extra={<AimOutlined />}>
             <div style={{ height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -369,7 +354,7 @@ const RealTimeTracking: React.FC = () => {
           </Card>
         </Col>
 
-        {/* 车辆列表 */}
+        
         <Col xs={24} lg={8}>
           <Card title="车辆状态列表">
             <List
@@ -431,7 +416,7 @@ const RealTimeTracking: React.FC = () => {
             />
           </Card>
 
-          {/* 统计信息 */}
+          
           <Card title="统计信息" style={{ marginTop: 16 }}>
             <Row gutter={[8, 8]}>
               <Col span={12}>
@@ -471,7 +456,7 @@ const RealTimeTracking: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 车辆详情模态框 */}
+      
       <Modal
         title={`车辆详情 - ${selectedVehicle?.vehiclePlate}`}
         open={isDetailModalVisible}

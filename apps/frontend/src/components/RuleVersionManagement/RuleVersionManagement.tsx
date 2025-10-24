@@ -458,7 +458,7 @@ const RuleVersionManagement: React.FC = () => {
 
   return (
     <div>
-      {/* 操作栏 */}
+      
       <Card style={{ marginBottom: 24 }}>
         <Row justify="space-between" align="middle">
           <Col>
@@ -488,7 +488,7 @@ const RuleVersionManagement: React.FC = () => {
         </Row>
       </Card>
 
-      {/* 规则版本列表 */}
+      
       <Card title="规则版本列表" extra={<HistoryOutlined />}>
         <Table
           columns={columns}
@@ -500,7 +500,7 @@ const RuleVersionManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 版本编辑模态框 */}
+      
       <Modal
         title={selectedRule ? '编辑规则版本' : '新建规则版本'}
         open={isVersionModalVisible}
@@ -570,7 +570,7 @@ const RuleVersionManagement: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* 审批流程模态框 */}
+      
       <Modal
         title="审批流程详情"
         open={isWorkflowModalVisible}

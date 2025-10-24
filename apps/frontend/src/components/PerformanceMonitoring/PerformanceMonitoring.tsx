@@ -494,7 +494,7 @@ const PerformanceMonitoring: React.FC = () => {
 
   return (
     <div>
-      {/* 控制面板 */}
+      
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={6}>
@@ -532,7 +532,7 @@ const PerformanceMonitoring: React.FC = () => {
         </Row>
       </Card>
 
-      {/* 系统概览 */}
+      
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
@@ -579,7 +579,7 @@ const PerformanceMonitoring: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 详细监控信息 */}
+      
       <Tabs 
         defaultActiveKey="metrics"
         items={[
@@ -631,7 +631,7 @@ const PerformanceMonitoring: React.FC = () => {
         ]}
       />
 
-      {/* 监控配置模态框 */}
+      
       <Modal
         title="监控配置"
         open={isConfigModalVisible}

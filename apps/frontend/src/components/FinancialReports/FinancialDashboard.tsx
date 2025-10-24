@@ -284,7 +284,7 @@ const FinancialDashboard: React.FC = () => {
       label: '财务概览',
       children: (
         <div>
-          {/* 关键指标卡片 */}
+          
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
               <Card>
@@ -352,7 +352,7 @@ const FinancialDashboard: React.FC = () => {
             </Col>
           </Row>
 
-          {/* 回款率分析 */}
+          
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
               <Card title="回款率分析" extra={<PieChartOutlined />}>
@@ -447,7 +447,7 @@ const FinancialDashboard: React.FC = () => {
 
   return (
     <div>
-      {/* 控制面板 */}
+      
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={8}>
@@ -495,7 +495,7 @@ const FinancialDashboard: React.FC = () => {
         </Row>
       </Card>
 
-      {/* 主要内容 */}
+      
       <Tabs
         defaultActiveKey="overview"
         items={tabItems}

@@ -577,7 +577,7 @@ const ShipmentManagement: React.FC = () => {
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleView(record)} />
           </Tooltip>
           {!record.tripNo && (
-            <Tooltip title="指派车辆/行程">{/* 2025-10-02 15:12:30 未挂载行程则提供指派入口 */}
+            <Tooltip title="指派车辆/行程">
               <Button
                 type="text"
                 size="small"
@@ -625,7 +625,7 @@ const ShipmentManagement: React.FC = () => {
               🤖 智能调度 ({selectedRowKeys.length}个运单)
             </Button>
           )}
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>{/* 跳转创建页 // 2025-10-02 02:55:10 */}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>
             创建运单
           </Button>
         </Space>
@@ -648,7 +648,7 @@ const ShipmentManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 运单详情弹窗 - 2025-10-10 18:25:00 修复编辑按钮重叠问题 */}
+      
       <Modal
         title={isEditMode ? '编辑运单' : '运单详情'}
         open={isViewModalVisible}
@@ -826,7 +826,7 @@ const ShipmentManagement: React.FC = () => {
         )}
       </Modal>
 
-      {/* 指派车辆/行程弹窗 // 2025-10-02 15:12:30 */}
+      
       <Modal
         title="指派车辆/行程"
         open={isAssignModalVisible}
@@ -909,7 +909,7 @@ const ShipmentManagement: React.FC = () => {
         )}
       </Modal>
 
-      {/* 智能调度结果弹窗 - 2025-10-10 17:50:00 */}
+      
       <Modal
         title="🤖 智能调度推荐方案"
         open={isDispatchModalVisible}

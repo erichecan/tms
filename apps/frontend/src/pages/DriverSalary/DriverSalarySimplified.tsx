@@ -208,7 +208,7 @@ const DriverSalarySimplified: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* 司机选择器 */}
+      
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3}>司机薪酬</Title>
         <Space>
@@ -231,7 +231,7 @@ const DriverSalarySimplified: React.FC = () => {
         </Space>
       </div>
 
-      {/* 本月统计 - 2025-10-10 18:15:00 更新为4个卡片 */}
+      
       {driverStats && (
         <>
           <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -295,7 +295,7 @@ const DriverSalarySimplified: React.FC = () => {
         </>
       )}
 
-      {/* 任务明细列表 */}
+      
       <Card title="任务明细">
         <Table
           columns={taskColumns}

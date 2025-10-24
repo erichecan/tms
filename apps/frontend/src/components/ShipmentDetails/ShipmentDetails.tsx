@@ -520,7 +520,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       label: '基本信息',
       children: (
         <div>
-          {/* 运单基本信息 */}
+          
           <Card title="运单信息" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
               <Col span={12}>
@@ -568,7 +568,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Row>
           </Card>
 
-          {/* 地址信息 */}
+          
           <Card title="地址信息" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
               <Col span={12}>
@@ -610,7 +610,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Row>
           </Card>
 
-          {/* 货物信息 */}
+          
           <Card title="货物信息">
             <Row gutter={[16, 16]}>
               <Col span={24}>
@@ -762,7 +762,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
   return (
     <div>
-      {/* 操作按钮 */}
+      
       <div className="no-print" style={{ marginBottom: 16, textAlign: 'right' }}>
         <Space>
           <Button 
@@ -784,14 +784,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Space>
       </div>
 
-      {/* 运单详情标签页 */}
+      
       <Tabs 
         activeKey={activeTab} 
         onChange={setActiveTab}
         items={tabItems}
       />
 
-      {/* 指派司机车辆模态框 */}
+      
       <Modal
         title="指派司机车辆"
         open={isAssignModalVisible}
@@ -845,7 +845,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Form>
       </Modal>
 
-      {/* 快速添加司机弹窗 // 2025-10-02 11:05:20 */}
+      
       <Modal
         title="添加司机"
         open={isQuickAddDriverVisible}
@@ -907,7 +907,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Row>
       </Modal>
 
-      {/* 快速添加车辆弹窗 // 2025-10-02 11:05:20 */}
+      
       <Modal
         title="添加车辆"
         open={isQuickAddVehicleVisible}
@@ -960,7 +960,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Row>
       </Modal>
 
-      {/* 挂载到行程模态框 */}
+      
       <Modal
         title="挂载到行程"
         open={isMountModalVisible}
@@ -990,7 +990,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Form>
       </Modal>
 
-      {/* 电子签名弹窗 // 2025-10-02 15:32:10 */}
+      
       <Modal
         title="电子签名"
         open={isESignVisible}
@@ -1032,7 +1032,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         )}
       </Modal>
 
-      {/* 费用明细弹窗 // 2025-10-08 17:25:00 */}
+      
       <Modal
         title="费用明细"
         open={isCostDetailVisible}

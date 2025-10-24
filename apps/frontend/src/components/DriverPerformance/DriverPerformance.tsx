@@ -380,7 +380,7 @@ const DriverPayroll: React.FC = () => {
 
   return (
     <div>
-      {/* 统计卡片 - 重新设计为薪酬相关统计 */}
+      
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={8}>
           <Card>
@@ -414,7 +414,7 @@ const DriverPayroll: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 薪酬总额和平均薪酬 */}
+      
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={12}>
           <Card>
@@ -450,7 +450,7 @@ const DriverPayroll: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 薪酬记录表格 */}
+      
       <Card
         title={
           <Space>
@@ -500,7 +500,7 @@ const DriverPayroll: React.FC = () => {
         />
       </Card>
 
-      {/* 薪酬记录编辑模态框 */}
+      
       <Modal
         title={editingRecord ? '编辑薪酬记录' : '添加工资记录'}
         open={isModalVisible}

@@ -304,7 +304,7 @@ const CurrencyManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 新增货币弹窗 */}
+      
       <Modal
         title="新增货币"
         open={isAddModalVisible}
@@ -357,7 +357,7 @@ const CurrencyManagement: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* 编辑货币弹窗 */}
+      
       <Modal
         title="编辑货币"
         open={isEditModalVisible}

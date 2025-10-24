@@ -370,7 +370,7 @@ const BatchImport: React.FC = () => {
           </Col>
         </Row>
 
-        {/* 导入进度 */}
+        
         {loading && (
           <div style={{ marginTop: 24 }}>
             <Text>导入进度:</Text>
@@ -379,7 +379,7 @@ const BatchImport: React.FC = () => {
         )}
       </Card>
 
-      {/* 预览模态框 */}
+      
       <Modal
         title="数据预览"
         open={isPreviewModalVisible}
@@ -413,7 +413,7 @@ const BatchImport: React.FC = () => {
         />
       </Modal>
 
-      {/* 导入结果模态框 */}
+      
       <Modal
         title="导入结果"
         open={isResultModalVisible}

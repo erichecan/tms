@@ -300,7 +300,7 @@ const CustomerManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* 搜索和筛选区域 - 2025-01-27 16:45:00 新增 */}
+      
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={8}>
@@ -365,7 +365,7 @@ const CustomerManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 新增客户弹窗 - 符合PRD v3.0-PC设计 */}
+      
       <Modal
         title="新增客户"
         open={isAddModalVisible}
@@ -477,7 +477,7 @@ const CustomerManagement: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* 编辑客户模态框 */}
+      
       <Modal
         title="编辑客户"
         open={isEditModalVisible}
@@ -542,7 +542,7 @@ const CustomerManagement: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* 运单历史模态框 */}
+      
       <Modal
         title={`${selectedCustomer?.name} - 运单历史`}
         open={isHistoryModalVisible}
@@ -642,7 +642,7 @@ const CustomerManagement: React.FC = () => {
         />
       </Modal>
 
-      {/* 客户详情模态框 - 符合PRD v3.0-PC设计 */}
+      
       <Modal
         title={`${selectedCustomer?.name} - 客户详情`}
         open={isDetailModalVisible}
@@ -716,7 +716,7 @@ const CustomerManagement: React.FC = () => {
         )}
       </Modal>
 
-      {/* 财务记录模态框 - 2025-09-29 15:30:00 完善客户财务记录详情 */}
+      
       <Modal
         title={`${selectedCustomer?.name} - 财务记录详情`}
         open={isFinanceModalVisible}
@@ -725,7 +725,7 @@ const CustomerManagement: React.FC = () => {
         width={1200}
       >
         <div>
-          {/* 财务概览 */}
+          
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col span={6}>
               <Card size="small">
@@ -769,7 +769,7 @@ const CustomerManagement: React.FC = () => {
             </Col>
           </Row>
 
-          {/* 财务记录列表 */}
+          
           <Card title="财务记录明细" size="small">
             <Table
               dataSource={[
@@ -917,7 +917,7 @@ const CustomerManagement: React.FC = () => {
             />
           </Card>
 
-          {/* 操作按钮 */}
+          
           <div style={{ marginTop: 16, textAlign: 'right' }}>
             <Space>
               <Button icon={<DownloadOutlined />}>

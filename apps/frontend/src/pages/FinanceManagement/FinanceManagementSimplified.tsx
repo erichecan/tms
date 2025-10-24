@@ -329,7 +329,7 @@ const FinanceManagementSimplified: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* 财务概览统计卡片 */}
+      
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card>
@@ -381,7 +381,7 @@ const FinanceManagementSimplified: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 财务管理Tab */}
+      
       <Card>
         <Tabs defaultActiveKey="receivable">
           <TabPane tab="📥 应收账款" key="receivable">

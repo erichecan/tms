@@ -75,7 +75,7 @@ const PricingHomePage: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* 头部 */}
+      
       <Card style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <Row align="middle">
           <Col span={16}>
@@ -112,7 +112,7 @@ const PricingHomePage: React.FC = () => {
         </Row>
       </Card>
 
-      {/* 业务场景统计 */}
+      
       <Row gutter={16} style={{ marginBottom: '32px' }}>
         <Col span={8}>
           <Card title={<><HeartOutlined /> 垃圾清运</>}>
@@ -137,7 +137,7 @@ const PricingHomePage: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 主要功能 */}
+      
       <Card title={<Title level={4}><CalculatorOutlined /> 主要功能</Title>} style={{ marginBottom: '32px' }}>
         <Row gutter={[24, 24]}>
           {features.map((feature, index) => (
@@ -165,7 +165,7 @@ const PricingHomePage: React.FC = () => {
         </Row>
       </Card>
 
-      {/* 系统优势 */}
+      
       <Row gutter={24}>
         <Col span={16}>
           <Card title={<Title level={4}>🌟 系统优势</Title>}>
@@ -223,7 +223,7 @@ const PricingHomePage: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 底部CTA */}
+      
       <Card 
         style={{ 
           marginTop: '24px', 

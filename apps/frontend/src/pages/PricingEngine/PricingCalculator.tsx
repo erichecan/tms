@@ -269,7 +269,7 @@ const PricingCalculatorPage: React.FC = () => {
 
     return (
       <Card title="计费计算结果" style={{ marginTop: '24px' }}>
-        {/* 总体统计 */}
+        
         <Row gutter={16} style={{ marginBottom: '24px' }}>
           <Col span={6}>
             <Statistic
@@ -309,7 +309,7 @@ const PricingCalculatorPage: React.FC = () => {
           </Col>
         </Row>
 
-        {/* 与预期对比 */}
+        
         {selectedScenario && (
           <Alert
             message="与预期结果对比"
@@ -324,7 +324,7 @@ const PricingCalculatorPage: React.FC = () => {
           />
         )}
 
-        {/* 详细分解 */}
+        
         <Tabs 
           defaultActiveKey="all"
           items={[
@@ -387,7 +387,7 @@ const PricingCalculatorPage: React.FC = () => {
           ]}
         />
 
-        {/* 计费元数据 */}
+        
         <Divider />
         <Descriptions 
           title="计费元数据" 
@@ -422,11 +422,11 @@ const PricingCalculatorPage: React.FC = () => {
       <Title level={3}>智能计费规则计算器</Title>
       
       <Row gutter={24}>
-        {/* 左侧：表单输入 */}
+        
         <Col span={12}>
           <Card title="运单信息输入" extra={<CalculatorOutlined />}>
             
-            {/* 业务场景预设 */}
+            
             <div style={{ marginBottom: '24px' }}>
               <Text strong>选择预设场景进行快速测试:</Text>
               <Space wrap style={{ marginTop: '8px' }}>
@@ -563,7 +563,7 @@ const PricingCalculatorPage: React.FC = () => {
               </Form.Item>
             </Form>
 
-            {/* 错误显示 */}
+            
             {error && (
               <Alert 
                 message="计算错误" 
@@ -575,7 +575,7 @@ const PricingCalculatorPage: React.FC = () => {
           </Card>
         </Col>
 
-        {/* 右侧：计算结果 */}
+        
         <Col span={12}>
           {loading ? (
             <Card style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
