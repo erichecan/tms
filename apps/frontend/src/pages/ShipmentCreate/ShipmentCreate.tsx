@@ -37,15 +37,6 @@ import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 import { v4 as uuidv4 } from 'uuid'; // UUID 生成库 // 2025-10-08 14:20:00
-// ============================================================================
-// 地图相关组件导入 - 二期开发功能 (2025-01-27 17:50:00)
-// 状态: 已注释，二期恢复
-// 说明: 以下导入的地图组件在一期版本中暂时不使用，二期时取消注释
-// ============================================================================
-// import GoogleMap from '../../components/GoogleMap/GoogleMap'; // Google地图组件 // 2025-10-10 16:40:00
-// import AddressAutocomplete from '../../components/AddressAutocomplete/AddressAutocomplete'; // 地址自动完成 // 2025-10-10 16:40:00
-// import mapsService from '../../services/mapsService'; // 地图服务 // 2025-10-10 16:40:00
-// import { AddressInfo, LogisticsRoute } from '../../types/maps'; // 地图类型 // 2025-10-10 16:40:00
 
 
 const { Title, Text } = Typography;
@@ -90,24 +81,6 @@ const ShipmentCreate: React.FC = () => {
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
   const [submittedData, setSubmittedData] = useState<any>(null);
-
-  // ============================================================================
-  // Google Maps 地图和路径计算状态 - 二期开发功能 (2025-01-27 17:50:00)
-  // 状态: 已注释，二期恢复
-  // 说明: 以下地图相关状态在一期版本中暂时不使用，二期时取消注释
-  // ============================================================================
-  // const [pickupAddressInfo, setPickupAddressInfo] = useState<AddressInfo | null>(null);
-  // const [deliveryAddressInfo, setDeliveryAddressInfo] = useState<AddressInfo | null>(null);
-  // const [routeInfo, setRouteInfo] = useState<LogisticsRoute | null>(null);
-  // const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 43.7615, lng: -79.4635 }); // 3401 Dufferin St, North York, ON M6A 2T9
-  // const [mapMarkers, setMapMarkers] = useState<Array<{ id: string; position: { lat: number; lng: number }; title?: string; info?: string }>>([]);
-  // const [mapRoutes, setMapRoutes] = useState<Array<{ from: { lat: number; lng: number }; to: { lat: number; lng: number }; color?: string }>>([]);
-  // const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-
-  // ============================================================================
-  // 一期版本距离估算功能 (2025-01-27 17:50:00)
-  // 说明: 使用简单的城市间直线距离估算，替代地图API
-  // ============================================================================
   const [estimatedDistance, setEstimatedDistance] = useState<number>(0); // 估算距离(公里)
   const [isManualDistance, setIsManualDistance] = useState<boolean>(false); // 是否手动输入距离
 
@@ -142,11 +115,6 @@ const ShipmentCreate: React.FC = () => {
       setCustomersLoading(false);
     }
   };
-
-  // ============================================================================
-  // 距离估算功能 - 一期版本 (2025-01-27 17:55:00)
-  // 说明: 基于城市和省份的简单距离估算，替代地图API
-  // ============================================================================
   
   // 城市间距离估算表 (单位: 公里)
   const cityDistanceEstimates: { [key: string]: number } = {
@@ -825,106 +793,6 @@ const ShipmentCreate: React.FC = () => {
       }
     }
   };
-
-  // ============================================================================
-  // Google Maps 相关函数 - 二期开发功能 (2025-01-27 18:00:00)
-  // 状态: 已注释，二期恢复
-  // 说明: 以下地图相关函数在一期版本中暂时不使用，二期时取消注释
-  // ============================================================================
-  
-  // Google Maps 路径计算函数 - 2025-10-10 16:50:00
-  // const calculateRoute = async (pickup: AddressInfo, delivery: AddressInfo) => {
-  //   if (!pickup || !delivery) return;
-
-  //   setIsCalculatingRoute(true);
-  //   try {
-  //     // 初始化地图服务
-  //     await mapsService.initialize();
-
-  //     // 计算路径
-  //     const route = await mapsService.calculateRoute(pickup, delivery);
-  //     setRouteInfo(route);
-
-  //     // 更新地图标记
-  //     const markers = [
-  //       {
-  //         id: 'pickup',
-  //         position: { lat: pickup.latitude, lng: pickup.longitude },
-  //         title: '取货地址',
-  //         info: `<div><strong>取货地址</strong><br/>${pickup.formattedAddress}</div>`
-  //       },
-  //       {
-  //         id: 'delivery',
-  //         position: { lat: delivery.latitude, lng: delivery.longitude },
-  //         title: '送货地址',
-  //         info: `<div><strong>送货地址</strong><br/>${delivery.formattedAddress}</div>`
-  //       }
-  //     ];
-  //     setMapMarkers(markers);
-
-  //     // 更新地图路线
-  //     const routes = [{
-  //       from: { lat: pickup.latitude, lng: pickup.longitude },
-  //       to: { lat: delivery.latitude, lng: delivery.longitude },
-  //       color: '#1890ff'
-  //     }];
-  //     setMapRoutes(routes);
-
-  //     // 调整地图中心到两点中间
-  //     const centerLat = (pickup.latitude + delivery.latitude) / 2;
-  //     const centerLng = (pickup.longitude + delivery.longitude) / 2;
-  //     setMapCenter({ lat: centerLat, lng: centerLng });
-
-  //     // 触发费用重新计算
-  //     const formValues = form.getFieldsValue();
-  //     await calculateRealTimePricing(formValues);
-
-  //     message.success(`路径计算完成 - 距离: ${route.optimalRoute.distance.toFixed(1)} km, 预计时间: ${Math.round(route.optimalRoute.duration)} 分钟`);
-  //   } catch (error) {
-  //     console.error('路径计算失败:', error);
-  //     message.error('路径计算失败，请检查地址是否正确');
-  //   } finally {
-  //     setIsCalculatingRoute(false);
-  //   }
-  // };
-
-  // 处理取货地址选择 - 2025-10-10 16:50:00
-  // const handlePickupAddressSelected = async (addressInfo: AddressInfo) => {
-  //   setPickupAddressInfo(addressInfo);
-    
-  //   // 自动填充地址字段
-  //   form.setFieldsValue({
-  //     shipperAddress1: addressInfo.formattedAddress,
-  //     shipperCity: addressInfo.city || '',
-  //     shipperProvince: addressInfo.province || '',
-  //     shipperPostalCode: addressInfo.postalCode || '',
-  //     shipperCountry: addressInfo.country === 'Canada' ? 'CA' : (addressInfo.country === 'United States' ? 'US' : 'CA')
-  //   });
-
-  //   // 如果送货地址也已选择，计算路径
-  //   if (deliveryAddressInfo) {
-  //     await calculateRoute(addressInfo, deliveryAddressInfo);
-  //   }
-  // };
-
-  // 处理送货地址选择 - 2025-10-10 16:50:00
-  // const handleDeliveryAddressSelected = async (addressInfo: AddressInfo) => {
-  //   setDeliveryAddressInfo(addressInfo);
-    
-  //   // 自动填充地址字段
-  //   form.setFieldsValue({
-  //     receiverAddress1: addressInfo.formattedAddress,
-  //     receiverCity: addressInfo.city || '',
-  //     receiverProvince: addressInfo.province || '',
-  //     receiverPostalCode: addressInfo.postalCode || '',
-  //     receiverCountry: addressInfo.country === 'Canada' ? 'CA' : (addressInfo.country === 'United States' ? 'US' : 'CA')
-  //   });
-
-  //   // 如果取货地址也已选择，计算路径
-  //   if (pickupAddressInfo) {
-  //     await calculateRoute(pickupAddressInfo, addressInfo);
-  //   }
-  // };
 
   // 表单字段变化处理 - 2025-10-08 11:25:00 修复字段名
   const handleFormChange = (changedValues: any, allValues: any) => {
@@ -1982,12 +1850,13 @@ const ShipmentCreate: React.FC = () => {
               {renderRealTimePricing()}
 
               {/* 地图和路径显示 - 2025-10-10 17:00:00 */}
-              {(pickupAddressInfo || deliveryAddressInfo) && (
+              {/* 一期版本暂时禁用地图相关功能 */}
+              {/* {(pickupAddressInfo || deliveryAddressInfo) && (
                 <Card 
                   title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>📍 路径预览与费用计算</span>
-                      {/* {isCalculatingRoute && <Spin size="small" />} */}
+                      {isCalculatingRoute && <Spin size="small" />}
                     </div>
                   } 
                   style={{ marginBottom: 12 }}
@@ -2046,7 +1915,7 @@ const ShipmentCreate: React.FC = () => {
                         </div>
                       )}
                       {/* 一期版本暂时禁用地图相关提示 */}
-                    </Col>
+                      {/*                     </Col>
                   </Row> */}
                   
                   {/* 一期版本距离估算显示 */}
@@ -2073,7 +1942,7 @@ const ShipmentCreate: React.FC = () => {
                     </Col>
                   </Row>
                 </Card>
-              )}
+              )} */}
 
               {/* 2025-10-01 15:00:45 将"订单元信息"模块移动到创建页最底部 */}
               {renderOrderInfoSection()}
