@@ -38,10 +38,10 @@ interface PricingTemplate {
   name: string;
   description?: string;
   type: 'WASTE_COLLECTION' | 'WAREHOUSE_TRANSFER' | 'CLIENT_DIRECT' | 'CUSTOM';
-  businessConditions: any;
-  pricingRules: any[];
-  driverRules: any[];
-  costAllocation: any;
+  businessConditions: unknown;
+  pricingRules: unknown[];
+  driverRules: unknown[];
+  costAllocation: unknown;
   status: 'active' | 'inactive';
   version: number;
   createdAt: string;
@@ -131,7 +131,7 @@ const PricingTemplatesPage: React.FC = () => {
     }
   };
 
-  const handleSaveTemplate = async (values: any) => {
+  const handleSaveTemplate = async (values: unknown) => {
     try {
       const url = editMode && currentTemplate 
         ? `/api/pricing/templates/${currentTemplate.id}`
@@ -148,7 +148,7 @@ const PricingTemplatesPage: React.FC = () => {
       } else {
         message.error(response.data.error?.message || '保存失败');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       message.error(error.response?.data?.error?.message || '保存失败');
     }
   };

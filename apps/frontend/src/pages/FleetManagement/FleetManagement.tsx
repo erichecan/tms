@@ -139,7 +139,7 @@ const FleetManagement: React.FC = () => {
       }
 
       // 组装地图标记：从 current_location JSONB 字段提取坐标
-      const getCoord = (obj: any) => {
+      const getCoord = (obj: unknown) => {
         // 尝试多种可能的位置数据格式
         const cl = obj?.currentLocation || obj?.current_location || {};
         
@@ -169,7 +169,7 @@ const FleetManagement: React.FC = () => {
       };
 
       const tripMarkers = inTransitTrips
-        .map((t: any) => {
+        .map((t: unknown) => {
           const pos = getCoord(t);
           if (!pos) return null;
           return {
@@ -182,7 +182,7 @@ const FleetManagement: React.FC = () => {
         .filter(Boolean) as any[];
 
       const vehicleMarkers = availableVehicles
-        .map((v: any) => {
+        .map((v: unknown) => {
           const pos = getCoord(v);
           if (!pos) return null;
           return {
@@ -263,7 +263,7 @@ const FleetManagement: React.FC = () => {
       dataIndex: 'tripNo',
       key: 'tripNo',
       width: 140,
-      render: (_: any, record: Trip) => (
+      render: (_: unknown, record: Trip) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>{record.tripNo}</span>
           <Badge count={record.shipments.length} color="#1890ff" style={{ backgroundColor: '#1890ff' }} />
@@ -274,7 +274,7 @@ const FleetManagement: React.FC = () => {
       title: '司机 / 车辆',
       key: 'driverVehicle',
       width: 180,
-      render: (_: any, record: Trip) => (
+      render: (_: unknown, record: Trip) => (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -306,7 +306,7 @@ const FleetManagement: React.FC = () => {
       title: '时间',
       key: 'timeRange',
       width: 160,
-      render: (_: any, record: Trip) => (
+      render: (_: unknown, record: Trip) => (
         <div style={{ fontSize: 11 }}>
           <div><strong>开始:</strong> <span style={{ fontSize: 10 }}>{formatDateTime(record.startTimePlanned)}</span></div>
           <div><strong>预计完:</strong> <span style={{ fontSize: 10, color: '#888' }}>{formatDateTime(record.endTimePlanned)}</span></div>

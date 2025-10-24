@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const response = await authApi.getProfile();
           setUser(response.data);
           setToken(token);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Token validation failed:', error);
           
           // 关键修复：检查错误类型，500错误时使用降级认证模式

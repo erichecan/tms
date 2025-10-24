@@ -75,7 +75,7 @@ function calculateHaversineDistance(
 }
 
 // 提取地址坐标
-function extractCoordinates(location: any): AddressInfo | null {
+function extractCoordinates(location: unknown): AddressInfo | null {
   if (!location) return null;
   
   // 尝试多种格式

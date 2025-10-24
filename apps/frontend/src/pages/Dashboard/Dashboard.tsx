@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
       // 设置最近运单数据
       if (shipmentsRes.data?.data) {
         // 调试：检查 estimatedCost 的数据类型 // 2025-01-27 15:35:00
-        console.log('Shipment data types:', shipmentsRes.data.data.map((shipment: any) => ({
+        console.log('Shipment data types:', shipmentsRes.data.data.map((shipment: unknown) => ({
           id: shipment.id,
           estimatedCost: shipment.estimatedCost,
           estimatedCostType: typeof shipment.estimatedCost
@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: RecentShipment) => (
+      render: (_: unknown, record: RecentShipment) => (
         <Space size="middle">
           <Button
             type="link"

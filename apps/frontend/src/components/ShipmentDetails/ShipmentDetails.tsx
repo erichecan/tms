@@ -88,8 +88,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [isQuickAddVehicleVisible, setIsQuickAddVehicleVisible] = useState(false); // 2025-10-02 11:05:20
   const [isCostDetailVisible, setIsCostDetailVisible] = useState(false); // 2025-10-08 17:25:00 费用明细弹窗
   // 将后端运单结构映射到BOL模板所需结构 // 2025-10-06 00:18:45
-  const mapShipmentToBOLShape = (s: any) => {
-    const anyS: any = s || {};
+  const mapShipmentToBOLShape = (s: unknown) => {
+    const anyS: unknown = s || {};
     const pickup = anyS.pickupAddress || anyS.shipperAddress || anyS.shipper?.address || {};
     const delivery = anyS.deliveryAddress || anyS.receiverAddress || anyS.receiver?.address || {};
     return {
@@ -170,7 +170,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     // TODO: 加载可用行程
   };
 
-  const handlePODUpload = async (file: any) => {
+  const handlePODUpload = async (file: unknown) => {
     try {
       // 2025-10-02 16:25:00 实现真正的POD上传逻辑，支持手机拍照
       const formData = new FormData();
@@ -470,7 +470,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     return { x: m.clientX - rect.left, y: m.clientY - rect.top };
   };
 
-  const handleStart = (e: any) => {
+  const handleStart = (e: unknown) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -481,7 +481,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     ctx.moveTo(x, y);
   };
 
-  const handleMove = (e: any) => {
+  const handleMove = (e: unknown) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -574,7 +574,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               <Col span={12}>
                 <Title level={5}>发货地址</Title>
                 {(() => {
-                  const anyS: any = shipment as any; // 2025-10-02 11:00:20 兼容不同数据结构
+                  const anyS: unknown = shipment as any; // 2025-10-02 11:00:20 兼容不同数据结构
                   const addr = anyS.shipperAddress || anyS.shipper?.address;
                   if (!addr) {
                     return <Text type="secondary">暂无发货地址</Text>;
@@ -592,7 +592,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               <Col span={12}>
                 <Title level={5}>收货地址</Title>
                 {(() => {
-                  const anyS: any = shipment as any;
+                  const anyS: unknown = shipment as any;
                   const addr = anyS.receiverAddress || anyS.receiver?.address;
                   if (!addr) {
                     return <Text type="secondary">暂无收货地址</Text>;
@@ -625,7 +625,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                   <Col span={24}>
                     <Text strong>标签：</Text>
                     <Space>
-                      {(shipment as any).tags.map((tag: any, index: number) => (
+                      {(shipment as any).tags.map((tag: unknown, index: number) => (
                         <Tag key={index}>{tag}</Tag>
                       ))}
                     </Space>
@@ -860,7 +860,9 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             message.success('司机已添加');
             setIsQuickAddDriverVisible(false);
             addDriverForm.resetFields();
-          } catch (e) {}
+          } catch (error) {
+    console.error(error);
+  }
         }}
         okText="保存"
         cancelText="取消"
@@ -922,7 +924,9 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             message.success('车辆已添加');
             setIsQuickAddVehicleVisible(false);
             addVehicleForm.resetFields();
-          } catch (e) {}
+          } catch (error) {
+    console.error(error);
+  }
         }}
         okText="保存"
         cancelText="取消"

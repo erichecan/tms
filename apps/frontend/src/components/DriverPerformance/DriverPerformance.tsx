@@ -332,7 +332,7 @@ const DriverPayroll: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: SalaryRecord) => (
+      render: (_: unknown, record: SalaryRecord) => (
         <Space>
           <Button
             type="link"

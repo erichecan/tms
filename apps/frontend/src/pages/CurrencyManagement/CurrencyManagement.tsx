@@ -242,7 +242,7 @@ const CurrencyManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Currency) => (
+      render: (_: unknown, record: Currency) => (
         <Space size="small">
           <Tooltip title="编辑">
             <Button 

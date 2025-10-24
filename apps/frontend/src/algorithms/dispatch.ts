@@ -33,7 +33,7 @@ interface DispatchResult {
 }
 
 // 从地址对象中提取坐标信息
-function extractCoordinates(location: any): { lat?: number; lng?: number; latitude?: number; longitude?: number } {
+function extractCoordinates(location: unknown): { lat?: number; lng?: number; latitude?: number; longitude?: number } {
   if (!location) return { lat: 43.7615, lng: -79.4635 };
   
   // 如果是 ShipmentAddress 类型

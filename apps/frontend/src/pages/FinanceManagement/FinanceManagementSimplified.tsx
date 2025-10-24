@@ -217,7 +217,7 @@ const FinanceManagementSimplified: React.FC = () => {
       title: '操作',
       key: 'action',
       width: 150,
-      render: (_: any, record: AccountItem) => (
+      render: (_: unknown, record: AccountItem) => (
         <Space size="small">
           {record.unpaidAmount > 0 && (
             <Button
@@ -303,7 +303,7 @@ const FinanceManagementSimplified: React.FC = () => {
       title: '操作',
       key: 'action',
       width: 150,
-      render: (_: any, record: AccountItem) => (
+      render: (_: unknown, record: AccountItem) => (
         <Space size="small">
           {record.unpaidAmount > 0 && (
             <Button

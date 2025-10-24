@@ -98,7 +98,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
     setActions(newActions);
   };
 
-  const handleUpdateAction = (index: number, field: keyof RuleAction, value: any) => {
+  const handleUpdateAction = (index: number, field: keyof RuleAction, value: unknown) => {
     const newActions = [...actions];
     newActions[index] = { ...newActions[index], [field]: value };
     setActions(newActions);

@@ -949,7 +949,7 @@ const PricingWizardPage: React.FC = () => {
         } else {
           message.error(response.data.error?.message || '创建失败');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         message.error(error.response?.data?.error?.message || '创建过程中发生错误');
       } finally {
         setLoading(false);

@@ -54,7 +54,7 @@ const ShipmentManagement: React.FC = () => {
 
   // 页面进入后，如果来自创建页且携带 autoAssignShipmentId，则自动打开指派弹窗 // 2025-10-01 14:07:30
   useEffect(() => {
-    const state: any = location.state;
+    const state: unknown = location.state;
     if (state?.autoAssignShipmentId && shipments.length > 0) {
       const target = shipments.find(s => s.id === state.autoAssignShipmentId);
       if (target) {
@@ -107,7 +107,7 @@ const ShipmentManagement: React.FC = () => {
   };
 
   // 转换后端数据格式到前端期望格式 - 2025-10-08 18:40:00
-  const transformShipmentData = (backendShipment: any): Shipment => {
+  const transformShipmentData = (backendShipment: unknown): Shipment => {
     const anyS = backendShipment || {};
     
     return {
@@ -218,7 +218,7 @@ const ShipmentManagement: React.FC = () => {
   };
 
   // 判断是否需要重新计费 - 2025-10-10 11:20:00
-  const shouldRecalculatePrice = (newValues: any, oldShipment: Shipment) => {
+  const shouldRecalculatePrice = (newValues: unknown, oldShipment: Shipment) => {
     return (
       newValues.cargoWeight !== oldShipment.weightKg ||
       newValues.cargoLength !== oldShipment.lengthCm ||
@@ -366,7 +366,7 @@ const ShipmentManagement: React.FC = () => {
             '智能调度自动分配'
           );
           successCount++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           failCount++;
           errors.push(`运单${result.shipmentNumber}: ${err.message || '分配失败'}`);
           console.error(`分配运单${result.shipmentNumber}失败:`, err);
@@ -483,7 +483,7 @@ const ShipmentManagement: React.FC = () => {
       title: '单号',
       key: 'numbers',
       width: 200,
-      render: (_: any, record: Shipment) => (
+      render: (_: unknown, record: Shipment) => (
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.4 }}>
           <Text code>{(record as any).shipmentNumber || (record as any).shipmentNo || record.id}</Text>
           <Text type={(record as any).tripNo ? undefined : 'secondary'} style={{ fontSize: 12 }}>
@@ -502,7 +502,7 @@ const ShipmentManagement: React.FC = () => {
       title: '司机 / 车辆',
       key: 'driverVehicle',
       width: 160, // 2025-10-02 16:05:30 缩窄单元格到160px
-      render: (_: any, record: Shipment) => {
+      render: (_: unknown, record: Shipment) => {
         const driverText = record.driverName || '未分配';
         const vehicleText = (record as any).vehiclePlate || (record as any).vehicleName || '未分配';
         const assigned = Boolean(record.driverId);
@@ -532,7 +532,7 @@ const ShipmentManagement: React.FC = () => {
     {
       title: '路线',
       key: 'route',
-      render: (_: any, record: Shipment) => {
+      render: (_: unknown, record: Shipment) => {
         const pickup = (record.pickupAddress as any)?.code || (record.pickupAddress as any)?.city || '起点';
         const delivery = (record.deliveryAddress as any)?.code || (record.deliveryAddress as any)?.city || '终点';
         return (
@@ -547,7 +547,7 @@ const ShipmentManagement: React.FC = () => {
     {
       title: '费用预估',
       key: 'estimatedCost',
-      render: (_: any, record: Shipment) => {
+      render: (_: unknown, record: Shipment) => {
         const amount = record.estimatedCost ?? (record as any).previewCost;
         return (
           <Badge status="processing" text={amount != null ? `${Math.round(Number(amount))} ` : '—'}>
@@ -571,7 +571,7 @@ const ShipmentManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Shipment) => (
+      render: (_: unknown, record: Shipment) => (
         <Space size="small">
           <Tooltip title="编辑运单">
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleView(record)} />
@@ -879,7 +879,7 @@ const ShipmentManagement: React.FC = () => {
                 style={{ width: '100%' }}
               >
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  {availableTrips.map((trip: any) => (
+                  {availableTrips.map((trip: unknown) => (
                     <Card key={trip.id} size="small">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>

@@ -17,7 +17,7 @@ const Login: React.FC = () => {
       await login(values);
       message.success('登录成功！');
       navigate('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 开发环境下设置临时 token 允许访问 - 2025-10-10 18:12:00
       if (import.meta.env.DEV) {
         console.log('[DEV MODE] Login error, setting temporary token for development...');

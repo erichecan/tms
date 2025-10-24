@@ -14,7 +14,7 @@ export interface Tenant {
   id: string;
   name: string;
   domain: string;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,7 +53,7 @@ export interface RuleCondition {
 
 export interface RuleAction {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface Rule {
@@ -120,8 +120,8 @@ export interface Shipment {
     insuranceAmount?: number;
   };
   estimatedCost?: number;                // 预估费用
-  pricingComponents: any[];              // 价格组件(预留)
-  pricingRuleTrace: any[];               // 规则追踪(预留)
+  pricingComponents: unknown[];              // 价格组件(预留)
+  pricingRuleTrace: unknown[];               // 规则追踪(预留)
   finalCost?: number;                    // 最终费用
   costCurrency: string;                  // 币种
   assignedDriverId?: string;             // 指派司机ID
@@ -160,7 +160,7 @@ export interface Shipment {
   shipmentNumber?: string;                // 运单编号
   pickupAddress?: ShipmentAddress;        // 取货地址
   deliveryAddress?: ShipmentAddress;      // 送货地址
-  currentLocation?: any;                  // 当前位置
+  currentLocation?: unknown;                  // 当前位置
   driverName?: string;                    // 司机姓名
   driverId?: string;                      // 司机ID
   tripNo?: string;                       // 行程编号
@@ -194,7 +194,7 @@ export interface Statement {
     start: string;
     end: string;
   };
-  items: any[];
+  items: unknown[];
   tenantId: string;
   createdAt: string;
   updatedAt: string;
@@ -209,7 +209,7 @@ export interface Customer {
   email?: string;
   defaultPickupAddress?: ShipmentAddress;    // 默认取货地址
   defaultDeliveryAddress?: ShipmentAddress;  // 默认送货地址
-  billingInfo?: any;                         // 账单信息(预留)
+  billingInfo?: unknown;                         // 账单信息(预留)
   createdAt: string;
   updatedAt: string;
 }
@@ -230,7 +230,7 @@ export interface Driver {
   level?: string;                    // 司机等级(预留)
   homeCity?: string;                 // 家乡城市(预留)
   currentTripId?: string;            // 当前行程ID
-  currentLocation?: any;             // 当前位置
+  currentLocation?: unknown;             // 当前位置
   createdAt: string;
   updatedAt: string;
 }
@@ -270,13 +270,13 @@ export interface Trip {
   status: TripStatus;
   driverId: string;                  // 司机ID
   vehicleId: string;                 // 车辆ID
-  legs: any[];                       // 行程段(预留)
+  legs: unknown[];                       // 行程段(预留)
   shipments: string[];               // 挂载的运单ID列表
   startTimePlanned?: string;         // 计划开始时间
   endTimePlanned?: string;           // 计划结束时间
   startTimeActual?: string;          // 实际开始时间
   endTimeActual?: string;            // 实际结束时间
-  routePath?: any;                   // 路线路径(预留)
+  routePath?: unknown;                   // 路线路径(预留)
   createdAt: string;
   updatedAt: string;
 }
@@ -329,7 +329,7 @@ export interface TimelineEvent {
   actorType: ActorType;
   actorId?: string;
   timestamp: string;
-  extra?: any;
+  extra?: unknown;
 }
 
 // POD接口

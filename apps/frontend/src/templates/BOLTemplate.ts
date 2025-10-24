@@ -8,7 +8,7 @@ export interface BOLTemplateOptions {
   receiverSignature?: string | null; // dataURL
 }
 
-export function generateBOLHtml(shipment: any, opts: BOLTemplateOptions = {}): string {
+export function generateBOLHtml(shipment: unknown, opts: BOLTemplateOptions = {}): string {
   // 统一字段读取：优先使用后端结构的 pickupAddress/deliveryAddress // 2025-10-06 00:25:40
   const sx = (v?: string) => v || '';
   const pickup = shipment.pickupAddress || {};

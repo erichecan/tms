@@ -275,7 +275,7 @@ const BatchImport: React.FC = () => {
 
             await shipmentsApi.createShipment(shipmentData);
             results.success++;
-          } catch (error: any) {
+          } catch (error: unknown) {
             results.failed++;
             results.errors.push(`第${i + index + 1}行: ${error.message || '导入失败'}`);
           }

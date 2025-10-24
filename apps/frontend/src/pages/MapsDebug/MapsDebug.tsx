@@ -199,7 +199,7 @@ const MapsDebug: React.FC = () => {
                   {geocodingResult.address_components && (
                     <div style={{ marginTop: '8px' }}>
                       <Text strong>地址组件:</Text>
-                      {geocodingResult.address_components.map((component: any, index: number) => (
+                      {geocodingResult.address_components.map((component: unknown, index: number) => (
                         <div key={index} style={{ marginLeft: '16px' }}>
                           <Text type="secondary">{component.long_name} ({component.short_name}) - {component.types.join(', ')}</Text>
                         </div>

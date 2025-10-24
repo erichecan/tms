@@ -31,7 +31,6 @@ import {
   QuestionCircleOutlined,
   CheckCircleOutlined,
   PlusOutlined,
-  DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
@@ -49,7 +48,7 @@ const ShipmentCreate: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<any[]>([]); // 2025-01-27 16:45:00 恢复客户列表状态
+  const [customers, setCustomers] = useState<unknown[]>([]); // 2025-01-27 16:45:00 恢复客户列表状态
   const [customersLoading, setCustomersLoading] = useState(false); // 2025-01-27 16:45:00 恢复客户加载状态
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
@@ -80,13 +79,12 @@ const ShipmentCreate: React.FC = () => {
   
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
-  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [submittedData, setSubmittedData] = useState<unknown>(null);
   const [estimatedDistance, setEstimatedDistance] = useState<number>(0); // 估算距离(公里)
   const [isManualDistance, setIsManualDistance] = useState<boolean>(false); // 是否手动输入距离
 
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerForm] = Form.useForm(); // 独立的客户表单实例 // 2025-10-01 21:55:00
   
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
@@ -442,7 +440,7 @@ const ShipmentCreate: React.FC = () => {
     
     if (newUnit !== unitSystem) {
       // 转换现有值
-      const newValues: any = {};
+      const newValues: unknown = {};
       ['cargoLength', 'cargoWidth', 'cargoHeight'].forEach(field => {
         const value = currentValues[field];
         if (value) {
@@ -609,7 +607,7 @@ const ShipmentCreate: React.FC = () => {
       clearCache();
       // 跳转到运单管理，并请求自动打开指派窗口 // 2025-10-01 14:06:30
       navigate('/admin/shipments', { state: { autoAssignShipmentId: createdId } });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create shipment:', error);
       message.error(error.response?.data?.message || '创建运单失败，请重试');
     } finally {
@@ -624,7 +622,7 @@ const ShipmentCreate: React.FC = () => {
   };
 
   // 计算预估费用（简化版）
-  const calculateEstimatedCost = (values: any): number => {
+  const calculateEstimatedCost = (values: unknown): number => {
     let baseCost = 100; // 基础费用
     
     // 根据距离计算
@@ -658,7 +656,7 @@ const ShipmentCreate: React.FC = () => {
   };
 
   // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-08 14:30:00 修复API参数格式
-  const calculateRealTimePricing = async (values: any) => {
+  const calculateRealTimePricing = async (values: unknown) => {
     // 检查是否有必要的字段（修复：使用正确的字段名）// 2025-10-08 17:10:00
     if (!values.shipperAddress1 || !values.receiverAddress1 || !values.cargoWeight) {
       // 静默返回，等待用户填写完所有必要字段 // 2025-10-08 17:10:00
@@ -711,13 +709,13 @@ const ShipmentCreate: React.FC = () => {
         // 解析费用明细 - 2025-10-10 17:40:00 优化解析逻辑
         const revenueBreakdown = pricingData.revenueBreakdown || [];
         const breakdown = {
-          baseFee: revenueBreakdown.find((r: any) => r.componentCode === 'BASE_FEE' || r.componentCode === 'BASE_PRICE')?.amount || 0,
-          distanceFee: revenueBreakdown.find((r: any) => r.componentCode === 'DISTANCE_FEE')?.amount || 0,
-          weightFee: revenueBreakdown.find((r: any) => r.componentCode === 'WEIGHT_FEE')?.amount || 0,
-          volumeFee: revenueBreakdown.find((r: any) => r.componentCode === 'VOLUME_FEE')?.amount || 0,
+          baseFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'BASE_FEE' || r.componentCode === 'BASE_PRICE')?.amount || 0,
+          distanceFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'DISTANCE_FEE')?.amount || 0,
+          weightFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'WEIGHT_FEE')?.amount || 0,
+          volumeFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'VOLUME_FEE')?.amount || 0,
           additionalFees: revenueBreakdown
-            .filter((r: any) => !['BASE_FEE', 'BASE_PRICE', 'DISTANCE_FEE', 'WEIGHT_FEE', 'VOLUME_FEE'].includes(r.componentCode))
-            .reduce((sum: number, r: any) => sum + (r.amount || 0), 0)
+            .filter((r: unknown) => !['BASE_FEE', 'BASE_PRICE', 'DISTANCE_FEE', 'WEIGHT_FEE', 'VOLUME_FEE'].includes(r.componentCode))
+            .reduce((sum: number, r: unknown) => sum + (r.amount || 0), 0)
         };
 
         setRealTimePricing({
@@ -743,7 +741,7 @@ const ShipmentCreate: React.FC = () => {
       // 如果响应格式不对，记录警告但继续降级 // 2025-10-10 17:40:00
       console.warn('⚠️ 计费引擎返回格式不符合预期，降级到本地计算', response.data);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('⚠️ 实时计费计算失败，降级到本地计算:', error);
       
       // 打印详细错误信息以便调试 - 2025-10-08 14:30:00
@@ -795,7 +793,7 @@ const ShipmentCreate: React.FC = () => {
   };
 
   // 表单字段变化处理 - 2025-10-08 11:25:00 修复字段名
-  const handleFormChange = (changedValues: any, allValues: any) => {
+  const handleFormChange = (changedValues: unknown, allValues: unknown) => {
     // 检查是否是需要触发计费的字段（修复：使用正确的字段名）
     const pricingFields = [
       'shipperAddress1', 'shipperCity', 'shipperProvince', 'shipperPostalCode',
@@ -957,7 +955,7 @@ const ShipmentCreate: React.FC = () => {
                 </div>
               )}
             >
-              {customers.map((customer: any) => {
+              {customers.map((customer: unknown) => {
                 const details = [customer.phone, customer.email].filter(Boolean).join(' / '); // 2025-10-02 16:55:10 同行展示并按存在与否拼接
                 return (
                   <Option key={customer.id} value={customer.id}>
@@ -1352,12 +1350,6 @@ const ShipmentCreate: React.FC = () => {
       </Row>
     </Card>
   );
-
-  // 货物信息模块：包裹子模块已移除，返回空节点 // 2025-10-01 14:10:10
-  const renderPackagesSection = () => null;
-
-  // 商品明细子模块已移除，返回空节点 // 2025-10-01 14:10:10
-  const renderItemsSection = () => null;
 
   const renderCargoSection = () => (
     <Card title="货物信息" style={{ marginBottom: 12 }}>

@@ -213,7 +213,7 @@ const VehicleMaintenance: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: unknown) => {
     try {
       const recordData = {
         ...values,

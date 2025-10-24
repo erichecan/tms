@@ -242,7 +242,7 @@ const CustomerManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Customer) => (
+      render: (_: unknown, record: Customer) => (
         <Space size="small">
           <Tooltip title="查看详情">
             <Button 
@@ -630,7 +630,7 @@ const CustomerManagement: React.FC = () => {
               title: '操作',
               key: 'action',
               width: 100,
-              render: (_: any, _record: Shipment) => ( // 2025-09-26 22:35:00 修复未使用参数
+              render: (_: unknown, _record: Shipment) => ( // 2025-09-26 22:35:00 修复未使用参数
                 <Space size="small">
                   <Tooltip title="查看详情">
                     <Button type="text" icon={<EyeOutlined />} size="small" />

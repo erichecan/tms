@@ -29,9 +29,9 @@ api.interceptors.request.use(
 
 // Token 刷新状态 - 2025-10-10 18:15:00
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: unknown[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -101,7 +101,7 @@ api.interceptors.response.use(
 // Auth related API calls
 export const authApi = {
   login: (credentials: UserLoginPayload) => api.post<AuthResponse>('/auth/login', credentials),
-  register: (userData: any) => api.post('/auth/register', userData),
+  register: (userData: unknown) => api.post('/auth/register', userData),
   logout: () => api.post('/auth/logout'),
   refreshToken: () => api.post('/auth/refresh'),
   getProfile: () => api.get('/auth/profile'),
@@ -109,20 +109,20 @@ export const authApi = {
 
 // Rule related API calls
 export const rulesApi = {
-  getRules: (params?: any) => api.get('/rules', { params }),
-  createRule: (ruleData: any) => api.post('/rules', ruleData),
-  updateRule: (ruleId: string, ruleData: any) => api.put(`/rules/${ruleId}`, ruleData),
+  getRules: (params?: unknown) => api.get('/rules', { params }),
+  createRule: (ruleData: unknown) => api.post('/rules', ruleData),
+  updateRule: (ruleId: string, ruleData: unknown) => api.put(`/rules/${ruleId}`, ruleData),
   deleteRule: (ruleId: string) => api.delete(`/rules/${ruleId}`),
-  fuzzyMatchRules: (ruleData: any) => api.post('/rules/fuzzy-match', ruleData),
-  detectRuleConflicts: (ruleData: any) => api.post('/rules/detect-conflicts', ruleData),
+  fuzzyMatchRules: (ruleData: unknown) => api.post('/rules/fuzzy-match', ruleData),
+  detectRuleConflicts: (ruleData: unknown) => api.post('/rules/detect-conflicts', ruleData),
 };
 
 // Shipment related API calls
 export const shipmentsApi = {
-  getShipments: (params?: any) => api.get('/shipments', { params }),
-  createShipment: (shipmentData: any) => api.post('/shipments', shipmentData),
+  getShipments: (params?: unknown) => api.get('/shipments', { params }),
+  createShipment: (shipmentData: unknown) => api.post('/shipments', shipmentData),
   getShipmentDetails: (shipmentId: string) => api.get(`/shipments/${shipmentId}`),
-  updateShipment: (shipmentId: string, shipmentData: any) => api.put(`/shipments/${shipmentId}`, shipmentData),
+  updateShipment: (shipmentId: string, shipmentData: unknown) => api.put(`/shipments/${shipmentId}`, shipmentData),
   deleteShipment: (shipmentId: string) => api.delete(`/shipments/${shipmentId}`),
   updateShipmentStatus: (shipmentId: string, status: string) => api.patch(`/shipments/${shipmentId}/status`, { status }),
   // 运单状态流转API
@@ -140,38 +140,38 @@ export const shipmentsApi = {
   cancelShipment: (shipmentId: string, reason: string) => 
     api.post(`/shipments/${shipmentId}/cancel`, { reason }),
   // 获取运单统计
-  getShipmentStats: (params?: any) => api.get('/shipments/stats', { params }),
+  getShipmentStats: (params?: unknown) => api.get('/shipments/stats', { params }),
   // 获取司机运单列表
-  getDriverShipments: (driverId: string, params?: any) => 
+  getDriverShipments: (driverId: string, params?: unknown) => 
     api.get(`/shipments/driver/${driverId}`, { params }),
 };
 
 // Pricing related API calls
 export const pricingApi = {
-  getQuote: (quoteData: any) => api.post('/pricing/quote', quoteData),
-  calculateCost: (costData: any) => api.post('/pricing/calculate', costData),
-  getPricingRules: (params?: any) => api.get('/pricing/rules', { params }),
+  getQuote: (quoteData: unknown) => api.post('/pricing/quote', quoteData),
+  calculateCost: (costData: unknown) => api.post('/pricing/calculate', costData),
+  getPricingRules: (params?: unknown) => api.get('/pricing/rules', { params }),
 };
 
 // Finance related API calls
 export const financeApi = {
-  getFinancialRecords: (params?: any) => api.get('/finance/records', { params }),
+  getFinancialRecords: (params?: unknown) => api.get('/finance/records', { params }),
   // 2025-10、02 18:45:00 - 修复结算单生成API参数格式
   generateCustomerStatement: (customerId: string, period: { start: string, end: string }) => 
     api.post('/finance/statements/customer', { customerId, startDate: period.start, endDate: period.end }),
   generateDriverPayrollStatement: (driverId: string, period: { start: string, end: string }) => 
     api.post('/finance/statements/driver', { driverId, startDate: period.start, endDate: period.end }),
-  getStatements: (params?: any) => api.get('/finance/statements', { params }),
+  getStatements: (params?: unknown) => api.get('/finance/statements', { params }),
   getStatementDetails: (statementId: string) => api.get(`/finance/statements/${statementId}`),
   downloadStatement: (statementId: string) => api.get(`/finance/statements/${statementId}/download`),
 };
 
 // Trip related API calls - 2025-01-27 16:45:00 新增行程管理API
 export const tripsApi = {
-  getTrips: (params?: any) => api.get('/trips', { params }),
+  getTrips: (params?: unknown) => api.get('/trips', { params }),
   getTrip: (id: string) => api.get(`/trips/${id}`),
-  createTrip: (data: any) => api.post('/trips', data),
-  updateTrip: (id: string, data: any) => api.put(`/trips/${id}`, data),
+  createTrip: (data: unknown) => api.post('/trips', data),
+  updateTrip: (id: string, data: unknown) => api.put(`/trips/${id}`, data),
   deleteTrip: (id: string) => api.delete(`/trips/${id}`),
   mountShipmentsToTrip: (id: string, shipmentIds: string[]) => 
     api.post(`/trips/${id}/shipments`, { shipmentIds }),
@@ -181,9 +181,9 @@ export const tripsApi = {
 
 // Customer related API calls
 export const customersApi = {
-  getCustomers: (params?: any) => api.get('/customers', { params }),
-  createCustomer: (customerData: any) => api.post('/customers', customerData),
-  updateCustomer: (customerId: string, customerData: any) => api.put(`/customers/${customerId}`, customerData),
+  getCustomers: (params?: unknown) => api.get('/customers', { params }),
+  createCustomer: (customerData: unknown) => api.post('/customers', customerData),
+  updateCustomer: (customerId: string, customerData: unknown) => api.put(`/customers/${customerId}`, customerData),
   deleteCustomer: (customerId: string) => api.delete(`/customers/${customerId}`),
   getCustomerDetails: (customerId: string) => api.get(`/customers/${customerId}`),
   searchCustomers: (query: string) => api.get('/customers/search', { params: { q: query } }),
@@ -191,36 +191,36 @@ export const customersApi = {
 
 // Driver related API calls
 export const driversApi = {
-  getDrivers: (params?: any) => api.get('/drivers', { params }),
-  createDriver: (driverData: any) => api.post('/drivers', driverData),
-  updateDriver: (driverId: string, driverData: any) => api.put(`/drivers/${driverId}`, driverData),
+  getDrivers: (params?: unknown) => api.get('/drivers', { params }),
+  createDriver: (driverData: unknown) => api.post('/drivers', driverData),
+  updateDriver: (driverId: string, driverData: unknown) => api.put(`/drivers/${driverId}`, driverData),
   deleteDriver: (driverId: string) => api.delete(`/drivers/${driverId}`),
   getDriverDetails: (driverId: string) => api.get(`/drivers/${driverId}`),
 };
 
 // Vehicle related API calls
 export const vehiclesApi = {
-  getVehicles: (params?: any) => api.get('/vehicles', { params }),
-  createVehicle: (vehicleData: any) => api.post('/vehicles', vehicleData),
-  updateVehicle: (vehicleId: string, vehicleData: any) => api.put(`/vehicles/${vehicleId}`, vehicleData),
+  getVehicles: (params?: unknown) => api.get('/vehicles', { params }),
+  createVehicle: (vehicleData: unknown) => api.post('/vehicles', vehicleData),
+  updateVehicle: (vehicleId: string, vehicleData: unknown) => api.put(`/vehicles/${vehicleId}`, vehicleData),
   deleteVehicle: (vehicleId: string) => api.delete(`/vehicles/${vehicleId}`),
   getVehicleDetails: (vehicleId: string) => api.get(`/vehicles/${vehicleId}`),
 };
 
 // Tenant related API calls
 export const tenantsApi = {
-  getTenants: (params?: any) => api.get('/tenants', { params }),
-  createTenant: (tenantData: any) => api.post('/tenants', tenantData),
-  updateTenant: (tenantId: string, tenantData: any) => api.put(`/tenants/${tenantId}`, tenantData),
+  getTenants: (params?: unknown) => api.get('/tenants', { params }),
+  createTenant: (tenantData: unknown) => api.post('/tenants', tenantData),
+  updateTenant: (tenantId: string, tenantData: unknown) => api.put(`/tenants/${tenantId}`, tenantData),
   deleteTenant: (tenantId: string) => api.delete(`/tenants/${tenantId}`),
   getTenantDetails: (tenantId: string) => api.get(`/tenants/${tenantId}`),
 };
 
 // User related API calls
 export const usersApi = {
-  getUsers: (params?: any) => api.get('/users', { params }),
-  createUser: (userData: any) => api.post('/users', userData),
-  updateUser: (userId: string, userData: any) => api.put(`/users/${userId}`, userData),
+  getUsers: (params?: unknown) => api.get('/users', { params }),
+  createUser: (userData: unknown) => api.post('/users', userData),
+  updateUser: (userId: string, userData: unknown) => api.put(`/users/${userId}`, userData),
   deleteUser: (userId: string) => api.delete(`/users/${userId}`),
   getUserDetails: (userId: string) => api.get(`/users/${userId}`),
 };
@@ -228,9 +228,9 @@ export const usersApi = {
 // Dashboard related API calls
 export const dashboardApi = {
   getStats: () => api.get('/dashboard/stats'),
-  getRecentShipments: (params?: any) => api.get('/dashboard/recent-shipments', { params }),
-  getRevenueChart: (params?: any) => api.get('/dashboard/revenue-chart', { params }),
-  getShipmentChart: (params?: any) => api.get('/dashboard/shipment-chart', { params }),
+  getRecentShipments: (params?: unknown) => api.get('/dashboard/recent-shipments', { params }),
+  getRevenueChart: (params?: unknown) => api.get('/dashboard/revenue-chart', { params }),
+  getShipmentChart: (params?: unknown) => api.get('/dashboard/shipment-chart', { params }),
 };
 
 // File upload related API calls
@@ -251,7 +251,7 @@ export const fileApi = {
 
 // Notification related API calls
 export const notificationsApi = {
-  getNotifications: (params?: any) => api.get('/notifications', { params }),
+  getNotifications: (params?: unknown) => api.get('/notifications', { params }),
   markAsRead: (notificationId: string) => api.patch(`/notifications/${notificationId}/read`),
   markAllAsRead: () => api.patch('/notifications/read-all'),
   deleteNotification: (notificationId: string) => api.delete(`/notifications/${notificationId}`),
@@ -259,14 +259,14 @@ export const notificationsApi = {
 
 // Audit log related API calls
 export const auditApi = {
-  getAuditLogs: (params?: any) => api.get('/audit/logs', { params }),
+  getAuditLogs: (params?: unknown) => api.get('/audit/logs', { params }),
   getAuditLogDetails: (logId: string) => api.get(`/audit/logs/${logId}`),
 };
 
 // System settings related API calls
 export const settingsApi = {
   getSettings: () => api.get('/settings'),
-  updateSettings: (settings: any) => api.put('/settings', settings),
+  updateSettings: (settings: unknown) => api.put('/settings', settings),
   getSystemInfo: () => api.get('/settings/system-info'),
 };
 

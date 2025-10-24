@@ -95,7 +95,7 @@ const FinanceManagement: React.FC = () => {
     }
   };
 
-  const handleGenerateStatement = async (values: any) => {
+  const handleGenerateStatement = async (values: unknown) => {
     try {
       const { entityId, period } = values;
       const [start, end] = period;
@@ -237,7 +237,7 @@ const FinanceManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any) => (
+      render: (_: unknown) => (
         <Space size="middle">
           <Tooltip title="查看详情">
             <Button

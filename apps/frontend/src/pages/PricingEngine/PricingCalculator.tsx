@@ -60,7 +60,7 @@ interface PricingDetail {
   amount: number;
   currency: string;
   formula: string;
-  inputValues: Record<string, any>;
+  inputValues: Record<string, unknown>;
   sequence: number;
   ruleId?: string;
 }
@@ -69,9 +69,9 @@ interface PricingTemplate {
   id: string;
   name: string;
   type: string;
-  businessConditions: any;
-  pricingRules: any[];
-  driverRules: any[];
+  businessConditions: unknown;
+  pricingRules: unknown[];
+  driverRules: unknown[];
 }
 
 const PricingCalculatorPage: React.FC = () => {
@@ -163,7 +163,7 @@ const PricingCalculatorPage: React.FC = () => {
     }
   ];
 
-  const handleScenarioSelect = (scenario: any) => {
+  const handleScenarioSelect = (scenario: unknown) => {
     form.setFieldsValue(scenario.data);
     setSelectedScenario(scenario.key);
     setError('');
@@ -213,7 +213,7 @@ const PricingCalculatorPage: React.FC = () => {
       } else {
         setError(response.data.error?.message || '计算失败');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('计费计算错误:', error);
       setError(error.response?.data?.error?.message || '计算过程中发生错误');
     } finally {

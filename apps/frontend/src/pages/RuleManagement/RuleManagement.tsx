@@ -175,7 +175,7 @@ const RuleManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Rule) => (
+      render: (_: unknown, record: Rule) => (
         <Space size="middle">
           <Tooltip title="查看详情">
             <Button
