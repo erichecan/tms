@@ -293,7 +293,7 @@ const FinanceManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* 2025-10-02 18:10:00 - 添加标签页来整合财务报表功能 */}
+      
       <Tabs 
         defaultActiveKey="records" 
         size="large"
@@ -308,7 +308,7 @@ const FinanceManagement: React.FC = () => {
             ),
             children: (
               <>
-                {/* 财务概览 */}
+                
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
           <Card className="stats-card">
@@ -432,7 +432,7 @@ const FinanceManagement: React.FC = () => {
         ]}
       />
 
-      {/* 生成结算单模态框 */}
+      
       <Modal
         title={`生成${statementType === StatementType.CUSTOMER ? '客户对账单' : '司机薪酬单'}`}
         open={isStatementModalVisible}

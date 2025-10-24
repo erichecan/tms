@@ -256,7 +256,7 @@ const RuleManagement: React.FC = () => {
         />
       </Card>
 
-      {/* 规则编辑器 */}
+      
       <Modal
         title={editingRule ? '编辑规则' : '新建规则'}
         open={isEditorVisible}
@@ -272,7 +272,7 @@ const RuleManagement: React.FC = () => {
         />
       </Modal>
 
-      {/* 规则详情查看 */}
+      
       <Modal
         title="规则详情"
         open={isViewModalVisible}

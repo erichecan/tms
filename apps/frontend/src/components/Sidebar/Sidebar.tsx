@@ -182,7 +182,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         zIndex: 1000,
       }}
     >
-      {/* Logo区域 */}
+      
       <div
         style={{
           height: '64px',
@@ -205,7 +205,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         )}
       </div>
 
-      {/* 导航菜单 */}
+      
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
@@ -220,7 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         }}
       />
 
-      {/* 收窄/展开按钮 */}
+      
       <div
         style={{
           position: 'absolute',

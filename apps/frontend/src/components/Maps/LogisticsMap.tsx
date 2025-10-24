@@ -277,7 +277,7 @@ const LogisticsMap: React.FC<LogisticsMapProps> = ({
         />
       </div>
       
-      {/* 路线信息面板 */}
+      
       {routeData && !isLoading && !error && (
         <div className="route-info-panel">
           <div className="route-summary">

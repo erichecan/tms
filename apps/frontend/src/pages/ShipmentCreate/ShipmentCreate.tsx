@@ -868,7 +868,7 @@ const ShipmentCreate: React.FC = () => {
   // 渲染订单元信息部分：仅保留销售渠道与销售备注 // 2025-10-01 10:22:30
   const renderOrderInfoSection = () => (
     <Card title="订单元信息" style={{ marginBottom: 12 }}>
-      {/* 上下排列字段，控制垂直间距为8px // 2025-10-01 13:35:20 */}
+      
       <Row gutter={[0, 8]}>
         <Col span={24}>
           <Form.Item
@@ -920,7 +920,7 @@ const ShipmentCreate: React.FC = () => {
       }
       style={{ marginBottom: 12 }}
     >
-      {/* 基础信息排版调整：客户选择与客户等级同一行；联系人、电话、邮箱同一行 // 2025-10-01 13:52:20 */}
+      
       <Row gutter={[8, 8]}>
         <Col span={16}>
           <Form.Item
@@ -1037,7 +1037,7 @@ const ShipmentCreate: React.FC = () => {
       style={{ marginBottom: 12 }}
     >
       <Row gutter={[16, 8]}>
-        {/* 发货人信息 - 左侧 */}
+        
         <Col span={12}>
           <Card size="small" title={
             <span>
@@ -1176,7 +1176,7 @@ const ShipmentCreate: React.FC = () => {
           </Card>
         </Col>
             
-        {/* 收货人信息 - 右侧 */}
+        
         <Col span={12}>
           <Card size="small" title={
             <span>
@@ -1316,7 +1316,7 @@ const ShipmentCreate: React.FC = () => {
           </Card>
         </Col>
 
-        {/* 地址类型和距离 - 底部 */}
+        
         <Col span={24}>
           <Divider style={{ margin: '8px 0' }} />
           <Row gutter={[12, 8]}>
@@ -1499,7 +1499,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
         
-        {/* 商品明细子模块已移除 // 2025-10-01 13:48:30 */}
+        
         <Col span={12}>
           <Form.Item name="cargoIsFragile" label="易碎品 (Fragile)" valuePropName="checked">
             <Switch />
@@ -1838,87 +1838,25 @@ const ShipmentCreate: React.FC = () => {
                 needSignature: false,
               }}
             >
-              {/* 单页布局 - 显示所有模块 */}
+              
               {renderBasicInfoSection()}
               {renderAddressTimeSection()}
-              {/* 根据产品文档移除包裹信息与商品明细模块 // 2025-10-01 13:49:10 */}
+              
               {renderCargoSection()}
               {renderSafetyComplianceSection()}
               {renderServicesSection()}
 
-              {/* 实时费用预估组件 - 2025-10-01 21:40:00 */}
+              
               {renderRealTimePricing()}
 
-              {/* 地图和路径显示 - 2025-10-10 17:00:00 */}
-              {/* 一期版本暂时禁用地图相关功能 */}
-              {/* {(pickupAddressInfo || deliveryAddressInfo) && (
-                <Card 
-                  title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>📍 路径预览与费用计算</span>
-                      {isCalculatingRoute && <Spin size="small" />}
-                    </div>
-                  } 
-                  style={{ marginBottom: 12 }}
-                >
-                  {/* ============================================================================ */}
-                  {/* 地图组件渲染 - 二期开发功能 (2025-01-27 18:05:00) */}
-                  {/* 状态: 已注释，二期恢复 */}
-                  {/* 说明: 以下地图组件在一期版本中暂时不使用，二期时取消注释 */}
-                  {/* ============================================================================ */}
-                  {/* <Row gutter={16}>
-                    <Col span={16}>
-                      <GoogleMap
-                        center={mapCenter}
-                        zoom={11}
-                        markers={mapMarkers}
-                        routes={mapRoutes}
-                        height="400px"
-                      />
-                    </Col>
-                    <Col span={8}>
-                      {routeInfo && (
-                        <div>
-                          <Title level={5}>路径信息</Title>
-                          <Divider style={{ margin: '12px 0' }} />
-                          <Space direction="vertical" style={{ width: '100%' }} size="small">
-                            <div>
-                              <Text type="secondary">总距离：</Text>
-                              <Text strong>{routeInfo.optimalRoute.distance.toFixed(1)} km</Text>
-                            </div>
-                            <div>
-                              <Text type="secondary">预计时间：</Text>
-                              <Text strong>{Math.round(routeInfo.optimalRoute.duration)} 分钟</Text>
-                            </div>
-                            <div>
-                              <Text type="secondary">燃油成本：</Text>
-                              <Text strong>${routeInfo.optimalRoute.fuelCost.toFixed(2)}</Text>
-                            </div>
-                            <Divider style={{ margin: '12px 0' }} />
-                            <div>
-                              <Text type="secondary">起点：</Text>
-                              <div style={{ marginTop: 4 }}>
-                                <Text ellipsis style={{ fontSize: '12px' }}>
-                                  {pickupAddressInfo?.formattedAddress}
-                                </Text>
-                              </div>
-                            </div>
-                            <div>
-                              <Text type="secondary">终点：</Text>
-                              <div style={{ marginTop: 4 }}>
-                                <Text ellipsis style={{ fontSize: '12px' }}>
-                                  {deliveryAddressInfo?.formattedAddress}
-                                </Text>
-                              </div>
-                            </div>
-                          </Space>
-                        </div>
-                      )}
-                      {/* 一期版本暂时禁用地图相关提示 */}
-                      {/*                     </Col>
-                  </Row> */}
+              
+              
+              
                   
-                  {/* 一期版本距离估算显示 */}
+                  
+                  
+                  
+                  
                   <Row gutter={16}>
                     <Col span={24}>
                       <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f5f5f5', borderRadius: '8px' }}>
@@ -1941,13 +1879,11 @@ const ShipmentCreate: React.FC = () => {
                       </div>
                     </Col>
                   </Row>
-                </Card>
-              )} */}
 
-              {/* 2025-10-01 15:00:45 将"订单元信息"模块移动到创建页最底部 */}
+              
               {renderOrderInfoSection()}
 
-              {/* 提交按钮 */}
+              
               <div style={{ textAlign: 'center', marginTop: '24px' }}>
                 <Space size="large">
                   <Button
@@ -1967,7 +1903,7 @@ const ShipmentCreate: React.FC = () => {
           </div>
         </Card>
 
-      {/* 快速创建客户模态框 - 与客户管理页面保持一致 // 2025-09-30 10:45:00 */}
+      
       <Modal
         title="新增客户"
         open={isAddCustomerModalVisible}

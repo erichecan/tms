@@ -333,7 +333,7 @@ const RouteOptimization: React.FC = () => {
 
   return (
     <div>
-      {/* 优化控制面板 */}
+      
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={6}>
@@ -400,7 +400,7 @@ const RouteOptimization: React.FC = () => {
           </Col>
         </Row>
 
-        {/* 优化选项 */}
+        
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} sm={8} md={6}>
             <Space>
@@ -435,7 +435,7 @@ const RouteOptimization: React.FC = () => {
         </Row>
       </Card>
 
-      {/* 优化结果 */}
+      
       {optimizationResult && (
         <Card title="优化结果" style={{ marginBottom: 24 }}>
           <Row gutter={[16, 16]}>
@@ -483,7 +483,7 @@ const RouteOptimization: React.FC = () => {
         </Card>
       )}
 
-      {/* 优化后的路线列表 */}
+      
       <Card title="优化后的路线" extra={<BranchesOutlined />}>
         <Table
           columns={routeColumns}
@@ -495,7 +495,7 @@ const RouteOptimization: React.FC = () => {
         />
       </Card>
 
-      {/* 高级配置模态框 */}
+      
       <Modal
         title="高级优化配置"
         open={isConfigModalVisible}

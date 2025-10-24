@@ -402,36 +402,14 @@ const FleetManagement: React.FC = () => {
                   
                   <Col span={10}>
                     <Card title="车队实时位置">
-                      {/* ============================================================================ */}
-                      {/* 地图组件渲染 - 二期开发功能 (2025-01-27 18:10:00) */}
-                      {/* 状态: 已注释，二期恢复 */}
-                      {/* 说明: 以下地图组件在一期版本中暂时不使用，二期时取消注释 */}
-                      {/* ============================================================================ */}
-                      {/* <GoogleMap
-                        center={mapCenter}
-                        zoom={12}
-                        height="600px"
-                        markers={mapMarkers}
-                        onMarkerClick={(markerId) => {
-                          // 2025-10-10 17:10:00 处理地图标记点击事件
-                          if (markerId.startsWith('trip-')) {
-                            const tripId = markerId.replace('trip-', '');
-                            const trip = inTransitTrips.find((t: Trip) => t.id === tripId);
-                            if (trip) {
-                              setSelectedTrip(trip);
-                              message.info(`查看行程: ${trip.tripNo || trip.id}`);
-                            }
-                          } else if (markerId.startsWith('vehicle-')) {
-                            const vehicleId = markerId.replace('vehicle-', '');
-                            const vehicle = availableVehicles.find((v: Vehicle) => v.id === vehicleId);
-                            if (vehicle) {
-                              message.info(`车辆: ${vehicle.plateNumber} - 状态: ${vehicle.status}`);
-                            }
-                          }
-                        }}
-                      /> */}
                       
-                      {/* 一期版本替代显示 */}
+                      
+                      
+                      
+                      
+                      
+                      
+                      
                       <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f5f5f5', borderRadius: '8px' }}>
                         <EnvironmentOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
                         <Title level={5}>地图功能将在二期版本提供</Title>

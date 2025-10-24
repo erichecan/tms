@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
         <p className="page-description" style={{ margin: 0, color: '#666' }}>TMS智能物流运营平台 - 概览与监控</p>
       </div>
 
-      {/* 2025-10-02 18:25:00 - 添加标签页来整合性能监控功能 */}
+      
       <Tabs 
         defaultActiveKey="overview" 
         size="large"
@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
             ),
             children: (
               <>
-                {/* 统计卡片 */}
+                
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   <Col xs={24} sm={12} lg={6}>
                     <Card className="stats-card">
@@ -231,7 +231,7 @@ const Dashboard: React.FC = () => {
                   </Col>
                 </Row>
 
-                {/* 收入统计 */}
+                
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   <Col xs={24} lg={12}>
                     <Card className="content-card">
@@ -259,7 +259,7 @@ const Dashboard: React.FC = () => {
                   </Col>
                 </Row>
 
-                {/* 最近运单 */}
+                
                 <Card
                   className="content-card"
                   title="最近运单"

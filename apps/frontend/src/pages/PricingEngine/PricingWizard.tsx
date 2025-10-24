@@ -300,7 +300,7 @@ const PricingWizardPage: React.FC = () => {
       </Title>
       
       <Form form={form} layout="vertical">
-        {/* 取货地点配置 */}
+        
         <Card size="small" title={<><EnvironmentOutlined /> 取货地点配置</>} style={{ marginBottom: '24px' }}>
           <Row gutter={16}>
             <Col span={12}>
@@ -332,7 +332,7 @@ const PricingWizardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 送货地点配置 */}
+        
         <Card size="small" title={<><TruckOutlined /> 送货地点配置</>} style={{ marginBottom: '24px' }}>
           <Row gutter={16}>
             <Col span={12}>
@@ -364,7 +364,7 @@ const PricingWizardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 时间与距离配置 */}
+        
         <Card size="small" title={<><ClockCircleOutlined /> 时间与距离配置</>}>
           <Row gutter={16}>
             <Col span={8}>
@@ -440,7 +440,7 @@ const PricingWizardPage: React.FC = () => {
       </Title>
       
       <Form form={form} layout="vertical">
-        {/* 基础费用 */}
+        
         <Card size="small" title={<><DollarCircleOutlined /> 基础费用</>} style={{ marginBottom: '24px' }}>
           <Row gutter={16}>
             <Col span={12}>
@@ -469,7 +469,7 @@ const PricingWizardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 阶梯距离费 */}
+        
         <Card size="small" title={<><EnvironmentOutlined /> 阶梯距离费</>} style={{ marginBottom: '24px' }}>
           <Form.Item name="distanceTierEnabled" initialValue={wizardData.distanceTierEnabled}>
             <Radio.Group>
@@ -521,7 +521,7 @@ const PricingWizardPage: React.FC = () => {
           )}
         </Card>
 
-        {/* 等候费用 */}
+        
         <Card size="small" title={<><ClockCircleOutlined /> 等候费用</>} style={{ marginBottom: '24px' }}>
           <Form.Item name="waitingFeeEnabled" initialValue={wizardData.waitingFeeEnabled}>
             <Radio.Group>
@@ -573,7 +573,7 @@ const PricingWizardPage: React.FC = () => {
           )}
         </Card>
 
-        {/* 板费配置 */}
+        
         <Card size="small" title={<><ContainerOutlined /> 额外费用配置</>}>
           <Form.Item name="palletFeeEnabled" initialValue={wizardData.palletFeeEnabled}>
             <Radio.Group>
@@ -625,7 +625,7 @@ const PricingWizardPage: React.FC = () => {
       </Title>
       
       <Form form={form} layout="vertical">
-        {/* 基础工资 */}
+        
         <Card size="small" title={<><TeamOutlined /> 基础薪酬</>} style={{ marginBottom: '24px' }}>
           <Row gutter={16}>
             <Col span={12}>
@@ -655,7 +655,7 @@ const PricingWizardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 距离奖金 */}
+        
         <Card size="small" title={<><EnvironmentOutlined /> 绩效奖金</>} style={{ marginBottom: '24px' }}>
           <Form.Item name="distanceBonusEnabled" initialValue={wizardData.distanceBonusEnabled}>
             <Radio.Group>
@@ -693,7 +693,7 @@ const PricingWizardPage: React.FC = () => {
           )}
         </Card>
 
-        {/* 等候奖金 */}
+        
         <Card size="small" title={<><ClockCircleOutlined /> 等候补偿</>} style={{ marginBottom: '24px' }}>
           <Form.Item name="waitingBonusEnabled" initialValue={wizardData.waitingBonusEnabled}>
             <Radio.Group>
@@ -731,7 +731,7 @@ const PricingWizardPage: React.FC = () => {
           )}
         </Card>
 
-        {/* 分成机制 */}
+        
         <Card size="small" title={<><HeartOutlined /> 分成机制</>}>
           <Form.Item name="driverSharingEnabled" initialValue={wizardData.driverSharingEnabled}>
             <Radio.Group>
@@ -783,7 +783,7 @@ const PricingWizardPage: React.FC = () => {
       </Title>
       
       <Form form={form} layout="vertical">
-        {/* 仓库成本 */}
+        
         <Card size="small" title={<><BankOutlined /> 仓库运营成本</>} style={{ marginBottom: '24px' }}>
           <Row gutter={16}>
             <Col span={12}>
@@ -812,7 +812,7 @@ const PricingWizardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 车队成本 */}
+        
         <Card size="small" title={<><TruckOutlined /> 车队运营成本</>} style={{ marginBottom: '24px' }}>
           <Form.Item name="fleetCostAllocation" initialValue={wizardData.fleetCostAllocation}>
             <Radio.Group>
@@ -849,7 +849,7 @@ const PricingWizardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 成本分摊说明 */}
+        
         <Alert 
           message="成本分摊流程" 
           description={
@@ -1004,7 +1004,7 @@ const PricingWizardPage: React.FC = () => {
           </Form.Item>
         </Form>
 
-        {/* 预览创建的内容 */}
+        
         <Divider>模板预览</Divider>
         <Alert 
           message="创建的计费规则包含以下内容" 

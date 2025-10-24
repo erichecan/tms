@@ -145,7 +145,7 @@ export async function optimizedGreedyDispatch(input: DispatchInput): Promise<Dis
   }
   
   let usedGoogleMaps = false;
-  let distanceMatrix: number[][] | null = null;
+  const distanceMatrix: number[][] | null = null;
   
   try {
     // 一期版本暂时禁用 Google Maps Distance Matrix API

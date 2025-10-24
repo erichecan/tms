@@ -117,7 +117,7 @@ const MapsDemo: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* 地址输入区域 */}
+            
             <Card title="地址配置" size="small" style={{ marginBottom: 16 }}>
               <Row gutter={16}>
                 <Col span={12}>
@@ -206,7 +206,7 @@ const MapsDemo: React.FC = () => {
               </div>
             </Card>
 
-            {/* 地图显示区域 */}
+            
             <Card title="物流路径地图" size="small">
               <LogisticsMap
                 pickupAddress={pickupAddress || undefined}
@@ -224,7 +224,7 @@ const MapsDemo: React.FC = () => {
               />
             </Card>
 
-            {/* 路线信息显示 */}
+            
             {calculatedRoute && (
               <Card title="路线详细信息" size="small" style={{ marginTop: 16 }}>
                 <Row gutter={16}>
@@ -263,7 +263,7 @@ const MapsDemo: React.FC = () => {
               </Card>
             )}
 
-            {/* 功能说明 */}
+            
             <Card title="功能说明" size="small" style={{ marginTop: 16 }}>
               <div className="feature-description">
                 <h4>已实现的功能:</h4>
