@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, createBrowserRouter } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -67,6 +67,7 @@ function App() {
             <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/shipments" element={<ProtectedRoute><PageLayout><ShipmentManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/admin/shipments/create" element={<ProtectedRoute><PageLayout><ShipmentCreate /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagementSimplified /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/driver-salary" element={<ProtectedRoute><PageLayout><DriverSalarySimplified /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
