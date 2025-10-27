@@ -85,6 +85,7 @@ const ShipmentCreate: React.FC = () => {
 
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<unknown>(null); // 2025-10-27 重新添加以修复未定义错误
   const [customerForm] = Form.useForm(); // 独立的客户表单实例 // 2025-10-01 21:55:00
   
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
@@ -583,7 +584,7 @@ const ShipmentCreate: React.FC = () => {
         deliveryInstructions: values.deliveryInstructions,
         specialRequirements: values.specialRequirements || [],
         status: 'pending',
-        estimatedCost: calculateEstimatedCost(values),
+        estimatedCost: realTimePricing.totalCost, // 2025-10-27 修复：使用实时计费数据而非calculateEstimatedCost
       };
 
       setSubmittedData(shipmentData);
@@ -1767,7 +1768,7 @@ const ShipmentCreate: React.FC = () => {
             <Col span={24}>
               <Title level={5}>费用预估</Title>
               <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>
-                ${submittedData.estimatedCost}
+                ${realTimePricing.totalCost} {/* 2025-10-27 修复：使用实时计费数据而非submittedData中的旧数据 */}
               </Text>
             </Col>
           </Row>

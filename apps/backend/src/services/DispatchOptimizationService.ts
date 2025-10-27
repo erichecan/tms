@@ -503,7 +503,7 @@ export class DispatchOptimizationService {
     const result = await this.dbService.query(
       `SELECT v.*, d.name as driver_name 
        FROM vehicles v 
-       LEFT JOIN drivers d ON v.driver_id = d.id 
+       LEFT JOIN drivers d ON d.vehicle_id = v.id 
        WHERE v.status = 'available' AND v.tenant_id = $1`,
       [tenantId]
     );

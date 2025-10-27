@@ -124,7 +124,7 @@ export const shipmentsApi = {
   getShipmentDetails: (shipmentId: string) => api.get(`/shipments/${shipmentId}`),
   updateShipment: (shipmentId: string, shipmentData: unknown) => api.put(`/shipments/${shipmentId}`, shipmentData),
   deleteShipment: (shipmentId: string) => api.delete(`/shipments/${shipmentId}`),
-  updateShipmentStatus: (shipmentId: string, status: string) => api.patch(`/shipments/${shipmentId}/status`, { status }),
+  updateShipmentStatus: (shipmentId: string, status: string) => api.post(`/shipments/${shipmentId}/status`, { targetStatus: status }), // 2025-10-27 修复：改用POST方法并使用targetStatus参数
   // 运单状态流转API
   assignDriver: (shipmentId: string, driverId: string, notes?: string) => 
     api.post(`/shipments/${shipmentId}/assign`, { driverId, notes }),
