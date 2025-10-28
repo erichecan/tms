@@ -178,7 +178,7 @@ const ShipmentManagement: React.FC = () => {
     setIsEditMode(false); // 重置编辑模式
   };
 
-  // 处理编辑运单 - 2025-10-10 18:26:00 完善编辑字段
+  // 处理编辑运单 - 2025-10-28 修复：使用正确的字段路径
   const handleEdit = () => {
     if (viewingShipment) {
       // 调试：打印完整数据结构 - 2025-10-10 11:05:00
@@ -188,28 +188,28 @@ const ShipmentManagement: React.FC = () => {
       
       // 将运单数据填充到编辑表单 - 修复字段映射问题
       editForm.setFieldsValue({
-        // 发货人信息 - 使用正确的字段路径
+        // 发货人信息 - 2025-10-28 修复：从地址对象中提取信息
         shipperName: viewingShipment.shipperName || '',
         shipperPhone: viewingShipment.shipperPhone || '',
         shipperCompany: viewingShipment.shipperCompany || '',
-        shipperAddress: viewingShipment.pickupAddress || '', // 使用实际字段
+        shipperAddress: viewingShipment.shipperAddress?.addressLine1 || viewingShipment.pickupAddress?.street || '',
         
         // 收货人信息
         receiverName: viewingShipment.receiverName || '',
         receiverPhone: viewingShipment.receiverPhone || '',
         receiverCompany: viewingShipment.receiverCompany || '',
-        receiverAddress: viewingShipment.deliveryAddress || '', // 使用实际字段
+        receiverAddress: viewingShipment.receiverAddress?.addressLine1 || viewingShipment.deliveryAddress?.street || '',
         
-        // 货物信息
-        cargoWeight: viewingShipment.cargoWeight || 0,
-        cargoLength: viewingShipment.cargoLength || 0,
-        cargoWidth: viewingShipment.cargoWidth || 0,
-        cargoHeight: viewingShipment.cargoHeight || 0,
+        // 货物信息 - 2025-10-28 修复：使用正确的字段路径
+        cargoWeight: viewingShipment.weightKg || 0,
+        cargoLength: viewingShipment.lengthCm || 0,
+        cargoWidth: viewingShipment.widthCm || 0,
+        cargoHeight: viewingShipment.heightCm || 0,
         cargoDescription: viewingShipment.cargoDescription || viewingShipment.description || '',
         
         // 配送信息
         deliveryInstructions: viewingShipment.deliveryInstructions || '',
-        estimatedCost: viewingShipment.estimatedCost || 0
+        estimatedCost: typeof viewingShipment.estimatedCost === 'string' && viewingShipment.estimatedCost !== 'NaN' ? parseFloat(viewingShipment.estimatedCost) : (viewingShipment.estimatedCost || 0)
       });
       
       console.log('✅ 编辑表单数据已填充');
