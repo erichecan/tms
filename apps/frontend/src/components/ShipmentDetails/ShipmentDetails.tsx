@@ -867,9 +867,10 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             // 2025-10-28 修复：实现真正的指派逻辑
             if (onAssignDriver) {
               await onAssignDriver(values.driverId, values.vehicleId);
-              message.success('指派成功');
+              // 2025-10-28 修复：调用成功后关闭模态框并重置表单
               setIsAssignModalVisible(false);
               form.resetFields();
+              // 注意：成功消息应该由父组件显示，避免重复
             } else {
               // 如果没有传递回调，显示提示
               message.warning('指派功能需要后端API支持');

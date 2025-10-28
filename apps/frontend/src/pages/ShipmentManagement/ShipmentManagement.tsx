@@ -723,7 +723,7 @@ const ShipmentManagement: React.FC = () => {
                     const updatedResponse = await shipmentsApi.getShipmentDetails(viewingShipment.id);
                     const updatedShipment = transformShipmentData(updatedResponse.data.data || updatedResponse.data);
                     setViewingShipment(updatedShipment);
-                    message.success('指派成功');
+                    message.success('指派成功'); // 2025-10-28 修复：保留成功消息，但避免重复
                   } catch (error: unknown) {
                     console.error('指派失败:', error);
                     // 2025-10-28 增强：输出详细错误信息
