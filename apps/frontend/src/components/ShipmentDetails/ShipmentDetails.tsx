@@ -753,11 +753,6 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </div>
       )
     },
-    {
-      key: 'bol',
-      label: 'BOL单据',
-      children: <BOLDocument shipment={shipment} showPrintButton={false} />
-    }
   ];
 
   return (
