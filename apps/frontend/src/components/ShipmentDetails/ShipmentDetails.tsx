@@ -435,13 +435,17 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
       const bolElement = pdfContainer.querySelector('.bol-document') as HTMLElement;
       const canvas = await html2canvas(bolElement, {
-        scale: 2,
+        scale: 1.5, // 2025-10-28 优化：降低scale减小PDF体积（从2降到1.5）
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false, // 禁用日志
+        windowWidth: 794, // 明确指定宽度（A4：210mm = 794px at 72dpi）
+        windowHeight: 1123 // 明确指定高度（A4：297mm = 1123px at 72dpi）
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      // 2025-10-28 优化：使用JPEG格式降低文件体积（从PNG改为JPEG，质量0.92）
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
       
       // 创建PDF文档
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -453,14 +457,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       let position = 0;
       
       // 添加第一页
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
       
       // 如果内容超过一页，添加新页面
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
       
