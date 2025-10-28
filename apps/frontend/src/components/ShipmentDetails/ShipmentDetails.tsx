@@ -136,18 +136,38 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         const driversRes = await driversApi.getDrivers();
         const vehiclesRes = await vehiclesApi.getVehicles();
         
-        if (driversRes?.data && Array.isArray(driversRes.data)) {
-          // 过滤可用司机（状态为active或available）
-          const available = driversRes.data.filter((d: unknown) => {
-            const driver = d || {};
-            return driver.status === 'available' || driver.status === 'active';
-          });
-          setAvailableDrivers(available);
+        console.log('🔍 司机API响应:', driversRes); // 2025-10-28 调试
+        
+        // 2025-10-28 修复：检查多种可能的响应结构
+        let driversList = [];
+        if (driversRes?.data?.data && Array.isArray(driversRes.data.data)) {
+          driversList = driversRes.data.data;
+        } else if (driversRes?.data && Array.isArray(driversRes.data)) {
+          driversList = driversRes.data;
+        } else if (Array.isArray(driversRes)) {
+          driversList = driversRes;
         }
         
-        if (vehiclesRes?.data && Array.isArray(vehiclesRes.data)) {
-          setAvailableVehicles(vehiclesRes.data);
+        // 过滤可用司机（状态为available或active）
+        const available = driversList.filter((d: unknown) => {
+          const driver = d || {};
+          return driver.status === 'available' || driver.status === 'active';
+        });
+        
+        console.log('🔍 过滤后的司机:', available); // 2025-10-28 调试
+        setAvailableDrivers(available);
+        
+        // 车辆数据处理
+        let vehiclesList = [];
+        if (vehiclesRes?.data?.data && Array.isArray(vehiclesRes.data.data)) {
+          vehiclesList = vehiclesRes.data.data;
+        } else if (vehiclesRes?.data && Array.isArray(vehiclesRes.data)) {
+          vehiclesList = vehiclesRes.data;
+        } else if (Array.isArray(vehiclesRes)) {
+          vehiclesList = vehiclesRes;
         }
+        
+        setAvailableVehicles(vehiclesList);
       } catch (error) {
         console.error('Failed to load drivers/vehicles:', error);
       }
