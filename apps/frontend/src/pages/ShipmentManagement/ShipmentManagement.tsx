@@ -680,6 +680,21 @@ const ShipmentManagement: React.FC = () => {
         }
         width={1000}
       >
+        {/* 2025-10-28 新增：顶部操作栏（复制底部按钮） */}
+        {viewingShipment && !isEditMode && (
+          <div style={{ marginBottom: 16, textAlign: 'right' }}>
+            <Space>
+              <Button 
+                type="primary" 
+                icon={<EditOutlined />} 
+                onClick={handleEdit}
+              >
+                编辑运单
+              </Button>
+            </Space>
+          </div>
+        )}
+        
         {viewingShipment && !isEditMode && (
           <Tabs defaultActiveKey="details">
             <Tabs.TabPane tab="运单详情" key="details">
