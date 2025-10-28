@@ -34,7 +34,7 @@ export const formatCurrency = (
 
     // 验证数值有效性
     if (isNaN(numValue) || !isFinite(numValue)) {
-      console.warn('formatCurrency: Invalid numeric value:', value);
+      // 不再输出警告，静默返回0值 // 2025-10-28 修复：避免控制台噪音
       return `${prefix}0.${'0'.repeat(precision)}`;
     }
 
