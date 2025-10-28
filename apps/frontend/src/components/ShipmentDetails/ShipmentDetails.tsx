@@ -33,7 +33,8 @@ import {
   UploadOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { 
   Shipment, 
@@ -59,6 +60,7 @@ interface ShipmentDetailsProps {
   onStatusUpdate?: (status: ShipmentStatus) => void;
   onAssignDriver?: (driverId: string, vehicleId: string) => void;
   onMountTrip?: (tripId: string) => void;
+  onEdit?: () => void; // 2025-10-28 新增：编辑回调
 }
 
 const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({ 
@@ -67,7 +69,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   onDownloadPDF,
   onStatusUpdate,
   onAssignDriver,
-  onMountTrip
+  onMountTrip,
+  onEdit
 }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
@@ -791,6 +794,16 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       
       <div className="no-print" style={{ marginBottom: 16, textAlign: 'right' }}>
         <Space>
+          {/* 2025-10-28 新增：编辑运单按钮（在打印运单左边） */}
+          {onEdit && (
+            <Button 
+              type="primary" 
+              icon={<EditOutlined />} 
+              onClick={onEdit}
+            >
+              编辑运单
+            </Button>
+          )}
           <Button 
             type="primary" 
             icon={<PrinterOutlined />} 
