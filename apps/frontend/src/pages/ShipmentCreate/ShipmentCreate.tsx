@@ -32,6 +32,7 @@ import {
   QuestionCircleOutlined,
   CheckCircleOutlined,
   PlusOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
@@ -1439,18 +1440,6 @@ const ShipmentCreate: React.FC = () => {
                     key={field.key} 
                     size="small" 
                     style={{ marginBottom: 12 }}
-                    extra={
-                      fields.length > 1 && (
-                        <Button 
-                          type="text" 
-                          danger 
-                          size="small"
-                          onClick={() => remove(field.name)}
-                        >
-                          删除
-                        </Button>
-                      )
-                    }
                   >
                     {/* 2025-10-28 优化：调整字体大小和布局，确保所有字段在一行 */}
                     <Row gutter={[6, 0]} style={{ fontSize: '12px' }}>
@@ -1519,7 +1508,7 @@ const ShipmentCreate: React.FC = () => {
                           <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={4}>
+                      <Col span={3}>
                         <Form.Item {...field} name={[field.name, 'description']} label={<span style={{ fontSize: '12px' }}>描述</span>} style={{ marginBottom: 0 }}>
                           <Input placeholder="描述" style={{ fontSize: '12px' }} />
                         </Form.Item>
@@ -1533,6 +1522,21 @@ const ShipmentCreate: React.FC = () => {
                         <Form.Item {...field} name={[field.name, 'dangerous']} label={<span style={{ fontSize: '12px' }}>危险</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
                           <Switch size="small" />
                         </Form.Item>
+                      </Col>
+                      {/* 2025-10-28 新增：删除图标（圆形） */}
+                      <Col span={1}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px', paddingTop: '6px' }}>
+                          {fields.length > 1 && (
+                            <Button 
+                              type="text" 
+                              danger 
+                              size="small"
+                              icon={<DeleteOutlined />}
+                              onClick={() => remove(field.name)}
+                              style={{ fontSize: '12px' }}
+                            />
+                          )}
+                        </div>
                       </Col>
                     </Row>
                   </Card>
