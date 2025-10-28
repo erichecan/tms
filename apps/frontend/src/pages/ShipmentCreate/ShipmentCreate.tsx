@@ -1452,78 +1452,85 @@ const ShipmentCreate: React.FC = () => {
                       )
                     }
                   >
-                    <Row gutter={[8, 0]}>
-                      <Col span={3}>
+                    {/* 2025-10-28 优化：调整字体大小和布局，确保所有字段在一行 */}
+                    <Row gutter={[6, 0]} style={{ fontSize: '12px' }}>
+                      <Col span={2}>
                         <Form.Item
                           {...field}
                           name={[field.name, 'length']}
-                          label={`长${unitSystem}`}
+                          label={<span style={{ fontSize: '12px' }}>长(cm)</span>}
                           rules={[{ required: true, message: '请输入长度' }]}
                           style={{ marginBottom: 0 }}
                         >
-                          <InputNumber placeholder="长" min={0} precision={1} style={{ width: '100%' }} />
+                          <InputNumber placeholder="长" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={3}>
+                      <Col span={2}>
                         <Form.Item
                           {...field}
                           name={[field.name, 'width']}
-                          label={`宽${unitSystem}`}
+                          label={<span style={{ fontSize: '12px' }}>宽(cm)</span>}
                           rules={[{ required: true, message: '请输入宽度' }]}
                           style={{ marginBottom: 0 }}
                         >
-                          <InputNumber placeholder="宽" min={0} precision={1} style={{ width: '100%' }} />
+                          <InputNumber placeholder="宽" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={3}>
+                      <Col span={2}>
                         <Form.Item
                           {...field}
                           name={[field.name, 'height']}
-                          label={`高${unitSystem}`}
+                          label={<span style={{ fontSize: '12px' }}>高(cm)</span>}
                           rules={[{ required: true, message: '请输入高度' }]}
                           style={{ marginBottom: 0 }}
                         >
-                          <InputNumber placeholder="高" min={0} precision={1} style={{ width: '100%' }} />
+                          <InputNumber placeholder="高" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={3}>
+                      <Col span={2}>
                         <Form.Item
                           {...field}
                           name={[field.name, 'weight']}
-                          label={`重量${weightUnit}`}
+                          label={<span style={{ fontSize: '12px' }}>重(kg)</span>}
                           rules={[{ required: true, message: '请输入重量' }]}
                           style={{ marginBottom: 0 }}
                         >
-                          <InputNumber placeholder="重量" min={0} precision={1} style={{ width: '100%' }} />
+                          <InputNumber placeholder="重" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
                       <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'quantity']} label="件数" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                          <InputNumber placeholder="件数" min={1} style={{ width: '100%' }} />
+                        <Form.Item 
+                          {...field} 
+                          name={[field.name, 'quantity']} 
+                          label={<span style={{ fontSize: '12px' }}>件数</span>}
+                          rules={[{ required: true }]} 
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber placeholder="件" min={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
                       <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'pallets']} label="托盘" style={{ marginBottom: 0 }}>
-                          <InputNumber placeholder="托盘" min={0} style={{ width: '100%' }} />
+                        <Form.Item {...field} name={[field.name, 'pallets']} label={<span style={{ fontSize: '12px' }}>托盘</span>} style={{ marginBottom: 0 }}>
+                          <InputNumber placeholder="托" min={0} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
                       <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'value']} label="价值" style={{ marginBottom: 0 }}>
-                          <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%' }} />
+                        <Form.Item {...field} name={[field.name, 'value']} label={<span style={{ fontSize: '12px' }}>价值</span>} style={{ marginBottom: 0 }}>
+                          <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
                       <Col span={4}>
-                        <Form.Item {...field} name={[field.name, 'description']} label="描述" style={{ marginBottom: 0 }}>
-                          <Input placeholder="描述" />
+                        <Form.Item {...field} name={[field.name, 'description']} label={<span style={{ fontSize: '12px' }}>描述</span>} style={{ marginBottom: 0 }}>
+                          <Input placeholder="描述" style={{ fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={1}>
-                        <Form.Item {...field} name={[field.name, 'fragile']} label="易碎" valuePropName="checked" style={{ marginBottom: 0 }}>
+                      <Col span={2}>
+                        <Form.Item {...field} name={[field.name, 'fragile']} label={<span style={{ fontSize: '12px' }}>易碎</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
                           <Switch size="small" />
                         </Form.Item>
                       </Col>
-                      <Col span={1}>
-                        <Form.Item {...field} name={[field.name, 'dangerous']} label="危险" valuePropName="checked" style={{ marginBottom: 0 }}>
+                      <Col span={2}>
+                        <Form.Item {...field} name={[field.name, 'dangerous']} label={<span style={{ fontSize: '12px' }}>危险</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
                           <Switch size="small" />
                         </Form.Item>
                       </Col>
