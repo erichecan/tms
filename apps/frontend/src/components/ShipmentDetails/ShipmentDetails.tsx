@@ -857,6 +857,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         onOk={async () => {
           try {
             const values = await form.validateFields();
+            console.log('🔍 指派表单值:', values); // 2025-10-28 调试
             
             // 2025-10-28 修复：实现真正的指派逻辑
             if (onAssignDriver) {
@@ -869,9 +870,16 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               message.warning('指派功能需要后端API支持');
               setIsAssignModalVisible(false);
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.error('指派失败:', error);
-            message.error('指派失败，请检查输入');
+            // 2025-10-28 增强错误信息
+            if (error && typeof error === 'object' && 'response' in error) {
+              const axiosError = error as { response?: { data?: { error?: { message?: string }, message?: string } } };
+              const errorMsg = axiosError.response?.data?.error?.message || axiosError.response?.data?.message || '指派失败，请检查输入';
+              message.error(errorMsg);
+            } else {
+              message.error('指派失败，请检查输入');
+            }
           }
         }}
         onCancel={() => setIsAssignModalVisible(false)}
