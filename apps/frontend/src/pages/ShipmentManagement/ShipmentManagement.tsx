@@ -681,37 +681,46 @@ const ShipmentManagement: React.FC = () => {
         width={1000}
       >
         {viewingShipment && !isEditMode && (
-          <Tabs defaultActiveKey="details">
-            <Tabs.TabPane tab="运单详情" key="details">
-              <ShipmentDetails 
-                shipment={viewingShipment}
-                onPrint={() => {
-                  window.print();
-                }}
-                onEdit={handleEdit}
-                onAssignDriver={async (driverId: string, vehicleId: string) => {
-                  // 2025-10-28 实现：指派司机车辆并刷新
-                  if (!viewingShipment) return;
-                  try {
-                    await shipmentsApi.assignDriver(viewingShipment.id, driverId, '');
-                    // 刷新运单列表以更新状态
-                    await loadShipments();
-                    // 重新加载当前运单详情
-                    const updatedResponse = await shipmentsApi.getShipmentDetails(viewingShipment.id);
-                    const updatedShipment = transformShipmentData(updatedResponse.data.data || updatedResponse.data);
-                    setViewingShipment(updatedShipment);
-                    message.success('指派成功');
-                  } catch (error) {
-                    console.error('指派失败:', error);
-                    throw error;
-                  }
-                }}
-              />
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="BOL单据" key="bol">
-              <BOLDocument shipment={viewingShipment} />
-            </Tabs.TabPane>
-          </Tabs>
+          <Tabs 
+            defaultActiveKey="details" 
+            items={[
+              {
+                key: 'details',
+                label: '运单详情',
+                children: (
+                  <ShipmentDetails 
+                    shipment={viewingShipment}
+                    onPrint={() => {
+                      window.print();
+                    }}
+                    onEdit={handleEdit}
+                    onAssignDriver={async (driverId: string, vehicleId: string) => {
+                      // 2025-10-28 实现：指派司机车辆并刷新
+                      if (!viewingShipment) return;
+                      try {
+                        await shipmentsApi.assignDriver(viewingShipment.id, driverId, '');
+                        // 刷新运单列表以更新状态
+                        await loadShipments();
+                        // 重新加载当前运单详情
+                        const updatedResponse = await shipmentsApi.getShipmentDetails(viewingShipment.id);
+                        const updatedShipment = transformShipmentData(updatedResponse.data.data || updatedResponse.data);
+                        setViewingShipment(updatedShipment);
+                        message.success('指派成功');
+                      } catch (error) {
+                        console.error('指派失败:', error);
+                        throw error;
+                      }
+                    }}
+                  />
+                )
+              },
+              {
+                key: 'bol',
+                label: 'BOL单据',
+                children: <BOLDocument shipment={viewingShipment} />
+              }
+            ]}
+          />
         )}
         
         {viewingShipment && isEditMode && (
