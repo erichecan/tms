@@ -148,10 +148,11 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           driversList = driversRes;
         }
         
-        // 过滤可用司机（状态为available或active）
+        // 过滤可用司机（后端要求status为active）
+        // 2025-10-28 修复：后端只接受status='active'的司机
         const available = driversList.filter((d: unknown) => {
           const driver = d || {};
-          return driver.status === 'available' || driver.status === 'active';
+          return driver.status === 'active'; // 只保留active状态的司机
         });
         
         console.log('🔍 过滤后的司机:', available); // 2025-10-28 调试
