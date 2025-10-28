@@ -723,7 +723,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>指派司机：</Text>
-                <Text>{shipment.assignedDriverId || '未指派'}</Text>
+                {/* 2025-10-28 修复：使用driverId字段，与列表保持一致 */}
+                <Text>{shipment.driverId || shipment.assignedDriverId || '未指派'}</Text>
               </Col>
               <Col span={12}>
                 <Text strong>指派车辆：</Text>
