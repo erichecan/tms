@@ -67,13 +67,11 @@ const ShipmentManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await shipmentsApi.getShipments();
-      console.log('🔍 运单API响应:', response); // 2025-10-28 调试
-      const rawData = response.data.data || [];
-      console.log('🔍 原始运单数据:', rawData); // 2025-10-28 调试
-      // 2025-10-28 修复：正确转换数据
-      const transformedData = rawData.map((item: unknown) => transformShipmentData(item));
-      console.log('🔍 转换后的运单数据:', transformedData); // 2025-10-28 调试
-      setShipments(transformedData);
+      // 2025-10-28 修复：直接使用API返回的数据，不做转换
+      // 因为API返回的数据格式已经匹配前端期望
+      const shipmentData = response.data.data || [];
+      console.log('🔍 运单数据:', shipmentData); // 2025-10-28 调试
+      setShipments(shipmentData);
     } catch (error) {
       console.error('Failed to load shipments:', error);
       message.error('加载运单失败');
