@@ -694,23 +694,33 @@ const ShipmentManagement: React.FC = () => {
                       window.print();
                     }}
                     onEdit={handleEdit}
-                    onAssignDriver={async (driverId: string, vehicleId: string) => {
-                      // 2025-10-28 实现：指派司机车辆并刷新
-                      if (!viewingShipment) return;
-                      try {
-                        await shipmentsApi.assignDriver(viewingShipment.id, driverId, '');
-                        // 刷新运单列表以更新状态
-                        await loadShipments();
-                        // 重新加载当前运单详情
-                        const updatedResponse = await shipmentsApi.getShipmentDetails(viewingShipment.id);
-                        const updatedShipment = transformShipmentData(updatedResponse.data.data || updatedResponse.data);
-                        setViewingShipment(updatedShipment);
-                        message.success('指派成功');
-                      } catch (error) {
-                        console.error('指派失败:', error);
-                        throw error;
-                      }
-                    }}
+                onAssignDriver={async (driverId: string, vehicleId: string) => {
+                  // 2025-10-28 实现：指派司机车辆并刷新
+                  if (!viewingShipment) return;
+                  try {
+                    console.log('🔍 指派运单ID:', viewingShipment.id); // 2025-10-28 调试
+                    console.log('🔍 指派司机ID:', driverId); // 2025-10-28 调试
+                    
+                    await shipmentsApi.assignDriver(viewingShipment.id, driverId, '');
+                    // 刷新运单列表以更新状态
+                    await loadShipments();
+                    // 重新加载当前运单详情
+                    const updatedResponse = await shipmentsApi.getShipmentDetails(viewingShipment.id);
+                    const updatedShipment = transformShipmentData(updatedResponse.data.data || updatedResponse.data);
+                    setViewingShipment(updatedShipment);
+                    message.success('指派成功');
+                  } catch (error: unknown) {
+                    console.error('指派失败:', error);
+                    // 2025-10-28 增强：输出详细错误信息
+                    if (error && typeof error === 'object' && 'response' in error) {
+                      const axiosError = error as { response?: { data?: unknown, status?: number } };
+                      console.error('🔍 API响应:', axiosError.response);
+                      console.error('🔍 状态码:', axiosError.response?.status);
+                      console.error('🔍 响应数据:', axiosError.response?.data);
+                    }
+                    throw error;
+                  }
+                }}
                   />
                 )
               },
