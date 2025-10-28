@@ -721,6 +721,16 @@ const ShipmentManagement: React.FC = () => {
                       console.error('🔍 API响应:', axiosError.response);
                       console.error('🔍 状态码:', axiosError.response?.status);
                       console.error('🔍 响应数据:', axiosError.response?.data);
+                      
+                      // 2025-10-28 新增：展开error对象查看具体原因
+                      const errorData = axiosError.response?.data as { error?: { message?: string, code?: string } };
+                      console.error('🔍 错误消息:', errorData?.error?.message);
+                      console.error('🔍 错误代码:', errorData?.error?.code);
+                      
+                      // 使用具体的错误消息
+                      if (errorData?.error?.message) {
+                        message.error(errorData.error.message);
+                      }
                     }
                     throw error;
                   }
