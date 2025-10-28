@@ -126,6 +126,33 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     };
   };
 
+  // 2025-10-28 新增：加载可用司机和车辆
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const driversRes = await driversApi.getDrivers();
+        const vehiclesRes = await vehiclesApi.getVehicles();
+        
+        if (driversRes?.data && Array.isArray(driversRes.data)) {
+          // 过滤可用司机（状态为active或available）
+          const available = driversRes.data.filter((d: unknown) => {
+            const driver = d || {};
+            return driver.status === 'available' || driver.status === 'active';
+          });
+          setAvailableDrivers(available);
+        }
+        
+        if (vehiclesRes?.data && Array.isArray(vehiclesRes.data)) {
+          setAvailableVehicles(vehiclesRes.data);
+        }
+      } catch (error) {
+        console.error('Failed to load drivers/vehicles:', error);
+      }
+    };
+    
+    loadData();
+  }, []);
+
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string }> = {
       [ShipmentStatus.CREATED]: { color: 'blue', text: '已创建' },
