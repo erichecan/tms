@@ -75,8 +75,8 @@ const ShipmentManagement: React.FC = () => {
       // 2025-10-28 新增：过滤掉不存在的运单ID（避免mock数据导致的问题）
       const validShipments = shipmentData.filter((s: unknown) => {
         const shipment = s || {};
-        // 检查是否为有效的UUID格式且shipment_number不为null
-        return shipment.id && shipment.shipment_number;
+        // 2025-10-28 修复：只过滤掉shipmentNumber为null的无效数据
+        return shipment.id && shipment.shipmentNumber;
       });
       console.log('🔍 过滤后的有效运单:', validShipments); // 2025-10-28 调试
       
