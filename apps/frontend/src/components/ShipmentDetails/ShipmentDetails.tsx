@@ -697,25 +697,29 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       label: '调度分配',
       children: (
         <div>
-          <Card title="指派操作" style={{ marginBottom: 16 }}>
-            <Space>
-              <Button 
-                type="primary" 
-                icon={<TeamOutlined />}
-                onClick={handleAssignDriver}
-              >
-                直接指派司机车辆
-              </Button>
-              <Button 
-                icon={<TruckOutlined />}
-                onClick={handleMountTrip}
-              >
-                挂载到行程
-              </Button>
-            </Space>
-          </Card>
-
-          <Card title="当前指派信息">
+          {/* 2025-10-28 优化：合并指派操作和指派信息到一个Card */}
+          <Card 
+            title="当前指派信息"
+            extra={
+              <Space>
+                <Button 
+                  type="primary" 
+                  size="small"
+                  icon={<TeamOutlined />}
+                  onClick={handleAssignDriver}
+                >
+                  直接指派司机车辆
+                </Button>
+                <Button 
+                  size="small"
+                  icon={<TruckOutlined />}
+                  onClick={handleMountTrip}
+                >
+                  挂载到行程
+                </Button>
+              </Space>
+            }
+          >
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>指派司机：</Text>
