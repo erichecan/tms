@@ -854,10 +854,25 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       <Modal
         title="指派司机车辆"
         open={isAssignModalVisible}
-        onOk={() => {
-          // TODO: 实现指派逻辑
-          message.success('指派成功');
-          setIsAssignModalVisible(false);
+        onOk={async () => {
+          try {
+            const values = await form.validateFields();
+            
+            // 2025-10-28 修复：实现真正的指派逻辑
+            if (onAssignDriver) {
+              await onAssignDriver(values.driverId, values.vehicleId);
+              message.success('指派成功');
+              setIsAssignModalVisible(false);
+              form.resetFields();
+            } else {
+              // 如果没有传递回调，显示提示
+              message.warning('指派功能需要后端API支持');
+              setIsAssignModalVisible(false);
+            }
+          } catch (error) {
+            console.error('指派失败:', error);
+            message.error('指派失败，请检查输入');
+          }
         }}
         onCancel={() => setIsAssignModalVisible(false)}
         okText="确认指派"
