@@ -71,7 +71,16 @@ const ShipmentManagement: React.FC = () => {
       // 因为API返回的数据格式已经匹配前端期望
       const shipmentData = response.data.data || [];
       console.log('🔍 运单数据:', shipmentData); // 2025-10-28 调试
-      setShipments(shipmentData);
+      
+      // 2025-10-28 新增：过滤掉不存在的运单ID（避免mock数据导致的问题）
+      const validShipments = shipmentData.filter((s: unknown) => {
+        const shipment = s || {};
+        // 检查是否为有效的UUID格式且shipment_number不为null
+        return shipment.id && shipment.shipment_number;
+      });
+      console.log('🔍 过滤后的有效运单:', validShipments); // 2025-10-28 调试
+      
+      setShipments(validShipments);
     } catch (error) {
       console.error('Failed to load shipments:', error);
       message.error('加载运单失败');
