@@ -126,6 +126,33 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     };
   };
 
+  // 2025-10-28 新增：加载可用司机和车辆
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const driversRes = await driversApi.getDrivers();
+        const vehiclesRes = await vehiclesApi.getVehicles();
+        
+        if (driversRes?.data && Array.isArray(driversRes.data)) {
+          // 过滤可用司机（状态为active或available）
+          const available = driversRes.data.filter((d: unknown) => {
+            const driver = d || {};
+            return driver.status === 'available' || driver.status === 'active';
+          });
+          setAvailableDrivers(available);
+        }
+        
+        if (vehiclesRes?.data && Array.isArray(vehiclesRes.data)) {
+          setAvailableVehicles(vehiclesRes.data);
+        }
+      } catch (error) {
+        console.error('Failed to load drivers/vehicles:', error);
+      }
+    };
+    
+    loadData();
+  }, []);
+
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string }> = {
       [ShipmentStatus.CREATED]: { color: 'blue', text: '已创建' },
@@ -408,13 +435,17 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
       const bolElement = pdfContainer.querySelector('.bol-document') as HTMLElement;
       const canvas = await html2canvas(bolElement, {
-        scale: 2,
+        scale: 1.5, // 2025-10-28 优化：降低scale减小PDF体积（从2降到1.5）
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false, // 禁用日志
+        windowWidth: 794, // 明确指定宽度（A4：210mm = 794px at 72dpi）
+        windowHeight: 1123 // 明确指定高度（A4：297mm = 1123px at 72dpi）
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      // 2025-10-28 优化：使用JPEG格式降低文件体积（从PNG改为JPEG，质量0.92）
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
       
       // 创建PDF文档
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -426,14 +457,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       let position = 0;
       
       // 添加第一页
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
       
       // 如果内容超过一页，添加新页面
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
       

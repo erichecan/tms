@@ -20,6 +20,7 @@ import {
   Checkbox,
   Modal,
   Spin,
+  Collapse,
 } from 'antd';
 import {
   TruckOutlined,
@@ -87,6 +88,9 @@ const ShipmentCreate: React.FC = () => {
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<unknown>(null); // 2025-10-27 重新添加以修复未定义错误
   const [customerForm] = Form.useForm(); // 独立的客户表单实例 // 2025-10-01 21:55:00
+  
+  // 2025-10-28 新增：安全合规部分展开状态
+  const [safetySectionActiveKeys, setSafetySectionActiveKeys] = useState<string[]>([]);
   
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
 
@@ -487,20 +491,51 @@ const ShipmentCreate: React.FC = () => {
     try {
       const values = await form.validateFields();
       
-      // 确保单位统一为cm和kg
-      let finalLength = values.cargoLength;
-      let finalWidth = values.cargoWidth;
-      let finalHeight = values.cargoHeight;
-      let finalWeight = values.cargoWeight;
+      // 2025-10-28 新增：处理多行货物数据
+      let finalLength = 0;
+      let finalWidth = 0;
+      let finalHeight = 0;
+      let finalWeight = 0;
+      let cargoQuantity = 0;
       
-      if (unitSystem === 'inch') {
-        finalLength = convertToCm(values.cargoLength);
-        finalWidth = convertToCm(values.cargoWidth);
-        finalHeight = convertToCm(values.cargoHeight);
-      }
-      
-      if (weightUnit === 'lb') {
-        finalWeight = convertToKg(values.cargoWeight);
+      if (values.cargoItems && Array.isArray(values.cargoItems)) {
+        // 使用Form.List的多行数据
+        values.cargoItems.forEach((item: unknown) => {
+          const cargoItem = item || {};
+          if (unitSystem === 'inch') {
+            finalLength += (cargoItem.length ? convertToCm(cargoItem.length) : 0);
+            finalWidth += (cargoItem.width ? convertToCm(cargoItem.width) : 0);
+            finalHeight += (cargoItem.height ? convertToCm(cargoItem.height) : 0);
+          } else {
+            finalLength += (cargoItem.length || 0);
+            finalWidth += (cargoItem.width || 0);
+            finalHeight += (cargoItem.height || 0);
+          }
+          
+          if (weightUnit === 'lb') {
+            finalWeight += (cargoItem.weight ? convertToKg(cargoItem.weight) : 0);
+          } else {
+            finalWeight += (cargoItem.weight || 0);
+          }
+          
+          cargoQuantity += (cargoItem.quantity || 0);
+        });
+      } else {
+        // 兼容旧代码：确保单位统一为cm和kg
+        finalLength = values.cargoLength;
+        finalWidth = values.cargoWidth;
+        finalHeight = values.cargoHeight;
+        finalWeight = values.cargoWeight;
+        
+        if (unitSystem === 'inch') {
+          finalLength = convertToCm(values.cargoLength);
+          finalWidth = convertToCm(values.cargoWidth);
+          finalHeight = convertToCm(values.cargoHeight);
+        }
+        
+        if (weightUnit === 'lb') {
+          finalWeight = convertToKg(values.cargoWeight);
+        }
       }
 
       // 处理时间范围
@@ -564,12 +599,12 @@ const ShipmentCreate: React.FC = () => {
         cargoWidth: finalWidth,
         cargoHeight: finalHeight,
         cargoWeight: finalWeight,
-        cargoQuantity: values.cargoQuantity,
-        cargoPalletCount: values.cargoPalletCount,
-        cargoValue: values.cargoValue,
-        cargoDescription: values.cargoDescription,
-        cargoIsFragile: values.cargoIsFragile,
-        cargoIsDangerous: values.cargoIsDangerous,
+        cargoQuantity: cargoQuantity || values.cargoQuantity || 0, // 2025-10-28 修复：使用计算后的数量
+        cargoPalletCount: values.cargoPalletCount || 0,
+        cargoValue: values.cargoValue || 0,
+        cargoDescription: values.cargoDescription || '',
+        cargoIsFragile: values.cargoIsFragile || false,
+        cargoIsDangerous: values.cargoIsDangerous || false,
         // 新增安全合规字段 - 添加时间戳注释 @ 2025-09-30 09:30:00
         cargoType: values.cargoType,
         dangerousGoodsCode: values.dangerousGoodsCode,
@@ -585,6 +620,8 @@ const ShipmentCreate: React.FC = () => {
         specialRequirements: values.specialRequirements || [],
         status: 'pending',
         estimatedCost: realTimePricing.totalCost, // 2025-10-27 修复：使用实时计费数据而非calculateEstimatedCost
+        // 2025-10-28 新增：保留多行货物数据
+        cargoItems: values.cargoItems || []
       };
 
       setSubmittedData(shipmentData);
@@ -1352,6 +1389,7 @@ const ShipmentCreate: React.FC = () => {
     </Card>
   );
 
+  // 2025-10-28 重构：货物信息改为支持多行添加的表格式输入
   const renderCargoSection = () => (
     <Card title="货物信息" style={{ marginBottom: 12 }}>
       <Row gutter={[12, 8]}>
@@ -1390,191 +1428,210 @@ const ShipmentCreate: React.FC = () => {
             </div>
           </div>
         </Col>
-        <Col span={6}>
-          <Form.Item
-            name="cargoLength"
-            label={`长度 (${unitSystem})`}
-            rules={[{ required: true, message: '请输入长度' }]}
-            style={{ marginBottom: 8 }}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder={`长度 (${unitSystem})`}
-              min={0}
-              precision={1}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
-            name="cargoWidth"
-            label={`宽度 (${unitSystem})`}
-            rules={[{ required: true, message: '请输入宽度' }]}
-            style={{ marginBottom: 8 }}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder={`宽度 (${unitSystem})`}
-              min={0}
-              precision={1}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
-            name="cargoHeight"
-            label={`高度 (${unitSystem})`}
-            rules={[{ required: true, message: '请输入高度' }]}
-            style={{ marginBottom: 8 }}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder={`高度 (${unitSystem})`}
-              min={0}
-              precision={1}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
-            name="cargoWeight"
-            label={`重量 (${weightUnit})`}
-            rules={[{ required: true, message: '请输入重量' }]}
-            style={{ marginBottom: 8 }}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder={`重量 (${weightUnit})`}
-              min={0}
-              precision={1}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="cargoQuantity"
-            label="箱数/件数 (Package Count)"
-            rules={[{ required: true, message: '请输入数量' }]}
-            style={{ marginBottom: 8 }}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder="数量"
-              min={1}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="cargoPalletCount" label="托盘数 (Pallet Count)" style={{ marginBottom: 8 }}>
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder="托盘数"
-              min={0}
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="cargoValue" label="货物价值 (Cargo Value - CNY)" style={{ marginBottom: 8 }}>
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder="货物价值"
-              min={0}
-              precision={2}
-            />
-          </Form.Item>
-        </Col>
+        
+        {/* 2025-10-28 新增：支持多行货物信息 */}
         <Col span={24}>
-          <Form.Item name="cargoDescription" label="货物描述 (Cargo Description)" style={{ marginBottom: 8 }}>
-            <TextArea
-              rows={3}
-              placeholder="请详细描述货物内容、包装方式等"
-            />
-          </Form.Item>
-        </Col>
-        
-        
-        <Col span={12}>
-          <Form.Item name="cargoIsFragile" label="易碎品 (Fragile)" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="cargoIsDangerous" label="危险品 (Dangerous Goods)" valuePropName="checked">
-            <Switch />
-          </Form.Item>
+          <Form.List name="cargoItems" initialValue={[{}]}>
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map((field, index) => (
+                  <Card 
+                    key={field.key} 
+                    size="small" 
+                    style={{ marginBottom: 12 }}
+                    extra={
+                      fields.length > 1 && (
+                        <Button 
+                          type="text" 
+                          danger 
+                          size="small"
+                          onClick={() => remove(field.name)}
+                        >
+                          删除
+                        </Button>
+                      )
+                    }
+                  >
+                    <Row gutter={[8, 0]}>
+                      <Col span={3}>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'length']}
+                          label={`长${unitSystem}`}
+                          rules={[{ required: true, message: '请输入长度' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber placeholder="长" min={0} precision={1} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={3}>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'width']}
+                          label={`宽${unitSystem}`}
+                          rules={[{ required: true, message: '请输入宽度' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber placeholder="宽" min={0} precision={1} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={3}>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'height']}
+                          label={`高${unitSystem}`}
+                          rules={[{ required: true, message: '请输入高度' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber placeholder="高" min={0} precision={1} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={3}>
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'weight']}
+                          label={`重量${weightUnit}`}
+                          rules={[{ required: true, message: '请输入重量' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber placeholder="重量" min={0} precision={1} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={2}>
+                        <Form.Item {...field} name={[field.name, 'quantity']} label="件数" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                          <InputNumber placeholder="件数" min={1} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={2}>
+                        <Form.Item {...field} name={[field.name, 'pallets']} label="托盘" style={{ marginBottom: 0 }}>
+                          <InputNumber placeholder="托盘" min={0} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={2}>
+                        <Form.Item {...field} name={[field.name, 'value']} label="价值" style={{ marginBottom: 0 }}>
+                          <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item {...field} name={[field.name, 'description']} label="描述" style={{ marginBottom: 0 }}>
+                          <Input placeholder="描述" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={1}>
+                        <Form.Item {...field} name={[field.name, 'fragile']} label="易碎" valuePropName="checked" style={{ marginBottom: 0 }}>
+                          <Switch size="small" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={1}>
+                        <Form.Item {...field} name={[field.name, 'dangerous']} label="危险" valuePropName="checked" style={{ marginBottom: 0 }}>
+                          <Switch size="small" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))}
+                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} style={{ marginTop: 8 }}>
+                  添加货物
+                </Button>
+              </>
+            )}
+          </Form.List>
         </Col>
       </Row>
     </Card>
   );
 
   // 服务与保险模块 - 行间距缩小到8px // 2025-09-30 10:45:00
-  // 渲染安全合规部分 - 添加时间戳注释 @ 2025-09-30 09:30:00
-  const renderSafetyComplianceSection = () => (
-    <Card title="安全合规" style={{ marginBottom: 12 }}>
-      <Row gutter={[16, 8]}>
-        <Col span={8}>
-          <Form.Item
-            name="cargoType"
-            label="货物类型 (Cargo Type)"
-            rules={[{ required: true, message: '请选择货物类型' }]}
-            style={{ marginBottom: 8 }}
-          >
-            <Select placeholder="选择货物类型">
-              <Option value="GENERAL">普通货物</Option>
-              <Option value="SENSITIVE">敏感货物</Option>
-              <Option value="DANGEROUS">危险品</Option>
-              <Option value="PERISHABLE">易腐品</Option>
-              <Option value="FRAGILE">易碎品</Option>
-              <Option value="LIQUID">液体</Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="dangerousGoodsCode"
-            label="危险品代码 (Dangerous Goods Code)"
-            tooltip="如果是危险品，请输入相应的危险品代码"
-            style={{ marginBottom: 8 }}
-          >
-            <Input placeholder="如：UN1234" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="requiresColdChain"
-            label="冷链运输 (Cold Chain Required)"
-            valuePropName="checked"
-            style={{ marginBottom: 8 }}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="needSignature"
-            label="需要签名确认 (Signature Required)"
-            valuePropName="checked"
-            style={{ marginBottom: 8 }}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="deliveryNote"
-            label="送货单备注 (Delivery Note)"
-            style={{ marginBottom: 8 }}
-          >
-            <TextArea 
-              rows={2} 
-              placeholder="送货单特殊说明"
-              maxLength={200}
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-    </Card>
-  );
+  // 渲染安全合规部分 - 2025-10-28 改为可折叠，默认关闭
+  const renderSafetyComplianceSection = () => {
+    const cargoType = Form.useWatch('cargoType', form);
+    
+    // 监听货物类型变化，如果是危险品则自动展开
+    useEffect(() => {
+      if (cargoType === 'DANGEROUS') {
+        setSafetySectionActiveKeys(['safety-compliance']);
+      } else if (cargoType && cargoType !== 'DANGEROUS') {
+        // 如果不是危险品，自动折叠
+        setSafetySectionActiveKeys([]);
+      }
+    }, [cargoType]);
+
+    return (
+      <Collapse 
+        activeKey={safetySectionActiveKeys}
+        onChange={(keys) => setSafetySectionActiveKeys(keys as string[])}
+        style={{ marginBottom: 12 }}
+      >
+        <Collapse.Panel 
+          header={<><SafetyCertificateOutlined /> 安全合规 <Text type="secondary" style={{ fontSize: '12px', marginLeft: 8 }}>(可选)</Text></>}
+          key="safety-compliance"
+        >
+          <Row gutter={[16, 8]}>
+            <Col span={8}>
+              <Form.Item
+                name="cargoType"
+                label="货物类型 (Cargo Type)"
+                rules={[{ required: true, message: '请选择货物类型' }]}
+                style={{ marginBottom: 8 }}
+              >
+                <Select placeholder="选择货物类型">
+                  <Option value="GENERAL">普通货物</Option>
+                  <Option value="SENSITIVE">敏感货物</Option>
+                  <Option value="DANGEROUS">危险品</Option>
+                  <Option value="PERISHABLE">易腐品</Option>
+                  <Option value="FRAGILE">易碎品</Option>
+                  <Option value="LIQUID">液体</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="dangerousGoodsCode"
+                label="危险品代码 (Dangerous Goods Code)"
+                tooltip="如果是危险品，请输入相应的危险品代码"
+                style={{ marginBottom: 8 }}
+              >
+                <Input placeholder="如：UN1234" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="requiresColdChain"
+                label="冷链运输 (Cold Chain Required)"
+                valuePropName="checked"
+                style={{ marginBottom: 8 }}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="needSignature"
+                label="需要签名确认 (Signature Required)"
+                valuePropName="checked"
+                style={{ marginBottom: 8 }}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="deliveryNote"
+                label="送货单备注 (Delivery Note)"
+                style={{ marginBottom: 8 }}
+              >
+                <TextArea 
+                  rows={2} 
+                  placeholder="送货单特殊说明"
+                  maxLength={200}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Collapse.Panel>
+      </Collapse>
+    );
+  };
 
   const renderServicesSection = () => (
     <Card title="服务与保险" style={{ marginBottom: 12 }}>
