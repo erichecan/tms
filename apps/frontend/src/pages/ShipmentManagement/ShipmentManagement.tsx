@@ -701,6 +701,20 @@ const ShipmentManagement: React.FC = () => {
                 onAssignDriver={async (driverId: string, vehicleId: string) => {
                   // 2025-10-28 实现：指派司机车辆并刷新
                   if (!viewingShipment) return;
+                  
+                  // 2025-10-28 新增：检查运单ID是否在数据库中存在
+                  try {
+                    const shipmentDetails = await shipmentsApi.getShipmentDetails(viewingShipment.id);
+                    if (!shipmentDetails?.data?.id) {
+                      message.error('该运单不存在于数据库中，请刷新页面');
+                      return;
+                    }
+                  } catch (error) {
+                    message.error('无法验证运单ID，请刷新页面后重试');
+                    console.error('验证运单ID失败:', error);
+                    return;
+                  }
+                  
                   try {
                     console.log('🔍 指派运单ID:', viewingShipment.id); // 2025-10-28 调试
                     console.log('🔍 指派司机ID:', driverId); // 2025-10-28 调试
