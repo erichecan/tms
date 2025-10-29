@@ -716,7 +716,7 @@ const ShipmentManagement: React.FC = () => {
                     console.log('🔍 指派司机ID:', driverId); // 2025-10-28 调试
                     
                     // 2025-10-28 修复：传递有效的notes参数，避免空字符串导致验证失败
-                    await shipmentsApi.assignDriver(viewingShipment.id, driverId, '手动指派');
+                    await shipmentsApi.assignDriver(viewingShipment.id, driverId, vehicleId, '手动指派');
                     // 刷新运单列表以更新状态
                     await loadShipments();
                     // 重新加载当前运单详情

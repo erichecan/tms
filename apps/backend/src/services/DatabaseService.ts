@@ -1008,6 +1008,7 @@ export class DatabaseService {
       shipmentNumber: 'shipment_number',
       customerId: 'customer_id',
       driverId: 'driver_id',
+      vehicleId: 'vehicle_id',
       pickupAddress: 'pickup_address',
       deliveryAddress: 'delivery_address',
       cargoInfo: 'cargo_info',
@@ -1722,6 +1723,8 @@ export class DatabaseService {
       shipmentNumber: row.shipment_number,
       customerId: row.customer_id,
       driverId: row.driver_id,
+      // 2025-10-29 10:25:30 返回车辆ID
+      vehicleId: row.vehicle_id,
       pickupAddress: row.pickup_address || {},
       deliveryAddress: row.delivery_address || {},
       cargoInfo: row.cargo_info || {},

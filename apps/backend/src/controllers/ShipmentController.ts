@@ -362,6 +362,7 @@ export class ShipmentController {
       const assignment: ShipmentAssignment = {
         shipmentId: shipmentId,
         driverId: req.body.driverId,
+        vehicleId: req.body.vehicleId, // 2025-10-29 10:25:30 支持车辆指派
         assignedBy: req.user?.id || '',
         notes: req.body.notes
       };

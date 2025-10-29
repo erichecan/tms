@@ -126,8 +126,9 @@ export const shipmentsApi = {
   deleteShipment: (shipmentId: string) => api.delete(`/shipments/${shipmentId}`),
   updateShipmentStatus: (shipmentId: string, status: string) => api.post(`/shipments/${shipmentId}/status`, { targetStatus: status }), // 2025-10-27 修复：改用POST方法并使用targetStatus参数
   // 运单状态流转API
-  assignDriver: (shipmentId: string, driverId: string, notes?: string) => 
-    api.post(`/shipments/${shipmentId}/assign`, { driverId, notes }),
+  // 2025-10-29 10:25:30 扩展：支持同时指派车辆
+  assignDriver: (shipmentId: string, driverId: string, vehicleId?: string, notes?: string) => 
+    api.post(`/shipments/${shipmentId}/assign`, { driverId, vehicleId, notes }),
   confirmShipment: (shipmentId: string) => api.post(`/shipments/${shipmentId}/confirm`),
   startPickup: (shipmentId: string, driverId?: string) => 
     api.post(`/shipments/${shipmentId}/pickup`, { driverId }),

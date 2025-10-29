@@ -74,6 +74,7 @@ router.post('/:id/assign',
   validateRequest({
     body: {
       driverId: { type: 'string', required: true },
+      vehicleId: { type: 'string', required: false },
       notes: { type: 'string', required: false }
     }
   }),

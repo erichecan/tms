@@ -17,6 +17,7 @@ import {
 export interface ShipmentAssignment {
   shipmentId: string;
   driverId: string;
+  vehicleId?: string; // 2025-10-29 10:25:30 新增：可选车辆
   assignedBy: string;
   notes?: string;
 }
@@ -24,6 +25,7 @@ export interface ShipmentAssignment {
 export interface ShipmentUpdate {
   status?: ShipmentStatus;
   driverId?: string;
+  vehicleId?: string;
   actualCost?: number;
   additionalFees?: AdditionalFee[];
   timeline?: ShipmentTimeline;
@@ -175,6 +177,7 @@ export class ShipmentService {
       // 更新运单
       const updates: ShipmentUpdate = {
         driverId: assignment.driverId,
+        vehicleId: assignment.vehicleId,
         // 保持为 assigned 状态；对于已在 assigned 的订单，相当于“调整指派” // 2025-10-29 10:20:00
         status: 'assigned',
         timeline: {
