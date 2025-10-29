@@ -723,12 +723,13 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>指派司机：</Text>
-                {/* 2025-10-28 修复：使用driverId字段，与列表保持一致 */}
-                <Text>{shipment.driverId || shipment.assignedDriverId || '未指派'}</Text>
+                {/* 2025-10-29 10:22:30 优化：显示司机姓名而非UUID */}
+                <Text>{shipment.driverId ? getDriverName(shipment.driverId as string) : '未指派'}</Text>
               </Col>
               <Col span={12}>
                 <Text strong>指派车辆：</Text>
-                <Text>{shipment.assignedVehicleId || '未指派'}</Text>
+                {/* 若后端暂未返回车辆ID，则保持“未指派” */}
+                <Text>{(shipment as any).vehicleId ? getVehiclePlate((shipment as any).vehicleId as string) : '未指派'}</Text>
               </Col>
             </Row>
           </Card>

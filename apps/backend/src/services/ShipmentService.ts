@@ -166,14 +166,16 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      // 允许从 pending、quoted、confirmed 状态分配司机 // 2025-09-27 03:20:00
-      if (!['pending', 'quoted', 'confirmed'].includes(shipment.status)) {
+      // 允许从 pending、quoted、confirmed、assigned 状态分配或调整司机 // 2025-10-29 10:20:00
+      // 这里将已分配状态也纳入，支持“重新指派”场景
+      if (!['pending', 'quoted', 'confirmed', 'assigned'].includes(shipment.status)) {
         throw new Error(`Shipment cannot be assigned in current status: ${shipment.status}`);
       }
 
       // 更新运单
       const updates: ShipmentUpdate = {
         driverId: assignment.driverId,
+        // 保持为 assigned 状态；对于已在 assigned 的订单，相当于“调整指派” // 2025-10-29 10:20:00
         status: 'assigned',
         timeline: {
           ...shipment.timeline,
