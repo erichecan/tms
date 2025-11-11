@@ -146,7 +146,6 @@ router.post('/drivers/:driverId', async (req: Request, res: Response) => {
  */
 router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const dbService = new DatabaseService();
     const tenantId = req.user?.tenantId;
     
     if (!tenantId) {

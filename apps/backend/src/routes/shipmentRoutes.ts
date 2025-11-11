@@ -54,7 +54,7 @@ router.get('/:id', shipmentController.getShipment.bind(shipmentController));
 router.put('/:id',
   validateRequest({
     body: {
-      status: { type: 'string', enum: ['draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled', 'exception'], required: false } // 2025-11-11 14:39:15 同步状态枚举
+      status: { type: 'string', enum: ['draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled', 'exception'], required: false }, // 2025-11-11 14:39:15 同步状态枚举
       driverId: { type: 'string', required: false },
       actualCost: { type: 'number', required: false },
       additionalFees: { type: 'array', required: false },

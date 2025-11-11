@@ -31,7 +31,10 @@ router.post('/:id/assign-driver', async (req, res) => {
     }
 
     await client.query('UPDATE drivers SET status=$1, updated_at=NOW() WHERE id=$2', ['busy', driverId]);
-    await client.query('UPDATE shipments SET driver_id=$1, status=$2, timeline = jsonb_set(coalesce(timeline, '{}'::jsonb), '{scheduled}', to_jsonb(NOW())::jsonb, true), updated_at=NOW() WHERE id=$3', [driverId, ShipmentStatus.SCHEDULED, shipmentId]);
+    await client.query(
+      "UPDATE shipments SET driver_id=$1, status=$2, timeline = jsonb_set(coalesce(timeline, '{}'::jsonb), '{scheduled}', to_jsonb(NOW())::jsonb, true), updated_at=NOW() WHERE id=$3",
+      [driverId, ShipmentStatus.SCHEDULED, shipmentId]
+    );
     await client.query('INSERT INTO assignments (shipment_id, driver_id) VALUES ($1,$2)', [shipmentId, driverId]);
     await client.query('INSERT INTO timeline_events (shipment_id, event_type, from_status, to_status, actor_type) VALUES ($1,$2,$3,$4,$5)', [shipmentId, 'STATUS_CHANGED', shipment.status, ShipmentStatus.SCHEDULED, 'system']);
 

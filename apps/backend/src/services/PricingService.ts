@@ -411,20 +411,21 @@ export class PricingService {
           appliedRules.push(action.type);
           
           switch (action.type) {
-            case 'applyDiscount':
+            case 'applyDiscount': {
               const discountAmount = baseCost * (action.params.percentage / 100);
               finalCost -= discountAmount;
               discounts += discountAmount;
               break;
-              
+            }
+
             case 'addFee':
               finalCost += action.params.amount;
               break;
-              
+
             case 'setBaseRate':
               // 基础费率调整在计算阶段处理
               break;
-              
+
             case 'setCustomerLevel':
               // 客户等级调整
               break;

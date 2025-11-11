@@ -64,6 +64,8 @@ import { PricingEngineController } from './controllers/PricingEngineController';
 import { PricingFinancialIntegration } from './services/PricingFinancialIntegration';
 import { PricingPermissionService } from './services/PricingPermissionService'; // 计费规则引擎 // 2025-09-29 02:35:00
 
+dotenv.config(); // 2025-11-11T15:57:10Z Added by Assistant: Ensure environment variables are loaded
+
 // 创建Express应用
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -196,13 +198,16 @@ import { getDispatchOptimizationJob } from './jobs/DispatchOptimizationJob';
 const optimizationJob = getDispatchOptimizationJob();
 optimizationJob.start();
 
-// 启动服务器
-app.listen(PORT, () => {
-  logger.info(`TMS SaaS Backend Server started on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Health check: http://localhost:${PORT}/health`);
-  logger.info('🚛 智能调度优化引擎已启动');
-  logger.info(`📊 定时任务状态: ${optimizationJob.getStatus().running ? '运行中' : '已停止'}`);
-});
+// 启动服务器（测试环境下跳过监听） // 2025-11-11T15:57:10Z Added by Assistant: Avoid listen during Jest runs
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    logger.info(`TMS SaaS Backend Server started on port ${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`Health check: http://localhost:${PORT}/health`);
+    logger.info('🚛 智能调度优化引擎已启动');
+    logger.info(`📊 定时任务状态: ${optimizationJob.getStatus().running ? '运行中' : '已停止'}`);
+  });
+}
 
 export default app;
+export { app }; // 2025-11-11 15:38:45 提供测试所需的命名导出
