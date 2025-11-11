@@ -100,6 +100,11 @@ const Home: React.FC = () => {
         <Paragraph style={{ fontSize: '18px', color: '#666' }}>
           专业的运输管理系统，为您提供高效、可靠的物流解决方案
         </Paragraph>
+        <Space style={{ marginTop: 24 }}>
+          <Button type="primary" size="large" onClick={() => navigate('/customer/portal')}>
+            客户自助入口
+          </Button>
+        </Space> {/* 2025-11-11 10:15:05 新增：客户自助入口导航 */}
       </div>
 
       

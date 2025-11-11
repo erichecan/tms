@@ -10,10 +10,12 @@ import {
   MonitorOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi, rulesApi, customersApi, driversApi } from '../../services/api';
+import { shipmentsApi, rulesApi } from '../../services/api';
+import { useShipments, useDrivers, useCustomers } from '../../hooks'; // 2025-10-31 10:00:00 使用统一的数据管理 Hook
 import { formatCurrency } from '../../utils/formatCurrency';
 import PerformanceMonitoring from '../../components/PerformanceMonitoring/PerformanceMonitoring'; // 2025-10-02 18:25:00 整合性能监控功能
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:35:00 添加PageLayout导入
+import NotificationCenterPlaceholder from '../../components/Notifications/NotificationCenterPlaceholder'; // 2025-11-11 10:15:05 引入通知占位组件
 
 
 
@@ -36,6 +38,11 @@ interface RecentShipment {
 }
 
 const Dashboard: React.FC = () => {
+  // 2025-10-31 10:00:00 使用统一的数据管理 Hooks
+  const { shipments: recentShipments } = useShipments({ limit: 5 });
+  const { drivers } = useDrivers();
+  const { customers } = useCustomers();
+  
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     totalShipments: 0,
@@ -45,60 +52,45 @@ const Dashboard: React.FC = () => {
     monthlyRevenue: 0,
     revenueGrowth: 0,
   });
-  const [recentShipments, setRecentShipments] = useState<RecentShipment[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // 只加载规则数据，其他数据由 Hooks 提供
+        const rulesRes = await rulesApi.getRules({ status: 'active' });
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // 并行加载所有数据
-      const [shipmentsRes, rulesRes, customersRes, driversRes] = await Promise.all([
-        shipmentsApi.getShipments({ limit: 5 }),
-        rulesApi.getRules({ status: 'active' }),
-        customersApi.getCustomers({ limit: 1 }),
-        driversApi.getDrivers({ limit: 1 }),
-      ]);
+        // 计算统计数据
+        const totalShipments = recentShipments.length; // 使用实际的运单数量
+        const activeRules = rulesRes.data?.pagination?.total || 0;
+        const totalCustomers = customers.length;
+        const totalDrivers = drivers.length;
+        
+        // 模拟月度收入和增长率
+        const monthlyRevenue = totalShipments * 500; // 假设平均每单500元
+        const revenueGrowth = 12.5; // 模拟增长率
 
-      // 计算统计数据
-      const totalShipments = shipmentsRes.data?.pagination?.total || 0;
-      const activeRules = rulesRes.data?.pagination?.total || 0;
-      const totalCustomers = customersRes.data?.pagination?.total || 0;
-      const totalDrivers = driversRes.data?.pagination?.total || 0;
-      
-      // 模拟月度收入和增长率
-      const monthlyRevenue = totalShipments * 500; // 假设平均每单500元
-      const revenueGrowth = 12.5; // 模拟增长率
-
-      setStats({
-        totalShipments,
-        activeRules,
-        totalCustomers,
-        totalDrivers,
-        monthlyRevenue,
-        revenueGrowth,
-      });
-
-      // 设置最近运单数据
-      if (shipmentsRes.data?.data) {
-        // 调试：检查 estimatedCost 的数据类型 // 2025-01-27 15:35:00
-        console.log('Shipment data types:', shipmentsRes.data.data.map((shipment: unknown) => ({
-          id: shipment.id,
-          estimatedCost: shipment.estimatedCost,
-          estimatedCostType: typeof shipment.estimatedCost
-        })));
-        setRecentShipments(shipmentsRes.data.data);
+        setStats({
+          totalShipments,
+          activeRules,
+          totalCustomers,
+          totalDrivers,
+          monthlyRevenue,
+          revenueGrowth,
+        });
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoading(false);
+    };
+    
+    if (recentShipments.length > 0 || customers.length > 0 || drivers.length > 0) {
+      loadDashboardData();
     }
-  };
+  }, [recentShipments.length, customers.length, drivers.length]);
 
   const getStatusTag = (status: string) => {
     const statusMap: Record<string, { color: string; text: string }> = {
@@ -256,6 +248,13 @@ const Dashboard: React.FC = () => {
                         valueStyle={{ color: stats.revenueGrowth > 0 ? '#3f8600' : '#cf1322' }}
                       />
                     </Card>
+                  </Col>
+                </Row>
+
+                
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} lg={12}>
+                    <NotificationCenterPlaceholder />
                   </Col>
                 </Row>
 

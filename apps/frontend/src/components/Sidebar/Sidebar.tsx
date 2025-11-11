@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Menu, Button, Tooltip } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -24,6 +24,8 @@ import {
   LockOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import { usePermissions } from '../../contexts/PermissionContext'; // 2025-11-11 10:15:05 引入权限上下文
+import { Permission } from '../../types/permissions'; // 2025-11-11 10:15:05 引入权限枚举
 
 const { Sider } = Layout;
 
@@ -38,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   // 菜单展开状态管理 - 添加时间戳注释 @ 2025-09-30 09:15:00
   const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const { hasAllPermissions } = usePermissions(); // 2025-11-11 10:15:05 使用权限校验
 
   const handleCollapse = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
@@ -68,82 +71,151 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
     }
   }, [location.pathname]);
 
-  const menuItems: MenuProps['items'] = [
-    {
-      key: '/',
-      icon: <HomeOutlined />,
-      label: '首页',
-    },
-    {
-      key: '/create-shipment',
-      icon: <PlusOutlined />,
-      label: '创建运单',
-    },
-    // 将运单管理移动到创建运单与车队管理之间 // 2025-10-01 14:20:30
-    {
-      key: '/admin/shipments',
-      icon: <FileTextOutlined />,
-      label: '运单管理',
-    },
-    {
-      key: '/admin/fleet',
-      icon: <TruckOutlined />,
-      label: '车队管理',
-    },
-    {
-      key: '/finance-settlement',
-      icon: <DollarOutlined />,
-      label: '财务结算',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: '/customers',
-      icon: <UserOutlined />,
-      label: '客户管理',
-    },
-    // 2025-10-02 18:55:00 - 行程管理已整合到车队管理页面中
-    {
-      type: 'divider',
-    },
-    {
-      key: '/admin',
-      icon: <SettingOutlined />,
-      label: '管理后台',
-      children: [
-        // 运单管理已提升到一级菜单 // 2025-10-01 14:20:30
-        {
-          key: '/admin/batch-import',
-          icon: <UploadOutlined />,
-          label: '批量导入',
-        },
-        // 2025-10-02 17:25:00 - 司机管理和车辆管理功能已整合到车队管理中
-        {
-          key: '/admin/rules',
-          icon: <SettingOutlined />,
-          label: '规则管理',
-        },
-        // 2025-10-02 18:35:00 - 已整合的页面功能已移除:
-        // - 财务报告 → 整合到财务管理页面(财务报表标签页)
-        // - 车辆维护 → 整合到车队管理页面(车辆维护标签页)
-        // - 司机绩效 → 整合到车队管理页面(司机绩效标签页)
-        // - 实时跟踪 → 整合到车队管理页面(实时跟踪标签页)
-        // 2025-10-02 19:00:00 - 路径优化功能暂时移除，后续添加
-        {
-          key: '/admin/rule-version-management',
-          icon: <HistoryOutlined />,
-          label: '规则版本',
-        },
-        // 2025-10-02 18:35:00 - 性能监控 → 整合到仪表板页面(系统监控标签页)
-        {
-          key: '/admin/granular-permissions',
-          icon: <LockOutlined />,
-          label: '权限控制',
-        },
-      ],
-    },
-  ];
+  interface NavigationItem {
+    key?: string;
+    icon?: React.ReactNode;
+    label?: React.ReactNode;
+    type?: 'divider';
+    requiredPermissions?: Permission[];
+    children?: NavigationItem[];
+  }
+
+  const filterMenuItems = (items: NavigationItem[]): NavigationItem[] =>
+    items
+      .map((item) => {
+        if (item.type === 'divider') {
+          return item;
+        }
+        const required = item.requiredPermissions || [];
+        const allowed = required.length === 0 || hasAllPermissions(required);
+        if (!allowed) {
+          if (item.children) {
+            const filteredChildren = filterMenuItems(item.children);
+            if (filteredChildren.length === 0) {
+              return null;
+            }
+            return { ...item, children: filteredChildren };
+          }
+          return null;
+        }
+        if (item.children) {
+          const filteredChildren = filterMenuItems(item.children);
+          if (filteredChildren.length === 0) {
+            return null;
+          }
+          return { ...item, children: filteredChildren };
+        }
+        return item;
+      })
+      .filter((item): item is NavigationItem => Boolean(item));
+
+  const removeExtraDividers = (items: NavigationItem[]): NavigationItem[] => {
+    const result: NavigationItem[] = [];
+    items.forEach((item) => {
+      if (item.type === 'divider') {
+        if (result.length === 0 || result[result.length - 1].type === 'divider') {
+          return;
+        }
+        result.push(item);
+      } else {
+        result.push(item);
+      }
+    });
+    if (result[result.length - 1]?.type === 'divider') {
+      result.pop();
+    }
+    return result;
+  };
+
+  const convertToMenuItems = (items: NavigationItem[]): MenuProps['items'] =>
+    items.map((item) => {
+      if (item.type === 'divider') {
+        return { type: 'divider' } as MenuProps['items'][number];
+      }
+      return {
+        key: item.key!,
+        icon: item.icon,
+        label: item.label,
+        children: item.children ? convertToMenuItems(item.children) : undefined,
+      };
+    });
+
+  const menuItems = useMemo(() => {
+    const rawMenuItems: NavigationItem[] = [
+      {
+        key: '/',
+        icon: <HomeOutlined />,
+        label: '首页',
+      },
+      {
+        key: '/create-shipment',
+        icon: <PlusOutlined />,
+        label: '创建运单',
+        requiredPermissions: [Permission.SHIPMENT_CREATE],
+      },
+      {
+        key: '/admin/shipments',
+        icon: <FileTextOutlined />,
+        label: '运单管理',
+        requiredPermissions: [Permission.SHIPMENT_READ],
+      },
+      {
+        key: '/admin/fleet',
+        icon: <TruckOutlined />,
+        label: '车队管理',
+        requiredPermissions: [Permission.TRIP_READ],
+      },
+      {
+        key: '/finance-settlement',
+        icon: <DollarOutlined />,
+        label: '财务结算',
+        requiredPermissions: [Permission.FINANCE_READ],
+      },
+      { type: 'divider' },
+      {
+        key: '/customers',
+        icon: <UserOutlined />,
+        label: '客户管理',
+        requiredPermissions: [Permission.CUSTOMER_READ],
+      },
+      { type: 'divider' },
+      {
+        key: '/admin',
+        icon: <SettingOutlined />,
+        label: '管理后台',
+        requiredPermissions: [Permission.SYSTEM_ADMIN],
+        children: [
+          {
+            key: '/admin/batch-import',
+            icon: <UploadOutlined />,
+            label: '批量导入',
+            requiredPermissions: [Permission.SHIPMENT_CREATE],
+          },
+          {
+            key: '/admin/rules',
+            icon: <SettingOutlined />,
+            label: '规则管理',
+            requiredPermissions: [Permission.SYSTEM_CONFIG],
+          },
+          {
+            key: '/admin/rule-version-management',
+            icon: <HistoryOutlined />,
+            label: '规则版本',
+            requiredPermissions: [Permission.SYSTEM_CONFIG],
+          },
+          {
+            key: '/admin/granular-permissions',
+            icon: <LockOutlined />,
+            label: '权限控制',
+            requiredPermissions: [Permission.SYSTEM_ADMIN],
+          },
+        ],
+      },
+    ];
+    const filtered = filterMenuItems(rawMenuItems);
+    const cleaned = removeExtraDividers(filtered);
+    return convertToMenuItems(cleaned);
+  }, [hasAllPermissions]); // 2025-11-11 10:15:05 基于权限动态生成菜单
 
   const handleMenuClick = ({ key }: { key: string }) => {
     // 2025-10-03 20:25:00 点击一级菜单项时，显式收起"管理后台"下拉

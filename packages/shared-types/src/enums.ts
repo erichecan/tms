@@ -70,18 +70,19 @@ export enum FeeType {
   OTHER = 'other'
 }
 
-// 运单状态枚举
+// 运单状态枚举 // 2025-11-11 14:07:30 对齐 PRD 状态机
 export enum ShipmentStatus {
-  PENDING = 'pending',
-  QUOTED = 'quoted',
-  CONFIRMED = 'confirmed',
-  ASSIGNED = 'assigned',
-  PICKED_UP = 'picked_up',
-  IN_TRANSIT = 'in_transit',
-  DELIVERED = 'delivered',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  EXCEPTION = 'exception'
+  DRAFT = 'draft', // 草稿 // 2025-11-11 14:07:30
+  PENDING_CONFIRMATION = 'pending_confirmation', // 待确认 // 2025-11-11 14:07:30
+  CONFIRMED = 'confirmed', // 已确认/待调度 // 2025-11-11 14:07:30
+  SCHEDULED = 'scheduled', // 已调度/待提货 // 2025-11-11 14:07:30
+  PICKUP_IN_PROGRESS = 'pickup_in_progress', // 已提货 // 2025-11-11 14:07:30
+  IN_TRANSIT = 'in_transit', // 在途 // 2025-11-11 14:07:30
+  DELIVERED = 'delivered', // 已送达 // 2025-11-11 14:07:30
+  POD_PENDING_REVIEW = 'pod_pending_review', // 已签收/待审核 // 2025-11-11 14:07:30
+  COMPLETED = 'completed', // 已完结 // 2025-11-11 14:07:30
+  CANCELLED = 'cancelled', // 已取消 // 2025-11-11 14:07:30
+  EXCEPTION = 'exception' // 异常 // 2025-11-11 14:07:30
 }
 
 // 财务类型枚举
@@ -140,4 +141,28 @@ export enum EntityStatus {
 export enum SortOrder {
   ASC = 'asc',
   DESC = 'desc'
+}
+
+// 司机状态枚举 // 2025-10-31 09:30:00 添加统一的状态枚举
+export enum DriverStatus {
+  AVAILABLE = 'available',  // 空闲可用
+  BUSY = 'busy',           // 忙碌中
+  ON_LEAVE = 'on_leave',   // 休假
+  INACTIVE = 'inactive'    // 停用
+}
+
+// 车辆状态枚举 // 2025-10-31 09:30:00 添加统一的状态枚举
+export enum VehicleStatus {
+  AVAILABLE = 'available',  // 可用
+  BUSY = 'busy',           // 使用中
+  MAINTENANCE = 'maintenance', // 维护中
+  INACTIVE = 'inactive'    // 停用
+}
+
+// 行程状态枚举 // 2025-10-31 09:30:00 添加统一的状态枚举
+export enum TripStatus {
+  PLANNED = 'planned',     // 已计划
+  ONGOING = 'ongoing',     // 进行中
+  COMPLETED = 'completed', // 已完成
+  CANCELLED = 'cancelled'  // 已取消
 }

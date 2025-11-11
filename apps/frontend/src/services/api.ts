@@ -129,6 +129,21 @@ export const shipmentsApi = {
   // 2025-10-29 10:25:30 扩展：支持同时指派车辆
   assignDriver: (shipmentId: string, driverId: string, vehicleId?: string, notes?: string) => 
     api.post(`/shipments/${shipmentId}/assign`, { driverId, vehicleId, notes }),
+  // 2025-11-11 10:15:05 增加上传POD接口，支持表单数据上传
+  uploadShipmentPOD: (shipmentId: string, file: File, payload?: { note?: string }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (payload?.note) {
+      formData.append('note', payload.note);
+    }
+    return api.post(`/shipments/${shipmentId}/pod`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  // 2025-11-11 10:15:05 新增获取运单时间线接口
+  getShipmentTimeline: (shipmentId: string) => api.get(`/shipments/${shipmentId}/timeline`),
+  // 2025-11-11 10:15:05 新增获取运单POD列表接口
+  getShipmentPODs: (shipmentId: string) => api.get(`/shipments/${shipmentId}/pods`),
   confirmShipment: (shipmentId: string) => api.post(`/shipments/${shipmentId}/confirm`),
   startPickup: (shipmentId: string, driverId?: string) => 
     api.post(`/shipments/${shipmentId}/pickup`, { driverId }),

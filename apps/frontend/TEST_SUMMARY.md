@@ -79,6 +79,7 @@ e2e/
 ├── comprehensive.spec.ts  # 综合错误检测 (9 个测试)
 ├── login.spec.ts         # 登录页面测试 (5 个测试)
 ├── navigation.spec.ts    # 导航测试 (5 个测试)
+├── end-to-end-flow.spec.ts # 端到端冒烟测试 (2025-11-11 新增)
 └── helpers.ts           # 测试辅助函数
 ```
 

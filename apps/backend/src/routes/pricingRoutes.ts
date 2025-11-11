@@ -116,6 +116,20 @@ router.post('/shipments/:id/additional-fee',
 );
 
 /**
+ * @route POST /api/v1/pricing/quotes/:id/confirm
+ * @desc 报价转正式运单
+ * @access Private
+ */
+router.post('/quotes/:id/confirm',
+  validateRequest({
+    body: {
+      finalCost: { type: 'number', required: false }
+    }
+  }),
+  pricingController.confirmQuote.bind(pricingController)
+); // 2025-11-11 14:50:05 新增报价确认路由
+
+/**
  * @route GET /api/v1/pricing/history
  * @desc 获取报价历史
  * @access Private

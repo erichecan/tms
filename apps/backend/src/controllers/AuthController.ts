@@ -24,33 +24,6 @@ export class AuthController {
     try {
       const { email, password, tenantDomain } = req.body;
       
-      // 临时自动登录功能 - 跳过认证
-      if (email === 'admin@demo.tms-platform.com' && password === 'password') {
-        const mockUser = {
-          id: '00000000-0000-0000-0000-000000000001',
-          email: 'admin@demo.tms-platform.com',
-          name: 'Admin User',
-          role: 'admin',
-          tenantId: '00000000-0000-0000-0000-000000000001'
-        };
-
-        const token = generateToken(mockUser.id, mockUser.tenantId, mockUser.role);
-
-        const refreshToken = generateRefreshToken(mockUser.id, mockUser.tenantId);
-
-        res.json({
-          success: true,
-          data: {
-            token,
-            refreshToken,
-            user: mockUser
-          },
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
-        });
-        return;
-      }
-      
       if (!email || !password) {
         res.status(400).json({
           success: false,
@@ -150,6 +123,7 @@ export class AuthController {
             }
           },
           accessToken,
+          token: accessToken, // 2025-11-11T15:21:37Z Added by Assistant: Maintain legacy token field
           refreshToken,
           expiresIn: process.env.JWT_EXPIRES_IN || '7d'
         },
@@ -187,8 +161,19 @@ export class AuthController {
         return;
       }
 
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        res.status(500).json({
+          success: false,
+          error: { code: 'CONFIG_ERROR', message: 'Authentication secret is not configured' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+        return;
+      }
+
       // 验证刷新token
-      const decoded = jwt.verify(refreshToken, 'your-super-secret-jwt-key-change-this-in-production') as any;
+      const decoded = jwt.verify(refreshToken, jwtSecret) as any; // 2025-11-11T15:21:37Z Added by Assistant: Use configured secret
       
       if (decoded.type !== 'refresh') {
         res.status(401).json({

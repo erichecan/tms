@@ -4,7 +4,7 @@
 import { Request, Response } from 'express';
 import { ShipmentController } from '../../src/controllers/ShipmentController';
 import { ShipmentService } from '../../src/services/ShipmentService';
-import { Shipment, CreateShipmentRequest, UpdateShipmentRequest } from '@tms/shared-types';
+import { Shipment, CreateShipmentRequest, UpdateShipmentRequest, ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:42:30 更新导入
 
 // Mock运单服务
 jest.mock('../../src/services/ShipmentService');
@@ -77,10 +77,11 @@ describe('ShipmentController', () => {
         actualCost: null,
         additionalFees: [],
         appliedRules: [],
-        status: 'pending',
+        status: 'pending_confirmation',
         timeline: {
           created: new Date(),
-          pending: new Date()
+          draft: new Date(),
+          pendingConfirmation: new Date()
         },
         notes: 'Test shipment',
         createdAt: new Date(),
@@ -94,7 +95,7 @@ describe('ShipmentController', () => {
 
       await shipmentController.createShipment(mockRequest as Request, mockResponse as Response);
 
-      expect(mockShipmentService.createShipment).toHaveBeenCalledWith('tenant-id', createRequest);
+      expect(mockShipmentService.createShipment).toHaveBeenCalledWith('tenant-id', createRequest, { initialStatus: ShipmentStatus.PENDING_CONFIRMATION });
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -156,10 +157,11 @@ describe('ShipmentController', () => {
         actualCost: null,
         additionalFees: [],
         appliedRules: [],
-        status: 'pending',
+        status: 'pending_confirmation',
         timeline: {
           created: new Date(),
-          pending: new Date()
+          draft: new Date(),
+          pendingConfirmation: new Date()
         },
         notes: 'Test shipment',
         createdAt: new Date(),

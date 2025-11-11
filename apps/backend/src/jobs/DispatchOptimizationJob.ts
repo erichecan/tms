@@ -101,8 +101,8 @@ class DispatchOptimizationJob {
   }> {
     const result = await this.dbService.query(`
       SELECT 
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
-        COUNT(CASE WHEN status = 'assigned' THEN 1 END) as assigned,
+        COUNT(CASE WHEN status = 'pending_confirmation' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as assigned,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed
       FROM shipments 
       WHERE tenant_id = $1

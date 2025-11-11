@@ -70,6 +70,17 @@ gcloud run services logs read tms-frontend --region=northamerica-northeast2
 gcloud run services logs read tms-backend --region=northamerica-northeast2
 ```
 
+### <!-- 2025-11-11T15:12:18Z Added by Assistant: Automated migration note -->执行数据库迁移
+```bash
+DATABASE_URL="postgresql://user:password@host/db" ./scripts/run_migrations.sh
+
+# CI 模式（无提示）
+DATABASE_URL="postgresql://user:password@host/db" ./scripts/run_migrations.sh --ci
+
+# 查看待执行迁移
+./scripts/run_migrations.sh --dry-run
+```
+
 ### 运行测试
 ```bash
 cd apps/frontend

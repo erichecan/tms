@@ -1,6 +1,7 @@
 # Google Cloud Build 配置文件
 # 用于构建和部署 TMS 应用
 # 修复版本 - 2025-01-27 22:30:00
+# 2025-11-11T15:11:02Z Added by Assistant: Migration automation and region alignment
 
 steps:
   # 构建后端 Docker 镜像
@@ -21,7 +22,7 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
       - '--build-arg'
-      - 'VITE_API_BASE_URL=https://tms-backend-1038443972557.asia-east2.run.app'
+      - 'VITE_API_BASE_URL=https://tms-backend-1038443972557.northamerica-northeast2.run.app' # 2025-11-11T15:11:02Z Added by Assistant: Align frontend API base URL
       - '--build-arg'
       - 'VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY'
       - '-f'
@@ -38,6 +39,17 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA']
 
+  # 运行数据库迁移
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y postgresql-client >/dev/null
+        chmod +x scripts/run_migrations.sh
+        ./scripts/run_migrations.sh --ci
+    secretEnv: ['DATABASE_URL'] # 2025-11-11T15:11:02Z Added by Assistant: Pass database secret for migrations
+
   # 部署后端到 Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
@@ -46,7 +58,7 @@ steps:
       - 'deploy'
       - 'tms-backend'
       - '--image=gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
-      - '--region=asia-east2'
+      - '--region=northamerica-northeast2' # 2025-11-11T15:11:02Z Added by Assistant: Switch backend region
       - '--platform=managed'
       - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
       - '--set-env-vars=NODE_ENV=production,CORS_ORIGIN=*'
@@ -64,9 +76,9 @@ steps:
       - 'deploy'
       - 'tms-frontend'
       - '--image=gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
-      - '--region=asia-east2'
+      - '--region=northamerica-northeast2' # 2025-11-11T15:11:02Z Added by Assistant: Switch frontend region
       - '--platform=managed'
-      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-3urqay2ata-df.a.run.app'
+      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-1038443972557.northamerica-northeast2.run.app' # 2025-11-11T15:11:02Z Added by Assistant: Align frontend env
       - '--memory=256Mi'
       - '--cpu=1'
       - '--min-instances=0'
@@ -88,5 +100,7 @@ availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_ID/secrets/google-maps-api-key/versions/latest
       env: 'GOOGLE_MAPS_API_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/database-url/versions/latest # 2025-11-11T15:11:02Z Added by Assistant: Expose database URL secret
+      env: 'DATABASE_URL'
 
 # 构建完成

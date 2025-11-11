@@ -54,13 +54,14 @@ export declare enum FeeType {
     OTHER = "other"
 }
 export declare enum ShipmentStatus {
-    PENDING = "pending",
-    QUOTED = "quoted",
+    DRAFT = "draft",
+    PENDING_CONFIRMATION = "pending_confirmation",
     CONFIRMED = "confirmed",
-    ASSIGNED = "assigned",
-    PICKED_UP = "picked_up",
+    SCHEDULED = "scheduled",
+    PICKUP_IN_PROGRESS = "pickup_in_progress",
     IN_TRANSIT = "in_transit",
     DELIVERED = "delivered",
+    POD_PENDING_REVIEW = "pod_pending_review",
     COMPLETED = "completed",
     CANCELLED = "cancelled",
     EXCEPTION = "exception"

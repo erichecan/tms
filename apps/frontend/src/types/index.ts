@@ -1,4 +1,8 @@
 // 临时类型定义文件，用于替代shared-types包
+// 2025-10-31 09:35:00 从 shared-types 导入枚举，确保全系统统一
+import { DriverStatus, VehicleStatus, TripStatus } from '@tms/shared-types';
+
+export { DriverStatus, VehicleStatus, TripStatus };
 
 export interface User {
   id: string;
@@ -164,6 +168,9 @@ export interface Shipment {
   driverName?: string;                    // 司机姓名
   driverId?: string;                      // 司机ID
   tripNo?: string;                       // 行程编号
+  // 2025-11-11 10:15:05 新增：时间线和POD列表
+  timeline?: TimelineEvent[];
+  pods?: POD[];
 }
 
 export enum StatementType {
@@ -215,12 +222,6 @@ export interface Customer {
 }
 
 // 司机接口 - 符合PRD v3.0-PC设计
-export enum DriverStatus {
-  AVAILABLE = 'available',
-  BUSY = 'busy',
-  OFFLINE = 'offline',
-}
-
 export interface Driver {
   id: string;
   tenantId: string;
@@ -236,13 +237,6 @@ export interface Driver {
 }
 
 // 车辆接口 - 符合PRD v3.0-PC设计
-export enum VehicleStatus {
-  AVAILABLE = 'available',
-  BUSY = 'busy',
-  OFFLINE = 'offline',
-  MAINTENANCE = 'maintenance',
-}
-
 export interface Vehicle {
   id: string;
   tenantId: string;
@@ -256,12 +250,6 @@ export interface Vehicle {
 }
 
 // 行程接口 - 符合PRD v3.0-PC设计
-export enum TripStatus {
-  PLANNING = 'planning',
-  ONGOING = 'ongoing',
-  COMPLETED = 'completed',
-  CANCELED = 'canceled',
-}
 
 export interface Trip {
   id: string;

@@ -4,6 +4,8 @@
 
 import { DatabaseService } from './DatabaseService';
 import { logger } from '../utils/logger';
+import { MapsApiService } from './mapsApiService'; // 2025-11-11 14:55:00 集成地图服务
+import { DispatchMatrixRequest } from '../types/maps'; // 2025-11-11 14:55:00 调度矩阵类型
 
 interface Coordinates {
   lat: number;
@@ -80,10 +82,26 @@ export class DispatchOptimizationService {
   private dbService: DatabaseService;
   private readonly GOOGLE_MAPS_API_KEY: string;
   private readonly BASE_URL = 'https://maps.googleapis.com/maps/api';
+  private mapsService?: MapsApiService; // 2025-11-11 14:55:00 地图服务实例
 
   constructor(dbService: DatabaseService) {
     this.dbService = dbService;
     this.GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || '';
+    if (this.GOOGLE_MAPS_API_KEY) {
+      this.mapsService = new MapsApiService({
+        apiKey: this.GOOGLE_MAPS_API_KEY,
+        baseUrl: this.BASE_URL,
+        rateLimit: {
+          requestsPerMinute: 60,
+          requestsPerDay: 10000
+        },
+        cacheConfig: {
+          geocodingTtl: 86400,
+          directionsTtl: 3600,
+          distanceMatrixTtl: 600
+        }
+      });
+    } // 2025-11-11 14:55:00 初始化地图服务
   }
 
   /**
@@ -297,6 +315,42 @@ export class DispatchOptimizationService {
     vehicles: Vehicle[],
     drivers: Driver[]
   ): Promise<{ assignedShipments: any[]; unassignedShipments: string[] }> {
+    if (this.mapsService) {
+      const matrixRequest = this.buildDispatchMatrixRequest(shipments, vehicles);
+      if (matrixRequest) {
+        try {
+          const matrixResult = await this.mapsService.calculateDispatchMatrix(matrixRequest); // 2025-11-11 14:55:00 调用距离矩阵
+          if (matrixResult.assignments.length > 0) {
+            const assignedShipments = matrixResult.assignments
+              .map(assignment => {
+                const shipment = shipments.find((s: any) => s.id === assignment.shipmentId);
+                const vehicle = vehicles.find(
+                  v => v.driverId === assignment.driverId || v.id === assignment.driverId
+                );
+                if (!shipment || !vehicle) {
+                  return null;
+                }
+                return {
+                  ...shipment,
+                  assignedVehicle: vehicle,
+                  distanceFromDriver: assignment.distance / 1000,
+                  durationFromDriver: assignment.duration / 60,
+                  optimizationCost: assignment.cost
+                };
+              })
+              .filter(Boolean) as any[];
+
+            const unassignedShipments = shipments
+              .filter(shipment => !assignedShipments.some(assigned => assigned.id === shipment.id))
+              .map((shipment: any) => shipment.id);
+
+            return { assignedShipments, unassignedShipments };
+          }
+        } catch (error) {
+          logger.warn('Distance matrix assignment failed, falling back to heuristic', error); // 2025-11-11 14:55:00
+        }
+      }
+    }
     
     // 简化的贪心算法实现车辆分配
     const assignedShipments = [];
@@ -472,6 +526,85 @@ export class DispatchOptimizationService {
     return routes;
   }
 
+  private buildDispatchMatrixRequest(shipments: any[], vehicles: Vehicle[]): DispatchMatrixRequest | null {
+    const drivers = vehicles
+      .filter(vehicle => vehicle.currentLocation)
+      .map(vehicle => ({
+        id: vehicle.driverId || vehicle.id,
+        currentLocation: {
+          formattedAddress: vehicle.plateNumber,
+          latitude: vehicle.currentLocation!.lat,
+          longitude: vehicle.currentLocation!.lng
+        },
+        vehicleType: vehicle.type,
+        capacity: vehicle.capacity
+      })); // 2025-11-11 14:55:00 构建司机列表
+
+    const shipmentsWithCoords = shipments
+      .filter(shipment => shipment.pickupCoordinates && shipment.deliveryCoordinates)
+      .map(shipment => {
+        const pickupAddress = this.parseJsonField(
+          shipment.pickupAddress || shipment.pickup_address
+        ) || {};
+        const deliveryAddress = this.parseJsonField(
+          shipment.deliveryAddress || shipment.delivery_address
+        ) || {};
+        const cargoInfo = this.parseJsonField(
+          shipment.cargoInfo || shipment.cargo_info
+        ) || {};
+
+        return {
+          id: shipment.id,
+          pickupAddress: {
+            formattedAddress: `${pickupAddress.street || ''} ${pickupAddress.city || ''}`.trim() || 'Pickup',
+            latitude: shipment.pickupCoordinates.lat,
+            longitude: shipment.pickupCoordinates.lng,
+            city: pickupAddress.city,
+            province: pickupAddress.state,
+            postalCode: pickupAddress.postalCode,
+            country: pickupAddress.country
+          },
+          deliveryAddress: {
+            formattedAddress: `${deliveryAddress.street || ''} ${deliveryAddress.city || ''}`.trim() || 'Delivery',
+            latitude: shipment.deliveryCoordinates.lat,
+            longitude: shipment.deliveryCoordinates.lng,
+            city: deliveryAddress.city,
+            province: deliveryAddress.state,
+            postalCode: deliveryAddress.postalCode,
+            country: deliveryAddress.country
+          },
+          cargoInfo: {
+            weight: cargoInfo.weight || 0,
+            volume: cargoInfo.volume || 0,
+            pallets: cargoInfo.pallets || 0
+          },
+          priority: 'MEDIUM' as const,
+          requiredBy: shipment.requiredBy || shipment.timeline?.scheduled
+        };
+      }); // 2025-11-11 14:55:00 构建运单列表
+
+    if (!drivers.length || !shipmentsWithCoords.length) {
+      return null; // 2025-11-11 14:55:00 数据不足时返回
+    }
+
+    return {
+      drivers,
+      shipments: shipmentsWithCoords
+    };
+  }
+
+  private parseJsonField(field: any): any {
+    if (!field) return field;
+    if (typeof field === 'string') {
+      try {
+        return JSON.parse(field);
+      } catch {
+        return field;
+      }
+    }
+    return field;
+  }
+
   /**
    * Haversine距离计算公式
    */
@@ -520,7 +653,7 @@ export class DispatchOptimizationService {
 
   private async getPendingShipments(tenantId: string): Promise<any[]> {
     const result = await this.dbService.query(
-      "SELECT * FROM shipments WHERE status IN ('pending', 'confirmed') AND tenant_id = $1",
+      "SELECT * FROM shipments WHERE status IN ('pending_confirmation', 'confirmed') AND tenant_id = $1",
       [tenantId]
     );
     return result;
@@ -530,12 +663,13 @@ export class DispatchOptimizationService {
     for (const route of routes) {
       await this.dbService.query(
         `UPDATE shipments 
-         SET status = 'assigned', 
+         SET status = 'scheduled',
              trip_id = $1, 
              driver_id = $2, 
              vehicle_id = $3,
              estimated_pickup_time = $4,
              estimated_delivery_time = $5,
+             timeline = jsonb_set(coalesce(timeline, '{}'::jsonb), '{scheduled}', to_jsonb(NOW())::jsonb, true),
              updated_at = NOW()
          WHERE id = $6 AND tenant_id = $7`,
         [

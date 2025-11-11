@@ -23,7 +23,8 @@ import {
   WarningOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
-import { driversApi, shipmentsApi } from '../../services/api';
+import { shipmentsApi } from '../../services/api';
+import { useDrivers } from '../../hooks'; // 2025-10-31 09:58:00 使用统一的数据管理 Hook
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -50,15 +51,20 @@ interface TaskRecord {
 }
 
 const DriverSalarySimplified: React.FC = () => {
+  // 2025-10-31 09:58:00 使用统一的数据管理 Hook
+  const { drivers, loading: driversLoading } = useDrivers();
+  
   const [loading, setLoading] = useState(false);
-  const [drivers, setDrivers] = useState<any[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
   const [driverStats, setDriverStats] = useState<DriverStats | null>(null);
   const [taskRecords, setTaskRecords] = useState<TaskRecord[]>([]);
 
+  // 2025-10-31 09:58:00 自动选择第一个司机
   useEffect(() => {
-    loadDrivers();
-  }, []);
+    if (drivers.length > 0 && !selectedDriverId) {
+      setSelectedDriverId(drivers[0].id);
+    }
+  }, [drivers, selectedDriverId]);
 
   useEffect(() => {
     if (selectedDriverId) {
@@ -66,20 +72,6 @@ const DriverSalarySimplified: React.FC = () => {
       loadDriverTasks(selectedDriverId);
     }
   }, [selectedDriverId]);
-
-  const loadDrivers = async () => {
-    try {
-      const response = await driversApi.getDrivers();
-      const driverList = response.data?.data || [];
-      setDrivers(driverList);
-      
-      if (driverList.length > 0 && !selectedDriverId) {
-        setSelectedDriverId(driverList[0].id);
-      }
-    } catch (error) {
-      console.error('加载司机列表失败:', error);
-    }
-  };
 
   const loadDriverStats = async (driverId: string) => {
     try {

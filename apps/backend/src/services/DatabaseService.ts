@@ -5,6 +5,30 @@ import { Pool, PoolClient } from 'pg';
 import { Rule, RuleExecution, Tenant, User, Customer, Driver, Shipment, FinancialRecord, QueryParams, PaginatedResponse, Statement } from '@tms/shared-types';
 import { logger } from '../utils/logger';
 
+type TenantUserRecord = {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  role: string;
+  status: string;
+  granted_permissions: string[] | null;
+};
+
+type AuditLogInsert = {
+  tenantId: string;
+  entityType: string;
+  entityId: string;
+  operation: string;
+  actorId?: string;
+  actorType?: string;
+  field?: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
+  extraData?: Record<string, any>;
+}; // 2025-11-11T15:15:52Z Added by Assistant: Audit log input contract
+
 export class DatabaseService {
   private pool: Pool;
 
@@ -87,6 +111,94 @@ export class DatabaseService {
    */
   public async getConnection(): Promise<PoolClient> {
     return await this.pool.connect();
+  }
+
+  /**
+   * 获取租户用户映射
+   * @param tenantId 租户ID
+   * @param userId 用户ID
+   * @returns 租户用户记录
+   * 2025-11-11T15:15:52Z Added by Assistant: Tenant scoped role resolver
+   */
+  async getTenantUser(tenantId: string, userId: string): Promise<{ role: string; granted_permissions: string[] } | null> {
+    const result = await this.query(
+      `SELECT id, tenant_id, user_id, role, status, granted_permissions
+       FROM tenant_users
+       WHERE tenant_id = $1 AND user_id = $2`,
+      [tenantId, userId]
+    );
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    const row = result[0] as TenantUserRecord;
+    if (row.status !== 'active') {
+      return null;
+    }
+
+    return {
+      role: row.role,
+      granted_permissions: row.granted_permissions ?? []
+    };
+  }
+
+  /**
+   * 检查用户权限
+   * 2025-11-11T15:15:52Z Added by Assistant: Permission helper
+   */
+  async hasPermission(tenantId: string, userId: string, required: string): Promise<boolean> {
+    const tenantUser = await this.getTenantUser(tenantId, userId);
+    if (!tenantUser) {
+      return false;
+    }
+
+    if (tenantUser.role === 'SYSTEM_ADMIN' || tenantUser.role === 'TENANT_ADMIN') {
+      return true;
+    }
+
+    return tenantUser.granted_permissions.includes(required);
+  }
+
+  /**
+   * 写入审计日志
+   * 2025-11-11T15:15:52Z Added by Assistant: Unified audit persistence
+   */
+  async recordAuditLog(entry: AuditLogInsert): Promise<void> {
+    const query = `
+      INSERT INTO audit_logs (
+        tenant_id,
+        entity_type,
+        entity_id,
+        field,
+        old_value,
+        new_value,
+        actor_id,
+        actor_type,
+        actor_ip,
+        user_agent,
+        operation,
+        extra_data,
+        timestamp
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW()
+      )
+    `;
+
+    await this.query(query, [
+      entry.tenantId,
+      entry.entityType,
+      entry.entityId,
+      entry.field ?? null,
+      entry.oldValue ?? null,
+      entry.newValue ?? null,
+      entry.actorId ?? null,
+      entry.actorType ?? 'user',
+      entry.ip ?? null,
+      entry.userAgent ?? null,
+      entry.operation,
+      JSON.stringify(entry.extraData ?? {})
+    ]);
   }
 
   /**
@@ -936,10 +1048,22 @@ export class DatabaseService {
       queryParams.push(filters.status);
       paramIndex++;
     }
+
+    if (filters?.shipmentNumber) {
+      whereClause += ` AND shipment_number ILIKE $${paramIndex}`;
+      queryParams.push(`%${filters.shipmentNumber}%`);
+      paramIndex++;
+    }
     
     if (filters?.customerId) {
       whereClause += ` AND customer_id = $${paramIndex}`;
       queryParams.push(filters.customerId);
+      paramIndex++;
+    }
+
+    if (filters?.customerPhone) {
+      whereClause += ` AND shipper_phone = $${paramIndex}`;
+      queryParams.push(filters.customerPhone);
       paramIndex++;
     }
     
@@ -1109,17 +1233,18 @@ export class DatabaseService {
     const query = `
       SELECT 
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE status = 'pending') as pending,
-        COUNT(*) FILTER (WHERE status = 'quoted') as quoted,
+        COUNT(*) FILTER (WHERE status = 'draft') as draft,
+        COUNT(*) FILTER (WHERE status = 'pending_confirmation') as pending_confirmation,
         COUNT(*) FILTER (WHERE status = 'confirmed') as confirmed,
-        COUNT(*) FILTER (WHERE status = 'assigned') as assigned,
-        COUNT(*) FILTER (WHERE status = 'picked_up') as picked_up,
+        COUNT(*) FILTER (WHERE status = 'scheduled') as scheduled,
+        COUNT(*) FILTER (WHERE status = 'pickup_in_progress') as pickup_in_progress,
         COUNT(*) FILTER (WHERE status = 'in_transit') as in_transit,
         COUNT(*) FILTER (WHERE status = 'delivered') as delivered,
+        COUNT(*) FILTER (WHERE status = 'pod_pending_review') as pod_pending_review,
         COUNT(*) FILTER (WHERE status = 'completed') as completed,
         COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
         SUM(actual_cost) as total_revenue,
-        AVG(EXTRACT(EPOCH FROM (timeline->>'completed')::timestamp - (timeline->>'created')::timestamp)/3600) as avg_delivery_time_hours
+        AVG(EXTRACT(EPOCH FROM (timeline->>'completed')::timestamp - (coalesce(timeline->>'draft', timeline->>'created'))::timestamp)/3600) as avg_delivery_time_hours
       FROM shipments 
       ${whereClause}
     `;
@@ -1696,21 +1821,18 @@ export class DatabaseService {
   private mapTripFromDb(row: any): any {
     return {
       id: row.id,
-      // trips 表没有 tenant_id 字段 // 2025-10-17T21:25:00
-      // tenantId: row.tenant_id,
-      // trips 表没有 trip_no 字段，使用 id 作为 tripNo
-      tripNo: row.id,
+      tenantId: row.tenant_id, // 2025-10-31 修复：trips表有tenant_id字段
+      tripNo: row.trip_no, // 2025-10-31 修复：trips表有trip_no字段
       status: row.status,
       driverId: row.driver_id,
       vehicleId: row.vehicle_id,
-      // trips 表没有这些字段，使用默认值
-      legs: [],
-      shipments: [],
-      startTimePlanned: row.start_time,
-      endTimePlanned: row.end_time,
-      startTimeActual: row.start_time,
-      endTimeActual: row.end_time,
-      routePath: row.route || {},
+      legs: row.legs || [],
+      shipments: row.shipments || [],
+      startTimePlanned: row.start_time_planned, // 2025-10-31 修复：使用正确的字段名
+      endTimePlanned: row.end_time_planned, // 2025-10-31 修复：使用正确的字段名
+      startTimeActual: row.start_time_actual, // 2025-10-31 修复：使用正确的字段名
+      endTimeActual: row.end_time_actual, // 2025-10-31 修复：使用正确的字段名
+      routePath: row.route_path || {}, // 2025-10-31 修复：使用正确的字段名
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
@@ -1804,6 +1926,48 @@ export class DatabaseService {
   }
 
   /**
+   * 按租户获取车辆列表 // 2025-10-31 09:45:00 添加租户隔离查询
+   * @param tenantId 租户ID
+   * @param params 查询参数
+   * @returns 车辆列表
+   */
+  async getVehiclesByTenant(
+    tenantId: string, 
+    params: { page?: number; limit?: number; status?: string }
+  ): Promise<any[]> {
+    const { page = 1, limit = 50, status } = params;
+    const offset = (page - 1) * limit;
+    
+    let whereClause = 'WHERE tenant_id = $1';
+    const queryParams: any[] = [tenantId];
+    let paramIndex = 2;
+    
+    if (status) {
+      whereClause += ` AND status = $${paramIndex}`;
+      queryParams.push(status);
+      paramIndex++;
+    }
+    
+    const query = `
+      SELECT 
+        id,
+        plate_number as "plateNumber",
+        type as "vehicleType", 
+        capacity_kg as "capacity",
+        status,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM vehicles 
+      ${whereClause}
+      ORDER BY created_at DESC 
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    queryParams.push(limit, offset);
+    return await this.query(query, queryParams);
+  }
+
+  /**
    * 根据ID获取车辆
    * @param id 车辆ID
    * @returns 车辆信息
@@ -1816,18 +1980,19 @@ export class DatabaseService {
 
   /**
    * 创建车辆
+   * @param tenantId 租户ID // 2025-10-31 10:15:00 添加租户隔离
    * @param vehicle 车辆数据
    * @returns 创建的车辆
    */
-  async createVehicle(vehicle: {
+  async createVehicle(tenantId: string, vehicle: {
     plateNumber: string;
     vehicleType: string;
     capacity: number;
     status: string;
   }): Promise<any> {
     const query = `
-      INSERT INTO vehicles (plate_number, type, capacity_kg, status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      INSERT INTO vehicles (tenant_id, plate_number, type, capacity_kg, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING 
         id,
         plate_number as "plateNumber",
@@ -1839,6 +2004,7 @@ export class DatabaseService {
     `;
     
     const result = await this.query(query, [
+      tenantId, // 2025-10-31 10:15:00 添加租户ID
       vehicle.plateNumber,
       vehicle.vehicleType,
       vehicle.capacity,

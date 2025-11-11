@@ -54,7 +54,7 @@ router.get('/:id', shipmentController.getShipment.bind(shipmentController));
 router.put('/:id',
   validateRequest({
     body: {
-      status: { type: 'string', enum: ['pending', 'quoted', 'confirmed', 'assigned', 'picked_up', 'in_transit', 'delivered', 'completed', 'cancelled', 'exception'], required: false },
+      status: { type: 'string', enum: ['draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled', 'exception'], required: false } // 2025-11-11 14:39:15 同步状态枚举
       driverId: { type: 'string', required: false },
       actualCost: { type: 'number', required: false },
       additionalFees: { type: 'array', required: false },
@@ -178,6 +178,7 @@ router.get('/stats', shipmentController.getShipmentStats.bind(shipmentController
  * @desc 获取司机运单列表
  * @access Private
  */
+router.get('/driver/me', shipmentController.getDriverShipments.bind(shipmentController)); // 2025-11-11T15:31:42Z Added by Assistant: Current driver shortcut
 router.get('/driver/:driverId', shipmentController.getDriverShipments.bind(shipmentController));
 
 export default router;

@@ -364,7 +364,7 @@ export const shipmentCreateFormSchema = Joi.object({
   waitingTime: Joi.number().min(0).optional(),
   deliveryInstructions: Joi.string().allow('', null).optional(),
   specialRequirements: Joi.array().items(Joi.string()).optional(),
-  status: Joi.string().valid('pending', 'created', 'in_transit', 'delivered', 'cancelled').optional(),
+  status: Joi.string().valid('draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled', 'exception').optional(), // 2025-11-11 14:43:20
   estimatedCost: Joi.number().min(0).optional()
 });
 

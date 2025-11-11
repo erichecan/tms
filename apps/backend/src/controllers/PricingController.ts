@@ -195,4 +195,56 @@ export class PricingController {
       });
     }
   }
+
+  async confirmQuote(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantId = req.tenant?.id;
+      const shipmentId = req.params.id;
+
+      if (!tenantId || !shipmentId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant or Shipment ID not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      const { finalCost } = req.body as { finalCost?: number };
+      const shipment = await this.pricingService.confirmQuote(tenantId, shipmentId, { finalCost }); // 2025-11-11 14:50:05 调用转单
+
+      res.json({
+        success: true,
+        data: shipment,
+        message: 'Quote converted to shipment successfully',
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    } catch (error: any) {
+      logger.error('Failed to confirm quote:', error);
+      if (error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Shipment not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+      } else if (error.message.includes('converted')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_STATUS', message: error.message },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'Failed to confirm quote' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+      }
+    }
+  }
 }

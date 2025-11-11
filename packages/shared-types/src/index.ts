@@ -154,6 +154,7 @@ export interface Shipment extends BaseEntity {
   shipmentNumber: string;
   customerId?: string;
   driverId?: string;
+  vehicleId?: string; // 车辆ID // 2025-10-31 09:13:00
   transportDistance?: number;
   customer?: Customer;
   pickupAddress: Address;
@@ -208,20 +209,33 @@ export interface AdditionalFee {
 
 export type FeeType = 'fuel' | 'toll' | 'waiting' | 'overtime' | 'special' | 'other';
 
-export type ShipmentStatus = 
-  | 'pending' | 'quoted' | 'confirmed' | 'assigned' 
-  | 'picked_up' | 'in_transit' | 'delivered' | 'completed' 
-  | 'cancelled' | 'exception';
+export type ShipmentStatus =
+  | 'draft'
+  | 'pending_confirmation'
+  | 'confirmed'
+  | 'scheduled'
+  | 'pickup_in_progress'
+  | 'in_transit'
+  | 'delivered'
+  | 'pod_pending_review'
+  | 'completed'
+  | 'cancelled'
+  | 'exception'; // 2025-11-11 14:12:05 对齐 PRD 枚举
 
 export interface ShipmentTimeline {
-  created: Date;
-  quoted?: Date;
-  confirmed?: Date;
-  assigned?: Date;
-  pickedUp?: Date;
-  inTransit?: Date;
-  delivered?: Date;
-  completed?: Date;
+  created: Date | string; // 2025-11-11 14:12:05 保留兼容字段
+  draft?: Date | string; // 2025-11-11 14:12:05
+  pendingConfirmation?: Date | string; // 2025-11-11 14:12:05
+  confirmed?: Date | string; // 2025-11-11 14:12:05
+  scheduled?: Date | string; // 2025-11-11 14:12:05
+  pickupInProgress?: Date | string; // 2025-11-11 14:12:05
+  inTransit?: Date | string; // 2025-11-11 14:12:05
+  delivered?: Date | string; // 2025-11-11 14:12:05
+  podPendingReview?: Date | string; // 2025-11-11 14:12:05
+  completed?: Date | string; // 2025-11-11 14:12:05
+  cancelled?: Date | string; // 2025-11-11 14:12:05
+  assignmentAcknowledged?: Date | string; // 2025-11-11 14:52:00 驾驶员确认
+  assignmentDeclined?: Date | string; // 2025-11-11 14:52:00 驾驶员拒绝
 }
 
 // 财务相关类型

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio, Form, Input, InputNumber, Select, Row, Col, Tabs } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程 // 2025-10-10 17:45:00 添加Form组件用于编辑 // 2025-10-10 11:15:00 添加Tabs组件用于BOL切换
+import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio, Form, Input, InputNumber, Select, Row, Col, Tabs, Spin } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程 // 2025-10-10 17:45:00 添加Form组件用于编辑 // 2025-10-10 11:15:00 添加Tabs组件用于BOL切换 // 2025-11-11 10:15:05 引入Spin用于详情加载态
 import { 
   EyeOutlined, 
   EditOutlined, 
@@ -9,8 +9,9 @@ import {
   PlusOutlined,
   UserAddOutlined
 } from '@ant-design/icons';
-import { shipmentsApi, driversApi, tripsApi, customersApi } from '../../services/api'; // 2025-10-02 15:12:30 引入 tripsApi 以支持挂载行程 // 2025-10-02 16:20:05 引入 customersApi 用于显示客户
-import { Shipment, ShipmentStatus, Driver, Customer } from '../../types';
+import { shipmentsApi, tripsApi } from '../../services/api'; // 2025-10-31 09:55:00 移除直接API调用，使用Hook
+import { useShipments, useDrivers, useCustomers } from '../../hooks'; // 2025-10-31 09:55:00 使用统一的数据管理 Hook
+import { Shipment, ShipmentStatus, Driver, Customer, TimelineEvent, POD } from '../../types'; // 2025-11-11 10:15:05 引入时间线与POD类型
 import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; // 2025-09-27 03:10:00 恢复运单词情组件
 import { useLocation, useNavigate } from 'react-router-dom'; // 2025-10-02 02:55:10 导航至创建页
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
@@ -22,10 +23,12 @@ import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-10-1
 const { Title, Text } = Typography;
 
 const ShipmentManagement: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]); // 2025-10-02 16:20:05 载入客户用于展示
+  // 2025-10-31 09:55:00 使用统一的数据管理 Hooks
+  const { shipments, loading: shipmentsLoading, reload: reloadShipments } = useShipments();
+  const { drivers } = useDrivers();
+  const { customers } = useCustomers();
+  
+  const [detailLoading, setDetailLoading] = useState(false); // 2025-11-11 10:15:05 新增：详情加载态
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
@@ -46,12 +49,6 @@ const ShipmentManagement: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate(); // 2025-10-02 02:55:10
 
-  useEffect(() => {
-    loadShipments();
-    loadDrivers();
-    loadCustomers(); // 2025-10-02 16:20:05 加载客户列表
-  }, []);
-
   // 页面进入后，如果来自创建页且携带 autoAssignShipmentId，则自动打开指派弹窗 // 2025-10-01 14:07:30
   useEffect(() => {
     const state: unknown = location.state;
@@ -62,52 +59,6 @@ const ShipmentManagement: React.FC = () => {
       }
     }
   }, [location.state, shipments]);
-
-  const loadShipments = async () => {
-    try {
-      setLoading(true);
-      const response = await shipmentsApi.getShipments();
-      // 2025-10-28 修复：直接使用API返回的数据，不做转换
-      // 因为API返回的数据格式已经匹配前端期望
-      const shipmentData = response.data.data || [];
-      console.log('🔍 运单数据:', shipmentData); // 2025-10-28 调试
-      
-      // 2025-10-28 新增：过滤掉不存在的运单ID（避免mock数据导致的问题）
-      const validShipments = shipmentData.filter((s: unknown) => {
-        const shipment = s || {};
-        // 2025-10-28 修复：只过滤掉shipmentNumber为null的无效数据
-        return shipment.id && shipment.shipmentNumber;
-      });
-      console.log('🔍 过滤后的有效运单:', validShipments); // 2025-10-28 调试
-      
-      setShipments(validShipments);
-    } catch (error) {
-      console.error('Failed to load shipments:', error);
-      message.error('加载运单失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDrivers = async () => {
-    try {
-      const response = await driversApi.getDrivers();
-      setDrivers(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to load drivers:', error);
-      message.error('加载司机失败');
-    }
-  };
-
-  // 2025-10-02 16:20:05 加载客户列表，确保“客户”来自创建订单信息而非分配
-  const loadCustomers = async () => {
-    try {
-      const response = await customersApi.getCustomers();
-      setCustomers(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-    }
-  };
 
   const getCustomerName = (record: Shipment) => {
     const anyRec = record as any;
@@ -179,16 +130,83 @@ const ShipmentManagement: React.FC = () => {
       actualCost: anyS.actualCost || anyS.actual_cost,
       additionalFees: anyS.additionalFees || anyS.additional_fees || [],
       appliedRules: anyS.appliedRules || anyS.applied_rules || [],
-      timeline: anyS.timeline || {}
+      // 2025-11-11 10:15:05 新增：补充时间线与POD列表
+      timeline: Array.isArray(anyS.timeline)
+        ? anyS.timeline
+        : Array.isArray(anyS.timeline?.items)
+        ? anyS.timeline.items
+        : Array.isArray(anyS.timeline?.events)
+        ? anyS.timeline.events
+        : [],
+      pods: Array.isArray(anyS.pods)
+        ? anyS.pods
+        : Array.isArray(anyS.podList)
+        ? anyS.podList
+        : Array.isArray(anyS.pod_list)
+        ? anyS.pod_list
+        : []
     };
   };
 
-  const handleView = (shipment: Shipment) => {
+  const statusLabelMap: Record<ShipmentStatus, string> = {
+    [ShipmentStatus.PENDING]: '待处理',
+    [ShipmentStatus.QUOTED]: '已报价',
+    [ShipmentStatus.CONFIRMED]: '已确认',
+    [ShipmentStatus.CREATED]: '已创建',
+    [ShipmentStatus.ASSIGNED]: '已分配',
+    [ShipmentStatus.PICKED_UP]: '已取货',
+    [ShipmentStatus.IN_TRANSIT]: '运输中',
+    [ShipmentStatus.DELIVERED]: '已送达',
+    [ShipmentStatus.COMPLETED]: '已完成',
+    [ShipmentStatus.EXCEPTION]: '异常',
+    [ShipmentStatus.CANCELED]: '已取消',
+    [ShipmentStatus.CANCELLED]: '已取消',
+  }; // 2025-11-11 10:15:05 新增：状态文案映射
+
+  const fetchShipmentDetails = async (shipmentId: string) => {
+    // 2025-11-11 10:15:05 新增：统一加载详情/时间线/POD
+    const detailPromise = shipmentsApi.getShipmentDetails(shipmentId);
+    const timelinePromise = shipmentsApi.getShipmentTimeline(shipmentId).catch(() => ({ data: [] }));
+    const podsPromise = shipmentsApi.getShipmentPODs(shipmentId).catch(() => ({ data: [] }));
+    const [detailRes, timelineRes, podsRes] = await Promise.all([detailPromise, timelinePromise, podsPromise]);
+    const detailData = transformShipmentData(detailRes.data?.data || detailRes.data || {});
+    const timelineData = (timelineRes?.data?.data || timelineRes?.data || []) as TimelineEvent[];
+    const podsData = (podsRes?.data?.data || podsRes?.data || []) as POD[];
+    return {
+      ...detailData,
+      timeline: timelineData,
+      pods: podsData,
+    } as Shipment;
+  };
+
+  const refreshShipmentDetails = async (shipmentId: string, options: { silent?: boolean } = {}) => {
+    // 2025-11-11 10:15:05 新增：刷新查看中的运单详情
+    if (!options.silent) {
+      setDetailLoading(true);
+    }
+    try {
+      const nextDetail = await fetchShipmentDetails(shipmentId);
+      setViewingShipment(nextDetail);
+    } catch (error) {
+      console.error('加载运单详情失败:', error);
+      if (!options.silent) {
+        message.error('加载运单详情失败');
+      }
+    } finally {
+      if (!options.silent) {
+        setDetailLoading(false);
+      }
+    }
+  };
+
+  const handleView = async (shipment: Shipment) => {
     // 转换数据格式后再显示 - 2025-10-08 18:40:00
     const transformedShipment = transformShipmentData(shipment);
     setViewingShipment(transformedShipment);
     setIsViewModalVisible(true);
     setIsEditMode(false); // 重置编辑模式
+    // 2025-11-11 10:15:05 新增：打开详情时获取最新数据
+    await refreshShipmentDetails(transformedShipment.id);
   };
 
   // 处理编辑运单 - 2025-10-28 修复：使用正确的字段路径
@@ -284,11 +302,15 @@ const ShipmentManagement: React.FC = () => {
       }
       
       setIsEditMode(false);
-      loadShipments();
+      reloadShipments();
       
       // 更新查看的运单数据
       const updatedShipment = { ...viewingShipment, ...values };
       setViewingShipment(updatedShipment as Shipment);
+      // 2025-11-11 10:15:05 新增：保存后刷新详情，确保时间线/POD同步
+      if (viewingShipment?.id) {
+        await refreshShipmentDetails(viewingShipment.id, { silent: true });
+      }
     } catch (error) {
       console.error('更新运单失败:', error);
       message.error('更新运单失败');
@@ -299,6 +321,41 @@ const ShipmentManagement: React.FC = () => {
   const handleCancelEdit = () => {
     setIsEditMode(false);
     editForm.resetFields();
+  };
+
+  const handleStatusUpdate = async (shipmentId: string, targetStatus: ShipmentStatus) => {
+    // 2025-11-11 10:15:05 新增：运单状态推进逻辑
+    try {
+      setDetailLoading(true);
+      const activeDriverId = viewingShipment?.driverId || viewingShipment?.assignedDriverId; // 2025-11-11 10:15:05 提取司机信息
+      switch (targetStatus) {
+        case ShipmentStatus.CONFIRMED:
+          await shipmentsApi.confirmShipment(shipmentId);
+          break;
+        case ShipmentStatus.PICKED_UP:
+          await shipmentsApi.startPickup(shipmentId, activeDriverId);
+          break;
+        case ShipmentStatus.IN_TRANSIT:
+          await shipmentsApi.startTransit(shipmentId, activeDriverId);
+          break;
+        case ShipmentStatus.DELIVERED:
+          await shipmentsApi.completeDelivery(shipmentId, activeDriverId);
+          break;
+        case ShipmentStatus.COMPLETED:
+          await shipmentsApi.completeShipment(shipmentId, viewingShipment?.finalCost);
+          break;
+        default:
+          await shipmentsApi.updateShipmentStatus(shipmentId, targetStatus);
+      }
+      message.success(`运单状态已更新为${statusLabelMap[targetStatus] || targetStatus}`);
+      await reloadShipments();
+      await refreshShipmentDetails(shipmentId, { silent: true });
+    } catch (error) {
+      console.error('更新运单状态失败:', error);
+      message.error('更新运单状态失败');
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   // 智能调度 - 2025-10-17 23:55:00 使用优化算法（Google Maps Distance Matrix API）
@@ -400,7 +457,7 @@ const ShipmentManagement: React.FC = () => {
       
       setIsDispatchModalVisible(false);
       setSelectedRowKeys([]);
-      loadShipments();
+      reloadShipments();
     } catch (error) {
       console.error('应用调度方案失败:', error);
       message.error('应用调度方案失败');
@@ -430,7 +487,7 @@ const ShipmentManagement: React.FC = () => {
       message.success('已挂载到行程'); // 2025-10-02 15:12:30
       setIsAssignModalVisible(false);
       setAssigningShipment(null);
-      loadShipments();
+      reloadShipments();
     } catch (error) {
       console.error('挂载行程失败:', error); // 2025-10-02 15:12:30
       message.error('挂载行程失败');
@@ -450,7 +507,7 @@ const ShipmentManagement: React.FC = () => {
       setIsAssignModalVisible(false);
       setAssigningShipment(null);
       setSelectedTripId(null);
-      loadShipments();
+      reloadShipments();
     } catch (error) {
       console.error('更新运单状态失败:', error);
       message.error('操作失败，请重试');
@@ -467,7 +524,7 @@ const ShipmentManagement: React.FC = () => {
       }
       await shipmentsApi.deleteShipment(sid);
       message.success('删除成功');
-      loadShipments();
+      reloadShipments();
     } catch (error) {
       console.error('Failed to delete shipment:', error);
       message.error('删除运单失败');
@@ -649,7 +706,7 @@ const ShipmentManagement: React.FC = () => {
           columns={columns}
           dataSource={shipments}
           rowKey="id"
-          loading={loading}
+          loading={shipmentsLoading} // 2025-10-31 09:56:00 使用运单加载状态
           rowSelection={rowSelection}
           scroll={{ x: 1100 }} // 2025-10-02 16:27:20 开启水平滚动，确保列宽生效
           pagination={{
@@ -693,73 +750,73 @@ const ShipmentManagement: React.FC = () => {
         }
         width={1000}
       >
-        {viewingShipment && !isEditMode && (
-          <Tabs 
-            defaultActiveKey="details" 
-            items={[
-              {
-                key: 'details',
-                label: '运单详情',
-                children: (
-                  <ShipmentDetails 
-                    shipment={viewingShipment}
-                    onPrint={() => {
-                      window.print();
-                    }}
-                    onEdit={handleEdit}
-                onAssignDriver={async (driverId: string, vehicleId: string) => {
-                  // 2025-10-28 实现：指派司机车辆并刷新
-                  if (!viewingShipment) return;
-                  
-                  try {
-                    console.log('🔍 指派运单ID:', viewingShipment.id); // 2025-10-28 调试
-                    console.log('🔍 指派司机ID:', driverId); // 2025-10-28 调试
-                    
-                    // 2025-10-28 修复：传递有效的notes参数，避免空字符串导致验证失败
-                    await shipmentsApi.assignDriver(viewingShipment.id, driverId, vehicleId, '手动指派');
-                    // 刷新运单列表以更新状态
-                    await loadShipments();
-                    // 重新加载当前运单详情
-                    const updatedResponse = await shipmentsApi.getShipmentDetails(viewingShipment.id);
-                    const updatedShipment = transformShipmentData(updatedResponse.data.data || updatedResponse.data);
-                    setViewingShipment(updatedShipment);
-                    message.success('指派成功'); // 2025-10-28 修复：保留成功消息，但避免重复
-                  } catch (error: unknown) {
-                    console.error('指派失败:', error);
-                    // 2025-10-28 增强：输出详细错误信息
-                    if (error && typeof error === 'object' && 'response' in error) {
-                      const axiosError = error as { response?: { data?: unknown, status?: number } };
-                      console.error('🔍 API响应:', axiosError.response);
-                      console.error('🔍 状态码:', axiosError.response?.status);
-                      console.error('🔍 响应数据:', axiosError.response?.data);
-                      
-                      // 2025-10-28 新增：展开error对象查看具体原因
-                      const errorData = axiosError.response?.data as { error?: { message?: string, code?: string } };
-                      console.error('🔍 错误消息:', errorData?.error?.message);
-                      console.error('🔍 错误代码:', errorData?.error?.code);
-                      
-                      // 使用具体的错误消息
-                      if (errorData?.error?.message) {
-                        message.error(errorData.error.message);
-                      }
-                    }
-                    throw error;
-                  }
-                }}
-                  />
-                )
-              },
-              {
-                key: 'bol',
-                label: 'BOL单据',
-                children: <BOLDocument shipment={viewingShipment} />
-              }
-            ]}
-          />
-        )}
-        
-        {viewingShipment && isEditMode && (
-          <Form form={editForm} layout="vertical">
+        <Spin spinning={detailLoading}>
+          {viewingShipment && !isEditMode && (
+            <Tabs 
+              defaultActiveKey="details" 
+              items={[
+                {
+                  key: 'details',
+                  label: '运单详情',
+                  children: (
+                    <ShipmentDetails 
+                      shipment={viewingShipment}
+                      onPrint={() => {
+                        window.print();
+                      }}
+                      onEdit={handleEdit}
+                      onStatusUpdate={handleStatusUpdate}
+                      onAssignDriver={async (driverId: string, vehicleId: string) => {
+                        // 2025-10-28 实现：指派司机车辆并刷新
+                        if (!viewingShipment) return;
+                        
+                        try {
+                          console.log('🔍 指派运单ID:', viewingShipment.id); // 2025-10-28 调试
+                          console.log('🔍 指派司机ID:', driverId); // 2025-10-28 调试
+                          
+                          // 2025-10-28 修复：传递有效的notes参数，避免空字符串导致验证失败
+                          await shipmentsApi.assignDriver(viewingShipment.id, driverId, vehicleId, '手动指派');
+                          // 刷新运单列表以更新状态
+                          await reloadShipments();
+                          // 2025-11-11 10:15:05 新增：指派后刷新详情，带上时间线/POD
+                          await refreshShipmentDetails(viewingShipment.id, { silent: true });
+                          message.success('指派成功'); // 2025-10-28 修复：保留成功消息，但避免重复
+                        } catch (error: unknown) {
+                          console.error('指派失败:', error);
+                          // 2025-10-28 增强：输出详细错误信息
+                          if (error && typeof error === 'object' && 'response' in error) {
+                            const axiosError = error as { response?: { data?: unknown, status?: number } };
+                            console.error('🔍 API响应:', axiosError.response);
+                            console.error('🔍 状态码:', axiosError.response?.status);
+                            console.error('🔍 响应数据:', axiosError.response?.data);
+                            
+                            // 2025-10-28 新增：展开error对象查看具体原因
+                            const errorData = axiosError.response?.data as { error?: { message?: string, code?: string } };
+                            console.error('🔍 错误消息:', errorData?.error?.message);
+                            console.error('🔍 错误代码:', errorData?.error?.code);
+                            
+                            // 使用具体的错误消息
+                            if (errorData?.error?.message) {
+                              message.error(errorData.error.message);
+                            }
+                          }
+                          throw error;
+                        }
+                      }}
+                    />
+                  )
+                },
+                {
+                  key: 'bol',
+                  label: 'BOL单据',
+                  children: <BOLDocument shipment={viewingShipment} />
+                }
+              ]}
+            />
+          )}
+          
+          {viewingShipment && isEditMode && (
+            <Form form={editForm} layout="vertical">
             <Divider>发货人信息</Divider>
             <Row gutter={16}>
               <Col span={8}>
@@ -884,8 +941,9 @@ const ShipmentManagement: React.FC = () => {
                 </Form.Item>
               </Col>
             </Row>
-          </Form>
-        )}
+            </Form>
+          )}
+        </Spin>
       </Modal>
 
       

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select, Row, Col, Divider, Statistic } from 'antd';
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined, EnvironmentOutlined, DownloadOutlined } from '@ant-design/icons';
 import { customersApi, shipmentsApi } from '../../services/api';
+import { useCustomers } from '../../hooks'; // 2025-10-31 10:01:00 使用统一的数据管理 Hook
 import { Customer, Shipment, ShipmentAddress } from '../../types';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -10,8 +11,9 @@ import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 �
 const { Title } = Typography;
 
 const CustomerManagement: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  // 2025-10-31 10:01:00 使用统一的数据管理 Hook
+  const { customers, loading, reload: reloadCustomers } = useCustomers();
+  
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
@@ -23,28 +25,11 @@ const CustomerManagement: React.FC = () => {
   const [shipmentsLoading, setShipmentsLoading] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  const loadCustomers = async () => {
-    try {
-      setLoading(true);
-      const response = await customersApi.getCustomers();
-      setCustomers(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-      message.error('加载客户失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     try {
       await customersApi.deleteCustomer(id);
       message.success('删除成功');
-      loadCustomers();
+      reloadCustomers(); // 2025-11-11 10:15:05 修复：调用正确的刷新方法
     } catch (error) {
       console.error('Failed to delete customer:', error);
       message.error('删除客户失败');
@@ -140,7 +125,7 @@ const CustomerManagement: React.FC = () => {
       message.success('客户添加成功');
       setIsAddModalVisible(false);
       form.resetFields();
-      loadCustomers();
+      reloadCustomers();
     } catch (error) {
       console.error('Failed to add customer:', error);
       message.error('添加客户失败');
@@ -186,7 +171,7 @@ const CustomerManagement: React.FC = () => {
       setIsEditModalVisible(false);
       setEditingCustomer(null);
       form.resetFields();
-      loadCustomers();
+      reloadCustomers();
     } catch (error) {
       console.error('Failed to update customer:', error);
       message.error('更新客户失败');

@@ -43,6 +43,8 @@ import GranularPermissionsPage from './pages/GranularPermissions/GranularPermiss
 // import MapsTest from './pages/MapsTest/MapsTest';
 // import MapsDebug from './pages/MapsDebug/MapsDebug';
 import LayoutTest from './pages/LayoutTest/LayoutTest';
+import CustomerPortal from './pages/SelfService/CustomerPortal'; // 2025-11-11 10:15:05 引入客户自助入口
+import { PermissionProvider } from './contexts/PermissionContext'; // 2025-11-11 10:15:05 引入权限提供器
 import './App.css';
 
 function App() {
@@ -55,10 +57,12 @@ function App() {
     >
       <AuthProvider>
         <TenantProvider>
-          <Routes>
+          <PermissionProvider>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/" element={<Home />} />
+            <Route path="/customer/portal" element={<CustomerPortal />} /> {/* 2025-11-11 10:15:05 新增自助入口路由 */}
             <Route path="/create-shipment" element={<ProtectedRoute><PageLayout><ShipmentCreate /></PageLayout></ProtectedRoute>} />
             
             <Route path="/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
@@ -104,7 +108,8 @@ function App() {
             
             
             <Route path="/layout-test" element={<ProtectedRoute><LayoutTest /></ProtectedRoute>} />
-          </Routes>
+            </Routes>
+          </PermissionProvider>
         </TenantProvider>
       </AuthProvider>
     </Router>

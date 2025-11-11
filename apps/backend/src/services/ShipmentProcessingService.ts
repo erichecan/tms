@@ -191,7 +191,7 @@ export class ShipmentProcessingService {
 
       const pendingShipments = await this.dbService.query(
         `SELECT * FROM shipments 
-         WHERE status IN ('pending', 'confirmed') 
+         WHERE status IN ('pending_confirmation', 'confirmed') 
          AND tenant_id = $1
          ORDER BY created_at ASC`,
         [tenantId]

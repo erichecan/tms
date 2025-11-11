@@ -153,6 +153,10 @@ export class RuleController {
       }
 
       const rule = await this.ruleEngineService.createRule(tenantId, ruleData);
+      res.locals.auditLog = {
+        entityId: rule.id,
+        newValue: JSON.stringify(rule)
+      }; // 2025-11-11T15:18:05Z Added by Assistant: Capture creation audit
       
       res.status(201).json({
         success: true,
@@ -203,7 +207,13 @@ export class RuleController {
       }
 
       const updates = req.body;
+      const previousRule = await this.dbService.getRule(tenantId, ruleId);
       const rule = await this.ruleEngineService.updateRule(tenantId, ruleId, updates);
+      res.locals.auditLog = {
+        entityId: ruleId,
+        oldValue: previousRule ? JSON.stringify(previousRule) : null,
+        newValue: JSON.stringify(rule)
+      }; // 2025-11-11T15:18:05Z Added by Assistant: Capture update audit
       
       res.json({
         success: true,
@@ -260,7 +270,12 @@ export class RuleController {
         return;
       }
 
+      const existingRule = await this.dbService.getRule(tenantId, ruleId);
       await this.ruleEngineService.deleteRule(tenantId, ruleId!);
+      res.locals.auditLog = {
+        entityId: ruleId,
+        oldValue: existingRule ? JSON.stringify(existingRule) : null
+      }; // 2025-11-11T15:18:05Z Added by Assistant: Capture delete audit
       
       res.json({
         success: true,

@@ -56,6 +56,7 @@ import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） /
 import pricingEngineRoutes from './routes/pricingEngineRoutes';
 import shipmentCompletionRoutes from './routes/shipmentCompletionRoutes';
 import mapsRoutes from './routes/maps'; // Google Maps API路由 // 2025-10-03 10:00:00
+import { metricsMiddleware, metricsHandler } from './middleware/metricsMiddleware'; // 2025-11-11T15:28:33Z Added by Assistant: Metrics middleware
 
 // 导入新增的服务
 import { PricingEngineService } from './services/PricingEngineService';
@@ -95,6 +96,7 @@ app.use(cors({
 // 请求日志
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 app.use(requestLogger);
+app.use(metricsMiddleware); // 2025-11-11T15:28:33Z Added by Assistant: Collect HTTP metrics
 
 // 解析请求体
 app.use(express.json({ limit: '10mb' }));
@@ -109,6 +111,9 @@ app.get('/health', (_req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 });
+
+// Prometheus 指标暴露
+app.get('/metrics', metricsHandler); // 2025-11-11T15:28:33Z Added by Assistant: /metrics endpoint
 
 // API路由 - 2025-01-27 16:45:00 更新路由以支持v3.0-PC
 app.use('/api/auth', authRoutes);

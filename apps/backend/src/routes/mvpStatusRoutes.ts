@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Pool } from 'pg';
-import { StatusService, ShipmentStatus } from '../services/StatusService';
+import { StatusService } from '../services/StatusService';
+import { ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:46:00 使用共享状态枚举
 
 const router = Router();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL }); // 2025-09-23 10:30:00
@@ -31,7 +32,25 @@ router.post('/:id/status', async (req, res) => {
       }
     }
 
-    await client.query('UPDATE shipments SET status=$1, updated_at=NOW() WHERE id=$2', [targetStatus, shipmentId]);
+    await client.query(
+      `UPDATE shipments 
+       SET status=$1, 
+           timeline = CASE 
+                        WHEN $1 = 'pod_pending_review' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{podPendingReview}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'pickup_in_progress' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{pickupInProgress}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'scheduled' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{scheduled}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'pending_confirmation' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{pendingConfirmation}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'confirmed' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{confirmed}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'in_transit' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{inTransit}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'delivered' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{delivered}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'completed' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{completed}', to_jsonb(NOW())::jsonb, true)
+                        WHEN $1 = 'cancelled' THEN jsonb_set(coalesce(timeline, '{}'::jsonb), '{cancelled}', to_jsonb(NOW())::jsonb, true)
+                        ELSE timeline
+                      END,
+           updated_at=NOW() 
+       WHERE id=$2`,
+      [targetStatus, shipmentId]
+    );
     await client.query('INSERT INTO timeline_events (shipment_id, event_type, from_status, to_status, actor_type) VALUES ($1,$2,$3,$4,$5)', [shipmentId, 'STATUS_CHANGED', shipment.status, targetStatus, 'user']);
 
     await client.query('COMMIT');

@@ -3,9 +3,13 @@ import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { validateRequest, driverCreateSchema, driverUpdateSchema } from '../middleware/validationMiddleware';
+import { RuleEngineService } from '../services/RuleEngineService'; // 2025-11-11 14:56:20 驾驶员确认依赖
+import { ShipmentService } from '../services/ShipmentService'; // 2025-11-11 14:56:20 驾驶员确认依赖
 
 const router = Router();
 const dbService = new DatabaseService();
+const ruleEngineService = new RuleEngineService(dbService); // 2025-11-11 14:56:20
+const shipmentService = new ShipmentService(dbService, ruleEngineService); // 2025-11-11 14:56:20
 
 // 获取司机列表
 router.get('/',
@@ -190,5 +194,71 @@ router.delete('/:id',
     }
   }
 );
+
+router.post(
+  '/assignments/:shipmentId/acknowledge',
+  authMiddleware,
+  tenantMiddleware,
+  validateRequest({
+    body: {
+      accepted: { type: 'boolean', required: true },
+      note: { type: 'string', required: false }
+    }
+  }),
+  async (req, res) => {
+    try {
+      if (!req.user?.tenantId || !req.user?.id) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Driver identity not found' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+
+      if (req.user.role !== 'driver') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Only drivers can acknowledge assignments' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+
+      const shipment = await shipmentService.acknowledgeAssignment(
+        req.user.tenantId,
+        req.params.shipmentId,
+        req.user.id,
+        req.body.accepted,
+        req.body.note
+      ); // 2025-11-11 14:56:20
+
+      res.json({
+        success: true,
+        data: shipment,
+        message: req.body.accepted ? 'Assignment acknowledged' : 'Assignment declined',
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    } catch (error: any) {
+      console.error('Driver acknowledgement error:', error);
+      if (error.message.includes('not found') || error.message.includes('Driver not assigned')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: error.message },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'Failed to acknowledge assignment' },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || ''
+        });
+      }
+    }
+  }
+); // 2025-11-11 14:56:20 驾驶员确认接口
 
 export default router;

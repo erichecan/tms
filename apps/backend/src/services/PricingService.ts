@@ -12,8 +12,9 @@ import {
   AdditionalFee, 
   FeeType,
   CustomerLevel,
-  DEFAULT_CURRENCY
-} from '@tms/shared-types';
+  DEFAULT_CURRENCY,
+  ShipmentStatus
+} from '@tms/shared-types'; // 2025-11-11 14:47:05 引入状态枚举
 
 export interface QuoteRequest {
   customerId: string;
@@ -71,6 +72,7 @@ export class PricingService {
   private ruleEngineService: RuleEngineService;
   private dbService: DatabaseService;
   private currencyService: CurrencyService;
+  private shipmentService: ShipmentService; // 2025-11-11 14:50:05 用于报价转运单
 
   // 基础费率配置
   private readonly BASE_RATES = {
@@ -100,6 +102,7 @@ export class PricingService {
     this.ruleEngineService = ruleEngineService;
     this.dbService = dbService;
     this.currencyService = currencyService;
+    this.shipmentService = new ShipmentService(dbService, ruleEngineService); // 2025-11-11 14:50:05 初始化运单服务
   }
 
   /**
@@ -463,10 +466,14 @@ export class PricingService {
       estimatedCost,
       currency,
       appliedRules,
-      status: 'quoted' as const,
+      status: ShipmentStatus.PENDING_CONFIRMATION,
       shipmentNumber: `TMP${Date.now()}`,
       additionalFees: [],
-      timeline: { created: new Date() }
+      timeline: {
+        created: new Date().toISOString(),
+        draft: new Date().toISOString(),
+        pendingConfirmation: new Date().toISOString()
+      } // 2025-11-11 14:47:05 初始化时间线
     };
 
     return await this.dbService.createShipment(tenantId, shipmentData);
@@ -528,12 +535,20 @@ export class PricingService {
   ): Promise<Shipment[]> {
     try {
       const result = await this.dbService.getShipments(tenantId, {
-        filters: { customerId, startDate, endDate, status: 'quoted' }
+        filters: { customerId, startDate, endDate, status: ShipmentStatus.PENDING_CONFIRMATION }
       });
       return result.data || [];
     } catch (error) {
       logger.error('Failed to get quote history:', error);
       throw error;
     }
+  }
+
+  async confirmQuote(
+    tenantId: string,
+    shipmentId: string,
+    options?: { finalCost?: number }
+  ): Promise<Shipment> {
+    return await this.shipmentService.convertQuoteToShipment(tenantId, shipmentId, options); // 2025-11-11 14:50:05 转为正式运单
   }
 }

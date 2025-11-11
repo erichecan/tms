@@ -1,18 +1,17 @@
-// 状态机服务（MVP） // 2025-09-23 10:25:00
-
-export type ShipmentStatus = 'pending' | 'quoted' | 'confirmed' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'completed' | 'cancelled' | 'exception';
+import { ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:38:05 引入统一类型
 
 const allowedTransitions: Record<ShipmentStatus, ShipmentStatus[]> = {
-  pending: ['quoted', 'confirmed', 'assigned', 'cancelled'],
-  quoted: ['confirmed', 'assigned', 'cancelled'],
-  confirmed: ['assigned', 'cancelled'],
-  assigned: ['picked_up', 'cancelled'],
-  picked_up: ['in_transit', 'exception'],
-  in_transit: ['delivered', 'exception'],
-  delivered: ['completed', 'exception'],
-  completed: [],
-  cancelled: [],
-  exception: ['assigned', 'cancelled'] // 异常状态可以重新分配或取消
+  [ShipmentStatus.DRAFT]: [ShipmentStatus.PENDING_CONFIRMATION, ShipmentStatus.CANCELLED], // 2025-11-11 14:38:05 状态流转
+  [ShipmentStatus.PENDING_CONFIRMATION]: [ShipmentStatus.CONFIRMED, ShipmentStatus.CANCELLED], // 2025-11-11 14:38:05
+  [ShipmentStatus.CONFIRMED]: [ShipmentStatus.SCHEDULED, ShipmentStatus.CANCELLED], // 2025-11-11 14:38:05
+  [ShipmentStatus.SCHEDULED]: [ShipmentStatus.PICKUP_IN_PROGRESS, ShipmentStatus.CANCELLED, ShipmentStatus.EXCEPTION], // 2025-11-11 14:38:05
+  [ShipmentStatus.PICKUP_IN_PROGRESS]: [ShipmentStatus.IN_TRANSIT, ShipmentStatus.EXCEPTION], // 2025-11-11 14:38:05
+  [ShipmentStatus.IN_TRANSIT]: [ShipmentStatus.DELIVERED, ShipmentStatus.EXCEPTION], // 2025-11-11 14:38:05
+  [ShipmentStatus.DELIVERED]: [ShipmentStatus.POD_PENDING_REVIEW, ShipmentStatus.COMPLETED, ShipmentStatus.EXCEPTION], // 2025-11-11 14:38:05
+  [ShipmentStatus.POD_PENDING_REVIEW]: [ShipmentStatus.COMPLETED, ShipmentStatus.EXCEPTION], // 2025-11-11 14:38:05
+  [ShipmentStatus.COMPLETED]: [], // 2025-11-11 14:38:05
+  [ShipmentStatus.CANCELLED]: [], // 2025-11-11 14:38:05
+  [ShipmentStatus.EXCEPTION]: [ShipmentStatus.SCHEDULED, ShipmentStatus.CANCELLED] // 2025-11-11 14:38:05
 };
 
 export class StatusService {

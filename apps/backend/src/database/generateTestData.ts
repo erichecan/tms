@@ -65,7 +65,7 @@ interface TestShipment {
   id: string;
   shipmentNumber: string;
   customerId: string;
-  status: 'pending' | 'quoted' | 'confirmed' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending_confirmation' | 'confirmed' | 'scheduled' | 'pickup_in_progress' | 'in_transit' | 'delivered' | 'pod_pending_review' | 'completed' | 'cancelled'; // 2025-11-11 14:41:05 更新枚举
   shipperAddress: {
     country: string;
     province: string;
@@ -223,7 +223,7 @@ export class TestDataGenerator {
     const shipments: TestShipment[] = [];
     const cities = ['北京市', '上海市', '广州市', '深圳市', '杭州市', '南京市', '成都市', '武汉市', '西安市', '重庆市'];
     const descriptions = ['电子产品', '服装', '食品', '家具', '建材', '化工产品', '机械零件', '图书', '日用品', '医疗器械'];
-    const statuses: TestShipment['status'][] = ['pending', 'quoted', 'confirmed', 'assigned', 'picked_up', 'in_transit', 'delivered', 'completed', 'cancelled'];
+    const statuses: TestShipment['status'][] = ['draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled']; // 2025-11-11 14:41:05
 
     for (let i = 1; i <= 20; i++) {
       const customer = customers[Math.floor(Math.random() * customers.length)];
@@ -234,11 +234,11 @@ export class TestDataGenerator {
       
       // 根据状态确定创建时间
       let createdAt: string;
-      if (status === 'completed' || status === 'delivered') {
+      if (status === 'completed' || status === 'pod_pending_review' || status === 'delivered') {
         createdAt = dayjs().subtract(Math.floor(Math.random() * 30) + 1, 'day').toISOString();
-      } else if (status === 'in_transit' || status === 'picked_up') {
+      } else if (status === 'in_transit' || status === 'pickup_in_progress') {
         createdAt = dayjs().subtract(Math.floor(Math.random() * 7) + 1, 'day').toISOString();
-      } else if (status === 'assigned' || status === 'confirmed') {
+      } else if (status === 'scheduled' || status === 'confirmed') {
         createdAt = dayjs().subtract(Math.floor(Math.random() * 3), 'day').toISOString();
       } else {
         createdAt = dayjs().subtract(Math.floor(Math.random() * 2), 'day').toISOString();
@@ -292,7 +292,7 @@ export class TestDataGenerator {
       
       // 为行程分配运单
       const tripShipments = shipments
-        .filter(s => s.status === 'assigned' || s.status === 'picked_up' || s.status === 'in_transit')
+        .filter(s => s.status === 'scheduled' || s.status === 'pickup_in_progress' || s.status === 'in_transit')
         .slice(0, Math.floor(Math.random() * 3) + 1)
         .map(s => s.id);
 
@@ -424,7 +424,7 @@ export class TestDataGenerator {
       // 插入车辆并收集ID - 修复字段匹配问题 // 2025-10-01 21:35:00
       for (const vehicle of vehicles.slice(0, 8)) {
         try {
-          const created = await this.dbService.createVehicle({
+          const created = await this.dbService.createVehicle(tenantId, {
             plateNumber: vehicle.plateNumber,
             vehicleType: vehicle.type,
             capacity: vehicle.capacityKg,
@@ -473,8 +473,8 @@ export class TestDataGenerator {
             actualCost: null as any,
             additionalFees: [],
             appliedRules: [],
-            status: 'assigned',
-            timeline: { created: new Date(), assigned: new Date() }
+            status: 'scheduled',
+            timeline: { created: new Date().toISOString(), draft: new Date().toISOString(), scheduled: new Date().toISOString() } // 2025-11-11 14:41:05
           } as any);
           createdShipments.push({ id: created.id, shipmentNumber: created.shipmentNumber });
           console.log(`✓ 运单 ${created.shipmentNumber} 插入成功`);

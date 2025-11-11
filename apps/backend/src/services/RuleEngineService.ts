@@ -6,6 +6,35 @@ import { Rule, RuleCondition, RuleAction, RuleExecution, RuleConflict } from '@t
 import { logger } from '../utils/logger';
 import { DatabaseService } from './DatabaseService';
 
+const ALLOWED_ACTION_TYPES = new Set([
+  'applyDiscount',
+  'addFee',
+  'setBaseRate',
+  'setDriverCommission',
+  'setCustomerLevel',
+  'sendNotification',
+  'logEvent'
+]); // 2025-11-11T15:40:16Z Added by Assistant: Rule action whitelist
+
+const ALLOWED_OPERATORS = new Set([
+  'equal',
+  'notEqual',
+  'greaterThan',
+  'lessThan',
+  'greaterThanInclusive',
+  'lessThanInclusive',
+  'contains',
+  'doesNotContain',
+  'startsWith',
+  'endsWith',
+  'in',
+  'notIn',
+  'isEmpty',
+  'isNotEmpty'
+]); // 2025-11-11T15:40:16Z Added by Assistant: Rule operator whitelist
+
+const RULE_EXECUTION_TIMEOUT_MS = parseInt(process.env.RULE_EXECUTION_TIMEOUT_MS || '3000', 10);
+
 export class RuleEngineService {
   private engines: Map<string, Engine> = new Map();
   private dbService: DatabaseService;
@@ -107,7 +136,13 @@ export class RuleEngineService {
     
     try {
       const engine = await this.getEngine(tenantId);
-      const { events } = await engine.run(facts);
+      const execution = engine.run(facts);
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`RULE_TIMEOUT_AFTER_${RULE_EXECUTION_TIMEOUT_MS}_MS`)), RULE_EXECUTION_TIMEOUT_MS);
+      });
+      const { events } = await Promise.race([execution, timeoutPromise]);
+      clearTimeout(timeoutId!);
       
       const executionTime = Date.now() - startTime;
       
@@ -272,12 +307,21 @@ export class RuleEngineService {
       if (!condition.fact || !condition.operator || condition.value === undefined) {
         throw new Error('Invalid condition format');
       }
+      if (!ALLOWED_OPERATORS.has(condition.operator)) {
+        throw new Error(`Operator "${condition.operator}" is not permitted`);
+      }
+      if (!/^[a-zA-Z0-9_.-]+$/.test(condition.fact)) {
+        throw new Error(`Fact "${condition.fact}" contains invalid characters`);
+      }
     }
     
     // 验证动作
     for (const action of rule.actions) {
       if (!action.type || !action.params) {
         throw new Error('Invalid action format');
+      }
+      if (!ALLOWED_ACTION_TYPES.has(action.type)) {
+        throw new Error(`Action "${action.type}" is not permitted`);
       }
     }
   }

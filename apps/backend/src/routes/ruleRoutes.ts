@@ -5,9 +5,10 @@ import { Router } from 'express';
 import { RuleController } from '../controllers/RuleController';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { DatabaseService } from '../services/DatabaseService';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware, roleMiddleware, permissionMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { validateRequest } from '../middleware/validationMiddleware';
+import { auditMiddleware } from '../middleware/auditMiddleware'; // 2025-11-11T15:19:22Z Added by Assistant: Audit trail middleware
 
 const router = Router();
 
@@ -25,14 +26,24 @@ router.use(tenantMiddleware);
  * @desc 获取规则列表
  * @access Private
  */
-router.get('/', ruleController.getRules.bind(ruleController));
+router.get(
+  '/',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule listing
+  permissionMiddleware(['pricing:view']),
+  ruleController.getRules.bind(ruleController)
+);
 
 /**
  * @route GET /api/v1/rules/:id
  * @desc 获取单个规则
  * @access Private
  */
-router.get('/:id', ruleController.getRule.bind(ruleController));
+router.get(
+  '/:id',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule detail
+  permissionMiddleware(['pricing:view']),
+  ruleController.getRule.bind(ruleController)
+);
 
 /**
  * @route POST /api/v1/rules
@@ -40,6 +51,8 @@ router.get('/:id', ruleController.getRule.bind(ruleController));
  * @access Private
  */
 router.post('/', 
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule creation
+  permissionMiddleware(['pricing:create']),
   validateRequest({
     body: {
       name: { type: 'string', required: true },
@@ -51,6 +64,10 @@ router.post('/',
       status: { type: 'string', enum: ['active', 'inactive'], required: false }
     }
   }),
+  auditMiddleware({
+    entityType: 'rule',
+    operation: 'create'
+  }),
   ruleController.createRule.bind(ruleController)
 );
 
@@ -60,6 +77,8 @@ router.post('/',
  * @access Private
  */
 router.put('/:id',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule updates
+  permissionMiddleware(['pricing:edit']),
   validateRequest({
     body: {
       name: { type: 'string', required: false },
@@ -71,15 +90,22 @@ router.put('/:id',
       status: { type: 'string', enum: ['active', 'inactive'], required: false }
     }
   }),
+  auditMiddleware({
+    entityType: 'rule',
+    operation: 'update'
+  }),
   ruleController.updateRule.bind(ruleController)
 );
 
-/**
- * @route DELETE /api/v1/rules/:id
- * @desc 删除规则
- * @access Private
- */
-router.delete('/:id', ruleController.deleteRule.bind(ruleController));
+router.delete('/:id',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule deletion
+  permissionMiddleware(['pricing:delete']),
+  auditMiddleware({
+    entityType: 'rule',
+    operation: 'delete'
+  }),
+  ruleController.deleteRule.bind(ruleController)
+);
 
 /**
  * @route POST /api/v1/rules/validate
@@ -87,6 +113,8 @@ router.delete('/:id', ruleController.deleteRule.bind(ruleController));
  * @access Private
  */
 router.post('/validate',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule validation
+  permissionMiddleware(['pricing:edit']),
   validateRequest({
     body: {
       name: { type: 'string', required: true },
@@ -104,6 +132,8 @@ router.post('/validate',
  * @access Private
  */
 router.post('/test',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule testing
+  permissionMiddleware(['pricing:test']),
   validateRequest({
     body: {
       facts: { type: 'object', required: true }
@@ -112,11 +142,10 @@ router.post('/test',
   ruleController.testRule.bind(ruleController)
 );
 
-/**
- * @route GET /api/v1/rules/:id/stats
- * @desc 获取规则执行统计
- * @access Private
- */
-router.get('/:id/stats', ruleController.getRuleStats.bind(ruleController));
+router.get('/:id/stats',
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict stats visibility
+  permissionMiddleware(['pricing:view']),
+  ruleController.getRuleStats.bind(ruleController)
+);
 
 export default router;

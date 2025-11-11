@@ -27,7 +27,8 @@ import {
   ClockCircleOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
-import { financeApi, customersApi, driversApi } from '../../services/api';
+import { financeApi } from '../../services/api';
+import { useDrivers, useCustomers } from '../../hooks'; // 2025-10-31 09:59:00 使用统一的数据管理 Hook
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
 
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -38,11 +39,13 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const FinanceManagement: React.FC = () => {
+  // 2025-10-31 09:59:00 使用统一的数据管理 Hooks
+  const { customers } = useCustomers();
+  const { drivers } = useDrivers();
+  
   const [loading, setLoading] = useState(false);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([]);
   const [statements, setStatements] = useState<Statement[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
   const [isStatementModalVisible, setIsStatementModalVisible] = useState(false);
   const [statementType, setStatementType] = useState<StatementType>(StatementType.CUSTOMER);
 
@@ -51,8 +54,6 @@ const FinanceManagement: React.FC = () => {
   useEffect(() => {
     loadFinancialRecords();
     loadStatements();
-    loadCustomers();
-    loadDrivers();
   }, []);
 
   const loadFinancialRecords = async () => {
@@ -77,23 +78,7 @@ const FinanceManagement: React.FC = () => {
     }
   };
 
-  const loadCustomers = async () => {
-    try {
-      const response = await customersApi.getCustomers();
-      setCustomers(response.data?.data || []);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-    }
-  };
-
-  const loadDrivers = async () => {
-    try {
-      const response = await driversApi.getDrivers();
-      setDrivers(response.data?.data || []);
-    } catch (error) {
-      console.error('Failed to load drivers:', error);
-    }
-  };
+  // 2025-10-31 09:59:00 客户和司机数据由 Hooks 自动加载
 
   const handleGenerateStatement = async (values: unknown) => {
     try {

@@ -25,9 +25,10 @@ import {
   DownloadOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { financeApi, shipmentsApi } from '../../services/api';
+import { financeApi } from '../../services/api'; // 2025-11-11 10:15:05 财务模块对接后端接口
 import FinancialDashboard from '../../components/FinancialReports/FinancialDashboard'; // 2025-10-12 09:33:00
 import dayjs from 'dayjs';
+import { Statement } from '../../types'; // 2025-11-11 10:15:05 引入财务报表类型
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -71,70 +72,48 @@ const FinanceManagementSimplified: React.FC = () => {
     loadFinancialData();
   }, [dateRange]);
 
+  const mapStatementToAccountItem = (statement: Statement): AccountItem => {
+    const paid = statement.status === 'paid' || statement.status === 'settled';
+    const total = Number(statement.totalAmount || 0);
+    const items = Array.isArray(statement.items) ? statement.items.length : 0;
+    return {
+      id: statement.id,
+      entityId: statement.entityId,
+      entityName: statement.entityName,
+      shipmentCount: items,
+      totalAmount: total,
+      paidAmount: paid ? total : 0,
+      unpaidAmount: paid ? 0 : total,
+      status: statement.status || 'pending',
+    };
+  }; // 2025-11-11 10:15:05 新增：映射财务报表数据
+
   const loadFinancialData = async () => {
     try {
       setLoading(true);
-      
-      // 加载财务汇总数据
-      // TODO: 调用真实API
-      // const summaryRes = await financeApi.getSummary();
-      
-      // 临时模拟数据 - 2025-10-10 18:00:00
+      const [start, end] = dateRange;
+      const params = {
+        startDate: start.format('YYYY-MM-DD'),
+        endDate: end.format('YYYY-MM-DD'),
+      };
+      const [customerRes, driverRes] = await Promise.all([
+        financeApi.getStatements({ ...params, type: 'customer' }),
+        financeApi.getStatements({ ...params, type: 'driver' }),
+      ]);
+      const customerStatements = customerRes.data?.data || [];
+      const driverStatements = driverRes.data?.data || [];
+      const receivableItems = customerStatements.map(mapStatementToAccountItem);
+      const payableItems = driverStatements.map(mapStatementToAccountItem);
+      setReceivables(receivableItems);
+      setPayables(payableItems);
+      const totalReceivable = receivableItems.reduce((sum, item) => sum + item.totalAmount, 0);
+      const totalPayable = payableItems.reduce((sum, item) => sum + item.totalAmount, 0);
       setSummary({
-        totalReceivable: 12500,
-        totalPayable: 4200,
-        monthlyRevenue: 18300,
-        monthlyProfit: 6100,
+        totalReceivable,
+        totalPayable,
+        monthlyRevenue: totalReceivable,
+        monthlyProfit: totalReceivable - totalPayable,
       });
-
-      // 模拟应收账款数据
-      setReceivables([
-        {
-          id: '1',
-          entityId: 'cust-1',
-          entityName: 'ABC物流公司',
-          shipmentCount: 12,
-          totalAmount: 3500,
-          paidAmount: 0,
-          unpaidAmount: 3500,
-          status: 'pending',
-        },
-        {
-          id: '2',
-          entityId: 'cust-2',
-          entityName: 'XYZ贸易公司',
-          shipmentCount: 8,
-          totalAmount: 2800,
-          paidAmount: 1000,
-          unpaidAmount: 1800,
-          status: 'partial',
-        },
-      ]);
-
-      // 模拟应付账款数据
-      setPayables([
-        {
-          id: '1',
-          entityId: 'driver-1',
-          entityName: '李司机',
-          shipmentCount: 15,
-          totalAmount: 1850,
-          paidAmount: 0,
-          unpaidAmount: 1850,
-          status: 'pending',
-        },
-        {
-          id: '2',
-          entityId: 'driver-2',
-          entityName: '王司机',
-          shipmentCount: 12,
-          totalAmount: 1420,
-          paidAmount: 1420,
-          unpaidAmount: 0,
-          status: 'paid',
-        },
-      ]);
-
     } catch (error) {
       console.error('加载财务数据失败:', error);
       message.error('加载财务数据失败');
@@ -142,6 +121,41 @@ const FinanceManagementSimplified: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const exportToCSV = (items: AccountItem[], filename: string) => {
+    if (items.length === 0) {
+      message.info('暂无数据可导出');
+      return;
+    }
+    const header = ['名称', '运单数', '应收金额', '已收金额', '未收金额', '状态'];
+    const rows = items.map(item => [
+      item.entityName,
+      item.shipmentCount,
+      item.totalAmount,
+      item.paidAmount,
+      item.unpaidAmount,
+      item.status,
+    ]);
+    const csvContent = [header, ...rows]
+      .map(columns => columns.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    message.success('导出成功');
+  }; // 2025-11-11 10:15:05 新增：导出CSV工具方法
+
+  const handleExport = (type: 'receivable' | 'payable') => {
+    if (type === 'receivable') {
+      exportToCSV(receivables, `customer-statements-${Date.now()}.csv`);
+    } else {
+      exportToCSV(payables, `driver-statements-${Date.now()}.csv`);
+    }
+  }; // 2025-11-11 10:15:05 新增：导出按钮处理
 
   // 标记收款 - 2025-10-10 18:00:00
   const handleMarkAsPaid = async (record: AccountItem) => {
@@ -393,7 +407,7 @@ const FinanceManagementSimplified: React.FC = () => {
                 />
                 <Button onClick={loadFinancialData}>刷新</Button>
               </Space>
-              <Button type="primary" icon={<DownloadOutlined />}>
+              <Button type="primary" icon={<DownloadOutlined />} onClick={() => handleExport('receivable')}>
                 导出对账单
               </Button>
             </div>
@@ -418,7 +432,7 @@ const FinanceManagementSimplified: React.FC = () => {
                 />
                 <Button onClick={loadFinancialData}>刷新</Button>
               </Space>
-              <Button type="primary" icon={<DownloadOutlined />}>
+              <Button type="primary" icon={<DownloadOutlined />} onClick={() => handleExport('payable')}>
                 导出支付清单
               </Button>
             </div>

@@ -43,13 +43,19 @@ import {
   Vehicle, 
   Trip, 
   TimelineEvent,
-  POD 
+  EventType,
+  POD,
+  DriverStatus,
+  VehicleStatus
 } from '../../types/index';
 import { formatCurrency } from '../../utils/formatCurrency';
 import jsPDF from 'jspdf'; // 2025-10-02 11:15:00 引入 jsPDF 以生成PDF
 import html2canvas from 'html2canvas'; // 2025-10-02 11:15:00 将DOM渲染为图片嵌入PDF
 import BOLDocument from '../BOLDocument/BOLDocument'; // 2025-10-10 12:40:00 使用新的BOL组件
-import { driversApi, vehiclesApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API
+import { driversApi, vehiclesApi, shipmentsApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API // 2025-11-11 10:15:05 引入运单详情API
+import { useDrivers, useVehicles } from '../../hooks'; // 2025-10-31 09:57:00 使用统一的数据管理 Hook
+import { formatDateTime } from '../../utils/timeUtils'; // 2025-11-11 10:15:05 引入时间格式化工具
+import type { RcFile } from 'antd/es/upload/interface'; // 2025-11-11 10:15:05 引入上传文件类型定义
 
 const { Title, Text } = Typography;
 
@@ -57,7 +63,7 @@ interface ShipmentDetailsProps {
   shipment: Shipment;
   onPrint?: () => void;
   onDownloadPDF?: () => void;
-  onStatusUpdate?: (status: ShipmentStatus) => void;
+  onStatusUpdate?: (shipmentId: string, status: ShipmentStatus) => Promise<void> | void; // 2025-11-11 10:15:05 调整：传递运单ID与目标状态
   onAssignDriver?: (driverId: string, vehicleId: string) => void;
   onMountTrip?: (tripId: string) => void;
   onEdit?: () => void; // 2025-10-28 新增：编辑回调
@@ -79,8 +85,20 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null); // 2025-10-02 15:32:10 签名画布引用
   const [isDrawing, setIsDrawing] = useState(false); // 2025-10-02 15:32:10 绘制状态
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null); // 2025-10-02 15:32:10 签名图片
-  const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
-  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
+  // 2025-10-31 09:57:00 使用统一的数据管理 Hook
+  // 2025-10-31 10:30:00 修复：加载所有司机和车辆用于显示已指派信息
+  const { drivers: availableDrivers } = useDrivers({ 
+    status: DriverStatus.AVAILABLE 
+  });
+  
+  const { vehicles: availableVehicles } = useVehicles({ 
+    status: VehicleStatus.AVAILABLE 
+  });
+  
+  // 2025-10-31 10:30:00 新增：加载所有司机和车辆用于查找（包括已指派的状态）
+  const { drivers: allDrivers } = useDrivers({ autoLoad: true });
+  const { vehicles: allVehicles } = useVehicles({ autoLoad: true });
+  
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [pods, setPods] = useState<POD[]>([]);
@@ -91,8 +109,50 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [isQuickAddVehicleVisible, setIsQuickAddVehicleVisible] = useState(false); // 2025-10-02 11:05:20
   const [isCostDetailVisible, setIsCostDetailVisible] = useState(false); // 2025-10-08 17:25:00 费用明细弹窗
   // 将后端运单结构映射到BOL模板所需结构 // 2025-10-06 00:18:45
+  useEffect(() => {
+    let isMounted = true; // 2025-11-11 10:15:05 避免组件卸载后的状态更新
+    // 2025-11-11 10:15:05 新增：同步时间线与POD数据
+    const timelineSource = Array.isArray((shipment as any).timeline)
+      ? (shipment.timeline as TimelineEvent[])
+      : Array.isArray((shipment as any).timeline?.items)
+      ? (shipment as any).timeline.items
+      : Array.isArray((shipment as any).timeline?.events)
+      ? (shipment as any).timeline.events
+      : [];
+    if (isMounted) {
+      setTimelineEvents(timelineSource);
+    }
+    const podSource = Array.isArray((shipment as any).pods) ? (shipment.pods as POD[]) : [];
+    if (isMounted) {
+      setPods(podSource);
+    }
+    if (timelineSource.length === 0 && shipment.id) {
+      shipmentsApi.getShipmentTimeline(shipment.id).then((res) => {
+        const fetchedTimeline = (res.data?.data || res.data || []) as TimelineEvent[];
+        if (isMounted) {
+          setTimelineEvents(fetchedTimeline);
+        }
+      }).catch((error) => {
+        console.warn('加载运单时间线失败:', error);
+      });
+    }
+    if (podSource.length === 0 && shipment.id) {
+      shipmentsApi.getShipmentPODs(shipment.id).then((res) => {
+        const fetchedPods = (res.data?.data || res.data || []) as POD[];
+        if (isMounted) {
+          setPods(fetchedPods);
+        }
+      }).catch((error) => {
+        console.warn('加载POD列表失败:', error);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [shipment]);
+
   const mapShipmentToBOLShape = (s: unknown) => {
-    const anyS: unknown = s || {};
+    const anyS: any = s || {};
     const pickup = anyS.pickupAddress || anyS.shipperAddress || anyS.shipper?.address || {};
     const delivery = anyS.deliveryAddress || anyS.receiverAddress || anyS.receiver?.address || {};
     return {
@@ -129,56 +189,13 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     };
   };
 
-  // 2025-10-28 新增：加载可用司机和车辆
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const driversRes = await driversApi.getDrivers();
-        const vehiclesRes = await vehiclesApi.getVehicles();
-        
-        console.log('🔍 司机API响应:', driversRes); // 2025-10-28 调试
-        
-        // 2025-10-28 修复：检查多种可能的响应结构
-        let driversList = [];
-        if (driversRes?.data?.data && Array.isArray(driversRes.data.data)) {
-          driversList = driversRes.data.data;
-        } else if (driversRes?.data && Array.isArray(driversRes.data)) {
-          driversList = driversRes.data;
-        } else if (Array.isArray(driversRes)) {
-          driversList = driversRes;
-        }
-        
-        // 过滤可用司机（后端要求status为active）
-        // 2025-10-28 修复：后端只接受status='active'的司机
-        const available = driversList.filter((d: unknown) => {
-          const driver = d || {};
-          return driver.status === 'active'; // 只保留active状态的司机
-        });
-        
-        console.log('🔍 过滤后的司机:', available); // 2025-10-28 调试
-        setAvailableDrivers(available);
-        
-        // 车辆数据处理
-        let vehiclesList = [];
-        if (vehiclesRes?.data?.data && Array.isArray(vehiclesRes.data.data)) {
-          vehiclesList = vehiclesRes.data.data;
-        } else if (vehiclesRes?.data && Array.isArray(vehiclesRes.data)) {
-          vehiclesList = vehiclesRes.data;
-        } else if (Array.isArray(vehiclesRes)) {
-          vehiclesList = vehiclesRes;
-        }
-        
-        setAvailableVehicles(vehiclesList);
-      } catch (error) {
-        console.error('Failed to load drivers/vehicles:', error);
-      }
-    };
-    
-    loadData();
-  }, []);
+  // 2025-10-31 09:57:00 司机和车辆数据由 Hooks 自动加载，移除手动加载逻辑
 
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string }> = {
+      [ShipmentStatus.PENDING]: { color: 'orange', text: '待处理' }, // 2025-11-11 10:15:05 补充状态映射
+      [ShipmentStatus.QUOTED]: { color: 'blue', text: '已报价' }, // 2025-11-11 10:15:05 补充状态映射
+      [ShipmentStatus.CONFIRMED]: { color: 'cyan', text: '已确认' }, // 2025-11-11 10:15:05 补充状态映射
       [ShipmentStatus.CREATED]: { color: 'blue', text: '已创建' },
       [ShipmentStatus.ASSIGNED]: { color: 'purple', text: '已分配' },
       [ShipmentStatus.PICKED_UP]: { color: 'geekblue', text: '已取货' },
@@ -186,14 +203,44 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       [ShipmentStatus.DELIVERED]: { color: 'green', text: '已送达' },
       [ShipmentStatus.COMPLETED]: { color: 'success', text: '已完成' },
       [ShipmentStatus.CANCELED]: { color: 'red', text: '已取消' },
+      [ShipmentStatus.CANCELLED]: { color: 'red', text: '已取消' }, // 2025-11-11 10:15:05 兼容英式拼写
       [ShipmentStatus.EXCEPTION]: { color: 'red', text: '异常' },
     };
     return statusMap[status] || { color: 'default', text: '未知' };
   };
 
+  const timelineColorMap: Record<string, string> = {
+    [EventType.CREATED]: 'blue',
+    [EventType.ASSIGNED]: 'purple',
+    [EventType.PICKED_UP]: 'geekblue',
+    [EventType.IN_TRANSIT]: 'cyan',
+    [EventType.DELIVERED]: 'green',
+    [EventType.COMPLETED]: 'green',
+    [EventType.POD_UPLOADED]: 'lime',
+    [EventType.EXCEPTION_SET]: 'red',
+    [EventType.EXCEPTION_RESOLVED]: 'orange',
+    [EventType.CANCELED]: 'red',
+  }; // 2025-11-11 10:15:05 新增：时间线颜色映射
+
+  const timelineTextMap: Record<string, string> = {
+    [EventType.CREATED]: '运单已创建',
+    [EventType.ASSIGNED]: '已完成指派',
+    [EventType.PICKED_UP]: '司机已取货',
+    [EventType.IN_TRANSIT]: '运输中',
+    [EventType.DELIVERED]: '货物已送达',
+    [EventType.COMPLETED]: '运单已完结',
+    [EventType.POD_UPLOADED]: '签收凭证已上传',
+    [EventType.EXCEPTION_SET]: '运单标记异常',
+    [EventType.EXCEPTION_RESOLVED]: '异常已处理',
+    [EventType.CANCELED]: '运单已取消',
+  }; // 2025-11-11 10:15:05 新增：时间线文案映射
+
   const getNextStatus = (currentStatus: ShipmentStatus): ShipmentStatus | null => {
     const statusFlow: Record<ShipmentStatus, ShipmentStatus | null> = {
-      [ShipmentStatus.CREATED]: ShipmentStatus.ASSIGNED,
+      [ShipmentStatus.PENDING]: ShipmentStatus.CONFIRMED, // 2025-11-11 10:15:05 调整状态推进
+      [ShipmentStatus.QUOTED]: ShipmentStatus.CONFIRMED, // 2025-11-11 10:15:05 调整状态推进
+      [ShipmentStatus.CREATED]: ShipmentStatus.CONFIRMED, // 2025-11-11 10:15:05 调整状态推进
+      [ShipmentStatus.CONFIRMED]: ShipmentStatus.ASSIGNED, // 2025-11-11 10:15:05 调整状态推进
       [ShipmentStatus.ASSIGNED]: ShipmentStatus.PICKED_UP,
       [ShipmentStatus.PICKED_UP]: ShipmentStatus.IN_TRANSIT,
       [ShipmentStatus.IN_TRANSIT]: ShipmentStatus.DELIVERED,
@@ -201,19 +248,25 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       [ShipmentStatus.COMPLETED]: null,
       [ShipmentStatus.CANCELED]: null,
       [ShipmentStatus.EXCEPTION]: null,
+      [ShipmentStatus.CANCELLED]: null,
     };
     return statusFlow[currentStatus] || null;
   };
 
-  const handleStatusUpdate = (newStatus: ShipmentStatus) => {
+  const handleStatusUpdate = async (newStatus: ShipmentStatus) => {
+    // 2025-11-11 10:15:05 调整：携带运单ID调用外部状态推进
     if (onStatusUpdate) {
-      onStatusUpdate(newStatus);
+      await onStatusUpdate(shipment.id, newStatus);
     }
   };
 
   const handleAssignDriver = () => {
+    // 2025-10-31 10:30:00 修复：打开模态框时设置表单初始值
     setIsAssignModalVisible(true);
-    // TODO: 加载可用司机和车辆
+    form.setFieldsValue({
+      driverId: shipment.driverId || undefined,
+      vehicleId: (shipment as any).vehicleId || undefined,
+    });
   };
 
   const handleMountTrip = () => {
@@ -221,30 +274,16 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     // TODO: 加载可用行程
   };
 
-  const handlePODUpload = async (file: unknown) => {
+  const handlePODUpload = async (file: RcFile) => {
+    // 2025-11-11 10:15:05 调整：使用统一API上传POD并刷新列表
     try {
-      // 2025-10-02 16:25:00 实现真正的POD上传逻辑，支持手机拍照
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // 调用后端POD上传接口
-      const response = await fetch(`${process.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/shipments/${shipment.id}/pod`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'X-Tenant-ID': localStorage.getItem('tenantId') || '',
-        },
-        body: formData,
+      const response = await shipmentsApi.uploadShipmentPOD(shipment.id, file);
+      const createdPod = (response.data?.data || response.data) as POD;
+      setPods((prev) => {
+        const existing = prev.filter((item) => item.id !== createdPod?.id);
+        return [createdPod, ...existing];
       });
-      
-      const result = await response.json();
-      if (result.success) {
-        message.success('POD上传成功');
-        // 刷新POD列表
-        setPods([...pods, result.data]);
-      } else {
-        message.error(result.error?.message || 'POD上传失败');
-      }
+      message.success('POD上传成功');
     } catch (error) {
       console.error('POD upload error:', error);
       message.error('POD上传失败，请检查网络连接');
@@ -252,13 +291,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     return false; // 阻止默认上传行为
   };
 
+  // 2025-10-31 10:30:00 修复：从所有司机/车辆中查找，不仅仅限于available状态
   const getDriverName = (driverId: string) => {
-    const driver = availableDrivers.find(d => d.id === driverId);
-    return driver ? driver.name : '未知司机';
+    const driver = allDrivers.find(d => d.id === driverId) || availableDrivers.find(d => d.id === driverId);
+    return driver ? `${driver.name} (${driver.phone || '无电话'})` : '未知司机';
   };
 
   const getVehiclePlate = (vehicleId: string) => {
-    const vehicle = availableVehicles.find(v => v.id === vehicleId);
+    const vehicle = allVehicles.find(v => v.id === vehicleId) || availableVehicles.find(v => v.id === vehicleId);
     return vehicle ? vehicle.plateNumber : '未知车辆';
   };
 
@@ -743,15 +783,18 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         <div>
           <Card title="状态推进" style={{ marginBottom: 16 }}>
             <Space>
-              {getNextStatus(shipment.status) && (
+              {(() => {
+                const nextStatus = getNextStatus(shipment.status);
+                return nextStatus ? (
                 <Button 
                   type="primary" 
                   icon={<CheckCircleOutlined />}
-                  onClick={() => handleStatusUpdate(getNextStatus(shipment.status)!)}
+                  onClick={() => handleStatusUpdate(nextStatus)}
                 >
-                  推进到 {getStatusTag(getNextStatus(shipment.status)!).text}
+                  推进到 {getStatusTag(nextStatus).text}
                 </Button>
-              )}
+                ) : null;
+              })()}
               <Button 
                 icon={<ExclamationCircleOutlined />}
                 danger
@@ -779,35 +822,66 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                 支持手机拍照或从相册选择，已上传 {pods.length} 张POD图片
               </Text>
             </div>
-            {(shipment.status === 'completed' || shipment.status === 'cancelled') && (
+            {(shipment.status === ShipmentStatus.COMPLETED || shipment.status === ShipmentStatus.CANCELED || shipment.status === ShipmentStatus.CANCELLED) && (
               <div style={{ marginTop: 8, fontSize: '12px', color: '#f5222d' }}>
                 <Text type="danger" style={{ fontSize: '12px' }}>
                   运单已完成或已取消，无法上传POD
                 </Text>
               </div>
             )}
+            <List
+              style={{ marginTop: 12 }}
+              dataSource={pods}
+              locale={{ emptyText: '暂无签收凭证' }}
+              renderItem={(pod) => (
+                <List.Item>
+                  <Space size="small">
+                    <a href={pod.filePath} target="_blank" rel="noreferrer">
+                      查看签收凭证
+                    </a>
+                    <Text type="secondary">
+                      {pod.uploadedAt ? formatDateTime(pod.uploadedAt) : '时间未知'}
+                    </Text>
+                    {pod.uploadedBy && (
+                      <Text type="secondary">上传人：{pod.uploadedBy}</Text>
+                    )}
+                  </Space>
+                </List.Item>
+              )}
+            />{/* 2025-11-11 10:15:05 新增：展示POD列表 */}
           </Card>
 
           <Card title="状态时间线">
             <Timeline>
-              <Timeline.Item color="green">
-                <Text strong>运单创建</Text>
-                <br />
-                <Text type="secondary">{new Date(shipment.createdAt).toLocaleString()}</Text>
-              </Timeline.Item>
-              {shipment.status !== ShipmentStatus.CREATED && (
-                <Timeline.Item color="blue">
-                  <Text strong>已分配</Text>
-                  <br />
-                  <Text type="secondary">等待取货</Text>
+              {timelineEvents.length === 0 ? (
+                <Timeline.Item color="gray">
+                  <Text type="secondary">暂无状态记录</Text>
                 </Timeline.Item>
-              )}
-              {shipment.status === ShipmentStatus.COMPLETED && (
-                <Timeline.Item color="green">
-                  <Text strong>已完成</Text>
-                  <br />
-                  <Text type="secondary">运单完成</Text>
-                </Timeline.Item>
+              ) : (
+                timelineEvents.map((event, index) => {
+                  const extraContent = event.extra
+                    ? typeof event.extra === 'string'
+                      ? event.extra
+                      : JSON.stringify(event.extra)
+                    : null;
+                  return (
+                  <Timeline.Item
+                    key={event.id || `${event.eventType}-${index}`}
+                    color={timelineColorMap[event.eventType] || 'blue'}
+                  >
+                    <Text strong>{timelineTextMap[event.eventType] || event.eventType}</Text>
+                    <br />
+                    <Text type="secondary">
+                      {event.timestamp ? formatDateTime(event.timestamp) : '时间未知'}
+                    </Text>
+                    {extraContent && (
+                      <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                        {extraContent}
+                      </div>
+                    )}
+                  </Timeline.Item>
+                  );
+                })
               )}
             </Timeline>
           </Card>
@@ -927,7 +1001,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             <Select placeholder="请选择车辆">
               {availableVehicles.map(vehicle => (
                 <Select.Option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.plateNumber} ({vehicle.type})
+                  {vehicle.plateNumber} ({(vehicle as any).vehicleType || vehicle.type || '未知类型'})
                 </Select.Option>
               ))}
             </Select>

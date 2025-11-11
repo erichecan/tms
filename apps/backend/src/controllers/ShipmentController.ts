@@ -5,8 +5,10 @@ import { Request, Response } from 'express';
 import { ShipmentService, ShipmentAssignment } from '../services/ShipmentService';
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
+import { PricingEngineService } from '../services/PricingEngineService';
+import { PricingFinancialIntegration } from '../services/PricingFinancialIntegration'; // 2025-11-11T15:36:41Z Added by Assistant: Financial integration
 import { logger } from '../utils/logger';
-import { Shipment, QueryParams } from '@tms/shared-types';
+import { Shipment, QueryParams, ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:35:45 引入状态枚举
 
 // Helper to get request ID safely
 const getRequestId = (req: Request): string => {
@@ -17,10 +19,13 @@ const getRequestId = (req: Request): string => {
 export class ShipmentController {
   private shipmentService: ShipmentService;
   private dbService: DatabaseService;
+  private pricingIntegration: PricingFinancialIntegration;
 
   constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService) {
     this.dbService = dbService;
     this.shipmentService = new ShipmentService(dbService, ruleEngineService);
+    const pricingEngineService = new PricingEngineService(dbService);
+    this.pricingIntegration = new PricingFinancialIntegration(dbService, pricingEngineService); // 2025-11-11T15:36:41Z Added by Assistant: Instantiate financial integration
   }
 
   /**
@@ -51,6 +56,8 @@ export class ShipmentController {
           status: req.query.status as string,
           customerId: req.query.customerId as string,
           driverId: req.query.driverId as string,
+          shipmentNumber: req.query.shipmentNumber as string,
+          customerPhone: req.query.customerPhone as string,
           startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
           endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
         }
@@ -114,6 +121,17 @@ export class ShipmentController {
         customerId = defaultCustomer.id;
       }
 
+      const requestedInitialStatus = body.initialStatus as ShipmentStatus | undefined; // 2025-11-11 14:36:40
+      const isDraft = body.saveAsDraft === true; // 2025-11-11 14:36:40
+      const allowedInitialStatuses: ShipmentStatus[] = [
+        ShipmentStatus.DRAFT,
+        ShipmentStatus.PENDING_CONFIRMATION,
+        ShipmentStatus.CONFIRMED
+      ]; // 2025-11-11 14:36:40
+      const initialStatus = requestedInitialStatus && allowedInitialStatuses.includes(requestedInitialStatus)
+        ? requestedInitialStatus
+        : (isDraft ? ShipmentStatus.DRAFT : ShipmentStatus.PENDING_CONFIRMATION); // 2025-11-11 14:36:40
+
       const shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {
         shipmentNumber: body.shipmentNumber || `TMS${Date.now()}`,
         customerId: customerId,
@@ -147,10 +165,8 @@ export class ShipmentController {
         estimatedCost: body.estimatedCost,
         additionalFees: [],
         appliedRules: [],
-        status: 'created' as any,
-        timeline: {
-          created: new Date()
-        }
+        status: initialStatus,
+        timeline: {} as any // 2025-11-11 14:36:40 占位，实际由服务重建
       };
 
       if (body.driverId) {
@@ -193,7 +209,9 @@ export class ShipmentController {
         logger.warn('创建运单前计费失败，继续持久化但estimatedCost可能为空', pricingError);
       }
 
-      const shipment = await this.shipmentService.createShipment(tenantId, shipmentData);
+      const shipment = await this.shipmentService.createShipment(tenantId, shipmentData, {
+        initialStatus
+      }); // 2025-11-11 14:36:40 传递初始状态
       
       // 🚀 核心功能：运单创建后自动触发智能调度优化引擎
       // 这里集成了完整的车辆调度优化系统：
@@ -705,6 +723,15 @@ export class ShipmentController {
       }
 
       const shipment = await this.shipmentService.completeShipment(tenantId, shipmentId, finalCost);
+      const resolvedFinalCost = Number(shipment.actualCost ?? finalCost ?? shipment.estimatedCost ?? 0);
+
+      if (resolvedFinalCost > 0) {
+        try {
+          await this.pricingIntegration.generateFinancialRecordsOnCompletion(shipmentId, resolvedFinalCost);
+        } catch (financeError) {
+          logger.error('Failed to generate financial records on completion', financeError);
+        }
+      } // 2025-11-11T15:36:41Z Added by Assistant: Auto-generate receivable/payable records
       
       res.json({
         success: true,
@@ -857,10 +884,13 @@ export class ShipmentController {
   async getDriverShipments(req: Request, res: Response): Promise<void> {
     try {
       const tenantId = req.tenant?.id;
-      const driverId = req.params.driverId;
+      const requestedDriverId = req.params.driverId;
+      const effectiveDriverId = (!requestedDriverId || requestedDriverId === 'me')
+        ? req.user?.id
+        : requestedDriverId; // 2025-11-11T15:31:42Z Added by Assistant: Support /driver/me shorthand
       const status = req.query.status as string;
 
-      if (!tenantId || !driverId) {
+      if (!tenantId || !effectiveDriverId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant or Driver ID not found' },
@@ -870,7 +900,17 @@ export class ShipmentController {
         return;
       }
 
-      const shipments = await this.shipmentService.getDriverShipments(tenantId, driverId, status as any);
+      if (req.user && effectiveDriverId !== req.user.id && req.user.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Driver can only access own shipments' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      const shipments = await this.shipmentService.getDriverShipments(tenantId, effectiveDriverId, status as any);
       
       res.json({
         success: true,

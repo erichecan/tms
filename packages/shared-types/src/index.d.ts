@@ -155,16 +155,21 @@ export interface AdditionalFee {
     appliedBy: string;
 }
 export type FeeType = 'fuel' | 'toll' | 'waiting' | 'overtime' | 'special' | 'other';
-export type ShipmentStatus = 'pending' | 'quoted' | 'confirmed' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'completed' | 'cancelled' | 'exception';
+export type ShipmentStatus = 'draft' | 'pending_confirmation' | 'confirmed' | 'scheduled' | 'pickup_in_progress' | 'in_transit' | 'delivered' | 'pod_pending_review' | 'completed' | 'cancelled' | 'exception';
 export interface ShipmentTimeline {
-    created: Date;
-    quoted?: Date;
-    confirmed?: Date;
-    assigned?: Date;
-    pickedUp?: Date;
-    inTransit?: Date;
-    delivered?: Date;
-    completed?: Date;
+    created: Date | string;
+    draft?: Date | string;
+    pendingConfirmation?: Date | string;
+    confirmed?: Date | string;
+    scheduled?: Date | string;
+    pickupInProgress?: Date | string;
+    inTransit?: Date | string;
+    delivered?: Date | string;
+    podPendingReview?: Date | string;
+    completed?: Date | string;
+    cancelled?: Date | string;
+    assignmentAcknowledged?: Date | string;
+    assignmentDeclined?: Date | string;
 }
 export interface FinancialRecord extends BaseEntity {
     tenantId: string;

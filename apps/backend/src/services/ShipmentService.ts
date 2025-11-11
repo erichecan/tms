@@ -41,6 +41,20 @@ export interface ShipmentStats {
   onTimeRate: number;
 }
 
+const TIMELINE_FIELD_MAP: Record<ShipmentStatus, keyof ShipmentTimeline | null> = {
+  [ShipmentStatus.DRAFT]: 'draft', // 2025-11-11 14:22:10 状态到时间线字段映射
+  [ShipmentStatus.PENDING_CONFIRMATION]: 'pendingConfirmation', // 2025-11-11 14:22:10
+  [ShipmentStatus.CONFIRMED]: 'confirmed', // 2025-11-11 14:22:10
+  [ShipmentStatus.SCHEDULED]: 'scheduled', // 2025-11-11 14:22:10
+  [ShipmentStatus.PICKUP_IN_PROGRESS]: 'pickupInProgress', // 2025-11-11 14:22:10
+  [ShipmentStatus.IN_TRANSIT]: 'inTransit', // 2025-11-11 14:22:10
+  [ShipmentStatus.DELIVERED]: 'delivered', // 2025-11-11 14:22:10
+  [ShipmentStatus.POD_PENDING_REVIEW]: 'podPendingReview', // 2025-11-11 14:22:10
+  [ShipmentStatus.COMPLETED]: 'completed', // 2025-11-11 14:22:10
+  [ShipmentStatus.CANCELLED]: 'cancelled', // 2025-11-11 14:22:10
+  [ShipmentStatus.EXCEPTION]: null // 2025-11-11 14:22:10 异常状态不记录专属时间线
+};
+
 export class ShipmentService {
   private dbService: DatabaseService;
   private ruleEngineService: RuleEngineService;
@@ -50,6 +64,20 @@ export class ShipmentService {
     this.ruleEngineService = ruleEngineService;
   }
 
+  private stampTimeline(timeline: ShipmentTimeline | undefined, status: ShipmentStatus): ShipmentTimeline {
+    // 2025-11-11 14:23:45 统一记录运单状态时间线
+    const nextTimeline: ShipmentTimeline = { ...(timeline || {}) };
+    const isoNow = new Date().toISOString();
+    if (!nextTimeline.created) {
+      nextTimeline.created = isoNow; // 2025-11-11 14:23:45
+    }
+    const fieldKey = TIMELINE_FIELD_MAP[status];
+    if (fieldKey) {
+      nextTimeline[fieldKey] = isoNow; // 2025-11-11 14:23:45
+    }
+    return nextTimeline;
+  }
+
   /**
    * 创建运单
    * @param tenantId 租户ID
@@ -57,21 +85,30 @@ export class ShipmentService {
    * @returns 创建的运单
    */
   async createShipment(
-    tenantId: string, 
-    shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>
+    tenantId: string,
+    shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>,
+    options?: { initialStatus?: ShipmentStatus }
   ): Promise<Shipment> {
     try {
-      // 生成运单号
-      const shipmentNumber = await this.generateShipmentNumber(tenantId);
-      
+      const shipmentNumber = await this.generateShipmentNumber(tenantId); // 2025-11-11 14:25:10 生成运单号
+      const sanitizedShipmentData = { ...shipmentData } as any; // 2025-11-11 14:25:10 拷贝避免污染
+      delete sanitizedShipmentData.timeline; // 2025-11-11 14:25:10
+      delete sanitizedShipmentData.status; // 2025-11-11 14:25:10
+      const initialStatus = options?.initialStatus || shipmentData.status || ShipmentStatus.PENDING_CONFIRMATION; // 2025-11-11 14:25:10 计算初始状态
+      const initialStatuses: ShipmentStatus[] =
+        initialStatus === ShipmentStatus.DRAFT
+          ? [ShipmentStatus.DRAFT]
+          : [ShipmentStatus.DRAFT, initialStatus as ShipmentStatus]; // 2025-11-11 14:25:10 初始化时间线序列
+      let timelineSnapshot: ShipmentTimeline | undefined; // 2025-11-11 14:25:10
+      initialStatuses.forEach(status => {
+        timelineSnapshot = this.stampTimeline(timelineSnapshot, status); // 2025-11-11 14:25:10
+      });
       const newShipment = {
-        ...shipmentData,
+        ...sanitizedShipmentData,
         shipmentNumber,
-        status: 'pending' as ShipmentStatus,
-        timeline: {
-          created: new Date()
-        }
-      };
+        status: initialStatus as ShipmentStatus,
+        timeline: timelineSnapshot
+      }; // 2025-11-11 14:25:10
 
       const shipment = await this.dbService.createShipment(tenantId, newShipment);
       
@@ -131,11 +168,8 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      // 更新状态时间线
       if (updates.status && updates.status !== shipment.status) {
-        const timeline = { ...shipment.timeline };
-        timeline[updates.status] = new Date();
-        updates.timeline = timeline;
+        updates.timeline = this.stampTimeline(shipment.timeline, updates.status); // 2025-11-11 14:27:05 更新时间线
       }
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
@@ -158,7 +192,7 @@ export class ShipmentService {
     try {
       // 检查司机是否可用
       const driver = await this.dbService.getDriver(tenantId, assignment.driverId);
-      if (!driver || driver.status !== 'active') {
+      if (!driver || !['active', 'available'].includes(driver.status)) { // 2025-10-31 09:20:00 修复：支持两种可用状态
         throw new Error('Driver not available');
       }
 
@@ -168,22 +202,20 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      // 允许从 pending、quoted、confirmed、assigned 状态分配或调整司机 // 2025-10-29 10:20:00
-      // 这里将已分配状态也纳入，支持“重新指派”场景
-      if (!['pending', 'quoted', 'confirmed', 'assigned'].includes(shipment.status)) {
+      const assignableStatuses: ShipmentStatus[] = [
+        ShipmentStatus.PENDING_CONFIRMATION,
+        ShipmentStatus.CONFIRMED,
+        ShipmentStatus.SCHEDULED
+      ]; // 2025-11-11 14:28:40 可指派状态
+      if (!assignableStatuses.includes(shipment.status as ShipmentStatus)) {
         throw new Error(`Shipment cannot be assigned in current status: ${shipment.status}`);
       }
 
-      // 更新运单
       const updates: ShipmentUpdate = {
         driverId: assignment.driverId,
         vehicleId: assignment.vehicleId,
-        // 保持为 assigned 状态；对于已在 assigned 的订单，相当于“调整指派” // 2025-10-29 10:20:00
-        status: 'assigned',
-        timeline: {
-          ...shipment.timeline,
-          assigned: new Date()
-        }
+        status: ShipmentStatus.SCHEDULED,
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.SCHEDULED)
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, assignment.shipmentId, updates);
@@ -209,16 +241,13 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      if (shipment.status !== 'quoted') {
-        throw new Error('Only quoted shipments can be confirmed');
+      if (shipment.status !== ShipmentStatus.PENDING_CONFIRMATION) {
+        throw new Error('Only pending confirmation shipments can be confirmed'); // 2025-11-11 14:30:05
       }
 
       const updates: ShipmentUpdate = {
-        status: 'confirmed',
-        timeline: {
-          ...shipment.timeline,
-          confirmed: new Date()
-        }
+        status: ShipmentStatus.CONFIRMED,
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.CONFIRMED)
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
@@ -249,16 +278,13 @@ export class ShipmentService {
         throw new Error('Driver not assigned to this shipment');
       }
 
-      if (shipment.status !== 'assigned') {
-        throw new Error('Shipment must be assigned before pickup');
+      if (shipment.status !== ShipmentStatus.SCHEDULED) {
+        throw new Error('Shipment must be scheduled before pickup'); // 2025-11-11 14:31:00
       }
 
       const updates: ShipmentUpdate = {
-        status: 'picked_up',
-        timeline: {
-          ...shipment.timeline,
-          pickedUp: new Date()
-        }
+        status: ShipmentStatus.PICKUP_IN_PROGRESS,
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.PICKUP_IN_PROGRESS)
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
@@ -289,16 +315,13 @@ export class ShipmentService {
         throw new Error('Driver not assigned to this shipment');
       }
 
-      if (shipment.status !== 'picked_up') {
-        throw new Error('Shipment must be picked up before transit');
+      if (shipment.status !== ShipmentStatus.PICKUP_IN_PROGRESS) {
+        throw new Error('Shipment must be in pickup progress before transit'); // 2025-11-11 14:31:45
       }
 
       const updates: ShipmentUpdate = {
-        status: 'in_transit',
-        timeline: {
-          ...shipment.timeline,
-          inTransit: new Date()
-        }
+        status: ShipmentStatus.IN_TRANSIT,
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.IN_TRANSIT)
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
@@ -335,16 +358,13 @@ export class ShipmentService {
         throw new Error('Driver not assigned to this shipment');
       }
 
-      if (shipment.status !== 'in_transit') {
-        throw new Error('Shipment must be in transit before delivery');
+      if (shipment.status !== ShipmentStatus.IN_TRANSIT) {
+        throw new Error('Shipment must be in transit before delivery'); // 2025-11-11 14:32:35
       }
 
       const updates: ShipmentUpdate = {
-        status: 'delivered',
-        timeline: {
-          ...shipment.timeline,
-          delivered: new Date()
-        },
+        status: ShipmentStatus.DELIVERED,
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.DELIVERED),
         notes: deliveryNotes
       };
 
@@ -372,23 +392,21 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      if (shipment.status !== 'delivered') {
-        throw new Error('Shipment must be delivered before completion');
+      const completableStatuses: ShipmentStatus[] = [
+        ShipmentStatus.DELIVERED,
+        ShipmentStatus.POD_PENDING_REVIEW
+      ]; // 2025-11-11 14:33:25 可完结状态
+      if (!completableStatuses.includes(shipment.status as ShipmentStatus)) {
+        throw new Error('Shipment must be delivered before completion'); // 2025-11-11 14:33:25
       }
 
       const updates: ShipmentUpdate = {
-        status: 'completed',
+        status: ShipmentStatus.COMPLETED,
         actualCost: finalCost || shipment.actualCost || shipment.estimatedCost,
-        timeline: {
-          ...shipment.timeline,
-          completed: new Date()
-        }
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.COMPLETED)
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
-      
-      // 计算司机薪酬
-      await this.calculateDriverCommission(tenantId, shipmentId);
       
       logger.info(`Shipment completed: ${shipmentId}`);
       return updatedShipment;
@@ -412,13 +430,14 @@ export class ShipmentService {
         throw new Error('Shipment not found');
       }
 
-      if (['completed', 'cancelled'].includes(shipment.status)) {
+      if ([ShipmentStatus.COMPLETED, ShipmentStatus.CANCELLED].includes(shipment.status as ShipmentStatus)) {
         throw new Error('Shipment cannot be cancelled in current status');
       }
 
       const updates: ShipmentUpdate = {
-        status: 'cancelled',
-        notes: reason
+        status: ShipmentStatus.CANCELLED,
+        notes: reason,
+        timeline: this.stampTimeline(shipment.timeline, ShipmentStatus.CANCELLED)
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
@@ -443,9 +462,11 @@ export class ShipmentService {
         return;
       }
 
-      const deliveryTime = (shipment.timeline?.delivered && shipment.timeline?.pickedUp)
-        ? new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickedUp).getTime()
-        : 0;
+      const pickupTimestamp = shipment.timeline?.pickupInProgress; // 2025-11-11 14:34:20
+      const deliveredTimestamp = shipment.timeline?.delivered; // 2025-11-11 14:34:20
+      const deliveryTime = (deliveredTimestamp && pickupTimestamp)
+        ? new Date(deliveredTimestamp).getTime() - new Date(pickupTimestamp).getTime()
+        : 0; // 2025-11-11 14:34:20
 
       // 构建薪酬计算事实
       const facts = {
@@ -491,6 +512,167 @@ export class ShipmentService {
       logger.info(`Driver commission calculated: ${shipment.driverId} - ${commission} CAD`);
     } catch (error) {
       logger.error('Failed to calculate driver commission:', error);
+    }
+  }
+
+  async convertQuoteToShipment(
+    tenantId: string,
+    shipmentId: string,
+    options?: { finalCost?: number }
+  ): Promise<Shipment> {
+    const client = await this.dbService.getConnection(); // 2025-11-11 14:49:10 获取事务连接
+    try {
+      await client.query('BEGIN'); // 2025-11-11 14:49:10 开启事务
+      const quoteResult = await client.query(
+        'SELECT * FROM shipments WHERE id = $1 AND tenant_id = $2 FOR UPDATE',
+        [shipmentId, tenantId]
+      ); // 2025-11-11 14:49:10 加锁读取
+
+      if (quoteResult.rows.length === 0) {
+        throw new Error('Shipment not found');
+      }
+
+      const quoteRow = quoteResult.rows[0];
+      if (quoteRow.status !== ShipmentStatus.PENDING_CONFIRMATION) {
+        throw new Error('Only pending confirmation shipments can be converted'); // 2025-11-11 14:49:10 状态校验
+      }
+
+      const timelineSource =
+        typeof quoteRow.timeline === 'string' ? JSON.parse(quoteRow.timeline) : quoteRow.timeline; // 2025-11-11 14:49:10 解析时间线
+      const timelineSnapshot = this.stampTimeline(timelineSource, ShipmentStatus.CONFIRMED); // 2025-11-11 14:49:10 标记确认时间
+
+      const requiresNewNumber =
+        typeof quoteRow.shipment_number === 'string' && quoteRow.shipment_number.startsWith('TMP'); // 2025-11-11 14:49:10 判断是否需要新编号
+      const finalShipmentNumber = requiresNewNumber
+        ? await this.generateShipmentNumber(tenantId)
+        : quoteRow.shipment_number; // 2025-11-11 14:49:10 决定最终编号
+
+      const resolvedActualCost =
+        options?.finalCost ??
+        quoteRow.actual_cost ??
+        quoteRow.estimated_cost ??
+        0; // 2025-11-11 14:49:10 计算确认费用
+
+      await client.query(
+        `UPDATE shipments 
+         SET status = $3,
+             shipment_number = $4,
+             timeline = $5::jsonb,
+             actual_cost = $6,
+             updated_at = NOW()
+         WHERE id = $1 AND tenant_id = $2`,
+        [
+          shipmentId,
+          tenantId,
+          ShipmentStatus.CONFIRMED,
+          finalShipmentNumber,
+          JSON.stringify(timelineSnapshot),
+          resolvedActualCost
+        ]
+      ); // 2025-11-11 14:49:10 提交确认更新
+
+      await client.query('COMMIT'); // 2025-11-11 14:49:10 提交事务
+      const updatedShipment = await this.dbService.getShipment(tenantId, shipmentId);
+      if (!updatedShipment) {
+        throw new Error('Converted shipment not found after update'); // 2025-11-11 14:49:10 二次校验
+      }
+      return updatedShipment;
+    } catch (error) {
+      await client
+        .query('ROLLBACK')
+        .catch(rollbackError =>
+          logger.error('Failed to rollback quote conversion transaction', rollbackError)
+        ); // 2025-11-11 14:49:10 事务回滚
+      logger.error('Failed to convert quote to shipment:', error);
+      throw error;
+    } finally {
+      client.release(); // 2025-11-11 14:49:10 释放连接
+    }
+  }
+
+  async acknowledgeAssignment(
+    tenantId: string,
+    shipmentId: string,
+    driverId: string,
+    accepted: boolean,
+    note?: string
+  ): Promise<Shipment> {
+    const shipment = await this.dbService.getShipment(tenantId, shipmentId);
+    if (!shipment) {
+      throw new Error('Shipment not found'); // 2025-11-11 14:53:15
+    }
+    if (shipment.driverId !== driverId) {
+      throw new Error('Driver not assigned to this shipment'); // 2025-11-11 14:53:15
+    }
+
+    const client = await this.dbService.getConnection(); // 2025-11-11 14:53:15
+    try {
+      await client.query('BEGIN'); // 2025-11-11 14:53:15
+      const currentTimeline =
+        typeof shipment.timeline === 'string'
+          ? JSON.parse(shipment.timeline)
+          : shipment.timeline || {}; // 2025-11-11 14:53:15
+
+      if (accepted) {
+        currentTimeline.assignmentAcknowledged = new Date().toISOString(); // 2025-11-11 14:53:15
+        await client.query(
+          `UPDATE shipments 
+           SET timeline = $3::jsonb,
+               updated_at = NOW()
+           WHERE id = $1 AND tenant_id = $2`,
+          [shipmentId, tenantId, JSON.stringify(currentTimeline)]
+        ); // 2025-11-11 14:53:15
+      } else {
+        currentTimeline.assignmentDeclined = new Date().toISOString(); // 2025-11-11 14:53:15
+        await client.query(
+          `UPDATE shipments 
+           SET status = $3,
+               driver_id = NULL,
+               vehicle_id = NULL,
+               timeline = $4::jsonb,
+               updated_at = NOW()
+           WHERE id = $1 AND tenant_id = $2`,
+          [
+            shipmentId,
+            tenantId,
+            ShipmentStatus.CONFIRMED,
+            JSON.stringify(currentTimeline)
+          ]
+        ); // 2025-11-11 14:53:15
+        await client.query('DELETE FROM assignments WHERE shipment_id = $1', [shipmentId]); // 2025-11-11 14:53:15
+      }
+
+      await client.query(
+        'UPDATE drivers SET status = $3, updated_at = NOW() WHERE id = $1 AND tenant_id = $2',
+        [driverId, tenantId, accepted ? 'busy' : 'available']
+      ); // 2025-11-11 14:53:15 同步司机状态
+
+      await client.query(
+        `INSERT INTO timeline_events (shipment_id, event_type, actor_type, extra)
+         VALUES ($1, $2, 'driver', $3)`,
+        [
+          shipmentId,
+          accepted ? 'DRIVER_ACKNOWLEDGED' : 'DRIVER_DECLINED',
+          JSON.stringify({ driverId, note })
+        ]
+      ); // 2025-11-11 14:53:15
+
+      await client.query('COMMIT'); // 2025-11-11 14:53:15
+      const updatedShipment = await this.dbService.getShipment(tenantId, shipmentId);
+      if (!updatedShipment) {
+        throw new Error('Shipment not found after acknowledgement'); // 2025-11-11 14:53:15
+      }
+      return updatedShipment;
+    } catch (error) {
+      await client
+        .query('ROLLBACK')
+        .catch(rollbackError =>
+          logger.error('Failed to rollback driver acknowledgement transaction', rollbackError)
+        ); // 2025-11-11 14:53:15
+      logger.error('Failed to acknowledge assignment:', error);
+      throw error;
+    } finally {
+      client.release(); // 2025-11-11 14:53:15
     }
   }
 

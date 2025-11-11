@@ -242,6 +242,35 @@ CREATE TABLE public.shipments (
 ALTER TABLE public.shipments OWNER TO tms_user;
 
 --
+-- 2025-11-10T09:55:45-05:00 Name: shipment_pricing_details; Type: TABLE; Schema: public; Owner: tms_user
+--
+
+CREATE TABLE IF NOT EXISTS public.shipment_pricing_details (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    shipment_id uuid NOT NULL,
+    applied_component_code character varying(100) NOT NULL,
+    input_values jsonb DEFAULT '{}'::jsonb NOT NULL,
+    calculated_amount numeric(12,2) DEFAULT 0 NOT NULL,
+    currency character varying(3) DEFAULT 'CAD'::character varying NOT NULL,
+    component_type character varying(50) NOT NULL,
+    sequence integer DEFAULT 0 NOT NULL,
+    calculation_formula text,
+    execution_time integer DEFAULT 0 NOT NULL,
+    calculated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+ALTER TABLE IF EXISTS ONLY public.shipment_pricing_details
+    ADD CONSTRAINT shipment_pricing_details_pkey PRIMARY KEY (id);
+
+ALTER TABLE IF EXISTS ONLY public.shipment_pricing_details
+    ADD CONSTRAINT shipment_pricing_details_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id) ON DELETE CASCADE;
+
+CREATE INDEX IF NOT EXISTS idx_shipment_pricing_details_shipment_id ON public.shipment_pricing_details USING btree (shipment_id);
+
+CREATE INDEX IF NOT EXISTS idx_shipment_pricing_details_component_code ON public.shipment_pricing_details USING btree (applied_component_code);
+
+--
 -- Name: statements; Type: TABLE; Schema: public; Owner: tms_user
 --
 

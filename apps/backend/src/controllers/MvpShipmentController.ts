@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
+import { ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:45:05 引入状态枚举
 import dayjs from 'dayjs';
 
 
@@ -62,8 +63,12 @@ export class MvpShipmentController {
         actualCost: b.finalCost ?? null,
         additionalFees: [],
         appliedRules: [],
-        status: 'created' as any,
-        timeline: { created: new Date().toISOString() }
+        status: ShipmentStatus.PENDING_CONFIRMATION,
+        timeline: {
+          created: new Date().toISOString(),
+          draft: new Date().toISOString(),
+          pendingConfirmation: new Date().toISOString()
+        } // 2025-11-11 14:45:05 初始化时间线
       } as any);
 
       res.status(201).json({ success: true, data: created });

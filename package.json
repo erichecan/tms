@@ -33,7 +33,9 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "db:migrate": "cd apps/backend && npm run db:migrate",
-    "db:seed": "cd apps/backend && npm run db:seed"
+    "db:seed": "cd apps/backend && npm run db:seed",
+    "validate:data": "node scripts/validate-data.js",
+    "review:preflight": "npm run lint && npm run test && npm run validate:data"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
@@ -60,6 +62,7 @@
   "dependencies": {
     "@types/node-cron": "^3.0.11",
     "node-cron": "^4.2.1",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "dotenv": "^16.4.5"
   }
 }
