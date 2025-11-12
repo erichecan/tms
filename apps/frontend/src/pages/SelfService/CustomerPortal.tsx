@@ -1,6 +1,6 @@
 // 2025-11-11 10:15:05 新增：客户自助服务入口页面
 import React, { useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Tabs, Typography, Row, Col, Divider, Space, message, Result, Descriptions } from 'antd';
+import { Card, Form, Input, InputNumber, Button, Tabs, Typography, Row, Col, Divider, Space, message, Result, Descriptions, Modal } from 'antd';
 import { PhoneOutlined, MailOutlined, EnvironmentOutlined, InfoCircleOutlined, CheckCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import { shipmentsApi } from '../../services/api';
 import { Shipment } from '../../types';
@@ -20,6 +20,31 @@ const CustomerPortal: React.FC = () => {
     try {
       const values = await createForm.validateFields();
       setCreateLoading(true);
+
+      const duplicateResponse = await shipmentsApi.getShipments({
+        customerPhone: values.customerPhone,
+        status: ['pending', 'confirmed', 'assigned'],
+        limit: 1,
+      });
+      const duplicates = duplicateResponse.data?.data || [];
+      if (duplicates.length > 0) {
+        const shouldContinue = await new Promise<boolean>((resolve) => {
+          Modal.confirm({
+            title: '发现未完成的运单',
+            content: '系统检测到该联系电话存在未完成的运单，确认继续创建新的运单吗？',
+            okText: '继续创建',
+            cancelText: '取消',
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          });
+        });
+        if (!shouldContinue) {
+          setCreateLoading(false);
+          message.info('已取消提交，请先处理现有运单。');
+          return;
+        }
+      }
+
       const payload = {
         customerName: values.customerName,
         customerPhone: values.customerPhone,

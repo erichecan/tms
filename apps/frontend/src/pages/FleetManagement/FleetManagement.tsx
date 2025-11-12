@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // 2025-11-11T15:25:48Z Added by Assistant: useCallback for location polling
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; // 2025-11-11T15:25:48Z Added by Assistant: useCallback for location polling // 2025-11-11 10:20:05 引入useMemo生成地图标记
 import { 
   Card, 
   Row, 
@@ -29,15 +29,9 @@ import {
   DollarOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, DriverStatus, VehicleStatus } from '../../types';
-import { useDrivers, useVehicles } from '../../hooks'; // 2025-10-31 09:50:00 使用统一的数据管理 Hook
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { driversApi, vehiclesApi, tripsApi, locationApi } from '../../services/api'; // 2025-11-11T15:25:48Z Added by Assistant: Real-time location API
-// ============================================================================
-// 地图相关组件导入 - 二期开发功能 (2025-01-27 18:10:00)
-// 状态: 已注释，二期恢复
-// 说明: 以下导入的地图组件在一期版本中暂时不使用，二期时取消注释
-// ============================================================================
-// import GoogleMap from '../../components/GoogleMap/GoogleMap';
-// import mapsService from '../../services/mapsService';
+import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-11-11 10:20:05 启用地图组件展示实时位置
 import { formatDateTime } from '../../utils/timeUtils';
 import DriverPerformance from '../../components/DriverPerformance/DriverPerformance';
 import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
@@ -64,14 +58,8 @@ type RealTimeLocation = {
 }; // 2025-11-11T15:25:48Z Added by Assistant: Real-time location data shape
 
 const FleetManagement: React.FC = () => {
-  // 2025-10-31 09:50:00 使用统一的数据管理 Hook
-  const { drivers: availableDrivers, loading: driversLoading, reload: reloadDrivers } = useDrivers({ 
-    status: DriverStatus.AVAILABLE 
-  });
-  
-  const { vehicles: availableVehicles, loading: vehiclesLoading, reload: reloadVehicles } = useVehicles({ 
-    status: VehicleStatus.AVAILABLE 
-  });
+  // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
+  const { availableDrivers, driversLoading, reloadDrivers, availableVehicles, vehiclesLoading, reloadVehicles } = useDataContext();
   
   const [loading, setLoading] = useState(false);
   const [inTransitTrips, setInTransitTrips] = useState<Trip[]>([]);
@@ -87,6 +75,11 @@ const FleetManagement: React.FC = () => {
   const [realTimeLocations, setRealTimeLocations] = useState<RealTimeLocation[]>([]);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [lastLocationSync, setLastLocationSync] = useState<Date | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null); // 2025-11-11 10:20:05 地图标记选中状态
+  const selectedLocation = useMemo(
+    () => (selectedMarkerId ? realTimeLocations.find((location) => location.key === selectedMarkerId) ?? null : null),
+    [selectedMarkerId, realTimeLocations]
+  ); // 2025-11-11 10:20:05 选中标记对应的数据
 
   const fetchRealTimeLocations = useCallback(async (feedback = false) => {
     try {
@@ -171,14 +164,42 @@ const FleetManagement: React.FC = () => {
     void fetchRealTimeLocations(true);
   }; // 2025-11-11T15:25:48Z Added by Assistant: Manual refresh handler
 
-  // ============================================================================
-  // 地图相关状态 - 二期开发功能 (2025-01-27 18:10:00)
-  // 状态: 已注释，二期恢复
-  // 说明: 以下地图相关状态在一期版本中暂时不使用，二期时取消注释
-  // ============================================================================
-  // 地图中心与标记 - 默认中心点: 3401 Dufferin St, North York, ON M6A 2T9
-  // const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 43.7615, lng: -79.4635 });
-  // const [mapMarkers, setMapMarkers] = useState<Array<{ id: string; position: { lat: number; lng: number }; title?: string; info?: string }>>([]);
+  const mapMarkers = useMemo(() => {
+    return realTimeLocations
+      .filter((location) => typeof location.latitude === 'number' && typeof location.longitude === 'number')
+      .map((location) => ({
+        id: location.key,
+        position: {
+          lat: Number(location.latitude),
+          lng: Number(location.longitude),
+        },
+        title: location.plateNumber || location.driverName || '未命名车辆',
+        info: `
+          <div>
+            <strong>${location.plateNumber || '车辆'}</strong><br/>
+            司机：${location.driverName || '未知'}<br/>
+            状态：${location.vehicleStatus || location.driverStatus || '未知'}<br/>
+            更新时间：${location.lastLocationUpdate ? formatDateTime(location.lastLocationUpdate) : '未知'}
+          </div>
+        `,
+      }));
+  }, [realTimeLocations]);
+
+  const mapCenter = useMemo(() => {
+    if (mapMarkers.length > 0) {
+      return mapMarkers[0].position;
+    }
+    // 默认中心坐标（多伦多市政厅）
+    return { lat: 43.653481, lng: -79.383934 };
+  }, [mapMarkers]);
+
+  const handleMarkerClick = useCallback((markerId: string) => {
+    setSelectedMarkerId(markerId);
+    const target = realTimeLocations.find((location) => location.key === markerId);
+    if (target) {
+      message.info(`${target.plateNumber || target.driverName || '车辆'}：${target.vehicleStatus || target.driverStatus || '状态未知'}`);
+    }
+  }, [realTimeLocations]);
 
   // 2025-10-31 09:50:00 只加载行程数据，司机和车辆数据由 Hooks 自动加载
   const loadTripsData = async () => {
@@ -542,15 +563,26 @@ const FleetManagement: React.FC = () => {
                           </Space>
                         )}
                       />
-                      <div style={{ borderRadius: 8, overflow: 'hidden', marginTop: 16, border: '1px solid #e6f4ff' }}>
-                        <iframe
-                          title="fleet-map-embed"
-                          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2886.325825843657!2d-79.38393422385343!3d43.65348145245269!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b34d8a2f166ed%3A0xee1e8fa9045b1ba7!2sToronto%20City%20Hall!5e0!3m2!1szh-CN!2sca!4v1731309300"
-                          style={{ width: '100%', height: 220, border: 0 }}
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
+                      <div style={{ marginTop: 16 }}>
+                        <GoogleMap
+                          height="220px"
+                          center={mapCenter}
+                          zoom={mapMarkers.length > 0 ? 11 : 3}
+                          markers={mapMarkers}
+                          onMarkerClick={handleMarkerClick}
                         />
-                      </div> {/* 2025-11-11 10:15:05 新增：基础地图嵌入占位 */}
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
+                          {mapMarkers.length > 0
+                            ? '点击地图标记查看车辆详情，定位信息每 15 秒自动刷新。'
+                            : '暂无定位数据，等待车辆设备上报。'}
+                        </Text>
+                        {selectedLocation && (
+                          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                            当前选中：{selectedLocation.plateNumber || selectedLocation.driverName || selectedLocation.key}（
+                            {selectedLocation.vehicleStatus || selectedLocation.driverStatus || '状态未知'}）
+                          </Text>
+                        )}
+                      </div>
                     </Card>
                   </Col>
                 </Row>
@@ -746,7 +778,9 @@ const FleetManagement: React.FC = () => {
             message.success('司机已添加');
             setIsAddDriverVisible(false);
             driverForm.resetFields();
-            loadFleetData();
+            // 2025-11-11T16:00:00Z Added by Assistant: Refresh global data context for cross-page synchronization
+            await reloadDrivers();
+            loadTripsData();
           } catch (e) {
             console.error('Failed to add driver:', e);
             message.error('添加司机失败');
@@ -828,7 +862,9 @@ const FleetManagement: React.FC = () => {
             message.success('车辆已添加');
             setIsAddVehicleVisible(false);
             vehicleForm.resetFields();
-            loadFleetData();
+            // 2025-11-11T16:00:00Z Added by Assistant: Refresh global data context for cross-page synchronization
+            await reloadVehicles();
+            loadTripsData();
           } catch (e) {
             console.error('Failed to add vehicle:', e);
             message.error('添加车辆失败');

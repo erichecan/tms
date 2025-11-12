@@ -28,7 +28,7 @@ import {
   BarChartOutlined,
 } from '@ant-design/icons';
 import { financeApi } from '../../services/api';
-import { useDrivers, useCustomers } from '../../hooks'; // 2025-10-31 09:59:00 使用统一的数据管理 Hook
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { FinancialRecord, Statement, StatementType } from '../../types/index';
 
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -39,9 +39,8 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const FinanceManagement: React.FC = () => {
-  // 2025-10-31 09:59:00 使用统一的数据管理 Hooks
-  const { customers } = useCustomers();
-  const { drivers } = useDrivers();
+  // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
+  const { customers, allDrivers: drivers } = useDataContext();
   
   const [loading, setLoading] = useState(false);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([]);

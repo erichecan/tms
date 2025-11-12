@@ -53,7 +53,7 @@ import jsPDF from 'jspdf'; // 2025-10-02 11:15:00 引入 jsPDF 以生成PDF
 import html2canvas from 'html2canvas'; // 2025-10-02 11:15:00 将DOM渲染为图片嵌入PDF
 import BOLDocument from '../BOLDocument/BOLDocument'; // 2025-10-10 12:40:00 使用新的BOL组件
 import { driversApi, vehiclesApi, shipmentsApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API // 2025-11-11 10:15:05 引入运单详情API
-import { useDrivers, useVehicles } from '../../hooks'; // 2025-10-31 09:57:00 使用统一的数据管理 Hook
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-11-11 10:15:05 引入时间格式化工具
 import type { RcFile } from 'antd/es/upload/interface'; // 2025-11-11 10:15:05 引入上传文件类型定义
 
@@ -85,19 +85,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null); // 2025-10-02 15:32:10 签名画布引用
   const [isDrawing, setIsDrawing] = useState(false); // 2025-10-02 15:32:10 绘制状态
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null); // 2025-10-02 15:32:10 签名图片
-  // 2025-10-31 09:57:00 使用统一的数据管理 Hook
-  // 2025-10-31 10:30:00 修复：加载所有司机和车辆用于显示已指派信息
-  const { drivers: availableDrivers } = useDrivers({ 
-    status: DriverStatus.AVAILABLE 
-  });
-  
-  const { vehicles: availableVehicles } = useVehicles({ 
-    status: VehicleStatus.AVAILABLE 
-  });
-  
-  // 2025-10-31 10:30:00 新增：加载所有司机和车辆用于查找（包括已指派的状态）
-  const { drivers: allDrivers } = useDrivers({ autoLoad: true });
-  const { vehicles: allVehicles } = useVehicles({ autoLoad: true });
+  // 2025-11-11T16:00:00Z Added by Assistant: Use global data context - removes duplicate hook calls
+  const { availableDrivers, allDrivers, availableVehicles, allVehicles } = useDataContext();
   
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);

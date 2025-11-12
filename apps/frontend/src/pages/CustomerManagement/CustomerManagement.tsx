@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Card, Table, Typography, message, Tag, Space, Tooltip, Modal, Form, Input, Select, Row, Col, Divider, Statistic } from 'antd';
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, HistoryOutlined, DollarOutlined, EnvironmentOutlined, DownloadOutlined } from '@ant-design/icons';
 import { customersApi, shipmentsApi } from '../../services/api';
-import { useCustomers } from '../../hooks'; // 2025-10-31 10:01:00 使用统一的数据管理 Hook
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { Customer, Shipment, ShipmentAddress } from '../../types';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -11,8 +11,8 @@ import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 �
 const { Title } = Typography;
 
 const CustomerManagement: React.FC = () => {
-  // 2025-10-31 10:01:00 使用统一的数据管理 Hook
-  const { customers, loading, reload: reloadCustomers } = useCustomers();
+  // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
+  const { customers, customersLoading: loading, reloadCustomers } = useDataContext();
   
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);

@@ -9,8 +9,8 @@ import {
   PlusOutlined,
   UserAddOutlined
 } from '@ant-design/icons';
-import { shipmentsApi, tripsApi } from '../../services/api'; // 2025-10-31 09:55:00 移除直接API调用，使用Hook
-import { useShipments, useDrivers, useCustomers } from '../../hooks'; // 2025-10-31 09:55:00 使用统一的数据管理 Hook
+import { shipmentsApi, tripsApi } from '../../services/api';
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { Shipment, ShipmentStatus, Driver, Customer, TimelineEvent, POD } from '../../types'; // 2025-11-11 10:15:05 引入时间线与POD类型
 import ShipmentDetails from '../../components/ShipmentDetails/ShipmentDetails'; // 2025-09-27 03:10:00 恢复运单词情组件
 import { useLocation, useNavigate } from 'react-router-dom'; // 2025-10-02 02:55:10 导航至创建页
@@ -23,10 +23,8 @@ import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-10-1
 const { Title, Text } = Typography;
 
 const ShipmentManagement: React.FC = () => {
-  // 2025-10-31 09:55:00 使用统一的数据管理 Hooks
-  const { shipments, loading: shipmentsLoading, reload: reloadShipments } = useShipments();
-  const { drivers } = useDrivers();
-  const { customers } = useCustomers();
+  // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
+  const { shipments, shipmentsLoading, reloadShipments, allDrivers: drivers, customers, reloadDrivers, reloadVehicles } = useDataContext();
   
   const [detailLoading, setDetailLoading] = useState(false); // 2025-11-11 10:15:05 新增：详情加载态
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
@@ -457,7 +455,8 @@ const ShipmentManagement: React.FC = () => {
       
       setIsDispatchModalVisible(false);
       setSelectedRowKeys([]);
-      reloadShipments();
+      // 2025-11-11T16:00:00Z Added by Assistant: Refresh all related data after assignment
+      await Promise.all([reloadShipments(), reloadDrivers(), reloadVehicles()]);
     } catch (error) {
       console.error('应用调度方案失败:', error);
       message.error('应用调度方案失败');
@@ -487,7 +486,8 @@ const ShipmentManagement: React.FC = () => {
       message.success('已挂载到行程'); // 2025-10-02 15:12:30
       setIsAssignModalVisible(false);
       setAssigningShipment(null);
-      reloadShipments();
+      // 2025-11-11T16:00:00Z Added by Assistant: Refresh all related data after assignment
+      await Promise.all([reloadShipments(), reloadDrivers(), reloadVehicles()]);
     } catch (error) {
       console.error('挂载行程失败:', error); // 2025-10-02 15:12:30
       message.error('挂载行程失败');
@@ -776,8 +776,8 @@ const ShipmentManagement: React.FC = () => {
                           
                           // 2025-10-28 修复：传递有效的notes参数，避免空字符串导致验证失败
                           await shipmentsApi.assignDriver(viewingShipment.id, driverId, vehicleId, '手动指派');
-                          // 刷新运单列表以更新状态
-                          await reloadShipments();
+                          // 2025-11-11T16:00:00Z Added by Assistant: Refresh all related data after assignment
+                          await Promise.all([reloadShipments(), reloadDrivers(), reloadVehicles()]);
                           // 2025-11-11 10:15:05 新增：指派后刷新详情，带上时间线/POD
                           await refreshShipmentDetails(viewingShipment.id, { silent: true });
                           message.success('指派成功'); // 2025-10-28 修复：保留成功消息，但避免重复

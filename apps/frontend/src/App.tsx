@@ -45,6 +45,7 @@ import GranularPermissionsPage from './pages/GranularPermissions/GranularPermiss
 import LayoutTest from './pages/LayoutTest/LayoutTest';
 import CustomerPortal from './pages/SelfService/CustomerPortal'; // 2025-11-11 10:15:05 引入客户自助入口
 import { PermissionProvider } from './contexts/PermissionContext'; // 2025-11-11 10:15:05 引入权限提供器
+import { DataProvider } from './contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Global data management
 import './App.css';
 
 function App() {
@@ -57,8 +58,9 @@ function App() {
     >
       <AuthProvider>
         <TenantProvider>
-          <PermissionProvider>
-            <Routes>
+          <DataProvider>
+            <PermissionProvider>
+              <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/" element={<Home />} />
@@ -109,7 +111,8 @@ function App() {
             
             <Route path="/layout-test" element={<ProtectedRoute><LayoutTest /></ProtectedRoute>} />
             </Routes>
-          </PermissionProvider>
+            </PermissionProvider>
+          </DataProvider>
         </TenantProvider>
       </AuthProvider>
     </Router>
