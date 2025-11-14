@@ -93,6 +93,17 @@ const ShipmentCreate: React.FC = () => {
   // 2025-10-28 新增：安全合规部分展开状态
   const [safetySectionActiveKeys, setSafetySectionActiveKeys] = useState<string[]>([]);
   
+  // 2025-11-11T16:25:00Z 监听货物类型变化，用于自动展开/折叠安全合规部分
+  const cargoType = Form.useWatch('cargoType', form);
+  useEffect(() => {
+    if (cargoType === 'DANGEROUS') {
+      setSafetySectionActiveKeys(['safety-compliance']);
+    } else if (cargoType && cargoType !== 'DANGEROUS') {
+      // 如果不是危险品，自动折叠
+      setSafetySectionActiveKeys([]);
+    }
+  }, [cargoType]);
+  
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
 
   // 相关增删改函数已删除 // 2025-10-01 13:45:00
@@ -1554,19 +1565,8 @@ const ShipmentCreate: React.FC = () => {
 
   // 服务与保险模块 - 行间距缩小到8px // 2025-09-30 10:45:00
   // 渲染安全合规部分 - 2025-10-28 改为可折叠，默认关闭
+  // 2025-11-11T16:25:00Z 修复：将 Hooks 移到组件主体，这里只负责渲染
   const renderSafetyComplianceSection = () => {
-    const cargoType = Form.useWatch('cargoType', form);
-    
-    // 监听货物类型变化，如果是危险品则自动展开
-    useEffect(() => {
-      if (cargoType === 'DANGEROUS') {
-        setSafetySectionActiveKeys(['safety-compliance']);
-      } else if (cargoType && cargoType !== 'DANGEROUS') {
-        // 如果不是危险品，自动折叠
-        setSafetySectionActiveKeys([]);
-      }
-    }, [cargoType]);
-
     return (
       <Collapse 
         activeKey={safetySectionActiveKeys}
