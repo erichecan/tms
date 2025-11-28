@@ -26,7 +26,8 @@ export const useShipments = (options: UseShipmentsOptions = {}) => {
       setLoading(true);
       setError(null);
       
-      const params: any = {};
+      // 2025-11-24T18:10:00Z Updated by Assistant: 使用明确的类型而不是 any
+      const params: Record<string, string | number | undefined> = {};
       if (status) params.status = status;
       if (driverId) params.driverId = driverId;
       if (customerId) params.customerId = customerId;

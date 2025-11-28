@@ -46,6 +46,13 @@ class MapsService {
 
   private async doInitialize(): Promise<void> {
     try {
+      // 2025-11-24T18:00:00Z Updated by Assistant: 改进错误处理和 API 密钥验证
+      if (!this.config.apiKey || this.config.apiKey.trim() === '') {
+        const error = new Error('Google Maps API Key 未配置。请设置 VITE_GOOGLE_MAPS_API_KEY 环境变量。');
+        console.error('❌', error.message);
+        throw error;
+      }
+
       // 2025-10-10 17:35:00 使用单例Loader，统一libraries顺序
       if (!MapsService.loaderInstance) {
         MapsService.loaderInstance = new Loader({
@@ -60,8 +67,18 @@ class MapsService {
       this.maps = await MapsService.loaderInstance.load();
       this.isInitialized = true;
       console.log('✅ Google Maps API initialized successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to initialize Google Maps API:', error);
+      
+      // 2025-11-24T18:00:00Z Added by Assistant: 提供更详细的错误信息
+      if (error.message?.includes('ApiNotActivatedMapError')) {
+        console.error('提示: Google Maps API 未启用。请在 Google Cloud Console 中启用 Maps JavaScript API。');
+      } else if (error.message?.includes('RefererNotAllowedMapError')) {
+        console.error('提示: 当前域名未在 API 密钥限制中允许。请在 Google Cloud Console 中配置 API 密钥限制。');
+      } else if (error.message?.includes('InvalidKeyMapError')) {
+        console.error('提示: API 密钥无效。请检查 VITE_GOOGLE_MAPS_API_KEY 环境变量是否正确。');
+      }
+      
       MapsService.initPromise = null; // 失败时清除Promise，允许重试
       throw error;
     }

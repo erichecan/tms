@@ -37,11 +37,12 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   onMarkerClick,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<any>(null);
+  // 2025-11-24T18:15:00Z Updated by Assistant: 修复类型，使用 google.maps.Map 而不是 any
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const markersRef = useRef<any[]>([]);
-  const routesRef = useRef<any[]>([]);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const routesRef = useRef<google.maps.Polyline[]>([]);
 
   useEffect(() => {
     const initMap = async () => {

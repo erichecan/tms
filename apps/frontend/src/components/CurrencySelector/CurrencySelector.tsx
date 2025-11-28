@@ -68,7 +68,8 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       optionFilterProp="children"
       showSearch
       filterOption={(input, option) => {
-        const children = option?.children as any;
+        // 2025-11-24T18:15:00Z Updated by Assistant: 修复类型，使用明确的类型而不是 any
+        const children = option?.children as string | React.ReactNode;
         if (typeof children === 'string') {
           return children.toLowerCase().includes(input.toLowerCase());
         }

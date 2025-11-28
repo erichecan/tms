@@ -29,7 +29,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   disabled = false,
   onAddressSelected,
 }) => {
-  const inputRef = useRef<any>(null);
+  // 2025-11-24T18:15:00Z Updated by Assistant: 修复类型，使用 HTMLInputElement 而不是 any
+  const inputRef = useRef<HTMLInputElement>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {

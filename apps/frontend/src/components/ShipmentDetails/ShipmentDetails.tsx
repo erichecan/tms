@@ -52,7 +52,7 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import jsPDF from 'jspdf'; // 2025-10-02 11:15:00 引入 jsPDF 以生成PDF
 import html2canvas from 'html2canvas'; // 2025-10-02 11:15:00 将DOM渲染为图片嵌入PDF
 import BOLDocument from '../BOLDocument/BOLDocument'; // 2025-10-10 12:40:00 使用新的BOL组件
-import { driversApi, vehiclesApi, shipmentsApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API // 2025-11-11 10:15:05 引入运单详情API
+import { driversApi, vehiclesApi, shipmentsApi, tripsApi } from '../../services/api'; // 2025-10-02 11:05:20 引入创建司机/车辆API // 2025-11-11 10:15:05 引入运单详情API // 2025-11-24T19:40:00Z Added by Assistant: 添加 tripsApi
 import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-11-11 10:15:05 引入时间格式化工具
 import type { RcFile } from 'antd/es/upload/interface'; // 2025-11-11 10:15:05 引入上传文件类型定义
@@ -89,6 +89,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const { availableDrivers, allDrivers, availableVehicles, allVehicles } = useDataContext();
   
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(false); // 2025-11-24T19:40:00Z Added by Assistant: 行程加载状态
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [pods, setPods] = useState<POD[]>([]);
   const [form] = Form.useForm();
@@ -258,9 +259,20 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     });
   };
 
-  const handleMountTrip = () => {
+  // 2025-11-24T19:40:00Z Updated by Assistant: 实现行程挂载功能
+  const handleMountTrip = async () => {
     setIsMountModalVisible(true);
-    // TODO: 加载可用行程
+    // 2025-11-24T19:40:00Z Updated by Assistant: 加载可用行程
+    try {
+      setTripsLoading(true);
+      const response = await tripsApi.getTrips({ status: 'planned' });
+      setAvailableTrips(response.data?.data || []);
+    } catch (error) {
+      console.error('Failed to load trips:', error);
+      message.error('加载可用行程失败');
+    } finally {
+      setTripsLoading(false);
+    }
   };
 
   const handlePODUpload = async (file: RcFile) => {
@@ -1121,10 +1133,24 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       <Modal
         title="挂载到行程"
         open={isMountModalVisible}
-        onOk={() => {
-          // TODO: 实现挂载逻辑
-          message.success('挂载成功');
-          setIsMountModalVisible(false);
+        onOk={async () => {
+          // 2025-11-24T19:40:00Z Updated by Assistant: 实现挂载逻辑
+          try {
+            const values = await form.validateFields();
+            const { tripId } = values;
+            
+            await tripsApi.mountShipmentsToTrip(tripId, [shipment.id]);
+            message.success('运单已成功挂载到行程');
+            setIsMountModalVisible(false);
+            form.resetFields();
+            // 刷新运单详情
+            if (onRefresh) {
+              onRefresh();
+            }
+          } catch (error: any) {
+            console.error('Failed to mount shipment to trip:', error);
+            message.error(error.response?.data?.error?.message || '挂载失败');
+          }
         }}
         onCancel={() => setIsMountModalVisible(false)}
         okText="确认挂载"
@@ -1136,10 +1162,13 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             label="选择行程"
             rules={[{ required: true, message: '请选择行程' }]}
           >
-            <Select placeholder="请选择行程">
+            <Select 
+              placeholder="请选择行程"
+              loading={tripsLoading}
+            >
               {availableTrips.map(trip => (
                 <Select.Option key={trip.id} value={trip.id}>
-                  {trip.tripNo} - {getDriverName(trip.driverId)} / {getVehiclePlate(trip.vehicleId)}
+                  {trip.tripNo || trip.id} - {getDriverName(trip.driverId)} / {getVehiclePlate(trip.vehicleId)}
                 </Select.Option>
               ))}
             </Select>

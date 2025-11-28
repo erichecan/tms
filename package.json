@@ -35,6 +35,10 @@
     "db:migrate": "cd apps/backend && npm run db:migrate",
     "db:seed": "cd apps/backend && npm run db:seed",
     "validate:data": "node scripts/validate-data.js",
+    "validate:seed": "npx ts-node scripts/validate-seed-data.ts",
+    "test:full": "./scripts/run-full-test-suite.sh",
+    "test:mcp": "npx ts-node scripts/mcp-test-runner.ts",
+    "test:report": "npx ts-node scripts/generate-test-report.ts",
     "review:preflight": "npm run lint && npm run test && npm run validate:data"
   },
   "devDependencies": {

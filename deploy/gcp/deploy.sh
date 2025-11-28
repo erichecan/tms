@@ -1,6 +1,7 @@
 #!/bin/bash
 # Google Cloud 部署脚本
 # 2025-01-27 10:40:00
+# 2025-11-24T15:47:20Z Added by Assistant: Free-tier defaults for GCP
 
 set -e
 
@@ -12,7 +13,7 @@ NC='\033[0m' # No Color
 
 # 配置变量
 PROJECT_ID="${PROJECT_ID:-aponytms}"
-REGION="${REGION:-northamerica-northeast2}"
+REGION="${REGION:-us-central1}" # 2025-11-24T15:47:20Z Added by Assistant: align with always-free regions
 BACKEND_SERVICE="tms-backend"
 FRONTEND_SERVICE="tms-frontend"
 
@@ -112,11 +113,17 @@ deploy_services() {
         --allow-unauthenticated \
         --set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest \
         --set-env-vars=NODE_ENV=production,CORS_ORIGIN=https://YOUR_FRONTEND_DOMAIN.com \
-        --memory=2Gi \
-        --cpu=2 \
-        --min-instances=1 \
-        --max-instances=10 \
-        --timeout=300
+        --memory=512Mi \
+        # 2025-11-24T15:47:20Z Added by Assistant: reduce CPU for free tier
+        --cpu=0.25 \
+        # 2025-11-24T15:47:20Z Added by Assistant: increase concurrency per instance
+        --concurrency=80 \
+        --min-instances=0 \
+        # 2025-11-24T15:47:20Z Added by Assistant: limit burst capacity
+        --max-instances=2 \
+        # 2025-11-24T15:47:20Z Added by Assistant: lower timeout to reduce billed CPU
+        --timeout=180 \
+        --ingress=all # 2025-11-24T15:47:20Z Added by Assistant: keep public ingress only
     
     # 获取后端服务 URL
     BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --region=$REGION --format="value(status.url)")
@@ -130,10 +137,16 @@ deploy_services() {
         --platform=managed \
         --allow-unauthenticated \
         --set-env-vars=VITE_API_BASE_URL=$BACKEND_URL \
-        --memory=1Gi \
-        --cpu=1 \
+        --memory=256Mi \
+        # 2025-11-24T15:47:20Z Added by Assistant: shrink CPU for static frontend
+        --cpu=0.25 \
+        # 2025-11-24T15:47:20Z Added by Assistant: maximize free-tier throughput
+        --concurrency=150 \
         --min-instances=0 \
-        --max-instances=5
+        --max-instances=2 \
+        # 2025-11-24T15:47:20Z Added by Assistant: smaller timeout to cut idle billing
+        --timeout=120 \
+        --ingress=all # 2025-11-24T15:47:20Z Added by Assistant: public ingress only
     
     # 获取前端服务 URL
     FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region=$REGION --format="value(status.url)")

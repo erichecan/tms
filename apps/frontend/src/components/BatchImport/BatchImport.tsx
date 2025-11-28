@@ -78,7 +78,8 @@ const BatchImport: React.FC = () => {
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const [isResultModalVisible, setIsResultModalVisible] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const fileInputRef = useRef<any>(null);
+  // 2025-11-24T18:15:00Z Updated by Assistant: 修复类型，使用 HTMLInputElement 而不是 any
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 处理文件上传
   const handleFileUpload = (file: File) => {

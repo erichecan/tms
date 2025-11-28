@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; // 2025-11-24T17:50:00Z Added by Assistant: 添加 useCallback 和 useRef 用于优化实时费用计算
 import {
   Card,
   Form,
@@ -92,6 +92,18 @@ const ShipmentCreate: React.FC = () => {
   
   // 2025-10-28 新增：安全合规部分展开状态
   const [safetySectionActiveKeys, setSafetySectionActiveKeys] = useState<string[]>([]);
+  
+  // 2025-11-24T18:20:00Z Added by Assistant: 用于实时费用计算的防抖定时器
+  const pricingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 2025-11-24T18:20:00Z Added by Assistant: 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (pricingTimeoutRef.current) {
+        clearTimeout(pricingTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // 2025-11-11T16:25:00Z 监听货物类型变化，用于自动展开/折叠安全合规部分
   const cargoType = Form.useWatch('cargoType', form);
@@ -706,7 +718,8 @@ const ShipmentCreate: React.FC = () => {
   };
 
   // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-08 14:30:00 修复API参数格式
-  const calculateRealTimePricing = async (values: unknown) => {
+  // 2025-11-24T18:25:00Z Updated by Assistant: 使用 useCallback 包装，优化性能
+  const calculateRealTimePricing = useCallback(async (values: unknown) => {
     // 检查是否有必要的字段（修复：使用正确的字段名）// 2025-10-08 17:10:00
     if (!values.shipperAddress1 || !values.receiverAddress1 || !values.cargoWeight) {
       // 静默返回，等待用户填写完所有必要字段 // 2025-10-08 17:10:00
@@ -840,10 +853,12 @@ const ShipmentCreate: React.FC = () => {
         console.log('💡 降级到本地计算 - 总费用:', totalCost, '元');
       }
     }
-  };
+  }, [estimatedDistance]); // 2025-11-24T18:25:00Z Updated by Assistant: 添加 estimatedDistance 到依赖数组
 
   // 表单字段变化处理 - 2025-10-08 11:25:00 修复字段名
-  const handleFormChange = (changedValues: unknown, allValues: unknown) => {
+  // 2025-11-24T17:50:00Z Updated by Assistant: 优化实时费用计算触发机制，使用防抖和更好的错误处理
+  // 2025-11-24T18:20:00Z Fixed by Assistant: 修复 useCallback 使用，使用 useRef 存储 timeoutId
+  const handleFormChange = useCallback((changedValues: unknown, allValues: unknown) => {
     // 检查是否是需要触发计费的字段（修复：使用正确的字段名）
     const pricingFields = [
       'shipperAddress1', 'shipperCity', 'shipperProvince', 'shipperPostalCode',
@@ -858,12 +873,21 @@ const ShipmentCreate: React.FC = () => {
     );
 
     if (shouldTriggerPricing) {
-      // 延迟执行，避免频繁计算
-      setTimeout(() => {
-        calculateRealTimePricing(allValues);
+      // 清除之前的定时器（防抖）
+      if (pricingTimeoutRef.current) {
+        clearTimeout(pricingTimeoutRef.current);
+      }
+      
+      // 使用防抖，避免频繁计算 - 2025-11-24T17:50:00Z
+      pricingTimeoutRef.current = setTimeout(() => {
+        calculateRealTimePricing(allValues).catch((error) => {
+          console.error('实时费用计算失败:', error);
+          // 不阻止用户继续操作，静默失败
+        });
+        pricingTimeoutRef.current = null;
       }, 500);
     }
-  };
+  }, [calculateRealTimePricing]); // 2025-11-24T18:25:00Z Updated by Assistant: 添加 calculateRealTimePricing 到依赖数组
 
   // 实时费用显示组件 - 2025-10-01 21:40:00
   const renderRealTimePricing = () => (

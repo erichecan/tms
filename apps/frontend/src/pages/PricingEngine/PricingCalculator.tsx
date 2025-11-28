@@ -31,7 +31,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import { pricingApi } from '../../services/api'; // 2025-11-24T18:10:00Z Updated by Assistant: 使用统一的 API 实例
 
 const { Title, Text } = Typography;
 
@@ -204,18 +204,20 @@ const PricingCalculatorPage: React.FC = () => {
         cargoType: values.cargoType
       };
 
-      const response = await axios.post('/api/pricing/preview', {
-        shipmentContext
+      // 2025-11-24T18:10:00Z Updated by Assistant: 使用统一的 pricingApi
+      const response = await pricingApi.calculateCost({
+        shipmentContext,
+        forceRecalculate: false
       });
 
-      if (response.data.success) {
-        setCalculation(response.data.data.calculation);
+      if (response.data?.success && response.data?.data) {
+        setCalculation(response.data.data.calculation || response.data.data);
       } else {
-        setError(response.data.error?.message || '计算失败');
+        setError(response.data?.error?.message || response.data?.message || '计算失败');
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('计费计算错误:', error);
-      setError(error.response?.data?.error?.message || '计算过程中发生错误');
+      setError(error.response?.data?.error?.message || error.response?.data?.message || error.message || '计算过程中发生错误');
     } finally {
       setLoading(false);
     }

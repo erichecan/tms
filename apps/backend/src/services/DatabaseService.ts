@@ -40,6 +40,7 @@ export class DatabaseService {
     
     // 连接配置兼容性处理 // 2025-09-25 23:38:00
     // 2025-10-17T15:15:00 - 添加 Cloud SQL Unix socket 支持
+    // 2025-11-24T17:10:00Z Updated by Assistant: 支持 Neon 数据库，统一使用标准 PostgreSQL 连接字符串
     const envUrl = process.env.DATABASE_URL;
     let poolConfig: any;
 
@@ -47,19 +48,22 @@ export class DatabaseService {
     const isCloudRun = process.env.K_SERVICE;
     
     if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
-      // 如果是 Cloud Run 环境，需要特殊处理连接字符串
-      if (isCloudRun) {
-        // 在 Cloud Run 中，使用 Unix socket 连接
-        // 从连接字符串中提取密码：postgresql://user:password@host/db
-        const match = envUrl.match(/postgresql:\/\/([^:]+):([^@]+)@/);
-        if (!match) {
-          logger.error('Malformed DATABASE_URL for Cloud Run environment. Expected format: postgresql://user:password@host/db');
-          throw new Error('Invalid DATABASE_URL format for Cloud Run. Could not extract password.');
+      // 检查是否是 Cloud SQL Unix socket 连接（包含 /cloudsql/）
+      if (isCloudRun && envUrl.includes('/cloudsql/')) {
+        // 在 Cloud Run 中，使用 Unix socket 连接 Cloud SQL
+        // DATABASE_URL 格式: postgresql://user:password@/database?host=/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME
+        const urlMatch = envUrl.match(/postgresql:\/\/([^:]+):([^@]+)@\/([^?]+)/);
+        const hostMatch = envUrl.match(/host=([^&]+)/);
+        
+        if (!urlMatch || !hostMatch) {
+          logger.error('Malformed DATABASE_URL for Cloud Run environment. Expected format: postgresql://user:password@/database?host=/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME');
+          throw new Error('Invalid DATABASE_URL format for Cloud Run. Could not parse connection string.');
         }
-        const password = match[2];
-        const connectionName = 'aponytms:northamerica-northeast2:tms-database-toronto';
-        const database = 'tms_platform';
-        const user = 'tms_user';
+        
+        const user = urlMatch[1];
+        const password = urlMatch[2];
+        const database = urlMatch[3];
+        const connectionName = hostMatch[1].replace(/^\/cloudsql\//, ''); // 移除 /cloudsql/ 前缀（如果有）
         
         poolConfig = {
           host: `/cloudsql/${connectionName}`,
@@ -73,12 +77,18 @@ export class DatabaseService {
           database, 
           user, 
           password: '***',
-          extractedPassword: password.substring(0, 10) + '...' // 调试信息
+          connectionName: connectionName
         });
       } else {
-        // 本地开发环境使用完整连接字符串
-        poolConfig = { connectionString: envUrl };
-        console.log('Using DATABASE_URL connection string:', envUrl);
+        // 标准 PostgreSQL 连接字符串（支持本地、Neon、或其他 PostgreSQL 服务）
+        // Neon 格式: postgresql://user:password@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
+        // 本地格式: postgresql://user:password@localhost:5432/dbname
+        poolConfig = { 
+          connectionString: envUrl,
+          // Neon 需要 SSL，但连接字符串中已包含 sslmode=require
+          ssl: envUrl.includes('neon.tech') ? { rejectUnauthorized: false } : undefined
+        };
+        console.log('Using standard PostgreSQL connection string:', envUrl.includes('neon.tech') ? 'Neon' : 'Standard');
       }
     } else {
       // 使用独立的环境变量配置
@@ -720,6 +730,26 @@ export class DatabaseService {
    * @returns 创建的客户
    */
   async createCustomer(tenantId: string, customer: Omit<Customer, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
+    // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内名称是否已存在
+    const existingName = await this.query(
+      'SELECT id FROM customers WHERE tenant_id = $1 AND name = $2',
+      [tenantId, customer.name]
+    );
+    if (existingName.length > 0) {
+      throw new Error(`客户名称 "${customer.name}" 在同一租户内已存在`);
+    }
+
+    // 如果提供了 email，检查 email 是否已存在
+    if (customer.email) {
+      const existingEmail = await this.query(
+        'SELECT id FROM customers WHERE tenant_id = $1 AND email = $2',
+        [tenantId, customer.email]
+      );
+      if (existingEmail.length > 0) {
+        throw new Error(`客户邮箱 "${customer.email}" 在同一租户内已存在`);
+      }
+    }
+
     const query = `
       INSERT INTO customers (
         tenant_id, name, level, phone, email, 
@@ -823,6 +853,28 @@ export class DatabaseService {
    * @returns 创建的司机
    */
   async createDriver(tenantId: string, driver: Omit<Driver, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Driver> {
+    // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内 phone 是否已存在
+    if (driver.phone) {
+      const existingPhone = await this.query(
+        'SELECT id FROM drivers WHERE tenant_id = $1 AND phone = $2',
+        [tenantId, driver.phone]
+      );
+      if (existingPhone.length > 0) {
+        throw new Error(`司机电话 "${driver.phone}" 在同一租户内已存在`);
+      }
+    }
+
+    // 检查 license_number 是否已存在
+    if (driver.licenseNumber) {
+      const existingLicense = await this.query(
+        'SELECT id FROM drivers WHERE tenant_id = $1 AND license_number = $2',
+        [tenantId, driver.licenseNumber]
+      );
+      if (existingLicense.length > 0) {
+        throw new Error(`司机驾照号 "${driver.licenseNumber}" 在同一租户内已存在`);
+      }
+    }
+
     const query = `
       INSERT INTO drivers (tenant_id, name, phone, license_number, vehicle_info, status, performance)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -980,6 +1032,15 @@ export class DatabaseService {
    * @returns 创建的运单
    */
   async createShipment(tenantId: string, shipment: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Shipment> {
+    // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内运单号是否已存在
+    const existingShipment = await this.query(
+      'SELECT id FROM shipments WHERE tenant_id = $1 AND shipment_number = $2',
+      [tenantId, shipment.shipmentNumber]
+    );
+    if (existingShipment.length > 0) {
+      throw new Error(`运单号 "${shipment.shipmentNumber}" 在同一租户内已存在`);
+    }
+
     const query = `
       INSERT INTO shipments (
         tenant_id, shipment_number, customer_id, driver_id, 
@@ -1990,6 +2051,15 @@ export class DatabaseService {
     capacity: number;
     status: string;
   }): Promise<any> {
+    // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内车牌号是否已存在
+    const existingVehicle = await this.query(
+      'SELECT id FROM vehicles WHERE tenant_id = $1 AND plate_number = $2',
+      [tenantId, vehicle.plateNumber]
+    );
+    if (existingVehicle.length > 0) {
+      throw new Error(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+    }
+
     const query = `
       INSERT INTO vehicles (tenant_id, plate_number, type, capacity_kg, status, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())

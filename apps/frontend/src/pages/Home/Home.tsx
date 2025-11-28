@@ -50,8 +50,10 @@ const Home: React.FC = () => {
         navigate('/admin');
         break;
       case 'logout':
-        // TODO: 实现退出登录
-        console.log('退出登录');
+        // 2025-11-24T19:45:00Z Updated by Assistant: 实现退出登录
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
         break;
     }
   };

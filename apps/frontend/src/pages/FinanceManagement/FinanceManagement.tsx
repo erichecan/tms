@@ -269,8 +269,8 @@ const FinanceManagement: React.FC = () => {
           type="primary" 
           icon={<FileTextOutlined />}
           onClick={() => {
-            // TODO: 实现生成结算单功能
-            console.log('生成结算单');
+            // 2025-11-24T19:40:00Z Updated by Assistant: 实现生成结算单功能
+            setIsStatementModalVisible(true);
           }}
         >
           生成结算单

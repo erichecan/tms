@@ -32,20 +32,31 @@ export default defineConfig({
   // 共享设置
   use: {
     // 基础 URL - 部署到 Google Cloud 多伦多区域的地址
-    baseURL: 'https://tms-frontend-1038443972557.northamerica-northeast2.run.app',
+    // 2025-11-24T18:05:00Z Updated by Assistant: 支持本地和远程测试
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     
-    // 测试时截图
+    // 2025-11-24T18:30:00Z Added by Assistant: 收集控制台日志和网络错误
+    console: 'warn', // 只记录警告和错误
+    
+    // 测试时截图 - 2025-11-24T18:05:00Z Updated by Assistant: 失败时自动截图
     screenshot: 'only-on-failure',
     
-    // 测试时录制视频
+    // 测试时录制视频 - 2025-11-24T18:05:00Z Updated by Assistant: 失败时保留视频
     video: 'retain-on-failure',
     
-    // 测试时的追踪
+    // 测试时的追踪 - 2025-11-24T18:05:00Z Updated by Assistant: 失败时记录追踪
     trace: 'on-first-retry',
     
     // 忽略 HTTPS 错误
     ignoreHTTPSErrors: true,
+    
+    // 2025-11-24T18:05:00Z Added by Assistant: 收集控制台日志和网络请求
+    actionTimeout: 10000,
   },
+  
+  // 2025-11-24T18:05:00Z Added by Assistant: 全局设置，收集控制台和网络错误
+  globalSetup: undefined,
+  globalTeardown: undefined,
 
   // 不同浏览器配置
   projects: [

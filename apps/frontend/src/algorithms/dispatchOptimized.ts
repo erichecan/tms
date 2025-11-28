@@ -63,10 +63,11 @@ function calculateHaversineDistance(
 }
 
 // 提取地址坐标
-function extractCoordinates(location: any, fallbackLabel = 'Toronto, ON'): AddressInfo | null {
+// 2025-11-24T18:15:00Z Updated by Assistant: 修复类型，使用明确的类型而不是 any
+function extractCoordinates(location: unknown, fallbackLabel = 'Toronto, ON'): AddressInfo | null {
   if (!location) return null;
 
-  const resolveCoordinate = (value: any): number | null => {
+  const resolveCoordinate = (value: unknown): number | null => {
     if (typeof value === 'number') return value;
     if (typeof value === 'string' && value.trim() !== '') {
       const parsed = Number(value);

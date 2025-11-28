@@ -161,3 +161,8 @@ pnpm-lock.yaml
 /playwright/.cache/
 /playwright/.auth/
 .vercel
+# 2025-11-24T16:20:00Z Added by Assistant: frontend specific Playwright artifacts
+apps/frontend/test-results/
+apps/frontend/playwright-report/
+apps/frontend/test-results.json
+apps/frontend/playwright-report.zip

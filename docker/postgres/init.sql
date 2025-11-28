@@ -62,11 +62,13 @@ CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
+    email VARCHAR(255), -- 2025-11-24T17:20:00Z Added by Assistant: 添加 email 字段用于唯一性约束
     level VARCHAR(50) DEFAULT 'standard',
     contact_info JSONB DEFAULT '{}',
     billing_info JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT customers_tenant_id_name_key UNIQUE (tenant_id, name) -- 2025-11-24T17:20:00Z Added by Assistant: 同一租户内名称唯一
 );
 
 -- 创建司机表
@@ -81,13 +83,14 @@ CREATE TABLE IF NOT EXISTS drivers (
     performance JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    -- 唯一性约束通过迁移脚本添加（因为 phone 和 license_number 可能为空）
 );
 
 -- 创建运单表
 CREATE TABLE IF NOT EXISTS shipments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-    shipment_number VARCHAR(50) UNIQUE NOT NULL,
+    shipment_number VARCHAR(50) NOT NULL,
     customer_id UUID REFERENCES customers(id),
     driver_id UUID REFERENCES drivers(id),
     pickup_address JSONB NOT NULL,
@@ -102,7 +105,8 @@ CREATE TABLE IF NOT EXISTS shipments (
     timeline JSONB DEFAULT '{}',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT shipments_tenant_id_shipment_number_key UNIQUE (tenant_id, shipment_number) -- 2025-11-24T17:20:00Z Updated by Assistant: 同一租户内运单号唯一
 );
 
 -- MVP: 扩展运单结构（保持向后兼容） // 2025-09-23 10:05:00
@@ -183,7 +187,8 @@ CREATE TABLE IF NOT EXISTS financial_records (
     paid_at TIMESTAMP,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT financial_records_tenant_id_reference_id_type_key UNIQUE (tenant_id, reference_id, type) -- 2025-11-24T17:20:00Z Added by Assistant: 同一租户内，同一 reference_id 和 type 组合唯一
 );
 
 -- 创建汇率表
@@ -229,12 +234,14 @@ CREATE INDEX IF NOT EXISTS idx_shipments_shipment_number ON shipments(shipment_n
 -- 车辆表（MVP） // 2025-09-23 10:05:00
 CREATE TABLE IF NOT EXISTS vehicles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    plate_number VARCHAR(50) UNIQUE NOT NULL,
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE, -- 2025-11-24T17:20:00Z Added by Assistant: 添加 tenant_id 支持多租户
+    plate_number VARCHAR(50) NOT NULL,
     type VARCHAR(50) NOT NULL,
     capacity_kg DECIMAL(10,2),
     status VARCHAR(20) DEFAULT 'available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT vehicles_tenant_id_plate_number_key UNIQUE (tenant_id, plate_number) -- 2025-11-24T17:20:00Z Updated by Assistant: 同一租户内车牌号唯一
 );
 
 -- 司机-车辆简单关联（可选） // 2025-09-23 10:05:00
