@@ -44,6 +44,11 @@ import GranularPermissionsPage from './pages/GranularPermissions/GranularPermiss
 // import MapsDebug from './pages/MapsDebug/MapsDebug';
 import LayoutTest from './pages/LayoutTest/LayoutTest';
 import CustomerPortal from './pages/SelfService/CustomerPortal'; // 2025-11-11 10:15:05 引入客户自助入口
+import UserProfile from './pages/UserProfile/UserProfile'; // 2025-11-29T11:25:04Z 引入个人资料页面
+import ExpiryReminders from './pages/ExpiryReminders/ExpiryReminders'; // 2025-11-29T11:25:04Z 引入到期提醒页面
+import RouteManagement from './pages/RouteManagement/RouteManagement'; // 2025-11-29T11:25:04Z 引入线路管理与路线优化页面
+import StationManagement from './pages/StationManagement/StationManagement'; // 2025-11-29T11:25:04Z 引入站点与地址管理页面
+// 2025-11-29T11:25:04Z 成本核算已整合到财务结算板块，CostManagement 已删除
 import { PermissionProvider } from './contexts/PermissionContext'; // 2025-11-11 10:15:05 引入权限提供器
 import { DataProvider } from './contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Global data management
 import './App.css';
@@ -69,6 +74,11 @@ function App() {
             
             <Route path="/customers" element={<ProtectedRoute><PageLayout><CustomerManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/finance-settlement" element={<ProtectedRoute><PageLayout><FinanceManagementSimplified /></PageLayout></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><PageLayout><UserProfile /></PageLayout></ProtectedRoute> } /> {/* 2025-11-29T11:25:04Z 个人资料页面 */}
+            <Route path="/expiry-reminders" element={<ProtectedRoute><PageLayout><ExpiryReminders /></PageLayout></ProtectedRoute> } /> {/* 2025-11-29T11:25:04Z 到期提醒页面 */}
+            <Route path="/admin/routes" element={<ProtectedRoute><PageLayout><RouteManagement /></PageLayout></ProtectedRoute>} /> {/* 2025-11-29T11:25:04Z 线路管理与路线优化页面 */}
+            <Route path="/admin/stations" element={<ProtectedRoute><PageLayout><StationManagement /></PageLayout></ProtectedRoute>} /> {/* 2025-11-29T11:25:04Z 站点与地址管理页面 */}
+            {/* 2025-11-29T11:25:04Z 成本核算已整合到财务结算板块（/admin/finance），CostManagement 路由已移除 */}
             
             <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />

@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--headless",
+        "--logFile",
+        "/tmp/chrome-devtools.log"
+      ],
+      "env": {}
+    },
+    "neon": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@neondatabase/mcp-server-neon",
+        "start",
+        "YOUR_NEON_API_KEY_HERE"
+      ],
+      "env": {}
+    }
+  }
+}
+

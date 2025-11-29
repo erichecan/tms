@@ -50,8 +50,25 @@ import mvpPodRoutes from './routes/mvpPodRoutes'; // MVP POD // 2025-09-23 10:30
 import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
+import driverCertificateRoutes from './routes/driverCertificateRoutes'; // 司机证照管理 // 2025-11-29T11:25:04Z
+import driverViolationRoutes from './routes/driverViolationRoutes'; // 司机违章管理 // 2025-11-29T11:25:04Z
+import driverScheduleRoutes from './routes/driverScheduleRoutes'; // 司机排班管理 // 2025-11-29T11:25:04Z
+import scheduleCustomFieldRoutes from './routes/scheduleCustomFieldRoutes'; // 排班自定义字段定义 // 2025-11-29T11:25:04Z
+import driverGroupRoutes from './routes/driverGroupRoutes'; // 司机班组管理 // 2025-11-29T11:25:04Z
+import driverMedicalRoutes from './routes/driverMedicalRoutes'; // 司机体检管理 // 2025-11-29T11:25:04Z
+import driverTrainingRoutes from './routes/driverTrainingRoutes'; // 司机培训管理 // 2025-11-29T11:25:04Z
 import vehicleRoutes from './routes/vehicleRoutes';
+import vehicleCertificateRoutes from './routes/vehicleCertificateRoutes'; // 车辆证照管理 // 2025-11-29T11:25:04Z
+import vehicleInsuranceRoutes from './routes/vehicleInsuranceRoutes'; // 车辆保险管理 // 2025-11-29T11:25:04Z
+import vehicleInspectionRoutes from './routes/vehicleInspectionRoutes'; // 车辆年检管理 // 2025-11-29T11:25:04Z
+import vehicleDeviceRoutes from './routes/vehicleDeviceRoutes'; // 车辆设备管理 // 2025-11-29T11:25:04Z
+import maintenanceRoutes from './routes/maintenanceRoutes'; // 维护记录管理 // 2025-11-29T11:25:04Z
+import routeRoutes from './routes/routeRoutes'; // 线路管理 // 2025-11-29T11:25:04Z
+import stationRoutes from './routes/stationRoutes'; // 站点与仓库管理 // 2025-11-29T11:25:04Z
+import costRoutes from './routes/costRoutes'; // 成本核算管理 // 2025-11-29T11:25:04Z
 import tripRoutes from './routes/tripRoutes'; // 行程管理路由 // 2025-01-27 16:45:00
+import carrierRoutes from './routes/carrierRoutes'; // 承运商管理 // 2025-11-29T11:25:04Z
+import carrierCertificateRoutes from './routes/carrierCertificateRoutes'; // 承运商证照管理 // 2025-11-29T11:25:04Z
 import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） // 2025-09-23 10:25:00
 import pricingEngineRoutes from './routes/pricingEngineRoutes';
 import shipmentCompletionRoutes from './routes/shipmentCompletionRoutes';
@@ -129,8 +146,25 @@ app.use('/api/shipments', mvpPodRoutes); // MVP POD 上传 // 2025-09-23 10:30:0
 app.use('/api/finance', financeRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/drivers', driverRoutes);
+app.use('/api/drivers', driverCertificateRoutes); // 司机证照管理 // 2025-11-29T11:25:04Z
+app.use('/api/drivers', driverViolationRoutes); // 司机违章管理 // 2025-11-29T11:25:04Z
+app.use('/api/drivers', driverScheduleRoutes); // 司机排班管理 // 2025-11-29T11:25:04Z
+app.use('/api/schedules/custom-fields', scheduleCustomFieldRoutes); // 排班自定义字段定义 // 2025-11-29T11:25:04Z
+app.use('/api/drivers', driverGroupRoutes); // 司机班组管理 // 2025-11-29T11:25:04Z
+app.use('/api/drivers', driverMedicalRoutes); // 司机体检管理 // 2025-11-29T11:25:04Z
+app.use('/api/drivers', driverTrainingRoutes); // 司机培训管理 // 2025-11-29T11:25:04Z
 app.use('/api/vehicles', vehicleRoutes); // 车辆管理API // 2025-09-26 17:58:00
+app.use('/api/vehicles', vehicleCertificateRoutes); // 车辆证照管理 // 2025-11-29T11:25:04Z
+app.use('/api/vehicles', vehicleInsuranceRoutes); // 车辆保险管理 // 2025-11-29T11:25:04Z
+app.use('/api/vehicles', vehicleInspectionRoutes); // 车辆年检管理 // 2025-11-29T11:25:04Z
+app.use('/api/vehicles', vehicleDeviceRoutes); // 车辆设备管理 // 2025-11-29T11:25:04Z
+app.use('/api/maintenance', maintenanceRoutes); // 维护记录管理 // 2025-11-29T11:25:04Z
+app.use('/api/routes', routeRoutes); // 线路管理 // 2025-11-29T11:25:04Z
+app.use('/api/stations', stationRoutes); // 站点与仓库管理 // 2025-11-29T11:25:04Z
+app.use('/api/costs', costRoutes); // 成本核算管理 // 2025-11-29T11:25:04Z
 app.use('/api/trips', tripRoutes); // 行程管理API // 2025-01-27 16:45:00
+app.use('/api/carriers', carrierRoutes); // 承运商管理 // 2025-11-29T11:25:04Z
+app.use('/api/carriers', carrierCertificateRoutes); // 承运商证照管理 // 2025-11-29T11:25:04Z
 app.use('/api/pricing', pricingEngineRoutes); // 计费规则引擎 // 2025-09-29 02:35:00
 app.use('/api/shipments', shipmentCompletionRoutes); // 运单完成和财务生成 // 2025-09-29 03:35:00
 app.use('/api/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
@@ -197,6 +231,11 @@ process.on('SIGINT', async () => {
 import { getDispatchOptimizationJob } from './jobs/DispatchOptimizationJob';
 const optimizationJob = getDispatchOptimizationJob();
 optimizationJob.start();
+
+// 🚀 启动到期提醒定时任务 // 2025-11-29T11:25:04Z
+import { ExpiryReminderJob } from './jobs/expiryReminderJob';
+const expiryReminderJob = new ExpiryReminderJob();
+expiryReminderJob.start();
 
 // 启动服务器（测试环境下跳过监听） // 2025-11-11T15:57:10Z Added by Assistant: Avoid listen during Jest runs
 if (process.env.NODE_ENV !== 'test') {

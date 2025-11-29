@@ -29,7 +29,11 @@ api.interceptors.request.use(
 
 // Token 刷新状态 - 2025-10-10 18:15:00
 let isRefreshing = false;
-let failedQueue: unknown[] = [];
+interface QueuedRequest {
+  resolve: (token: string | null) => void;
+  reject: (error: unknown) => void;
+}
+let failedQueue: QueuedRequest[] = [];
 
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -180,6 +184,9 @@ export const financeApi = {
   getStatements: (params?: unknown) => api.get('/finance/statements', { params }),
   getStatementDetails: (statementId: string) => api.get(`/finance/statements/${statementId}`),
   downloadStatement: (statementId: string) => api.get(`/finance/statements/${statementId}/download`),
+  // 2025-11-29T11:25:04Z 标记对账单为已支付
+  markAsPaid: (statementId: string, paidAmount: number, paymentDate?: string) => 
+    api.put(`/finance/statements/${statementId}/pay`, { paidAmount, paymentDate }),
 };
 
 // Trip related API calls - 2025-01-27 16:45:00 新增行程管理API
@@ -212,6 +219,51 @@ export const driversApi = {
   updateDriver: (driverId: string, driverData: unknown) => api.put(`/drivers/${driverId}`, driverData),
   deleteDriver: (driverId: string) => api.delete(`/drivers/${driverId}`),
   getDriverDetails: (driverId: string) => api.get(`/drivers/${driverId}`),
+  // 司机证照管理 // 2025-11-29T11:25:04Z
+  getDriverCertificates: (driverId: string) => api.get(`/drivers/${driverId}/certificates`),
+  createDriverCertificate: (driverId: string, data: unknown) => api.post(`/drivers/${driverId}/certificates`, data),
+  updateDriverCertificate: (certificateId: string, data: unknown) => api.put(`/drivers/certificates/${certificateId}`, data),
+  deleteDriverCertificate: (certificateId: string) => api.delete(`/drivers/certificates/${certificateId}`),
+  getExpiringDriverCertificates: (daysAhead?: number) => api.get('/drivers/certificates/expiring', { params: { daysAhead } }),
+  // 司机违章管理 // 2025-11-29T11:25:04Z
+  getDriverViolations: (driverId: string) => api.get(`/drivers/${driverId}/violations`),
+  createDriverViolation: (driverId: string, data: unknown) => api.post(`/drivers/${driverId}/violations`, data),
+  updateDriverViolation: (violationId: string, data: unknown) => api.put(`/drivers/violations/${violationId}`, data),
+  deleteDriverViolation: (violationId: string) => api.delete(`/drivers/violations/${violationId}`),
+  getDriverTotalPoints: (driverId: string) => api.get(`/drivers/${driverId}/violations/total-points`),
+  // 司机排班管理 // 2025-11-29T11:25:04Z
+  getDriverSchedules: (driverId: string, params?: unknown) => api.get(`/drivers/${driverId}/schedules`, { params }),
+  createDriverSchedule: (driverId: string, data: unknown) => api.post(`/drivers/${driverId}/schedules`, data),
+  updateDriverSchedule: (scheduleId: string, data: unknown) => api.put(`/drivers/schedules/${scheduleId}`, data),
+  deleteDriverSchedule: (scheduleId: string) => api.delete(`/drivers/schedules/${scheduleId}`),
+  checkDriverWorkHours: (driverId: string, date?: string) => api.get(`/drivers/${driverId}/schedules/check-hours`, { params: { date } }),
+  // 司机班组管理 // 2025-11-29T11:25:04Z
+  getDriverGroups: (params?: unknown) => api.get('/drivers/groups', { params }),
+  createDriverGroup: (data: unknown) => api.post('/drivers/groups', data),
+  getDriverGroup: (groupId: string) => api.get(`/drivers/groups/${groupId}`),
+  updateDriverGroup: (groupId: string, data: unknown) => api.put(`/drivers/groups/${groupId}`, data),
+  deleteDriverGroup: (groupId: string) => api.delete(`/drivers/groups/${groupId}`),
+  getGroupMembers: (groupId: string, params?: unknown) => api.get(`/drivers/groups/${groupId}/members`, { params }),
+  addGroupMember: (groupId: string, data: unknown) => api.post(`/drivers/groups/${groupId}/members`, data),
+  removeGroupMember: (groupId: string, driverId: string) => api.delete(`/drivers/groups/${groupId}/members/${driverId}`),
+  // 司机体检管理 // 2025-11-29T11:25:04Z
+  getDriverMedicalRecords: (driverId: string) => api.get(`/drivers/${driverId}/medical-records`),
+  createDriverMedicalRecord: (driverId: string, data: unknown) => api.post(`/drivers/${driverId}/medical-records`, data),
+  updateDriverMedicalRecord: (recordId: string, data: unknown) => api.put(`/drivers/medical-records/${recordId}`, data),
+  deleteDriverMedicalRecord: (recordId: string) => api.delete(`/drivers/medical-records/${recordId}`),
+  getExpiringMedicalRecords: (daysAhead?: number) => api.get('/drivers/medical-records/expiring', { params: { daysAhead } }),
+  // 司机培训管理 // 2025-11-29T11:25:04Z
+  getDriverTrainingRecords: (driverId: string) => api.get(`/drivers/${driverId}/training-records`),
+  createDriverTrainingRecord: (driverId: string, data: unknown) => api.post(`/drivers/${driverId}/training-records`, data),
+  updateDriverTrainingRecord: (recordId: string, data: unknown) => api.put(`/drivers/training-records/${recordId}`, data),
+  deleteDriverTrainingRecord: (recordId: string) => api.delete(`/drivers/training-records/${recordId}`),
+  getExpiringTrainingCertificates: (daysAhead?: number) => api.get('/drivers/training-records/expiring', { params: { daysAhead } }),
+  // 排班自定义字段定义 // 2025-11-29T11:25:04Z
+  getScheduleCustomFieldDefinitions: (activeOnly?: boolean) => api.get('/schedules/custom-fields', { params: { activeOnly } }),
+  getScheduleCustomFieldDefinition: (fieldId: string) => api.get(`/schedules/custom-fields/${fieldId}`),
+  createScheduleCustomFieldDefinition: (data: unknown) => api.post('/schedules/custom-fields', data),
+  updateScheduleCustomFieldDefinition: (fieldId: string, data: unknown) => api.put(`/schedules/custom-fields/${fieldId}`, data),
+  deleteScheduleCustomFieldDefinition: (fieldId: string) => api.delete(`/schedules/custom-fields/${fieldId}`),
 };
 
 // Vehicle related API calls
@@ -221,6 +273,212 @@ export const vehiclesApi = {
   updateVehicle: (vehicleId: string, vehicleData: unknown) => api.put(`/vehicles/${vehicleId}`, vehicleData),
   deleteVehicle: (vehicleId: string) => api.delete(`/vehicles/${vehicleId}`),
   getVehicleDetails: (vehicleId: string) => api.get(`/vehicles/${vehicleId}`),
+  // 车辆证照管理 // 2025-11-29T11:25:04Z
+  getVehicleCertificates: (vehicleId: string) => api.get(`/vehicles/${vehicleId}/certificates`),
+  createVehicleCertificate: (vehicleId: string, data: unknown) => api.post(`/vehicles/${vehicleId}/certificates`, data),
+  updateVehicleCertificate: (certificateId: string, data: unknown) => api.put(`/vehicles/certificates/${certificateId}`, data),
+  deleteVehicleCertificate: (certificateId: string) => api.delete(`/vehicles/certificates/${certificateId}`),
+  getExpiringCertificates: (daysAhead?: number) => api.get('/vehicles/certificates/expiring', { params: { daysAhead } }),
+  // 车辆保险管理 // 2025-11-29T11:25:04Z
+  getVehicleInsurances: (vehicleId: string) => api.get(`/vehicles/${vehicleId}/insurances`),
+  createVehicleInsurance: (vehicleId: string, data: unknown) => api.post(`/vehicles/${vehicleId}/insurances`, data),
+  updateVehicleInsurance: (insuranceId: string, data: unknown) => api.put(`/vehicles/insurances/${insuranceId}`, data),
+  deleteVehicleInsurance: (insuranceId: string) => api.delete(`/vehicles/insurances/${insuranceId}`),
+  getExpiringInsurances: (daysAhead?: number) => api.get('/vehicles/insurances/expiring', { params: { daysAhead } }),
+  // 车辆年检管理 // 2025-11-29T11:25:04Z
+  getVehicleInspections: (vehicleId: string) => api.get(`/vehicles/${vehicleId}/inspections`),
+  createVehicleInspection: (vehicleId: string, data: unknown) => api.post(`/vehicles/${vehicleId}/inspections`, data),
+  updateVehicleInspection: (inspectionId: string, data: unknown) => api.put(`/vehicles/inspections/${inspectionId}`, data),
+  deleteVehicleInspection: (inspectionId: string) => api.delete(`/vehicles/inspections/${inspectionId}`),
+  getExpiringInspections: (daysAhead?: number) => api.get('/vehicles/inspections/expiring', { params: { daysAhead } }),
+  // 车辆设备管理 // 2025-11-29T11:25:04Z
+  getVehicleDevices: (vehicleId: string) => api.get(`/vehicles/${vehicleId}/devices`),
+  createVehicleDevice: (vehicleId: string, data: unknown) => api.post(`/vehicles/${vehicleId}/devices`, data),
+  updateVehicleDevice: (deviceId: string, data: unknown) => api.put(`/vehicles/devices/${deviceId}`, data),
+  deleteVehicleDevice: (deviceId: string) => api.delete(`/vehicles/devices/${deviceId}`),
+};
+
+// Maintenance related API calls // 2025-11-29T11:25:04Z 维护记录管理API
+export const maintenanceApi = {
+  // 维护记录
+  getMaintenanceRecords: (params?: {
+    vehicleId?: string;
+    status?: string;
+    maintenanceType?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/maintenance/records', { params }),
+  getMaintenanceRecord: (id: string) => api.get(`/maintenance/records/${id}`),
+  getVehicleMaintenanceRecords: (vehicleId: string) => api.get(`/maintenance/vehicles/${vehicleId}/records`),
+  createMaintenanceRecord: (data: unknown) => api.post('/maintenance/records', data),
+  updateMaintenanceRecord: (id: string, data: unknown) => api.put(`/maintenance/records/${id}`, data),
+  deleteMaintenanceRecord: (id: string) => api.delete(`/maintenance/records/${id}`),
+  getUpcomingMaintenance: (daysAhead?: number) => api.get('/maintenance/upcoming', { params: { daysAhead } }),
+  // 保养计划
+  getMaintenancePlans: (params?: {
+    vehicleId?: string;
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+  }) => api.get('/maintenance/plans', { params }),
+  getMaintenancePlan: (id: string) => api.get(`/maintenance/plans/${id}`),
+  getVehicleMaintenancePlans: (vehicleId: string, isActive?: boolean) => api.get(`/maintenance/vehicles/${vehicleId}/plans`, { params: { isActive } }),
+  createMaintenancePlan: (data: unknown) => api.post('/maintenance/plans', data),
+  updateMaintenancePlan: (id: string, data: unknown) => api.put(`/maintenance/plans/${id}`, data),
+  deleteMaintenancePlan: (id: string) => api.delete(`/maintenance/plans/${id}`),
+  executeMaintenancePlan: (id: string, data: { executionDate: string; executionMileage?: number }) => api.post(`/maintenance/plans/${id}/execute`, data),
+  getUpcomingMaintenancePlans: (daysAhead?: number) => api.get('/maintenance/plans/upcoming', { params: { daysAhead } }),
+  // 维修工单
+  getWorkOrders: (params?: {
+    vehicleId?: string;
+    status?: string;
+    priority?: string;
+    workOrderType?: string;
+    assignedTo?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/maintenance/work-orders', { params }),
+  getWorkOrder: (id: string) => api.get(`/maintenance/work-orders/${id}`),
+  getVehicleWorkOrders: (vehicleId: string) => api.get(`/maintenance/vehicles/${vehicleId}/work-orders`),
+  createWorkOrder: (data: unknown) => api.post('/maintenance/work-orders', data),
+  updateWorkOrder: (id: string, data: unknown) => api.put(`/maintenance/work-orders/${id}`, data),
+  deleteWorkOrder: (id: string) => api.delete(`/maintenance/work-orders/${id}`),
+  // 备件管理
+  getSpareParts: (params?: {
+    partCategory?: string;
+    isActive?: boolean;
+    lowStock?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/maintenance/spare-parts', { params }),
+  getSparePart: (id: string) => api.get(`/maintenance/spare-parts/${id}`),
+  createSparePart: (data: unknown) => api.post('/maintenance/spare-parts', data),
+  updateSparePart: (id: string, data: unknown) => api.put(`/maintenance/spare-parts/${id}`, data),
+  deleteSparePart: (id: string) => api.delete(`/maintenance/spare-parts/${id}`),
+  adjustSparePartStock: (id: string, data: { adjustmentType: 'in' | 'out' | 'adjust'; quantity: number; reason?: string; workOrderId?: string }) => api.post(`/maintenance/spare-parts/${id}/adjust-stock`, data),
+  getLowStockParts: () => api.get('/maintenance/spare-parts/low-stock'),
+};
+
+// Route related API calls // 2025-11-29T11:25:04Z 线路管理API
+export const routesApi = {
+  getRoutes: (params?: {
+    routeType?: string;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/routes', { params }),
+  getRoute: (id: string) => api.get(`/routes/${id}`),
+  createRoute: (data: unknown) => api.post('/routes', data),
+  updateRoute: (id: string, data: unknown) => api.put(`/routes/${id}`, data),
+  deleteRoute: (id: string) => api.delete(`/routes/${id}`),
+  getRouteMetrics: (id: string) => api.get(`/routes/${id}/metrics`),
+  getRouteSegments: (routeId: string) => api.get(`/routes/${routeId}/segments`),
+  createRouteSegment: (routeId: string, data: unknown) => api.post(`/routes/${routeId}/segments`, data),
+  updateRouteSegment: (segmentId: string, data: unknown) => api.put(`/routes/segments/${segmentId}`, data),
+  deleteRouteSegment: (segmentId: string) => api.delete(`/routes/segments/${segmentId}`),
+};
+
+// Station related API calls // 2025-11-29T11:25:04Z 站点与仓库管理API
+export const stationsApi = {
+  // 站点管理
+  getStations: (params?: {
+    stationType?: string;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/stations', { params }),
+  getStation: (id: string) => api.get(`/stations/${id}`),
+  createStation: (data: unknown) => api.post('/stations', data),
+  updateStation: (id: string, data: unknown) => api.put(`/stations/${id}`, data),
+  deleteStation: (id: string) => api.delete(`/stations/${id}`),
+  // 仓库管理
+  getWarehouses: (params?: {
+    warehouseType?: string;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/stations/warehouses', { params }),
+  getWarehouse: (id: string) => api.get(`/stations/warehouses/${id}`),
+  createWarehouse: (data: unknown) => api.post('/stations/warehouses', data),
+  updateWarehouse: (id: string, data: unknown) => api.put(`/stations/warehouses/${id}`, data),
+  deleteWarehouse: (id: string) => api.delete(`/stations/warehouses/${id}`),
+  // 枢纽管理
+  getHubs: (params?: {
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/stations/hubs', { params }),
+  getHub: (id: string) => api.get(`/stations/hubs/${id}`),
+  createHub: (data: unknown) => api.post('/stations/hubs', data),
+  updateHub: (id: string, data: unknown) => api.put(`/stations/hubs/${id}`, data),
+  deleteHub: (id: string) => api.delete(`/stations/hubs/${id}`),
+};
+
+// Cost related API calls // 2025-11-29T11:25:04Z 成本核算管理API
+export const costsApi = {
+  // 成本分类
+  getCostCategories: (params?: {
+    categoryType?: string;
+    isActive?: boolean;
+    parentCategoryId?: string;
+  }) => api.get('/costs/categories', { params }),
+  getCostCategory: (id: string) => api.get(`/costs/categories/${id}`),
+  createCostCategory: (data: unknown) => api.post('/costs/categories', data),
+  updateCostCategory: (id: string, data: unknown) => api.put(`/costs/categories/${id}`, data),
+  deleteCostCategory: (id: string) => api.delete(`/costs/categories/${id}`),
+  // 车辆成本
+  getVehicleCosts: (params?: {
+    vehicleId?: string;
+    costType?: string;
+    costCategoryId?: string;
+    startDate?: string;
+    endDate?: string;
+    paymentStatus?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/costs/vehicles', { params }),
+  getVehicleCost: (id: string) => api.get(`/costs/vehicles/${id}`),
+  createVehicleCost: (data: unknown) => api.post('/costs/vehicles', data),
+  updateVehicleCost: (id: string, data: unknown) => api.put(`/costs/vehicles/${id}`, data),
+  deleteVehicleCost: (id: string) => api.delete(`/costs/vehicles/${id}`),
+  // 成本统计
+  getCostSummary: (params?: {
+    vehicleId?: string;
+    startDate?: string;
+    endDate?: string;
+    costType?: string;
+  }) => api.get('/costs/summary', { params }),
+  compareVehicleCosts: (data: { vehicleIds: string[]; startDate?: string; endDate?: string }) => api.post('/costs/compare', data),
+};
+
+// Carrier related API calls // 2025-11-29T11:25:04Z
+export const carriersApi = {
+  getCarriers: (params?: unknown) => api.get('/carriers', { params }),
+  createCarrier: (data: unknown) => api.post('/carriers', data),
+  getCarrier: (carrierId: string) => api.get(`/carriers/${carrierId}`),
+  updateCarrier: (carrierId: string, data: unknown) => api.put(`/carriers/${carrierId}`, data),
+  deleteCarrier: (carrierId: string) => api.delete(`/carriers/${carrierId}`),
+  // 承运商评分管理
+  getCarrierRatings: (carrierId: string, params?: unknown) => api.get(`/carriers/${carrierId}/ratings`, { params }),
+  createCarrierRating: (carrierId: string, data: unknown) => api.post(`/carriers/${carrierId}/ratings`, data),
+  // 承运商报价管理
+  getCarrierQuotes: (carrierId: string, params?: unknown) => api.get(`/carriers/${carrierId}/quotes`, { params }),
+  createCarrierQuote: (carrierId: string, data: unknown) => api.post(`/carriers/${carrierId}/quotes`, data),
+  // 承运商证照管理
+  getCarrierCertificates: (carrierId: string) => api.get(`/carriers/${carrierId}/certificates`),
+  createCarrierCertificate: (carrierId: string, data: unknown) => api.post(`/carriers/${carrierId}/certificates`, data),
+  updateCarrierCertificate: (certificateId: string, data: unknown) => api.put(`/carriers/certificates/${certificateId}`, data),
+  deleteCarrierCertificate: (certificateId: string) => api.delete(`/carriers/certificates/${certificateId}`),
+  getExpiringCarrierCertificates: (daysAhead?: number) => api.get('/carriers/certificates/expiring', { params: { daysAhead } }),
 };
 
 // Tenant related API calls

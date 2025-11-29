@@ -113,6 +113,9 @@ public
 *.swo
 *~
 
+# Cursor IDE (contains sensitive API keys)
+.cursor/config.json
+
 # OS
 .DS_Store
 .DS_Store?

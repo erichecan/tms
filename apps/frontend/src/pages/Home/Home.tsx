@@ -43,8 +43,8 @@ const Home: React.FC = () => {
   const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
     switch (key) {
       case 'profile':
-        // TODO: 实现个人资料页面
-        console.log('个人资料');
+        // 2025-11-29T11:25:04Z 完成：导航到个人资料页面
+        navigate('/profile');
         break;
       case 'admin':
         navigate('/admin');

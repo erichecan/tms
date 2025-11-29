@@ -42,7 +42,7 @@ import {
   FileTextOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, maintenanceApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -90,98 +90,50 @@ const VehicleMaintenance: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 模拟数据 - 实际项目中应该调用API
-      const mockVehicles: Vehicle[] = [
-        {
-          id: 'V001',
-          plate: '京A12345',
-          model: '东风天龙',
-          year: 2020,
-          mileage: 125000,
-          lastMaintenanceDate: '2025-09-15',
-          nextMaintenanceDate: '2025-10-15',
-          status: 'active',
-        },
-        {
-          id: 'V002',
-          plate: '京B67890',
-          model: '解放J6',
-          year: 2019,
-          mileage: 98000,
-          lastMaintenanceDate: '2025-09-10',
-          nextMaintenanceDate: '2025-09-25',
-          status: 'maintenance',
-        },
-      ];
+      // 加载车辆列表
+      const vehiclesResponse = await vehiclesApi.getVehicles();
+      const vehiclesData = vehiclesResponse.data?.data || [];
+      const vehiclesList: Vehicle[] = vehiclesData.map((v: any) => ({
+        id: v.id,
+        plate: v.plateNumber || v.plate || '',
+        model: v.model || '',
+        year: v.year || new Date().getFullYear(),
+        mileage: v.odometerKm || v.mileage || 0,
+        lastMaintenanceDate: v.lastServiceDate || v.lastMaintenanceDate || '',
+        nextMaintenanceDate: v.nextMaintenanceDate || '',
+        status: v.status || 'active',
+      }));
+      setVehicles(vehiclesList);
 
-      const mockRecords: MaintenanceRecord[] = [
-        {
-          id: 'M001',
-          vehicleId: 'V001',
-          vehiclePlate: '京A12345',
-          maintenanceType: 'routine',
-          description: '定期保养 - 更换机油、机滤',
-          cost: 850,
-          mileage: 125000,
-          maintenanceDate: '2025-09-15',
-          nextMaintenanceDate: '2025-10-15',
-          status: 'completed',
-          provider: '北京汽修厂',
-          notes: '车辆运行正常',
-          attachments: [],
-        },
-        {
-          id: 'M002',
-          vehicleId: 'V002',
-          vehiclePlate: '京B67890',
-          maintenanceType: 'repair',
-          description: '发动机故障维修',
-          cost: 2500,
-          mileage: 98000,
-          maintenanceDate: '2025-09-10',
-          nextMaintenanceDate: '2025-10-10',
-          status: 'completed',
-          provider: '上海维修中心',
-          notes: '更换发动机部件',
-          attachments: [],
-        },
-        {
-          id: 'M003',
-          vehicleId: 'V001',
-          vehiclePlate: '京A12345',
-          maintenanceType: 'inspection',
-          description: '年检',
-          cost: 300,
-          mileage: 124500,
-          maintenanceDate: '2025-08-20',
-          nextMaintenanceDate: '2026-08-20',
-          status: 'completed',
-          provider: '检测站',
-          notes: '年检通过',
-          attachments: [],
-        },
-        {
-          id: 'M004',
-          vehicleId: 'V002',
-          vehiclePlate: '京B67890',
-          maintenanceType: 'routine',
-          description: '定期保养',
-          cost: 0,
-          mileage: 98000,
-          maintenanceDate: '2025-09-25',
-          nextMaintenanceDate: '2025-10-25',
-          status: 'scheduled',
-          provider: '北京汽修厂',
-          notes: '已预约',
-          attachments: [],
-        },
-      ];
-
-      setVehicles(mockVehicles);
-      setMaintenanceRecords(mockRecords);
-    } catch (error) {
+      // 加载维护记录
+      const recordsResponse = await maintenanceApi.getMaintenanceRecords({
+        page: 1,
+        limit: 100,
+      });
+      const recordsData = recordsResponse.data?.data?.records || recordsResponse.data?.data || [];
+      const recordsList: MaintenanceRecord[] = recordsData.map((r: any) => {
+        // 查找车辆信息
+        const vehicle = vehiclesList.find(v => v.id === r.vehicleId);
+        return {
+          id: r.id,
+          vehicleId: r.vehicleId,
+          vehiclePlate: vehicle?.plate || '',
+          maintenanceType: r.maintenanceType,
+          description: r.description,
+          cost: r.cost || 0,
+          mileage: r.mileage,
+          maintenanceDate: r.maintenanceDate,
+          nextMaintenanceDate: r.nextMaintenanceDate,
+          status: r.status,
+          provider: r.provider,
+          notes: r.notes,
+          attachments: r.attachments || [],
+        };
+      });
+      setMaintenanceRecords(recordsList);
+    } catch (error: any) {
       console.error('加载数据失败:', error);
-      message.error('加载数据失败');
+      message.error('加载数据失败: ' + (error.message || '未知错误'));
     } finally {
       setLoading(false);
     }
@@ -205,38 +157,63 @@ const VehicleMaintenance: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      // 实际项目中应该调用删除API
+      await maintenanceApi.deleteMaintenanceRecord(id);
       setMaintenanceRecords(records => records.filter(record => record.id !== id));
       message.success('删除成功');
-    } catch (error) {
-      message.error('删除失败');
+    } catch (error: any) {
+      message.error('删除失败: ' + (error.message || '未知错误'));
     }
   };
 
-  const handleSubmit = async (values: unknown) => {
+  const handleSubmit = async (values: any) => {
     try {
       const recordData = {
-        ...values,
-        id: editingRecord?.id || `M${Date.now()}`,
+        vehicleId: values.vehicleId,
+        maintenanceType: values.maintenanceType,
+        description: values.description,
+        cost: values.cost || 0,
+        mileage: values.mileage,
         maintenanceDate: values.maintenanceDate.format('YYYY-MM-DD'),
-        nextMaintenanceDate: values.nextMaintenanceDate.format('YYYY-MM-DD'),
-        vehiclePlate: vehicles.find(v => v.id === values.vehicleId)?.plate || '',
+        nextMaintenanceDate: values.nextMaintenanceDate ? values.nextMaintenanceDate.format('YYYY-MM-DD') : null,
+        status: values.status || 'completed',
+        provider: values.provider,
+        notes: values.notes,
       };
 
       if (editingRecord) {
+        const updated = await maintenanceApi.updateMaintenanceRecord(editingRecord.id, recordData);
         setMaintenanceRecords(records =>
-          records.map(record => record.id === editingRecord.id ? { ...record, ...recordData } : record)
+          records.map(record => {
+            if (record.id === editingRecord.id) {
+              const vehicle = vehicles.find(v => v.id === updated.data?.data?.vehicleId);
+              return {
+                ...record,
+                ...updated.data?.data,
+                vehiclePlate: vehicle?.plate || record.vehiclePlate,
+              };
+            }
+            return record;
+          })
         );
         message.success('更新成功');
       } else {
-        setMaintenanceRecords(records => [...records, recordData]);
+        const created = await maintenanceApi.createMaintenanceRecord(recordData);
+        const vehicle = vehicles.find(v => v.id === values.vehicleId);
+        setMaintenanceRecords(records => [
+          {
+            ...created.data?.data,
+            vehiclePlate: vehicle?.plate || '',
+          },
+          ...records,
+        ]);
         message.success('添加成功');
       }
 
       setIsModalVisible(false);
       form.resetFields();
-    } catch (error) {
-      message.error('操作失败');
+      loadData(); // 重新加载数据以获取最新状态
+    } catch (error: any) {
+      message.error('操作失败: ' + (error.message || '未知错误'));
     }
   };
 

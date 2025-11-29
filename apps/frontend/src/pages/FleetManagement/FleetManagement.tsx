@@ -35,6 +35,7 @@ import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-11-11 10:2
 import { formatDateTime } from '../../utils/timeUtils';
 import DriverPerformance from '../../components/DriverPerformance/DriverPerformance';
 import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
+import ScheduleManagement from '../../components/ScheduleManagement/ScheduleManagement'; // 2025-11-29T11:25:04Z 排班管理组件
 
 const { Title, Text } = Typography;
 
@@ -633,6 +634,27 @@ const FleetManagement: React.FC = () => {
                   <Title level={4}>🔧 车辆维护记录</Title>
                   <Text type="secondary">管理车辆维护记录，跟踪车辆状态和保养计划</Text>
                   <VehicleMaintenance />
+                </Card>
+              </div>
+            )
+          },
+          {
+            key: "schedule",
+            label: (
+              <span>
+                <TeamOutlined />
+                排班管理
+              </span>
+            ),
+            children: (
+              <div style={{ padding: '16px 0' }}>
+                <Card>
+                  <Title level={4}>📅 排班管理</Title>
+                  <Text type="secondary">
+                    管理司机排班，支持自定义字段（客户名称、目的地、优先级、货品类目、里程、联系电话等），
+                    通过表头配置进行一键排序归类，精准筛选快速定位目标信息
+                  </Text>
+                  <ScheduleManagement />
                 </Card>
               </div>
             )

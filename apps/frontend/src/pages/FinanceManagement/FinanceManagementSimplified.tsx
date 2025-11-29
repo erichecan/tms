@@ -157,15 +157,14 @@ const FinanceManagementSimplified: React.FC = () => {
     }
   }; // 2025-11-11 10:15:05 新增：导出按钮处理
 
-  // 标记收款 - 2025-10-10 18:00:00
+  // 标记收款 - 2025-10-10 18:00:00, 2025-11-29T11:25:04Z 完成：调用真实API
   const handleMarkAsPaid = async (record: AccountItem) => {
     try {
-      // TODO: 调用真实API
-      // await financeApi.markAsPaid(record.id);
+      await financeApi.markAsPaid(record.id, record.unpaidAmount);
       message.success(`已标记 ${record.entityName} 的款项为已收`);
       loadFinancialData();
-    } catch (error) {
-      message.error('标记失败');
+    } catch (error: any) {
+      message.error(`标记失败: ${error.response?.data?.error?.message || error.message || '未知错误'}`);
     }
   };
 

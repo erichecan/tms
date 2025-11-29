@@ -9,6 +9,16 @@
         "/tmp/chrome-devtools.log"
       ],
       "env": {}
+    },
+    "neon": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@neondatabase/mcp-server-neon",
+        "start",
+        "napi_1k15jz52umeu89sgwjibbquirdd2sgnunc66c7d0n9un2k3suh613c5stm7chvzt"
+      ],
+      "env": {}
     }
   }
 }
