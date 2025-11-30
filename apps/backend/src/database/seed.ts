@@ -16,12 +16,22 @@ async function seedDatabase() {
     logger.info('开始填充种子数据...');
     
     // 2025-11-29T21:10:00 检查是否已有完整数据（客户数量 > 1 表示已有完整数据）
+    // 2025-11-30 03:50:00 修复：允许强制重新填充，检查所有必要的数据是否存在
     const existingCustomers = await client.query('SELECT COUNT(*) FROM customers');
     const customerCount = parseInt(existingCustomers.rows[0].count);
-    if (customerCount > 1) {
-      logger.info(`数据库已有 ${customerCount} 个客户，跳过种子数据填充`);
+    const existingDrivers = await client.query('SELECT COUNT(*) FROM drivers');
+    const driverCount = parseInt(existingDrivers.rows[0].count);
+    const existingVehicles = await client.query('SELECT COUNT(*) FROM vehicles');
+    const vehicleCount = parseInt(existingVehicles.rows[0].count);
+    
+    // 只有当所有数据都存在时才跳过（至少要有客户、司机、车辆）
+    if (customerCount > 1 && driverCount > 1 && vehicleCount > 1) {
+      logger.info(`数据库已有完整数据（客户: ${customerCount}, 司机: ${driverCount}, 车辆: ${vehicleCount}），跳过种子数据填充`);
+      logger.info('如需重新填充，请先运行清理脚本：npx tsx scripts/clean-database.ts');
       return;
     }
+    
+    logger.info(`检测到数据不完整（客户: ${customerCount}, 司机: ${driverCount}, 车辆: ${vehicleCount}），开始填充种子数据...`);
     
     // 如果只有少量数据（可能是初始数据），则继续填充完整数据
     if (customerCount > 0) {
@@ -243,7 +253,74 @@ async function seedDatabase() {
     }
     
     // =============================================================================
-    // 6. 财务记录 (为已完成的运单创建应收款和应付款)
+    // 6. 行程数据 (10个行程，关联司机和车辆，部分包含运单) // 2025-11-30 01:30:00 新增
+    // =============================================================================
+    const vehicles = await client.query('SELECT id, plate_number, type FROM vehicles WHERE tenant_id = $1 ORDER BY plate_number', [tenantId]);
+    const availableDrivers = await client.query('SELECT id, name, phone, vehicle_id FROM drivers WHERE tenant_id = $1 AND status = $2', [tenantId, 'available']);
+    
+    const tripStatuses = ['planning', 'ongoing', 'completed'];
+    const trips = [];
+    // 2025-11-30 03:35:00 修复：复用前面已声明的 now 变量，避免重复声明
+    
+    // 获取部分运单用于挂载到行程
+    const shipmentsForTrips = await client.query(
+      'SELECT id FROM shipments WHERE tenant_id = $1 AND driver_id IS NOT NULL LIMIT 15',
+      [tenantId]
+    );
+    
+    for (let i = 0; i < 10; i++) {
+      const driver = availableDrivers.rows[i % availableDrivers.rows.length];
+      const vehicle = vehicles.rows.find((v: any) => v.id === driver.vehicle_id) || vehicles.rows[i % vehicles.rows.length];
+      const status = tripStatuses[i % tripStatuses.length];
+      const tripNo = `TRIP${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(i + 1).padStart(5, '0')}`;
+      
+      // 为每个行程分配2-3个运单
+      const startIdx = i * 2;
+      const tripShipments = shipmentsForTrips.rows.slice(startIdx, startIdx + (i % 2 === 0 ? 2 : 3));
+      const shipmentIds = tripShipments.map((s: any) => s.id);
+      
+      const startTimePlanned = new Date(now.getTime() - (10 - i) * 24 * 60 * 60 * 1000);
+      const endTimePlanned = new Date(startTimePlanned.getTime() + 8 * 60 * 60 * 1000); // 8小时后
+      
+      trips.push({
+        tenant_id: tenantId,
+        trip_no: tripNo,
+        status: status,
+        driver_id: driver.id,
+        vehicle_id: vehicle.id,
+        shipments: shipmentIds,
+        start_time_planned: startTimePlanned.toISOString(),
+        end_time_planned: endTimePlanned.toISOString(),
+        start_time_actual: status !== 'planning' ? new Date(startTimePlanned.getTime() + 30 * 60 * 1000).toISOString() : null,
+        end_time_actual: status === 'completed' ? new Date(endTimePlanned.getTime() + 60 * 60 * 1000).toISOString() : null,
+      });
+    }
+    
+    // 批量插入行程
+    for (const trip of trips) {
+      await client.query(`
+        INSERT INTO trips (
+          tenant_id, trip_no, status, driver_id, vehicle_id, 
+          shipments, start_time_planned, end_time_planned,
+          start_time_actual, end_time_actual
+        ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10)
+        ON CONFLICT DO NOTHING
+      `, [
+        trip.tenant_id,
+        trip.trip_no,
+        trip.status,
+        trip.driver_id,
+        trip.vehicle_id,
+        JSON.stringify(trip.shipments),
+        trip.start_time_planned,
+        trip.end_time_planned,
+        trip.start_time_actual,
+        trip.end_time_actual,
+      ]);
+    }
+    
+    // =============================================================================
+    // 7. 财务记录 (为已完成的运单创建应收款和应付款)
     // =============================================================================
     const completedShipments = await client.query(
       'SELECT id, customer_id, driver_id, actual_cost FROM shipments WHERE tenant_id = $1 AND status = $2',
@@ -290,8 +367,9 @@ async function seedDatabase() {
     
     logger.info('种子数据填充完成！');
     logger.info(`- 客户: ${customers.rows.length} 个`);
-    logger.info(`- 车辆: 15 辆`);
+    logger.info(`- 车辆: ${vehicles.rows.length} 辆`);
     logger.info(`- 司机: ${drivers.rows.length} 个`);
+    logger.info(`- 行程: ${trips.length} 个`);
     logger.info(`- 运单: 25 个`);
     logger.info(`- 财务记录: ${completedShipments.rows.length * 2} 条`);
     

@@ -24,7 +24,7 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import { shipmentsApi } from '../../services/api';
-import { useDrivers } from '../../hooks'; // 2025-10-31 09:58:00 使用统一的数据管理 Hook
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-30 01:50:00 改为使用 DataContext
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -51,8 +51,8 @@ interface TaskRecord {
 }
 
 const DriverSalarySimplified: React.FC = () => {
-  // 2025-10-31 09:58:00 使用统一的数据管理 Hook
-  const { drivers, loading: driversLoading } = useDrivers();
+  // 2025-11-30 01:50:00 改为使用 DataContext 统一数据源
+  const { allDrivers: drivers, driversLoading } = useDataContext();
   
   const [loading, setLoading] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');

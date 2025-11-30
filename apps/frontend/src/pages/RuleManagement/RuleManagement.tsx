@@ -22,6 +22,7 @@ import {
   ExclamationCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  QuestionCircleOutlined, // 2025-11-30 07:20:00 新增：用于教程标签页图标
 } from '@ant-design/icons';
 import RuleEditor from '../../components/RuleEditor/RuleEditor';
 import { rulesApi } from '../../services/api';
@@ -44,14 +45,22 @@ const RuleManagement: React.FC = () => {
     loadRules();
   }, []);
 
+  // 2025-11-30 03:20:00 修复：改进错误处理，显示详细错误信息
   const loadRules = async () => {
     try {
       setLoading(true);
       const response = await rulesApi.getRules();
-      setRules(response.data?.data || []);
-    } catch (error) {
+      // 处理分页响应结构
+      const rulesData = response.data?.data || response.data || [];
+      setRules(Array.isArray(rulesData) ? rulesData : []);
+    } catch (error: any) {
       console.error('Failed to load rules:', error);
-      message.error('加载规则失败');
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '加载规则失败';
+      message.error(`加载规则失败: ${errorMessage}`);
+      // 如果是权限问题，提供更详细的提示
+      if (error?.response?.status === 403) {
+        message.warning('您没有权限访问规则管理功能');
+      }
     } finally {
       setLoading(false);
     }
@@ -232,13 +241,24 @@ const RuleManagement: React.FC = () => {
             <Title level={4} style={{ margin: 0 }}>规则列表</Title>
             <Text type="secondary">共 {rules.length} 条规则</Text>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleCreateRule}
-          >
-            新建规则
-          </Button>
+          <Space>
+            <Button
+              icon={<QuestionCircleOutlined />}
+              onClick={() => {
+                // 2025-11-30 07:30:00 在新标签页打开教程页面
+                window.open('/rules/guide', '_blank');
+              }}
+            >
+              查看教程
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreateRule}
+            >
+              新建规则
+            </Button>
+          </Space>
         </div>
 
         <Table
@@ -263,7 +283,8 @@ const RuleManagement: React.FC = () => {
         onCancel={handleEditorCancel}
         footer={null}
         width={1200}
-        destroyOnHidden
+        destroyOnHidden // 2025-11-30 07:40:00 修复：使用 destroyOnHidden 替代已废弃的 destroyOnClose
+        style={{ top: 20 }}
       >
         <RuleEditor
           rule={editingRule}

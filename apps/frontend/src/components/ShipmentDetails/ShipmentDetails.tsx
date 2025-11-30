@@ -86,7 +86,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [isDrawing, setIsDrawing] = useState(false); // 2025-10-02 15:32:10 绘制状态
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null); // 2025-10-02 15:32:10 签名图片
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context - removes duplicate hook calls
-  const { availableDrivers, allDrivers, availableVehicles, allVehicles } = useDataContext();
+  const { availableDrivers, allDrivers, availableVehicles, allVehicles, reloadDrivers } = useDataContext(); // 2025-11-30 06:30:00 修复：添加 reloadDrivers
   
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(false); // 2025-11-24T19:40:00Z Added by Assistant: 行程加载状态
@@ -265,7 +265,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     // 2025-11-24T19:40:00Z Updated by Assistant: 加载可用行程
     try {
       setTripsLoading(true);
-      const response = await tripsApi.getTrips({ status: 'planned' });
+      // 2025-11-30 02:50:00 修复：使用逗号分隔的状态值，后端会解析为数组
+      const response = await tripsApi.getTrips({ status: 'planning,ongoing' });
       setAvailableTrips(response.data?.data || []);
     } catch (error) {
       console.error('Failed to load trips:', error);
@@ -708,12 +709,187 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
           
           <Card title="货物信息">
-            <Row gutter={[16, 16]}>
-              <Col span={24}>
-                <Text strong>货物描述：</Text><br />
-                <Text>{shipment.description || '无'}</Text>
-              </Col>
-            </Row>
+            {/* 2025-11-30 00:30:00 修复：支持 cargoInfo 和 cargoItems 显示 */}
+            {(() => {
+              const cargoInfo = (shipment as any).cargoInfo || {};
+              const cargoItems = cargoInfo.cargoItems || [];
+              
+              // 多行货物模式
+              if (cargoItems && Array.isArray(cargoItems) && cargoItems.length > 0) {
+                const totalWeight = cargoItems.reduce((sum: number, item: any) => sum + ((item.weight || 0) * (item.quantity || 1)), 0);
+                const totalQuantity = cargoItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+                
+                return (
+                  <>
+                    <Row gutter={[16, 16]}>
+                      <Col span={24}>
+                        <Text strong>货物明细：</Text>
+                      </Col>
+                    </Row>
+                    {cargoItems.map((item: any, index: number) => (
+                      <div key={index} style={{ marginTop: 8, padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
+                        <Row gutter={16}>
+                          <Col span={6}>
+                            <Text strong>件数：</Text>
+                            <div>{item.quantity || 0} 件</div>
+                          </Col>
+                          <Col span={6}>
+                            <Text strong>规格：</Text>
+                            <div>{item.length || 0}×{item.width || 0}×{item.height || 0} cm</div>
+                          </Col>
+                          <Col span={6}>
+                            <Text strong>重量：</Text>
+                            <div>{item.weight || 0} kg</div>
+                          </Col>
+                          <Col span={6}>
+                            <Text strong>托盘：</Text>
+                            <div>{item.pallets || 0} 托</div>
+                          </Col>
+                        </Row>
+                        {(item.value || item.description) && (
+                          <Row gutter={16} style={{ marginTop: 8 }}>
+                            {item.value && (
+                              <Col span={12}>
+                                <Text strong>价值：</Text>
+                                <div>${item.value || 0}</div>
+                              </Col>
+                            )}
+                            {item.description && (
+                              <Col span={12}>
+                                <Text strong>描述：</Text>
+                                <div>{item.description}</div>
+                              </Col>
+                            )}
+                          </Row>
+                        )}
+                      </div>
+                    ))}
+                    <Divider />
+                    <Row gutter={[16, 16]}>
+                      <Col span={6}>
+                        <Text strong>总件数：</Text>
+                        <div>{totalQuantity} 件</div>
+                      </Col>
+                      <Col span={6}>
+                        <Text strong>总重量：</Text>
+                        <div>{totalWeight.toFixed(2)} kg</div>
+                      </Col>
+                      {cargoInfo.volume && (
+                        <Col span={6}>
+                          <Text strong>总体积：</Text>
+                          <div>{cargoInfo.volume.toFixed(2)} m³</div>
+                        </Col>
+                      )}
+                      {cargoInfo.value && (
+                        <Col span={6}>
+                          <Text strong>总价值：</Text>
+                          <div>${cargoInfo.value.toFixed(2)}</div>
+                        </Col>
+                      )}
+                    </Row>
+                    {cargoInfo.description && (
+                      <>
+                        <Divider />
+                        <Row gutter={[16, 16]}>
+                          <Col span={24}>
+                            <Text strong>货物描述：</Text>
+                            <div>{cargoInfo.description}</div>
+                          </Col>
+                        </Row>
+                      </>
+                    )}
+                  </>
+                );
+              }
+              
+              // 单行货物模式或兼容旧数据
+              return (
+                <>
+                  <Row gutter={[16, 16]}>
+                    <Col span={24}>
+                      <Text strong>货物描述：</Text><br />
+                      <Text>{cargoInfo.description || shipment.description || '无'}</Text>
+                    </Col>
+                  </Row>
+                  {(cargoInfo.weight || shipment.weightKg) && (
+                    <>
+                      <Divider />
+                      <Row gutter={[16, 16]}>
+                        <Col span={6}>
+                          <Text strong>重量：</Text>
+                          <div>{(cargoInfo.weight || shipment.weightKg || 0).toFixed(2)} kg</div>
+                        </Col>
+                        {cargoInfo.dimensions && (
+                          <>
+                            <Col span={6}>
+                              <Text strong>长度：</Text>
+                              <div>{cargoInfo.dimensions.length || 0} cm</div>
+                            </Col>
+                            <Col span={6}>
+                              <Text strong>宽度：</Text>
+                              <div>{cargoInfo.dimensions.width || 0} cm</div>
+                            </Col>
+                            <Col span={6}>
+                              <Text strong>高度：</Text>
+                              <div>{cargoInfo.dimensions.height || 0} cm</div>
+                            </Col>
+                          </>
+                        )}
+                        {(!cargoInfo.dimensions && (shipment.lengthCm || shipment.widthCm || shipment.heightCm)) && (
+                          <>
+                            <Col span={6}>
+                              <Text strong>长度：</Text>
+                              <div>{shipment.lengthCm || 0} cm</div>
+                            </Col>
+                            <Col span={6}>
+                              <Text strong>宽度：</Text>
+                              <div>{shipment.widthCm || 0} cm</div>
+                            </Col>
+                            <Col span={6}>
+                              <Text strong>高度：</Text>
+                              <div>{shipment.heightCm || 0} cm</div>
+                            </Col>
+                          </>
+                        )}
+                      </Row>
+                    </>
+                  )}
+                  {cargoInfo.volume && (
+                    <>
+                      <Divider />
+                      <Row gutter={[16, 16]}>
+                        <Col span={6}>
+                          <Text strong>体积：</Text>
+                          <div>{cargoInfo.volume.toFixed(2)} m³</div>
+                        </Col>
+                        {cargoInfo.value && (
+                          <Col span={6}>
+                            <Text strong>价值：</Text>
+                            <div>${cargoInfo.value.toFixed(2)}</div>
+                          </Col>
+                        )}
+                        {cargoInfo.quantity && (
+                          <Col span={6}>
+                            <Text strong>数量：</Text>
+                            <div>{cargoInfo.quantity} 件</div>
+                          </Col>
+                        )}
+                      </Row>
+                    </>
+                  )}
+                  {cargoInfo.hazardous && (
+                    <>
+                      <Divider />
+                      <Row gutter={[16, 16]}>
+                        <Col span={24}>
+                          <Tag color="red">危险品</Tag>
+                        </Col>
+                      </Row>
+                    </>
+                  )}
+                </>
+              );
+            })()}
             {(shipment as any).tags && (shipment as any).tags.length > 0 && (
               <>
                 <Divider />
@@ -941,9 +1117,16 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             const values = await form.validateFields();
             console.log('🔍 指派表单值:', values); // 2025-10-28 调试
             
+            // 2025-11-30 05:45:00 修复：确保driverId存在，vehicleId可以为空
+            if (!values.driverId) {
+              message.error('请选择司机');
+              return;
+            }
+            
             // 2025-10-28 修复：实现真正的指派逻辑
             if (onAssignDriver) {
-              await onAssignDriver(values.driverId, values.vehicleId);
+              // 2025-11-30 05:45:00 修复：vehicleId可以为undefined或null
+              await onAssignDriver(values.driverId, values.vehicleId || undefined);
               // 2025-10-28 修复：调用成功后关闭模态框并重置表单
               setIsAssignModalVisible(false);
               form.resetFields();
@@ -956,7 +1139,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           } catch (error: unknown) {
             console.error('指派失败:', error);
             // 2025-10-28 增强错误信息
-            if (error && typeof error === 'object' && 'response' in error) {
+            // 2025-11-30 05:45:00 修复：区分表单验证错误和API错误
+            if (error && typeof error === 'object' && 'errorFields' in error) {
+              // 表单验证错误
+              const formError = error as { errorFields?: Array<{ errors: string[] }> };
+              const errorMessages = formError.errorFields?.map(f => f.errors.join(', ')).join('; ') || '表单验证失败';
+              message.error(errorMessages);
+            } else if (error && typeof error === 'object' && 'response' in error) {
+              // API错误
               const axiosError = error as { response?: { data?: { error?: { message?: string }, message?: string } } };
               const errorMsg = axiosError.response?.data?.error?.message || axiosError.response?.data?.message || '指派失败，请检查输入';
               message.error(errorMsg);
@@ -980,31 +1170,75 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             )}
             rules={[{ required: true, message: '请选择司机' }]}
           >
-            <Select placeholder="请选择司机">
-              {availableDrivers.map(driver => (
-                <Select.Option key={driver.id} value={driver.id}>
-                  {driver.name} ({driver.phone})
-                </Select.Option>
-              ))}
+            {/* 2025-11-30 02:30:00 修复：如果没有可用司机，显示所有司机（包括忙碌的），并标注状态 */}
+            <Select 
+              placeholder={availableDrivers.length === 0 ? "暂无空闲司机，显示所有司机" : "请选择司机"}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {availableDrivers.length > 0 ? (
+                availableDrivers.map(driver => {
+                  const label = `${driver.name} (${driver.phone}) - 空闲`;
+                  return (
+                    <Select.Option key={driver.id} value={driver.id} label={label}>
+                      {label}
+                    </Select.Option>
+                  );
+                })
+              ) : (
+                // 如果没有可用司机，显示所有司机并标注状态
+                allDrivers.map(driver => {
+                  const statusText = driver.status === DriverStatus.BUSY ? '忙碌' : driver.status === DriverStatus.OFFLINE ? '离线' : driver.status;
+                  const label = `${driver.name} (${driver.phone}) - ${statusText}`;
+                  return (
+                    <Select.Option key={driver.id} value={driver.id} label={label}>
+                      {label}
+                    </Select.Option>
+                  );
+                })
+              )}
             </Select>
+            {availableDrivers.length === 0 && allDrivers.length > 0 && (
+              <div style={{ marginTop: 8, color: '#ff9800', fontSize: 12 }}>
+                提示：当前没有空闲司机，您可以选择其他状态的司机
+              </div>
+            )}
+            {availableDrivers.length === 0 && allDrivers.length === 0 && (
+              <div style={{ marginTop: 8, color: '#f5222d', fontSize: 12 }}>
+                提示：当前没有司机数据，请先添加司机
+              </div>
+            )}
           </Form.Item>
           
           <Form.Item
             name="vehicleId"
             label={(
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>选择车辆</span>
+                <span>选择车辆（可选）</span>
                 <Button type="link" size="small" onClick={() => setIsQuickAddVehicleVisible(true)}>+ 添加车辆</Button>
               </div>
             )}
-            rules={[{ required: true, message: '请选择车辆' }]}
+            rules={[{ required: false, message: '请选择车辆' }]}
           >
-            <Select placeholder="请选择车辆">
-              {availableVehicles.map(vehicle => (
-                <Select.Option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.plateNumber} ({(vehicle as any).vehicleType || vehicle.type || '未知类型'})
-                </Select.Option>
-              ))}
+            <Select 
+              placeholder="请选择车辆（可选）"
+              allowClear
+              showSearch
+              filterOption={(input, option) =>
+                (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {availableVehicles.map(vehicle => {
+                const vehicleType = (vehicle as any).vehicleType || vehicle.type || '未知类型';
+                const label = `${vehicle.plateNumber} (${vehicleType})`;
+                return (
+                  <Select.Option key={vehicle.id} value={vehicle.id} label={label}>
+                    {label}
+                  </Select.Option>
+                );
+              })}
             </Select>
           </Form.Item>
         </Form>
@@ -1018,60 +1252,96 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         onOk={async () => {
           try {
             const values = await addDriverForm.validateFields();
-            const res = await driversApi.createDriver({ name: values.name, phone: values.phone, status: 'available' });
+            // 2025-11-30 05:45:00 修复：添加后端必需的字段 licenseNumber 和 vehicleInfo
+            // 2025-11-30 06:00:00 修复：简化司机创建，车辆信息在后端自动生成默认值，不要求用户填写
+            // 2025-11-30 06:15:00 修复：去除手机号中的非数字字符，只保留数字发送给后端
+            const phoneDigitsOnly = values.phone.replace(/\D/g, '');
+            const driverData: any = {
+              name: values.name,
+              phone: phoneDigitsOnly, // 只发送数字
+              status: 'available',
+              licenseNumber: values.licenseNumber || `LIC${Date.now()}`, // 如果没有填写，生成一个临时驾照号
+              // 后端API要求vehicleInfo，但我们在前端不显示给用户，使用默认值
+              vehicleInfo: {
+                type: 'van',
+                licensePlate: `TEMP${Date.now()}`, // 临时车牌号，后端会自动处理
+                capacity: 1000, // 默认载重
+                dimensions: {
+                  length: 300, // 默认长度
+                  width: 200,  // 默认宽度
+                  height: 200  // 默认高度
+                }
+              }
+            };
+            const res = await driversApi.createDriver(driverData);
             const created = res?.data?.data || res?.data || { id: `drv_${Date.now()}`, name: values.name, phone: values.phone };
+            // 2025-11-30 05:45:00 修复：重新加载司机列表以确保数据一致
+            if (reloadDrivers) {
+              await reloadDrivers();
+            }
             setAvailableDrivers(prev => [created, ...prev]);
             form.setFieldsValue({ driverId: created.id });
             message.success('司机已添加');
             setIsQuickAddDriverVisible(false);
             addDriverForm.resetFields();
-          } catch (error) {
-    console.error(error);
-  }
+          } catch (error: any) {
+            console.error('添加司机失败:', error);
+            // 2025-11-30 05:45:00 修复：显示详细的错误信息
+            const errorMsg = error?.response?.data?.error?.message || error?.message || '添加司机失败，请检查输入';
+            message.error(errorMsg);
+          }
         }}
         okText="保存"
         cancelText="取消"
       >
-        <Row gutter={16}>
-          <Col span={12}>
-            <Card size="small" title="司机信息（紧凑）">
-              <Form form={addDriverForm} layout="vertical">
-                <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}> 
-                  <Input placeholder="张三" />
-                </Form.Item>
-                <Form.Item name="age" label="年龄" rules={[{ required: true, message: '请输入年龄' }]}> 
-                  <Input type="number" placeholder="30" />
-                </Form.Item>
-                <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}> 
-                  <Input placeholder="13800000000" />
-                </Form.Item>
-                <Form.Item name="englishLevel" label="英语水平" rules={[{ required: true, message: '请选择英语水平' }]}> 
-                  <Select options={[{ label: 'Basic', value: 'basic' }, { label: 'Intermediate', value: 'intermediate' }, { label: 'Fluent', value: 'fluent' }]} placeholder="选择英语水平" />
-                </Form.Item>
-                <Form.Item name="otherLanguages" label="其他语言"> 
-                  <Select mode="multiple" placeholder="选择其他语言" options={[{ label: '普通话', value: 'mandarin' }, { label: '广东话', value: 'cantonese' }, { label: '法语', value: 'french' }]} />
-                </Form.Item>
-                <Form.Item name="licenseClass" label="驾照等级（加拿大）" rules={[{ required: true, message: '请选择驾照等级' }]}> 
-                  <Select placeholder="选择驾照等级" options={[{ label: 'Class G (Ontario)', value: 'G' }, { label: 'Class G1', value: 'G1' }, { label: 'Class G2', value: 'G2' }, { label: 'Class AZ (Tractor-Trailer)', value: 'AZ' }, { label: 'Class DZ (Straight Truck)', value: 'DZ' }, { label: 'Class CZ (Bus)', value: 'CZ' }, { label: 'Class BZ (School Bus)', value: 'BZ' }, { label: 'Class M (Motorcycle)', value: 'M' }]} />
-                </Form.Item>
-              </Form>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card size="small" title="全部司机（只读列表）">
-              <List
-                size="small"
-                dataSource={availableDrivers}
-                renderItem={(driver) => (
-                  <List.Item>
-                    <List.Item.Meta avatar={<Avatar>{(driver.name || '').slice(0,1)}</Avatar>} title={driver.name} description={driver.phone} />
-                    <Tag color="green">空闲</Tag>
-                  </List.Item>
-                )}
-              />
-            </Card>
-          </Col>
-        </Row>
+        {/* 2025-11-30 06:00:00 修复：移除右侧的司机列表，简化表单布局 */}
+        <Card size="small" title="司机信息">
+          <Form form={addDriverForm} layout="vertical">
+            <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}> 
+              <Input placeholder="张三" />
+            </Form.Item>
+            <Form.Item name="age" label="年龄" rules={[{ required: false, message: '请输入年龄' }]}> 
+              <Input type="number" placeholder="30（可选）" />
+            </Form.Item>
+            <Form.Item 
+              name="phone" 
+              label="手机号" 
+              rules={[
+                { required: true, message: '请输入手机号' }, 
+                { 
+                  validator: (_, value) => {
+                    if (!value) {
+                      return Promise.resolve();
+                    }
+                    // 2025-11-30 06:15:00 修复：加拿大手机号格式验证
+                    // 去除所有非数字字符
+                    const digitsOnly = value.replace(/\D/g, '');
+                    // 加拿大手机号：10位数字，第一位不能是0或1，第四位不能是0或1
+                    const canadianPhonePattern = /^[2-9]\d{2}[2-9]\d{2}\d{4}$/;
+                    if (digitsOnly.length === 10 && canadianPhonePattern.test(digitsOnly)) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('请输入有效的加拿大手机号（10位数字，格式：XXX-XXX-XXXX）'));
+                  }
+                }
+              ]}
+            > 
+              <Input placeholder="416-555-1234 或 (416) 555-1234" />
+            </Form.Item>
+            <Form.Item name="licenseNumber" label="驾照号" rules={[{ required: true, message: '请输入驾照号' }]}> 
+              <Input placeholder="请输入驾照号" />
+            </Form.Item>
+            <Form.Item name="englishLevel" label="英语水平" rules={[{ required: false, message: '请选择英语水平' }]}> 
+              <Select options={[{ label: 'Basic', value: 'basic' }, { label: 'Intermediate', value: 'intermediate' }, { label: 'Fluent', value: 'fluent' }]} placeholder="选择英语水平（可选）" />
+            </Form.Item>
+            <Form.Item name="otherLanguages" label="其他语言"> 
+              <Select mode="multiple" placeholder="选择其他语言" options={[{ label: '普通话', value: 'mandarin' }, { label: '广东话', value: 'cantonese' }, { label: '法语', value: 'french' }]} />
+            </Form.Item>
+            <Form.Item name="licenseClass" label="驾照等级（加拿大）" rules={[{ required: false, message: '请选择驾照等级' }]}> 
+              <Select placeholder="选择驾照等级（可选）" options={[{ label: 'Class G (Ontario)', value: 'G' }, { label: 'Class G1', value: 'G1' }, { label: 'Class G2', value: 'G2' }, { label: 'Class AZ (Tractor-Trailer)', value: 'AZ' }, { label: 'Class DZ (Straight Truck)', value: 'DZ' }, { label: 'Class CZ (Bus)', value: 'CZ' }, { label: 'Class BZ (School Bus)', value: 'BZ' }, { label: 'Class M (Motorcycle)', value: 'M' }]} />
+            </Form.Item>
+          </Form>
+        </Card>
       </Modal>
 
       
@@ -1135,21 +1405,35 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         open={isMountModalVisible}
         onOk={async () => {
           // 2025-11-24T19:40:00Z Updated by Assistant: 实现挂载逻辑
+          // 2025-11-30 06:45:00 修复：避免重复显示消息，统一处理成功和失败
           try {
             const values = await form.validateFields();
             const { tripId } = values;
             
+            // 2025-11-30 06:45:00 修复：先调用API
             await tripsApi.mountShipmentsToTrip(tripId, [shipment.id]);
-            message.success('运单已成功挂载到行程');
+            
+            // 2025-11-30 06:45:00 修复：关闭模态框
             setIsMountModalVisible(false);
             form.resetFields();
-            // 刷新运单详情
-            if (onRefresh) {
-              onRefresh();
+            
+            // 2025-11-30 06:45:00 修复：如果有 onMountTrip 回调，调用它（可能包含刷新逻辑，但不应该显示消息）
+            if (onMountTrip) {
+              try {
+                await onMountTrip(tripId);
+              } catch (callbackError) {
+                // 回调失败不影响主流程，只记录错误
+                console.error('onMountTrip callback failed:', callbackError);
+              }
             }
+            
+            // 2025-11-30 06:45:00 修复：只在这里显示一次成功消息
+            message.success('运单已成功挂载到行程');
           } catch (error: any) {
             console.error('Failed to mount shipment to trip:', error);
-            message.error(error.response?.data?.error?.message || '挂载失败');
+            // 2025-11-30 06:45:00 修复：只显示一次错误消息
+            const errorMsg = error.response?.data?.error?.message || error.message || '挂载失败';
+            message.error(errorMsg);
           }
         }}
         onCancel={() => setIsMountModalVisible(false)}

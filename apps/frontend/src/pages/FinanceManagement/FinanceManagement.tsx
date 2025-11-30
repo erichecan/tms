@@ -48,7 +48,8 @@ const { RangePicker } = DatePicker;
 
 const FinanceManagement: React.FC = () => {
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
-  const { customers, allDrivers: drivers } = useDataContext();
+  // 2025-11-30 01:50:00 修复：统一使用 DataContext 获取所有数据
+  const { customers, allDrivers: drivers, allVehicles: vehicles } = useDataContext();
   
   const [loading, setLoading] = useState(false);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([]);
@@ -59,7 +60,6 @@ const FinanceManagement: React.FC = () => {
   // 2025-11-29T11:25:04Z 整合成本核算功能
   const [vehicleCosts, setVehicleCosts] = useState<any[]>([]);
   const [costCategories, setCostCategories] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
   const [costSummary, setCostSummary] = useState<any>(null);
   const [isCostModalVisible, setIsCostModalVisible] = useState(false);
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
@@ -124,9 +124,7 @@ const FinanceManagement: React.FC = () => {
       const categoriesResponse = await costsApi.getCostCategories({ isActive: true });
       setCostCategories(categoriesResponse.data?.data || []);
       
-      // 加载车辆列表
-      const vehiclesResponse = await vehiclesApi.getVehicles();
-      setVehicles(vehiclesResponse.data?.data || []);
+      // 2025-11-30 01:50:00 修复：车辆数据从 DataContext 获取，不再直接调用 API
     } catch (error: any) {
       message.error('加载成本数据失败: ' + (error.message || '未知错误'));
     } finally {

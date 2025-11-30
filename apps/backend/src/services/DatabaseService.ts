@@ -1108,14 +1108,21 @@ export class DatabaseService {
       throw new Error(`运单号 "${shipment.shipmentNumber}" 在同一租户内已存在`);
     }
 
+    // 2025-11-30 02:00:00 修复：提取发货人和收货人信息，保存到独立字段以支持BOL显示
+    const pickupAddr = shipment.pickupAddress as any;
+    const deliveryAddr = shipment.deliveryAddress as any;
+    const shipmentAny = shipment as any;
+    
     const query = `
       INSERT INTO shipments (
         tenant_id, shipment_number, customer_id, driver_id, 
         pickup_address, delivery_address, cargo_info, 
         estimated_cost, actual_cost, additional_fees, 
-        applied_rules, status, timeline
+        applied_rules, status, timeline,
+        shipper_name, shipper_phone, shipper_addr_line1, shipper_city, shipper_province, shipper_postal_code, shipper_country,
+        receiver_name, receiver_phone, receiver_addr_line1, receiver_city, receiver_province, receiver_postal_code, receiver_country
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
       RETURNING *
     `;
     
@@ -1132,7 +1139,23 @@ export class DatabaseService {
       JSON.stringify(shipment.additionalFees || []),
       JSON.stringify(shipment.appliedRules || []),
       shipment.status,
-      JSON.stringify(shipment.timeline || {})
+      JSON.stringify(shipment.timeline || {}),
+      // 发货人信息
+      shipmentAny.shipperName || shipmentAny.shipper?.name || null,
+      shipmentAny.shipperPhone || shipmentAny.shipper?.phone || null,
+      pickupAddr?.addressLine1 || pickupAddr?.street || null,
+      pickupAddr?.city || null,
+      pickupAddr?.province || pickupAddr?.state || null,
+      pickupAddr?.postalCode || null,
+      pickupAddr?.country || null,
+      // 收货人信息
+      shipmentAny.receiverName || shipmentAny.receiver?.name || null,
+      shipmentAny.receiverPhone || shipmentAny.receiver?.phone || null,
+      deliveryAddr?.addressLine1 || deliveryAddr?.street || null,
+      deliveryAddr?.city || null,
+      deliveryAddr?.province || deliveryAddr?.state || null,
+      deliveryAddr?.postalCode || null,
+      deliveryAddr?.country || null,
     ]);
     
     return this.mapShipmentFromDb(result[0]);
@@ -1734,10 +1757,20 @@ export class DatabaseService {
       paramIndex++;
     }
     
+    // 2025-11-30 02:35:00 修复：支持状态数组过滤（用于查询多个状态的行程）
     if (filters?.status) {
-      whereClause += whereClause ? ` AND status = $${paramIndex}` : ` WHERE status = $${paramIndex}`;
-      queryParams.push(filters.status);
-      paramIndex++;
+      if (Array.isArray(filters.status) && filters.status.length > 0) {
+        // 状态数组：使用 IN 查询
+        const statusPlaceholders = filters.status.map((_: any, idx: number) => `$${paramIndex + idx}`).join(', ');
+        whereClause += whereClause ? ` AND status IN (${statusPlaceholders})` : ` WHERE status IN (${statusPlaceholders})`;
+        queryParams.push(...filters.status);
+        paramIndex += filters.status.length;
+      } else if (typeof filters.status === 'string') {
+        // 单个状态值
+        whereClause += whereClause ? ` AND status = $${paramIndex}` : ` WHERE status = $${paramIndex}`;
+        queryParams.push(filters.status);
+        paramIndex++;
+      }
     }
     
     if (filters?.driverId) {
@@ -1967,13 +2000,13 @@ export class DatabaseService {
   }
 
   private mapShipmentFromDb(row: any): Shipment {
-    return {
+    // 2025-11-30 02:05:00 修复：映射发货人和收货人信息，支持BOL显示
+    const shipment: any = {
       id: row.id,
       tenantId: row.tenant_id,
       shipmentNumber: row.shipment_number,
       customerId: row.customer_id,
       driverId: row.driver_id,
-      // 2025-10-29 10:25:30 返回车辆ID
       vehicleId: row.vehicle_id,
       pickupAddress: row.pickup_address || {},
       deliveryAddress: row.delivery_address || {},
@@ -1985,8 +2018,31 @@ export class DatabaseService {
       status: row.status,
       timeline: row.timeline || {},
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      // 发货人信息（优先使用独立字段，如果没有则从JSON字段中提取）
+      shipperName: row.shipper_name || (row.pickup_address as any)?.name || null,
+      shipperPhone: row.shipper_phone || (row.pickup_address as any)?.phone || null,
+      shipperAddress: row.shipper_name ? {
+        addressLine1: row.shipper_addr_line1 || (row.pickup_address as any)?.addressLine1 || (row.pickup_address as any)?.street || '',
+        city: row.shipper_city || (row.pickup_address as any)?.city || '',
+        province: row.shipper_province || (row.pickup_address as any)?.province || (row.pickup_address as any)?.state || '',
+        postalCode: row.shipper_postal_code || (row.pickup_address as any)?.postalCode || '',
+        country: row.shipper_country || (row.pickup_address as any)?.country || '',
+        isResidential: (row.pickup_address as any)?.isResidential || false
+      } : null,
+      // 收货人信息（优先使用独立字段，如果没有则从JSON字段中提取）
+      receiverName: row.receiver_name || (row.delivery_address as any)?.name || null,
+      receiverPhone: row.receiver_phone || (row.delivery_address as any)?.phone || null,
+      receiverAddress: row.receiver_name ? {
+        addressLine1: row.receiver_addr_line1 || (row.delivery_address as any)?.addressLine1 || (row.delivery_address as any)?.street || '',
+        city: row.receiver_city || (row.delivery_address as any)?.city || '',
+        province: row.receiver_province || (row.delivery_address as any)?.province || (row.delivery_address as any)?.state || '',
+        postalCode: row.receiver_postal_code || (row.delivery_address as any)?.postalCode || '',
+        country: row.receiver_country || (row.delivery_address as any)?.country || '',
+        isResidential: (row.delivery_address as any)?.isResidential || false
+      } : null,
     };
+    return shipment as Shipment;
   }
 
   private mapFinancialRecordFromDb(row: any): FinancialRecord {

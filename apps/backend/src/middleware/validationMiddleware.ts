@@ -503,7 +503,10 @@ export const customerUpdateSchema = Joi.object({
  */
 export const driverCreateSchema = Joi.object({
   name: Joi.string().min(1).max(255).required(),
-  phone: Joi.string().pattern(/^1[3-9]\d{9}$/).required(),
+  // 2025-11-30 06:15:00 修复：加拿大手机号格式验证（10位数字，第一位和第四位不能是0或1）
+  phone: Joi.string().pattern(/^[2-9]\d{2}[2-9]\d{2}\d{4}$/).required().messages({
+    'string.pattern.base': '手机号必须是有效的加拿大手机号格式（10位数字，格式：XXX-XXX-XXXX）'
+  }),
   licenseNumber: Joi.string().max(50).required(),
   vehicleInfo: Joi.object({
     type: Joi.string().valid('van', 'truck', 'trailer', 'refrigerated').required(),
@@ -523,7 +526,10 @@ export const driverCreateSchema = Joi.object({
  */
 export const driverUpdateSchema = Joi.object({
   name: Joi.string().min(1).max(255).optional(),
-  phone: Joi.string().pattern(/^1[3-9]\d{9}$/).optional(),
+  // 2025-11-30 06:15:00 修复：加拿大手机号格式验证
+  phone: Joi.string().pattern(/^[2-9]\d{2}[2-9]\d{2}\d{4}$/).optional().messages({
+    'string.pattern.base': '手机号必须是有效的加拿大手机号格式（10位数字，格式：XXX-XXX-XXXX）'
+  }),
   licenseNumber: Joi.string().max(50).optional(),
   vehicleInfo: Joi.object({
     type: Joi.string().valid('van', 'truck', 'trailer', 'refrigerated').optional(),

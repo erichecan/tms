@@ -87,10 +87,11 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
       <div className="bol-section">
         <div className="section-title">SHIPPER INFORMATION</div>
         <div className="shipper-info">
-          <div>Shipper Name (FROM): {shipment.shipperName || 'N/A'}</div>
-          <div>Street Address: {shipment.shipperAddress?.addressLine1 || 'N/A'}</div>
-          <div>City/Town: {shipment.shipperAddress?.city} Province/State: {shipment.shipperAddress?.province}</div>
-          <div>Postal/Zip Code: {shipment.shipperAddress?.postalCode} Phone #: {shipment.shipperPhone || 'N/A'}</div>
+          {/* 2025-11-30 02:20:00 修复：优先使用保存的字段，确保与创建运单时的数据一致 */}
+          <div>Shipper Name (FROM): {(shipment as any).shipperName || (shipment as any).shipper?.name || (shipment as any).customerName || 'N/A'}</div>
+          <div>Street Address: {(shipment as any).shipperAddress?.addressLine1 || (shipment as any).pickupAddress?.addressLine1 || (shipment as any).pickupAddress?.street || 'N/A'}</div>
+          <div>City/Town: {(shipment as any).shipperAddress?.city || (shipment as any).pickupAddress?.city} Province/State: {(shipment as any).shipperAddress?.province || (shipment as any).pickupAddress?.province || (shipment as any).pickupAddress?.state}</div>
+          <div>Postal/Zip Code: {(shipment as any).shipperAddress?.postalCode || (shipment as any).pickupAddress?.postalCode} Phone #: {(shipment as any).shipperPhone || (shipment as any).shipper?.phone || 'N/A'}</div>
         </div>
       </div>
 
@@ -98,10 +99,11 @@ const BOLDocument: React.FC<BOLDocumentProps> = ({ shipment, showPrintButton = t
       <div className="bol-section">
         <div className="section-title">CONSIGNEE INFORMATION</div>
         <div className="consignee-info">
-          <div>Consignee Name (TO): {shipment.receiverName || 'N/A'}</div>
-          <div>Street Address: {shipment.receiverAddress?.addressLine1 || 'N/A'}</div>
-          <div>City/Town: {shipment.receiverAddress?.city} Province/State: {shipment.receiverAddress?.province}</div>
-          <div>Postal/Zip Code: {shipment.receiverAddress?.postalCode} Phone #: {shipment.receiverPhone || 'N/A'}</div>
+          {/* 2025-11-30 02:20:00 修复：优先使用保存的字段，确保与创建运单时的数据一致 */}
+          <div>Consignee Name (TO): {(shipment as any).receiverName || (shipment as any).receiver?.name || 'N/A'}</div>
+          <div>Street Address: {(shipment as any).receiverAddress?.addressLine1 || (shipment as any).deliveryAddress?.addressLine1 || (shipment as any).deliveryAddress?.street || 'N/A'}</div>
+          <div>City/Town: {(shipment as any).receiverAddress?.city || (shipment as any).deliveryAddress?.city} Province/State: {(shipment as any).receiverAddress?.province || (shipment as any).deliveryAddress?.province || (shipment as any).deliveryAddress?.state}</div>
+          <div>Postal/Zip Code: {(shipment as any).receiverAddress?.postalCode || (shipment as any).deliveryAddress?.postalCode} Phone #: {(shipment as any).receiverPhone || (shipment as any).receiver?.phone || 'N/A'}</div>
         </div>
       </div>
 

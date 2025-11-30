@@ -117,9 +117,138 @@ export class MvpShipmentController {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
         return;
       }
-      // TODO: 关联 timeline 与 pod 列表（后续阶段补齐） // 2025-09-23 10:15:00
+      // 2025-11-30 00:15:00 修复：返回空的 timeline 和 pods，由前端分别调用专门的端点
       res.json({ success: true, data: shipment, timeline: [], pods: [] });
     } catch (e: any) {
+      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+    }
+  }
+
+  // 2025-11-30 00:15:00 新增：获取运单时间线
+  async getShipmentTimeline(req: Request, res: Response) {
+    try {
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+        });
+        return;
+      }
+
+      const shipmentId = req.params.id;
+      
+      // 验证运单属于当前租户
+      const shipment = await this.db.getShipment(tenantId, shipmentId);
+      if (!shipment) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
+        return;
+      }
+      
+      // 2025-11-30 06:30:00 修复：使用 DatabaseService 的正确方法查询时间线事件
+      // 查询 timeline_events 表（通过 shipment_id 关联，间接保证租户隔离）
+      let result: any[] = [];
+      try {
+        result = await this.db.query(
+          `SELECT 
+            te.id,
+            te.event_type,
+            te.from_status,
+            te.to_status,
+            te.actor_type,
+            te.actor_id,
+            te.timestamp,
+            te.extra,
+            te.created_at
+          FROM timeline_events te
+          INNER JOIN shipments s ON s.id = te.shipment_id
+          WHERE te.shipment_id = $1 AND s.tenant_id = $2
+          ORDER BY te.timestamp DESC, te.created_at DESC`,
+          [shipmentId, tenantId]
+        );
+      } catch (queryError: any) {
+        // 2025-11-30 06:30:00 修复：如果查询失败（可能是表不存在），返回空数组
+        console.error('Error querying timeline_events:', queryError);
+        // 如果表不存在，返回空数组而不是抛出错误
+        if (queryError.code === '42P01') {
+          // 表不存在，返回空数组
+          result = [];
+        } else {
+          // 其他错误，重新抛出
+          throw queryError;
+        }
+      }
+
+      res.json({
+        success: true,
+        data: result.map((row: any) => ({
+          id: row.id,
+          eventType: row.event_type,
+          fromStatus: row.from_status,
+          toStatus: row.to_status,
+          actorType: row.actor_type,
+          actorId: row.actor_id,
+          timestamp: row.timestamp,
+          extra: row.extra || {},
+          createdAt: row.created_at,
+        })),
+      });
+    } catch (e: any) {
+      console.error('Error fetching shipment timeline:', e);
+      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+    }
+  }
+
+  // 2025-11-30 00:15:00 新增：获取运单POD列表
+  async getShipmentPODs(req: Request, res: Response) {
+    try {
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+        });
+        return;
+      }
+
+      const shipmentId = req.params.id;
+      
+      // 验证运单属于当前租户
+      const shipment = await this.db.getShipment(tenantId, shipmentId);
+      if (!shipment) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
+        return;
+      }
+      
+      // 查询 proof_of_delivery 表（通过 shipment_id 关联，间接保证租户隔离）
+      const result = await this.db.query(
+        `SELECT 
+          pod.id,
+          pod.shipment_id,
+          pod.file_path,
+          pod.uploaded_at,
+          pod.uploaded_by,
+          pod.note
+        FROM proof_of_delivery pod
+        INNER JOIN shipments s ON s.id = pod.shipment_id
+        WHERE pod.shipment_id = $1 AND s.tenant_id = $2
+        ORDER BY pod.uploaded_at DESC`,
+        [shipmentId, tenantId]
+      );
+
+      res.json({
+        success: true,
+        data: result.map((row: any) => ({
+          id: row.id,
+          shipmentId: row.shipment_id,
+          filePath: row.file_path,
+          uploadedAt: row.uploaded_at,
+          uploadedBy: row.uploaded_by,
+          note: row.note,
+        })),
+      });
+    } catch (e: any) {
+      console.error('Error fetching shipment PODs:', e);
       res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
     }
   }

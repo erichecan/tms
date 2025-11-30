@@ -6,8 +6,8 @@ import {
   DeleteOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-  PlusOutlined,
-  UserAddOutlined
+  PlusOutlined
+  // 2025-11-30 01:00:00 移除：UserAddOutlined 不再需要（已移除人形图标按钮）
 } from '@ant-design/icons';
 import { shipmentsApi, tripsApi } from '../../services/api';
 import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
@@ -123,7 +123,21 @@ const ShipmentManagement: React.FC = () => {
       shipmentNumber: anyS.shipmentNumber || anyS.shipment_no || anyS.id,
       pickupAddress: anyS.pickupAddress || anyS.pickup_address,
       deliveryAddress: anyS.deliveryAddress || anyS.delivery_address,
-      cargoInfo: anyS.cargoInfo || anyS.cargo_info,
+      // 2025-11-30 00:35:00 修复：确保 cargoInfo 被正确解析（可能是 JSON 字符串）
+      cargoInfo: (() => {
+        try {
+          if (anyS.cargoInfo) {
+            return typeof anyS.cargoInfo === 'string' ? JSON.parse(anyS.cargoInfo) : anyS.cargoInfo;
+          }
+          if (anyS.cargo_info) {
+            return typeof anyS.cargo_info === 'string' ? JSON.parse(anyS.cargo_info) : anyS.cargo_info;
+          }
+          return null;
+        } catch (e) {
+          console.warn('Failed to parse cargoInfo:', e);
+          return anyS.cargoInfo || anyS.cargo_info || null;
+        }
+      })(),
       driverId: anyS.driverId || anyS.driver_id,
       actualCost: anyS.actualCost || anyS.actual_cost,
       additionalFees: anyS.additionalFees || anyS.additional_fees || [],
@@ -466,9 +480,9 @@ const ShipmentManagement: React.FC = () => {
   const handleAssignDriver = async (shipment: Shipment) => { // 2025-10-02 15:12:30 改为加载行程后再打开弹窗（指派车辆/行程）
     setAssigningShipment(shipment);
     try {
-      // 2025-10-02 15:12:30 加载在途或规划中的行程，供挂载
-      const res = await tripsApi.getTrips({ status: ['planning', 'ongoing'] });
-      setAvailableTrips(res.data.data || []);
+      // 2025-11-30 02:50:00 修复：使用逗号分隔的状态值，后端会解析为数组
+      const res = await tripsApi.getTrips({ status: 'planning,ongoing' });
+      setAvailableTrips(res.data?.data || []);
       setSelectedTripId(null);
     } catch (e) {
       console.error('加载行程失败', e); // 2025-10-02 15:12:30
@@ -643,19 +657,10 @@ const ShipmentManagement: React.FC = () => {
       key: 'action',
       render: (_: unknown, record: Shipment) => (
         <Space size="small">
-          <Tooltip title="编辑运单">
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleView(record)} />
+          <Tooltip title="查看详情">
+            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)} />
           </Tooltip>
-          {!record.tripNo && (
-            <Tooltip title="指派车辆/行程">
-              <Button
-                type="text"
-                size="small"
-                icon={<UserAddOutlined />}
-                onClick={() => handleAssignDriver(record)}
-              />
-            </Tooltip>
-          )}
+          {/* 2025-11-30 01:00:00 移除：人形图标按钮（用户要求移除） */}
           <Tooltip title="删除">
             <Button 
               type="text" 

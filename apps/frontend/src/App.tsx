@@ -8,6 +8,7 @@ import Home from './pages/Home/Home';
 import TestPage from './pages/Test/TestPage';
 import Dashboard from './pages/Dashboard/Dashboard';
 import RuleManagement from './pages/RuleManagement/RuleManagement';
+import RuleGuidePage from './pages/RuleGuide/RuleGuidePage'; // 2025-11-30 07:30:00 新增：规则创建教程页面
 import ShipmentManagement from './pages/ShipmentManagement/ShipmentManagement';
 import ShipmentCreate from './pages/ShipmentCreate/ShipmentCreate';
 import FinanceManagement from './pages/FinanceManagement/FinanceManagement';
@@ -82,6 +83,7 @@ function App() {
             
             <Route path="/admin" element={<ProtectedRoute><PageLayout><Dashboard /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/rules" element={<ProtectedRoute><PageLayout><RuleManagement /></PageLayout></ProtectedRoute>} />
+            <Route path="/rules/guide" element={<ProtectedRoute><PageLayout><RuleGuidePage /></PageLayout></ProtectedRoute>} /> {/* 2025-11-30 07:30:00 新增：规则创建教程页面 */}
             <Route path="/admin/shipments" element={<ProtectedRoute><PageLayout><ShipmentManagement /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/shipments/create" element={<ProtectedRoute><PageLayout><ShipmentCreate /></PageLayout></ProtectedRoute>} />
             <Route path="/admin/finance" element={<ProtectedRoute><PageLayout><FinanceManagementSimplified /></PageLayout></ProtectedRoute>} />

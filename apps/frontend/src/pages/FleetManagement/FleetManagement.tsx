@@ -33,8 +33,9 @@ import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00
 import { driversApi, vehiclesApi, tripsApi, locationApi } from '../../services/api'; // 2025-11-11T15:25:48Z Added by Assistant: Real-time location API
 import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-11-11 10:20:05 启用地图组件展示实时位置
 import { formatDateTime } from '../../utils/timeUtils';
-import DriverPerformance from '../../components/DriverPerformance/DriverPerformance';
-import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
+import DriverPayroll from '../../components/DriverPerformance/DriverPerformance'; // 2025-11-30 06:55:00 修复：组件实际导出的是 DriverPayroll
+// 2025-11-30 03:15:00 移除：车辆维护组件（根据计划要求）
+// import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
 import ScheduleManagement from '../../components/ScheduleManagement/ScheduleManagement'; // 2025-11-29T11:25:04Z 排班管理组件
 
 const { Title, Text } = Typography;
@@ -521,72 +522,10 @@ const FleetManagement: React.FC = () => {
                       </Row>
                     </Card>
                   </Col>
-                  
-                  <Col span={10}>
-                    <Card
-                      title="车队实时位置"
-                      extra={
-                        <Space size="small">
-                          <Tag color="blue">追踪车辆 {trackedVehicleCount}</Tag>
-                          <Tag color="green">在途 {activeTripCount}</Tag>
-                          <Tag color="default">空闲 {idleVehicleCount}</Tag>
-                          <Button size="small" onClick={handleManualLocationRefresh} loading={locationLoading}>
-                            手动刷新
-                          </Button>
-                        </Space>
-                      }
-                    >
-                      {locationError && (
-                        <Alert
-                          type="warning"
-                          message={locationError}
-                          showIcon
-                          closable
-                          style={{ marginBottom: 16 }}
-                        />
-                      )}
-                      <Table<RealTimeLocation>
-                        columns={realTimeColumns}
-                        dataSource={realTimeLocations}
-                        rowKey="key"
-                        pagination={false}
-                        size="small"
-                        loading={locationLoading}
-                        locale={{
-                          emptyText: locationLoading ? '正在加载实时位置…' : '暂无实时位置数据'
-                        }}
-                        footer={() => (
-                          <Space size="small">
-                            <EnvironmentOutlined />
-                            <Text type="secondary">
-                              最近同步时间：{lastLocationSync ? formatDateTime(lastLocationSync.toISOString()) : '尚未同步'}
-                            </Text>
-                          </Space>
-                        )}
-                      />
-                      <div style={{ marginTop: 16 }}>
-                        <GoogleMap
-                          height="220px"
-                          center={mapCenter}
-                          zoom={mapMarkers.length > 0 ? 11 : 3}
-                          markers={mapMarkers}
-                          onMarkerClick={handleMarkerClick}
-                        />
-                        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-                          {mapMarkers.length > 0
-                            ? '点击地图标记查看车辆详情，定位信息每 15 秒自动刷新。'
-                            : '暂无定位数据，等待车辆设备上报。'}
-                        </Text>
-                        {selectedLocation && (
-                          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                            当前选中：{selectedLocation.plateNumber || selectedLocation.driverName || selectedLocation.key}（
-                            {selectedLocation.vehicleStatus || selectedLocation.driverStatus || '状态未知'}）
-                          </Text>
-                        )}
-                      </div>
-                    </Card>
-                  </Col>
                 </Row>
+                
+                {/* 2025-11-30 03:10:00 移除：车队实时位置板块，统一使用 Google 地图显示 */}
+                {/* 地图显示已整合到其他位置，此处移除实时位置表格 */}
 
                 <div style={{ marginTop: 24, textAlign: 'center' }}>
                   <Button 
@@ -615,29 +554,30 @@ const FleetManagement: React.FC = () => {
                 <Card>
                   <Title level={4}>💰 司机薪酬管理</Title>
                   <Text type="secondary">管理司机工资发放、薪酬计算和支付记录</Text>
-                  <DriverPerformance />
+                  <DriverPayroll /> {/* 2025-11-30 06:55:00 修复：使用正确的组件名 */}
                 </Card>
               </div>
             )
           },
-          {
-            key: "maintenance",
-            label: (
-              <span>
-                <ToolOutlined />
-                车辆维护
-              </span>
-            ),
-            children: (
-              <div style={{ padding: '16px 0' }}>
-                <Card>
-                  <Title level={4}>🔧 车辆维护记录</Title>
-                  <Text type="secondary">管理车辆维护记录，跟踪车辆状态和保养计划</Text>
-                  <VehicleMaintenance />
-                </Card>
-              </div>
-            )
-          },
+          // 2025-11-30 03:15:00 移除：车辆维护 Tab（根据计划要求）
+          // {
+          //   key: "maintenance",
+          //   label: (
+          //     <span>
+          //       <ToolOutlined />
+          //       车辆维护
+          //     </span>
+          //   ),
+          //   children: (
+          //     <div style={{ padding: '16px 0' }}>
+          //       <Card>
+          //         <Title level={4}>🔧 车辆维护记录</Title>
+          //         <Text type="secondary">管理车辆维护记录，跟踪车辆状态和保养计划</Text>
+          //         <VehicleMaintenance />
+          //       </Card>
+          //     </div>
+          //   )
+          // },
           {
             key: "schedule",
             label: (

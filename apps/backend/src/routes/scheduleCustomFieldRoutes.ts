@@ -19,7 +19,17 @@ router.use(tenantMiddleware);
 // GET /api/schedules/custom-fields - 获取所有自定义字段定义
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.user!.tenantId;
+    // 2025-11-30 06:55:00 修复：使用 req.tenant?.id 而不是 req.user!.tenantId
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    }
+
     const activeOnly = req.query.activeOnly === 'true';
 
     const fields = await fieldService.getFieldDefinitions(tenantId, activeOnly);
@@ -32,6 +42,16 @@ router.get('/', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('Get schedule custom field definitions error:', error);
+    // 2025-11-30 06:55:00 修复：如果表不存在，返回空数组而不是500错误
+    if (error.code === '42P01') { // relation does not exist
+      logger.warn('Table schedule_custom_field_definitions might not exist. Returning empty array.');
+      return res.json({
+        success: true,
+        data: [],
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
+      });
+    }
     res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: error.message },

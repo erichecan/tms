@@ -132,7 +132,8 @@ export class ShipmentController {
         ? requestedInitialStatus
         : (isDraft ? ShipmentStatus.DRAFT : ShipmentStatus.PENDING_CONFIRMATION); // 2025-11-11 14:36:40
 
-      const shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {
+      // 2025-11-30 02:10:00 修复：提取发货人和收货人信息，确保BOL显示完整数据
+      const shipmentData: any = {
         shipmentNumber: body.shipmentNumber || `TMS${Date.now()}`,
         customerId: customerId,
         pickupAddress: {
@@ -149,6 +150,14 @@ export class ShipmentController {
           postalCode: body.receiver.address.postalCode,
           country: body.receiver.address.country,
         },
+        // 发货人信息（用于BOL显示）
+        shipperName: body.shipper?.name || body.shipperName || null,
+        shipperPhone: body.shipper?.phone || body.shipperPhone || null,
+        shipper: body.shipper || null,
+        // 收货人信息（用于BOL显示）
+        receiverName: body.receiver?.name || body.receiverName || null,
+        receiverPhone: body.receiver?.phone || body.receiverPhone || null,
+        receiver: body.receiver || null,
         cargoInfo: (() => {
           // 2025-11-29T22:05:00 修复：支持多行货物数据（cargoItems）
           if (body.cargoItems && Array.isArray(body.cargoItems) && body.cargoItems.length > 0) {

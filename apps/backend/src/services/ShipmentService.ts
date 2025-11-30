@@ -192,7 +192,8 @@ export class ShipmentService {
     try {
       // 检查司机是否可用
       const driver = await this.dbService.getDriver(tenantId, assignment.driverId);
-      if (!driver || !['active', 'available'].includes(driver.status)) { // 2025-10-31 09:20:00 修复：支持两种可用状态
+      // 2025-11-30 06:30:00 修复：使用正确的司机状态值（'available' 而不是 'active'）
+      if (!driver || driver.status !== 'available') {
         throw new Error('Driver not available');
       }
 

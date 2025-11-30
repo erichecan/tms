@@ -9,36 +9,42 @@ export interface BOLTemplateOptions {
 }
 
 export function generateBOLHtml(shipment: unknown, opts: BOLTemplateOptions = {}): string {
-  // 统一字段读取：优先使用后端结构的 pickupAddress/deliveryAddress // 2025-10-06 00:25:40
+  // 2025-11-30 02:15:00 修复：优先使用保存的字段，确保BOL数据与创建运单时的数据一致
   const sx = (v?: string) => v || '';
-  const pickup = shipment.pickupAddress || {};
-  const delivery = shipment.deliveryAddress || {};
+  const anyShipment = shipment as any;
+  const pickup = anyShipment.pickupAddress || {};
+  const delivery = anyShipment.deliveryAddress || {};
 
-  const shipper = shipment.shipper || {
-    name: shipment.customerName || shipment.customer?.name || '',
-    companyId: shipment.customer?.id || '',
+  // 优先使用保存的字段（shipperName, shipperPhone等），如果没有则从shipper对象或地址中提取
+  const shipper = anyShipment.shipper || {
+    name: anyShipment.shipperName || anyShipment.customerName || anyShipment.customer?.name || '',
+    phone: anyShipment.shipperPhone || anyShipment.shipper?.phone || '',
+    companyId: anyShipment.customer?.id || '',
     address: {
-      addressLine1: pickup.addressLine1 || pickup.street || '',
-      city: pickup.city || '',
-      province: pickup.province || pickup.state || '',
-      postalCode: pickup.postalCode || '',
-      country: pickup.country || ''
+      addressLine1: anyShipment.shipperAddress?.addressLine1 || pickup.addressLine1 || pickup.street || '',
+      city: anyShipment.shipperAddress?.city || pickup.city || '',
+      province: anyShipment.shipperAddress?.province || pickup.province || pickup.state || '',
+      postalCode: anyShipment.shipperAddress?.postalCode || pickup.postalCode || '',
+      country: anyShipment.shipperAddress?.country || pickup.country || ''
     }
   };
 
-  const receiver = shipment.receiver || {
-    name: shipment.receiverName || '',
-    companyId: shipment.receiver?.id || '',
+  // 优先使用保存的字段（receiverName, receiverPhone等）
+  const receiver = anyShipment.receiver || {
+    name: anyShipment.receiverName || '',
+    phone: anyShipment.receiverPhone || anyShipment.receiver?.phone || '',
+    companyId: anyShipment.receiver?.id || '',
     address: {
-      addressLine1: delivery.addressLine1 || delivery.street || '',
-      city: delivery.city || '',
-      province: delivery.province || delivery.state || '',
-      postalCode: delivery.postalCode || '',
-      country: delivery.country || ''
+      addressLine1: anyShipment.receiverAddress?.addressLine1 || delivery.addressLine1 || delivery.street || '',
+      city: anyShipment.receiverAddress?.city || delivery.city || '',
+      province: anyShipment.receiverAddress?.province || delivery.province || delivery.state || '',
+      postalCode: anyShipment.receiverAddress?.postalCode || delivery.postalCode || '',
+      country: anyShipment.receiverAddress?.country || delivery.country || ''
     }
   };
 
-  const shipperAddr = shipment.shipperAddress || shipper.address || {
+  // 优先使用保存的shipperAddress和receiverAddress，如果没有则从shipper/receiver对象中提取
+  const shipperAddr = anyShipment.shipperAddress || shipper.address || {
     addressLine1: pickup.addressLine1 || pickup.street || '',
     city: pickup.city || '',
     province: pickup.province || pickup.state || '',
@@ -46,7 +52,7 @@ export function generateBOLHtml(shipment: unknown, opts: BOLTemplateOptions = {}
     country: pickup.country || ''
   };
 
-  const receiverAddr = shipment.receiverAddress || receiver.address || {
+  const receiverAddr = anyShipment.receiverAddress || receiver.address || {
     addressLine1: delivery.addressLine1 || delivery.street || '',
     city: delivery.city || '',
     province: delivery.province || delivery.state || '',
@@ -282,10 +288,13 @@ export function generateBOLHtml(shipment: unknown, opts: BOLTemplateOptions = {}
         <h1>Bill of Lading</h1>
         <div style="margin-top: 16px;">
           <p>Ship From:</p>
-          <p><textarea rows="2" class="fullWidth"><!-- ${sx(shipperAddr.addressLine1)} ${sx(shipperAddr.addressLine2)} --></textarea></p>
+          <p><textarea rows="2" class="fullWidth">${sx(shipper.name)}${shipper.name ? '\n' : ''}${sx(shipperAddr.addressLine1)}${shipperAddr.addressLine2 ? ' ' + sx(shipperAddr.addressLine2) : ''}${shipperAddr.city ? '\n' + sx(shipperAddr.city) : ''}${shipperAddr.province ? ', ' + sx(shipperAddr.province) : ''}${shipperAddr.postalCode ? ' ' + sx(shipperAddr.postalCode) : ''}${shipperAddr.country ? '\n' + sx(shipperAddr.country) : ''}</textarea></p>
           <div style="border:none;float:left;width:300px">
             <span>SID#: </span><input type="text" value="${sx(shipper.companyId)}">
           </div>
+          ${shipper.phone ? `<div style="border:none;float:left;">
+            <span>Phone: </span><input type="text" value="${sx(shipper.phone)}">
+          </div>` : ''}
           <div style="border:none;float:left;">
             <input type="checkbox" ${shipper.isFOB ? 'checked' : ''}><span> FOB</span>
           </div>
@@ -300,10 +309,13 @@ export function generateBOLHtml(shipment: unknown, opts: BOLTemplateOptions = {}
             <span>Location No:</span><input type="text" size="6" value="${sx(receiver.locationNo)}">
           </div>
           <div style="border:none" class="clear"></div>
-          <p><textarea rows="2" class="fullWidth"><!-- ${sx(receiverAddr.addressLine1)} ${sx(receiverAddr.addressLine2)} --></textarea></p>
+          <p><textarea rows="2" class="fullWidth">${sx(receiver.name)}${receiver.name ? '\n' : ''}${sx(receiverAddr.addressLine1)}${receiverAddr.addressLine2 ? ' ' + sx(receiverAddr.addressLine2) : ''}${receiverAddr.city ? '\n' + sx(receiverAddr.city) : ''}${receiverAddr.province ? ', ' + sx(receiverAddr.province) : ''}${receiverAddr.postalCode ? ' ' + sx(receiverAddr.postalCode) : ''}${receiverAddr.country ? '\n' + sx(receiverAddr.country) : ''}</textarea></p>
           <div style="border:none;float:left;width:300px">
             <span>CID#: </span><input type="text" value="${sx(receiver.companyId)}">
           </div>
+          ${receiver.phone ? `<div style="border:none;float:left;">
+            <span>Phone: </span><input type="text" value="${sx(receiver.phone)}">
+          </div>` : ''}
           <div style="border:none;float:left;">
             <input type="checkbox" ${receiver.isFOB ? 'checked' : ''}><span> FOB</span>
           </div>

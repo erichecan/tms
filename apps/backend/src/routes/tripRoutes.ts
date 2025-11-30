@@ -30,6 +30,23 @@ router.get('/',
   tenantMiddleware,
   async (req, res) => {
     try {
+      // 2025-11-30 02:40:00 修复：支持状态数组（用于查询多个状态的行程）
+      // 处理查询参数：可能是单个状态字符串，也可能是状态数组
+      let statusFilter: string | string[] | undefined = undefined;
+      if (req.query.status) {
+        if (Array.isArray(req.query.status)) {
+          statusFilter = req.query.status as string[];
+        } else {
+          // 检查是否是逗号分隔的多个状态值
+          const statusStr = req.query.status as string;
+          if (statusStr.includes(',')) {
+            statusFilter = statusStr.split(',').map(s => s.trim());
+          } else {
+            statusFilter = statusStr;
+          }
+        }
+      }
+      
       const params: any = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 20,
@@ -37,7 +54,7 @@ router.get('/',
         order: (req.query.order as 'asc' | 'desc') || 'desc',
         search: req.query.search as string,
         filters: {
-          status: req.query.status as string,
+          status: statusFilter,
           driverId: req.query.driver_id as string,
           vehicleId: req.query.vehicle_id as string,
         }

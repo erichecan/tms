@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, rulesApi } from '../../services/api';
-import { useShipments, useDrivers, useCustomers } from '../../hooks'; // 2025-10-31 10:00:00 使用统一的数据管理 Hook
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-30 01:45:00 改为使用 DataContext
 import { formatCurrency } from '../../utils/formatCurrency';
 import PerformanceMonitoring from '../../components/PerformanceMonitoring/PerformanceMonitoring'; // 2025-10-02 18:25:00 整合性能监控功能
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-10-03 21:35:00 添加PageLayout导入
@@ -38,10 +38,9 @@ interface RecentShipment {
 }
 
 const Dashboard: React.FC = () => {
-  // 2025-10-31 10:00:00 使用统一的数据管理 Hooks
-  const { shipments: recentShipments } = useShipments({ limit: 5 });
-  const { drivers } = useDrivers();
-  const { customers } = useCustomers();
+  // 2025-11-30 01:45:00 改为使用 DataContext 统一数据源
+  const { shipments, allDrivers: drivers, customers } = useDataContext();
+  const recentShipments = shipments.slice(0, 5); // 只显示最近5个
   
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({

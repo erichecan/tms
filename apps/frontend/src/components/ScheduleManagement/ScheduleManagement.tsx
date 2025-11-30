@@ -37,8 +37,11 @@ import {
   FilterOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { driversApi } from '../../services/api';
+import { driversApi, tripsApi, shipmentsApi } from '../../services/api'; // 2025-11-30 03:00:00 新增：用于自动读取行程和运单数据
+import { useDataContext } from '../../contexts/DataContext'; // 2025-11-30 03:00:00 新增：使用统一数据源
 import dayjs, { Dayjs } from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween'; // 2025-11-30 06:50:00 修复：导入 isBetween 插件
+dayjs.extend(isBetween); // 2025-11-30 06:50:00 修复：启用 isBetween 插件
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -80,9 +83,10 @@ interface ScheduleManagementProps {
 }
 
 const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ driverId, onScheduleUpdate }) => {
+  // 2025-11-30 03:00:00 修复：使用 DataContext 统一数据源
+  const { allDrivers, allVehicles } = useDataContext();
   const [loading, setLoading] = useState(false);
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
-  const [allDrivers, setAllDrivers] = useState<any[]>([]);
   
   // 自定义字段定义
   const [customFieldDefinitions, setCustomFieldDefinitions] = useState<CustomFieldDefinition[]>([]);
@@ -112,10 +116,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ driverId, onSch
   ]);
 
   useEffect(() => {
-    loadDrivers();
+    // 2025-11-30 03:00:00 修复：移除 loadDrivers，使用 DataContext
     loadCustomFieldDefinitions();
     loadSchedules();
-  }, [driverId, dateRange]);
+  }, [driverId, dateRange, allDrivers.length]); // 依赖 allDrivers.length 确保数据加载后再读取排班
 
   // 初始化可见列
   useEffect(() => {
@@ -187,45 +191,104 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ driverId, onSch
     }
   };
 
+  // 2025-11-30 03:00:00 修复：自动从 trips 和 shipments 读取数据，无需手动创建
   const loadSchedules = async () => {
     setLoading(true);
     try {
       const [start, end] = dateRange;
-      const params: any = {
-        startDate: start.format('YYYY-MM-DD'),
-        endDate: end.format('YYYY-MM-DD'),
-      };
       
-      if (driverId) {
-        const response = await driversApi.getDriverSchedules(driverId, params);
-        const schedulesData = response.data?.data || [];
-        setSchedules(schedulesData.map((s: any) => ({
-          ...s,
-          driverName: allDrivers.find(d => d.id === s.driverId)?.name || '未知司机',
-          customFields: s.customFields || {},
-        })));
-      } else {
-        // 加载所有司机的排班
-        const allSchedules: ScheduleRecord[] = [];
-        for (const driver of allDrivers) {
-          try {
-            const response = await driversApi.getDriverSchedules(driver.id, params);
-            const driverSchedules = response.data?.data || [];
-            driverSchedules.forEach((s: any) => {
-              allSchedules.push({
-                ...s,
-                driverName: driver.name,
-                customFields: s.customFields || {},
-              });
+      // 1. 从 trips 表读取行程数据（包含司机、车辆、运单信息）
+      const tripsResponse = await tripsApi.getTrips({
+        page: 1,
+        limit: 1000, // 获取足够多的行程
+      });
+      const trips = tripsResponse.data?.data || [];
+      
+      // 2. 从 shipments 表读取已指派司机和车辆的运单
+      const shipmentsResponse = await shipmentsApi.getShipments({
+        page: 1,
+        limit: 1000,
+      });
+      const shipments = shipmentsResponse.data?.data || [];
+      
+      // 3. 生成排班记录
+      const generatedSchedules: ScheduleRecord[] = [];
+      
+      // 从行程生成排班（行程包含多个运单）
+      trips.forEach((trip: any) => {
+        const tripStartTime = trip.startTimePlanned || trip.start_time_planned;
+        const tripEndTime = trip.endTimePlanned || trip.end_time_planned;
+        
+        if (tripStartTime && tripEndTime) {
+          const tripDate = dayjs(tripStartTime);
+          if (tripDate.isBetween(start, end, 'day', '[]')) {
+            const driver = allDrivers.find((d: any) => d.id === trip.driverId);
+            const vehicle = allVehicles.find((v: any) => v.id === trip.vehicleId);
+            
+            generatedSchedules.push({
+              id: `trip-${trip.id}`,
+              driverId: trip.driverId || '',
+              driverName: driver?.name || '未知司机',
+              scheduleDate: tripDate.format('YYYY-MM-DD'),
+              shiftType: '行程',
+              startTime: dayjs(tripStartTime).format('HH:mm'),
+              endTime: dayjs(tripEndTime).format('HH:mm'),
+              plannedHours: dayjs(tripEndTime).diff(dayjs(tripStartTime), 'hour', true),
+              status: trip.status === 'completed' ? 'completed' : trip.status === 'ongoing' ? 'in_progress' : 'planned',
+              customFields: {
+                tripNo: trip.tripNo || trip.trip_no,
+                vehiclePlate: vehicle?.plateNumber || '未知车辆',
+                shipmentCount: Array.isArray(trip.shipments) ? trip.shipments.length : 0,
+              },
             });
-          } catch (error) {
-            console.error(`加载司机 ${driver.id} 的排班失败:`, error);
           }
         }
-        setSchedules(allSchedules);
-      }
+      });
+      
+      // 从运单生成排班（已指派但未挂载到行程的运单）
+      shipments.forEach((shipment: any) => {
+        if (shipment.driverId && !shipment.tripId && !shipment.trip_id) {
+          const shipmentDate = dayjs(shipment.createdAt || shipment.created_at);
+          if (shipmentDate.isBetween(start, end, 'day', '[]')) {
+            const driver = allDrivers.find((d: any) => d.id === shipment.driverId);
+            const vehicle = allVehicles.find((v: any) => v.id === shipment.vehicleId || shipment.assignedVehicleId);
+            
+            // 检查是否已从行程中生成过
+            const alreadyExists = generatedSchedules.some(
+              s => s.driverId === shipment.driverId && 
+                   s.scheduleDate === shipmentDate.format('YYYY-MM-DD')
+            );
+            
+            if (!alreadyExists) {
+              generatedSchedules.push({
+                id: `shipment-${shipment.id}`,
+                driverId: shipment.driverId,
+                driverName: driver?.name || '未知司机',
+                scheduleDate: shipmentDate.format('YYYY-MM-DD'),
+                shiftType: '运单',
+                startTime: shipmentDate.format('HH:mm'),
+                endTime: shipmentDate.add(8, 'hour').format('HH:mm'), // 默认8小时
+                plannedHours: 8,
+                status: shipment.status === 'completed' ? 'completed' : shipment.status === 'in_transit' ? 'in_progress' : 'planned',
+                customFields: {
+                  shipmentNumber: shipment.shipmentNumber || shipment.shipment_no,
+                  vehiclePlate: vehicle?.plateNumber || '未知车辆',
+                },
+              });
+            }
+          }
+        }
+      });
+      
+      // 4. 如果指定了 driverId，只显示该司机的排班
+      const filteredSchedules = driverId 
+        ? generatedSchedules.filter(s => s.driverId === driverId)
+        : generatedSchedules;
+      
+      setSchedules(filteredSchedules);
     } catch (error: any) {
-      message.error('加载排班失败: ' + error.message);
+      console.error('加载排班失败:', error);
+      message.error('加载排班失败: ' + (error.message || '未知错误'));
     } finally {
       setLoading(false);
     }

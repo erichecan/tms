@@ -48,6 +48,12 @@ router.post(
 // 运单列表（分页+按status过滤） // 2025-09-23 10:15:00
 router.get('/', controller.listShipments.bind(controller));
 
+// 运单时间线 // 2025-11-30 00:15:00 新增：获取运单时间线事件
+router.get('/:id/timeline', controller.getShipmentTimeline.bind(controller));
+
+// 运单POD列表 // 2025-11-30 00:15:00 新增：获取运单POD列表
+router.get('/:id/pods', controller.getShipmentPODs.bind(controller));
+
 // 运单详情（含 timeline 与 POD 列表） // 2025-09-23 10:15:00
 router.get('/:id', controller.getShipmentDetail.bind(controller));
 
