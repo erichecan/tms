@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, Form, Input, Button, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -9,26 +9,42 @@ const { Title } = Typography;
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, loading, isAuthenticated } = useAuth();
   const [form] = Form.useForm();
+
+  // 2025-11-29T19:30:00 如果已经登录，重定向到目标页面或首页
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+      sessionStorage.removeItem('redirectAfterLogin');
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   const onFinish = async (values: UserLoginPayload) => {
     try {
       await login(values);
       message.success('登录成功！');
-      navigate('/');
+      
+      // 2025-11-29T19:30:00 等待认证状态更新完成
+      // 导航逻辑由 useEffect 处理，会导航到保存的页面或首页
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+      sessionStorage.removeItem('redirectAfterLogin');
+      
+      // 延迟导航，确保状态已更新
+      setTimeout(() => {
+        navigate(redirectPath, { replace: true });
+      }, 100);
     } catch (error: unknown) {
-      // 开发环境下设置临时 token 允许访问 - 2025-10-10 18:12:00
+      // 2025-11-29T19:30:00 移除开发环境的临时 token 逻辑，改为显示真实错误
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      const errorMessage = axiosError.response?.data?.message || '登录失败，请检查用户名和密码';
+      
       if (import.meta.env.DEV) {
-        console.log('[DEV MODE] Login error, setting temporary token for development...');
-        const devToken = 'dev-mode-token-' + Date.now();
-        localStorage.setItem('jwt_token', devToken);
-        message.success('开发环境登录成功！');
-        navigate('/');
-      } else {
-        // 生产环境显示错误 - 2025-10-10 18:12:00
-        message.error(error.response?.data?.message || '登录失败，请检查用户名和密码');
+        console.error('[DEV MODE] Login error:', error);
       }
+      
+      message.error(errorMessage);
     }
   };
 

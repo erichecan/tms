@@ -8,7 +8,7 @@ import {
   GoogleMapsApiConfig,
   MapsApiError,
   CostBreakdown
-} from '@/types/maps';
+} from '../types/maps';
 
 export class MapsApiService {
   private config: GoogleMapsApiConfig;

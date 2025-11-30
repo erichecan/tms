@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@shared-types': path.resolve(__dirname, '../../packages/shared-types/src'),
+      '@tms/shared-types': path.resolve(__dirname, '../../packages/shared-types/dist/index.js'), // 2025-11-29T19:20:00 修复：使用编译后的 dist 文件
     },
   },
     server: {
@@ -16,7 +17,7 @@ export default defineConfig({
       host: true, // 允许外部访问
       proxy: {
         '/api': {
-          target: 'http://localhost:8000',
+          target: process.env.VITE_API_BASE_URL || 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
         },

@@ -14,28 +14,63 @@ import { DatabaseService } from './services/DatabaseService';
 import fs from 'fs';
 import path from 'path';
 
+// 2025-11-29T20:43:00 修复环境变量加载：确保在所有导入之前加载
 // 手动加载.env文件 - 2025-10-03 19:52:00 修复环境变量加载顺序
-const envPath = path.resolve(__dirname, '../../../.env');
+// 优先从项目根目录查找 .env 文件
+const getProjectRoot = (): string => {
+  // 从当前文件位置向上查找，直到找到包含 apps/backend 目录的根目录
+  // 或者找到根目录的 package.json 或 .env 文件
+  let currentDir = __dirname;
+  while (currentDir !== '/') {
+    // 检查是否是项目根目录（包含 apps/backend 和 .env 文件）
+    if (fs.existsSync(path.join(currentDir, '.env')) && fs.existsSync(path.join(currentDir, 'apps'))) {
+      return currentDir;
+    }
+    // 检查是否是项目根目录（包含 package.json 和 apps 目录）
+    if (fs.existsSync(path.join(currentDir, 'package.json')) && fs.existsSync(path.join(currentDir, 'apps'))) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  // 如果找不到，尝试从当前工作目录向上查找
+  let cwd = process.cwd();
+  while (cwd !== '/') {
+    if (fs.existsSync(path.join(cwd, '.env'))) {
+      return cwd;
+    }
+    cwd = path.dirname(cwd);
+  }
+  return process.cwd(); // 如果都找不到，使用当前工作目录
+};
+
+const projectRoot = getProjectRoot();
+const envPath = path.resolve(projectRoot, '.env');
+
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   const envLines = envContent.split('\n');
   
+  let loadedCount = 0;
   for (const line of envLines) {
     if (line.trim() && !line.startsWith('#')) {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length > 0) {
         const value = valueParts.join('=').trim();
-        // 只有在环境变量不存在时才设置，避免被dotenv覆盖
-        if (!process.env[key.trim()]) {
-          process.env[key.trim()] = value;
-        }
+        // 强制设置环境变量，覆盖之前的值
+        process.env[key.trim()] = value;
+        loadedCount++;
       }
     }
   }
-  console.log('Environment variables loaded manually from .env file');
-  console.log('GOOGLE_MAPS_API_KEY loaded:', process.env.GOOGLE_MAPS_API_KEY ? 'YES' : 'NO');
+  console.log(`[2025-11-29T20:40:00] Environment variables loaded from: ${envPath}`);
+  console.log(`[2025-11-29T20:40:00] Loaded ${loadedCount} environment variables`);
+  console.log(`[2025-11-29T20:40:00] DATABASE_URL loaded: ${process.env.DATABASE_URL ? 'YES (length: ' + process.env.DATABASE_URL.length + ')' : 'NO'}`);
+  console.log(`[2025-11-29T20:40:00] PORT: ${process.env.PORT || 'default (8000)'}`);
 } else {
-  console.log('.env file not found at:', envPath);
+  console.warn(`[2025-11-29T20:40:00] .env file not found at: ${envPath}`);
+  console.warn(`[2025-11-29T20:40:00] Current working directory: ${process.cwd()}`);
+  console.warn(`[2025-11-29T20:40:00] Project root: ${projectRoot}`);
+  console.warn(`[2025-11-29T20:40:00] __dirname: ${__dirname}`);
 }
 
 // 导入路由
@@ -73,6 +108,7 @@ import currencyRoutes from './routes/currencyRoutes'; // 车辆列表（MVP） /
 import pricingEngineRoutes from './routes/pricingEngineRoutes';
 import shipmentCompletionRoutes from './routes/shipmentCompletionRoutes';
 import mapsRoutes from './routes/maps'; // Google Maps API路由 // 2025-10-03 10:00:00
+import locationRoutes from './routes/locationRoutes'; // 位置跟踪路由 // 2025-11-29T21:05:00
 import { metricsMiddleware, metricsHandler } from './middleware/metricsMiddleware'; // 2025-11-11T15:28:33Z Added by Assistant: Metrics middleware
 
 // 导入新增的服务
@@ -81,7 +117,12 @@ import { PricingEngineController } from './controllers/PricingEngineController';
 import { PricingFinancialIntegration } from './services/PricingFinancialIntegration';
 import { PricingPermissionService } from './services/PricingPermissionService'; // 计费规则引擎 // 2025-09-29 02:35:00
 
-dotenv.config(); // 2025-11-11T15:57:10Z Added by Assistant: Ensure environment variables are loaded
+// 2025-11-29T20:40:00 再次使用 dotenv.config 加载环境变量，确保所有变量都被加载
+if (envPath) {
+  dotenv.config({ path: envPath, override: false }); // override: false 表示不覆盖已存在的环境变量
+} else {
+  dotenv.config(); // 如果手动加载失败，使用默认路径
+}
 
 // 创建Express应用
 const app = express();
@@ -89,6 +130,21 @@ const PORT = process.env.PORT || 8000;
 
 // 初始化数据库服务
 const dbService = new DatabaseService();
+
+// 测试数据库连接
+(async () => {
+  try {
+    await dbService.query('SELECT 1 as test');
+    logger.info('✅ 数据库连接成功');
+  } catch (error: any) {
+    logger.error('❌ 数据库连接失败:', error.message);
+    logger.error('请检查数据库配置：');
+    logger.error('  - DATABASE_URL 或 DB_HOST/DB_NAME/DB_USER/DB_PASSWORD');
+    logger.error('  - 确保数据库服务正在运行');
+    logger.error('  - 确保数据库已创建并运行了必要的迁移');
+    // 不阻止服务器启动，但会在首次查询时失败
+  }
+})();
 
 // 中间件配置
 // 2025-10-17T15:00:00 - 修复 CORS 配置，使用环境变量
@@ -168,6 +224,7 @@ app.use('/api/carriers', carrierCertificateRoutes); // 承运商证照管理 // 
 app.use('/api/pricing', pricingEngineRoutes); // 计费规则引擎 // 2025-09-29 02:35:00
 app.use('/api/shipments', shipmentCompletionRoutes); // 运单完成和财务生成 // 2025-09-29 03:35:00
 app.use('/api/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
+app.use('/api/location', locationRoutes); // 注册位置跟踪路由 // 2025-11-29T21:05:00
 
 // 404处理
 app.use('*', (req, res) => {

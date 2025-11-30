@@ -1,8 +1,30 @@
 // 临时类型定义文件，用于替代shared-types包
 // 2025-10-31 09:35:00 从 shared-types 导入枚举，确保全系统统一
-import { DriverStatus, VehicleStatus, TripStatus } from '@tms/shared-types';
+// 2025-11-29T19:20:00 修复：由于 Vite 开发模式下的导入问题，直接在前端定义枚举
+// 这些枚举值应该与 packages/shared-types/src/enums.ts 保持一致
 
-export { DriverStatus, VehicleStatus, TripStatus };
+export enum DriverStatus {
+  AVAILABLE = 'available',  // 空闲可用
+  BUSY = 'busy',           // 忙碌中
+  ON_LEAVE = 'on_leave',   // 休假
+  OFFLINE = 'offline',     // 离线
+  INACTIVE = 'inactive'    // 停用
+}
+
+export enum VehicleStatus {
+  AVAILABLE = 'available',  // 可用
+  BUSY = 'busy',           // 使用中
+  MAINTENANCE = 'maintenance', // 维护中
+  OFFLINE = 'offline',     // 离线
+  INACTIVE = 'inactive'    // 停用
+}
+
+export enum TripStatus {
+  PLANNED = 'planned',     // 已计划
+  ONGOING = 'ongoing',     // 进行中
+  COMPLETED = 'completed', // 已完成
+  CANCELLED = 'cancelled'  // 已取消
+}
 
 export interface User {
   id: string;

@@ -2,7 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
 
-const dbService = new DatabaseService();
+// 2025-11-29T21:00:00 延迟初始化 DatabaseService，确保环境变量已加载
+let dbService: DatabaseService | null = null;
+
+const getDbService = () => {
+  if (!dbService) {
+    dbService = new DatabaseService();
+  }
+  return dbService;
+};
 
 type AuditOptions = {
   entityType: string;
@@ -33,7 +41,7 @@ export const auditMiddleware = (options: AuditOptions) => {
 
         const captureResult = options.capture ? options.capture(req, res) : defaultAudit;
 
-        await dbService.recordAuditLog({
+        await getDbService().recordAuditLog({ // 2025-11-29T21:00:00 使用延迟初始化的数据库服务
           tenantId: req.user.tenantId,
           entityType: options.entityType,
           entityId,

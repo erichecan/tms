@@ -21,7 +21,15 @@ declare global {
   }
 }
 
-const dbService = new DatabaseService();
+// 2025-11-29T21:00:00 延迟初始化 DatabaseService，确保环境变量已加载
+let dbService: DatabaseService | null = null;
+
+const getDbService = () => {
+  if (!dbService) {
+    dbService = new DatabaseService();
+  }
+  return dbService;
+};
 
 /**
  * 租户中间件 - 从请求中识别租户
@@ -49,7 +57,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
       const subdomain = extractSubdomain(host);
       
       if (subdomain && subdomain !== 'www' && subdomain !== 'api') {
-        const tenant = await dbService.getTenantByDomain(`${subdomain}.tms-platform.com`);
+        const tenant = await getDbService().getTenantByDomain(`${subdomain}.tms-platform.com`); // 2025-11-29T21:00:00 使用延迟初始化的数据库服务
         if (tenant) {
           tenantId = tenant.id;
         }

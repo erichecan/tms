@@ -65,6 +65,7 @@ export class AuthController {
       // 获取用户信息
       const user = await this.dbService.getUserByEmail(tenant.id, email);
       if (!user) {
+        logger.warn(`Login failed: User not found - tenant: ${tenant.id}, email: ${email}`);
         res.status(401).json({
           success: false,
           error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
@@ -74,8 +75,10 @@ export class AuthController {
         return;
       }
 
-      // 验证密码
+      // 验证密码 // 2025-11-29T18:25:00 添加调试日志
+      logger.info(`Login attempt: ${email}, tenant: ${tenant.id}, user found: ${!!user}`);
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      logger.info(`Password validation result: ${isPasswordValid}`);
       if (!isPasswordValid) {
         res.status(401).json({
           success: false,

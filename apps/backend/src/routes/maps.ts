@@ -1,10 +1,10 @@
 import express from 'express';
-import { getMapsApiService } from '@/services/mapsApiService';
+import { getMapsApiService } from '../services/mapsApiService';
 import { 
   LogisticsRouteRequest, 
   DispatchMatrixRequest,
   MapsApiError 
-} from '@/types/maps';
+} from '../types/maps';
 
 const router = express.Router();
 

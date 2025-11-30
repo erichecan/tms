@@ -149,19 +149,71 @@ export class ShipmentController {
           postalCode: body.receiver.address.postalCode,
           country: body.receiver.address.country,
         },
-        cargoInfo: {
-          description: body.cargoDescription || '',
-          weight: body.cargoWeight,
-          volume: (body.cargoLength || 0) * (body.cargoWidth || 0) * (body.cargoHeight || 0),
-          dimensions: {
-            length: body.cargoLength,
-            width: body.cargoWidth,
-            height: body.cargoHeight
-          },
-          value: body.cargoValue || 0,
-          specialRequirements: body.specialRequirements || [],
-          hazardous: body.cargoIsDangerous || false
-        },
+        cargoInfo: (() => {
+          // 2025-11-29T22:05:00 修复：支持多行货物数据（cargoItems）
+          if (body.cargoItems && Array.isArray(body.cargoItems) && body.cargoItems.length > 0) {
+            // 多行货物模式：计算总重量、总体积等
+            let totalWeight = 0;
+            let totalVolume = 0;
+            let totalValue = 0;
+            let totalQuantity = 0;
+            let maxLength = 0;
+            let maxWidth = 0;
+            let maxHeight = 0;
+            let hasDangerous = false;
+            
+            body.cargoItems.forEach((item: any) => {
+              const quantity = item.quantity || 1;
+              const weight = (item.weight || 0) * quantity;
+              const length = item.length || 0;
+              const width = item.width || 0;
+              const height = item.height || 0;
+              const volume = (length * width * height / 1000000) * quantity; // 转换为立方米
+              const value = (item.value || 0) * quantity;
+              
+              totalWeight += weight;
+              totalVolume += volume;
+              totalValue += value;
+              totalQuantity += quantity;
+              maxLength = Math.max(maxLength, length);
+              maxWidth = Math.max(maxWidth, width);
+              maxHeight = Math.max(maxHeight, height);
+              if (item.dangerous) hasDangerous = true;
+            });
+            
+            return {
+              description: body.cargoDescription || '',
+              weight: totalWeight,
+              volume: totalVolume,
+              dimensions: {
+                length: maxLength,
+                width: maxWidth,
+                height: maxHeight
+              },
+              value: totalValue,
+              quantity: totalQuantity,
+              cargoItems: body.cargoItems, // 保留原始多行数据
+              specialRequirements: body.specialRequirements || [],
+              hazardous: body.cargoIsDangerous || hasDangerous
+            };
+          } else {
+            // 单行货物模式（兼容旧代码）
+            return {
+              description: body.cargoDescription || '',
+              weight: body.cargoWeight,
+              volume: (body.cargoLength || 0) * (body.cargoWidth || 0) * (body.cargoHeight || 0),
+              dimensions: {
+                length: body.cargoLength,
+                width: body.cargoWidth,
+                height: body.cargoHeight
+              },
+              value: body.cargoValue || 0,
+              quantity: body.cargoQuantity || 1,
+              specialRequirements: body.specialRequirements || [],
+              hazardous: body.cargoIsDangerous || false
+            };
+          }
+        })(),
         estimatedCost: body.estimatedCost,
         additionalFees: [],
         appliedRules: [],

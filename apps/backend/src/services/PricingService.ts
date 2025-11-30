@@ -4,6 +4,7 @@
 import { RuleEngineService } from './RuleEngineService';
 import { DatabaseService } from './DatabaseService';
 import { CurrencyService } from './CurrencyService';
+import { ShipmentService } from './ShipmentService';
 import { logger } from '../utils/logger';
 import { 
   Shipment, 

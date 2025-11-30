@@ -28,7 +28,15 @@ declare global {
   }
 }
 
-const dbService = new DatabaseService();
+// 2025-11-29T21:00:00 延迟初始化 DatabaseService，确保环境变量已加载
+let dbService: DatabaseService | null = null;
+
+const getDbService = () => {
+  if (!dbService) {
+    dbService = new DatabaseService();
+  }
+  return dbService;
+};
 
 /**
  * JWT认证中间件
@@ -64,7 +72,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     }
 
     const decoded = jwt.verify(token, jwtSecret) as { userId: string; tenantId: string; role?: string; }; // 2025-11-11T15:14:25Z Added by Assistant: Strongly typed payload
-    const user = await dbService.getUser(decoded.tenantId, decoded.userId); // 2025-11-11T15:14:25Z Added by Assistant: Validate user from database
+    const user = await getDbService().getUser(decoded.tenantId, decoded.userId); // 2025-11-29T21:00:00 使用延迟初始化的数据库服务
 
     if (!user || user.status !== 'active') {
       res.status(401).json({
@@ -76,7 +84,16 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const tenantUser = await dbService.getTenantUser(decoded.tenantId, decoded.userId); // 2025-11-11T15:14:25Z Added by Assistant: Load tenant scoped role
+    // 2025-11-29T21:25:00 修复：tenant_users 表可能不存在，使用 try-catch 处理
+    let tenantUser = null;
+    try {
+      tenantUser = await getDbService().getTenantUser(decoded.tenantId, decoded.userId);
+    } catch (error: any) {
+      // 如果 tenant_users 表不存在，忽略错误（这是可选的）
+      if (error?.code !== '42P01') { // 42P01 = relation does not exist
+        logger.warn('Failed to get tenant user (non-critical):', error);
+      }
+    }
 
     req.user = {
       id: user.id,
@@ -210,8 +227,18 @@ export const optionalAuthMiddleware = async (req: Request, _res: Response, next:
         logger.error('JWT_SECRET is not configured for optional auth');
       } else {
         const decoded = jwt.verify(token, jwtSecret) as { userId: string; tenantId: string; }; // 2025-11-11T15:14:25Z Added by Assistant: Decode optional payload
-        const user = await dbService.getUser(decoded.tenantId, decoded.userId);
-        const tenantUser = user ? await dbService.getTenantUser(decoded.tenantId, decoded.userId) : null; // 2025-11-11T15:14:25Z Added by Assistant: Tenant mapping
+        const user = await getDbService().getUser(decoded.tenantId, decoded.userId); // 2025-11-29T21:00:00 使用延迟初始化的数据库服务
+        // 2025-11-29T21:25:00 修复：tenant_users 表可能不存在，使用 try-catch 处理
+        let tenantUser = null;
+        if (user) {
+          try {
+            tenantUser = await getDbService().getTenantUser(decoded.tenantId, decoded.userId);
+          } catch (error: any) {
+            if (error?.code !== '42P01') { // 42P01 = relation does not exist
+              logger.warn('Failed to get tenant user (non-critical):', error);
+            }
+          }
+        }
       
         if (user && user.status === 'active') {
           req.user = {

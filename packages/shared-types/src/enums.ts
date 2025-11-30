@@ -148,6 +148,7 @@ export enum DriverStatus {
   AVAILABLE = 'available',  // 空闲可用
   BUSY = 'busy',           // 忙碌中
   ON_LEAVE = 'on_leave',   // 休假
+  OFFLINE = 'offline',     // 离线
   INACTIVE = 'inactive'    // 停用
 }
 
@@ -156,6 +157,7 @@ export enum VehicleStatus {
   AVAILABLE = 'available',  // 可用
   BUSY = 'busy',           // 使用中
   MAINTENANCE = 'maintenance', // 维护中
+  OFFLINE = 'offline',     // 离线
   INACTIVE = 'inactive'    // 停用
 }
 

@@ -27,7 +27,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   EnvironmentOutlined,
-  RouteOutlined,
+  ApartmentOutlined,
   DollarOutlined,
   BranchesOutlined,
 } from '@ant-design/icons';
@@ -244,7 +244,7 @@ const RouteManagement: React.FC = () => {
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Title level={3} style={{ margin: 0 }}>
-            <RouteOutlined /> 线路管理
+            <ApartmentOutlined /> 线路管理
           </Title>
           <Text type="secondary">管理运输线路，定义起点、终点、里程和过路费</Text>
         </div>
@@ -266,7 +266,7 @@ const RouteManagement: React.FC = () => {
               key: 'routes',
               label: (
                 <span>
-                  <RouteOutlined /> 线路管理
+                  <ApartmentOutlined /> 线路管理
                 </span>
               ),
               children: (

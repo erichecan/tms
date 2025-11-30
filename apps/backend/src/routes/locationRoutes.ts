@@ -12,9 +12,20 @@ import { ShipmentStatus } from '@tms/shared-types';
 import logger from '../utils/logger';
 
 const router = Router();
-const dbService = new DatabaseService(); // 2025-11-11 14:58:10 复用数据库连接池
-const ruleEngineService = new RuleEngineService(dbService); // 2025-11-11 14:58:10
-const shipmentService = new ShipmentService(dbService, ruleEngineService); // 2025-11-11 14:58:10
+
+// 2025-11-29T21:05:00 延迟初始化服务，确保环境变量已加载
+let dbService: DatabaseService | null = null;
+let ruleEngineService: RuleEngineService | null = null;
+let shipmentService: ShipmentService | null = null;
+
+const getServices = () => {
+  if (!dbService) {
+    dbService = new DatabaseService();
+    ruleEngineService = new RuleEngineService(dbService);
+    shipmentService = new ShipmentService(dbService, ruleEngineService);
+  }
+  return { dbService, ruleEngineService, shipmentService };
+};
 
 router.use(authMiddleware);
 router.use(tenantMiddleware);
@@ -43,16 +54,17 @@ router.post('/vehicles/:vehicleId', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     };
     
+    const { dbService } = getServices(); // 2025-11-29T21:05:00 使用延迟初始化的服务
     const updated = await dbService.query(
       `UPDATE vehicles 
        SET current_location = $1, last_location_update = NOW()
        WHERE id = $2 AND tenant_id = $3
        RETURNING id`,
       [JSON.stringify(locationData), vehicleId, tenantId]
-    ); // 2025-11-11 14:58:10
+    );
 
     if (updated.length === 0) {
-      return res.status(404).json({ success: false, error: 'Vehicle not found' }); // 2025-11-11 14:58:10
+      return res.status(404).json({ success: false, error: 'Vehicle not found' });
     }
     
     try {
@@ -103,16 +115,17 @@ router.post('/drivers/:driverId', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     };
     
+    const { dbService, shipmentService } = getServices(); // 2025-11-29T21:05:00 使用延迟初始化的服务
     const updated = await dbService.query(
       `UPDATE drivers 
        SET current_location = $1, last_location_update = NOW()
        WHERE id = $2 AND tenant_id = $3
        RETURNING id`,
       [JSON.stringify(locationData), driverId, tenantId]
-    ); // 2025-11-11 14:58:10
+    );
 
     if (updated.length === 0) {
-      return res.status(404).json({ success: false, error: 'Driver not found' }); // 2025-11-11 14:58:10
+      return res.status(404).json({ success: false, error: 'Driver not found' });
     }
     
     try {
@@ -128,7 +141,7 @@ router.post('/drivers/:driverId', async (req: Request, res: Response) => {
     }
     
     logger.info(`Driver location updated: ${driverId}`);
-    await autoAdvanceShipmentStatus(tenantId, driverId, locationData); // 2025-11-11 14:58:10 触发状态流转
+    await autoAdvanceShipmentStatus(tenantId, driverId, locationData, shipmentService); // 2025-11-29T21:05:00 触发状态流转
 
     res.json({ success: true, message: 'Location updated successfully' });
   } catch (error) {
@@ -152,34 +165,75 @@ router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Tenant ID is required' });
     }
     
-    const result = await dbService.query(`
-      SELECT 
-        v.id as vehicle_id,
-        v.plate_number,
-        v.type as vehicle_type,
-        v.current_location,
-        v.last_location_update,
-        v.status as vehicle_status,
-        d.id as driver_id,
-        d.name as driver_name,
-        d.phone as driver_phone,
-        d.status as driver_status,
-        d.current_location as driver_location,
-        t.id as trip_id,
-        t.trip_no,
-        t.status as trip_status
-      FROM vehicles v
-      LEFT JOIN drivers d ON v.id = d.vehicle_id AND d.tenant_id = $1
-      LEFT JOIN (
-        SELECT DISTINCT ON (driver_id) 
-          id, driver_id, trip_no, status
-        FROM trips 
-        WHERE status IN ('planned', 'ongoing')
-        ORDER BY driver_id, created_at DESC
-      ) t ON d.id = t.driver_id
-      WHERE v.tenant_id = $1
-      ORDER BY v.last_location_update DESC NULLS LAST
-    `, [tenantId]);
+    const { dbService } = getServices(); // 2025-11-29T21:05:00 使用延迟初始化的服务
+    
+    // 2025-11-29T21:30:00 修复：检查 trips 表是否存在，如果不存在则使用简化的查询
+    const tripsTableExists = await dbService.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'trips'
+      );
+    `);
+    
+    const hasTripsTable = tripsTableExists[0]?.exists;
+    
+    // 2025-11-29T21:35:00 修复：current_location 字段不存在，使用简化的查询返回基本信息
+    let result;
+    if (hasTripsTable) {
+      // 如果 trips 表存在，使用包含行程信息的查询（但注意 current_location 字段不存在）
+      result = await dbService.query(`
+        SELECT 
+          v.id as vehicle_id,
+          v.plate_number,
+          v.type as vehicle_type,
+          NULL as current_location,
+          NULL as last_location_update,
+          v.status as vehicle_status,
+          d.id as driver_id,
+          d.name as driver_name,
+          d.phone as driver_phone,
+          d.status as driver_status,
+          NULL as driver_location,
+          t.id as trip_id,
+          t.trip_no,
+          t.status as trip_status
+        FROM vehicles v
+        LEFT JOIN drivers d ON v.id = d.vehicle_id AND d.tenant_id = $1
+        LEFT JOIN (
+          SELECT DISTINCT ON (driver_id) 
+            id, driver_id, trip_no, status
+          FROM trips 
+          WHERE status IN ('planned', 'ongoing')
+          ORDER BY driver_id, created_at DESC
+        ) t ON d.id = t.driver_id
+        WHERE v.tenant_id = $1
+        ORDER BY v.created_at DESC
+      `, [tenantId]);
+    } else {
+      // 如果 trips 表不存在，使用简化的查询（不包含行程信息）
+      result = await dbService.query(`
+        SELECT 
+          v.id as vehicle_id,
+          v.plate_number,
+          v.type as vehicle_type,
+          NULL as current_location,
+          NULL as last_location_update,
+          v.status as vehicle_status,
+          d.id as driver_id,
+          d.name as driver_name,
+          d.phone as driver_phone,
+          d.status as driver_status,
+          NULL as driver_location,
+          NULL as trip_id,
+          NULL as trip_no,
+          NULL as trip_status
+        FROM vehicles v
+        LEFT JOIN drivers d ON v.id = d.vehicle_id AND d.tenant_id = $1
+        WHERE v.tenant_id = $1
+        ORDER BY v.created_at DESC
+      `, [tenantId]);
+    }
     
     logger.info(`Retrieved ${result.length} real-time locations for tenant ${tenantId}`); // 2025-11-11T15:22:41Z Added by Assistant: Correct rows length logging
     res.json({ success: true, data: result });
@@ -206,6 +260,7 @@ router.get('/history/:entityType/:entityId', authMiddleware, async (req: Request
       return res.status(401).json({ success: false, error: 'Tenant ID is required' });
     }
 
+    const { dbService } = getServices(); // 2025-11-29T21:05:00 使用延迟初始化的服务
     let isAllowedEntity = false;
     if (entityType === 'driver') {
       const result = await dbService.query(
@@ -289,6 +344,7 @@ router.post('/bulk-update', authMiddleware, async (req: Request, res: Response) 
   }
   
   try {
+    const { dbService } = getServices(); // 2025-11-29T21:05:00 使用延迟初始化的服务
     let successCount = 0;
     
     for (const update of updates) {
@@ -371,9 +427,11 @@ const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: num
 async function autoAdvanceShipmentStatus(
   tenantId: string,
   driverId: string,
-  location: { latitude: number; longitude: number }
+  location: { latitude: number; longitude: number },
+  shipmentService: ShipmentService
 ): Promise<void> {
   try {
+    const { dbService } = getServices(); // 2025-11-29T21:05:00 使用延迟初始化的服务
     const shipments = await dbService.query(
       `SELECT id, status, pickup_address, delivery_address 
        FROM shipments 

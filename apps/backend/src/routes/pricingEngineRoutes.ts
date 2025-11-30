@@ -62,7 +62,7 @@ const shipmentLocationSchema = Joi.object({
 });
 
 const shipmentContextSchema = Joi.object({
-  shipmentId: Joi.string().required(),
+  shipmentId: Joi.alternatives().try(Joi.string().uuid(), Joi.string()).required(), // 2025-11-29T22:25:00 允许非UUID字符串用于预览计算
   tenantId: Joi.string().required(),
   pickupLocation: shipmentLocationSchema.required(),
   deliveryLocation: shipmentLocationSchema.required(),

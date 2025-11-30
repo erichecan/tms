@@ -1,5 +1,6 @@
 // 认证路由
 // 创建时间: 2025-01-27 15:30:45
+// 2025-11-29T20:46:00 修复：使用延迟初始化，确保环境变量已加载
 
 import { Router } from 'express';
 import { AuthController } from '../controllers/AuthController';
@@ -10,9 +11,17 @@ import { validateRequest, userLoginSchema } from '../middleware/validationMiddle
 
 const router = Router();
 
-// 初始化服务
-const dbService = new DatabaseService();
-const authController = new AuthController(dbService);
+// 2025-11-29T20:46:00 延迟初始化服务，确保环境变量已加载
+let dbService: DatabaseService | null = null;
+let authController: AuthController | null = null;
+
+const getServices = () => {
+  if (!dbService) {
+    dbService = new DatabaseService();
+    authController = new AuthController(dbService);
+  }
+  return { dbService, authController: authController! };
+};
 
 /**
  * @route POST /api/v1/auth/login
@@ -23,7 +32,10 @@ router.post('/login',
   validateRequest({
     body: userLoginSchema
   }),
-  authController.login.bind(authController)
+  (req, res, next) => {
+    const { authController } = getServices();
+    authController.login(req, res).catch(next);
+  }
 );
 
 /**
@@ -37,7 +49,10 @@ router.post('/refresh',
       refreshToken: { type: 'string', required: true }
     }
   }),
-  authController.refreshToken.bind(authController)
+  (req, res, next) => {
+    const { authController } = getServices();
+    authController.refreshToken(req, res).catch(next);
+  }
 );
 
 /**
@@ -48,7 +63,10 @@ router.post('/refresh',
 router.post('/logout',
   authMiddleware,
   tenantMiddleware,
-  authController.logout.bind(authController)
+  (req, res, next) => {
+    const { authController } = getServices();
+    authController.logout(req, res).catch(next);
+  }
 );
 
 /**
@@ -59,7 +77,10 @@ router.post('/logout',
 router.get('/me',
   authMiddleware,
   tenantMiddleware,
-  authController.getCurrentUser.bind(authController)
+  (req, res, next) => {
+    const { authController } = getServices();
+    authController.getCurrentUser(req, res).catch(next);
+  }
 );
 
 /**
@@ -76,7 +97,10 @@ router.put('/change-password',
       newPassword: { type: 'string', required: true }
     }
   }),
-  authController.changePassword.bind(authController)
+  (req, res, next) => {
+    const { authController } = getServices();
+    authController.changePassword(req, res).catch(next);
+  }
 );
 
 /**
@@ -87,7 +111,10 @@ router.put('/change-password',
 router.get('/profile',
   authMiddleware,
   tenantMiddleware,
-  authController.getCurrentUser.bind(authController)
+  (req, res, next) => {
+    const { authController } = getServices();
+    authController.getCurrentUser(req, res).catch(next);
+  }
 );
 
 export default router;

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { UserLoginPayload, AuthResponse } from '../types/index';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// 2025-11-29 17:40:00 修复：使用代理，不需要完整 URL，使用相对路径
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -47,6 +48,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 // Response interceptor for error handling and token refresh - 2025-10-10 18:15:00
+// 2025-11-29T19:30:00 修复：改进 401 错误处理，避免立即清除 token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -54,11 +56,26 @@ api.interceptors.response.use(
 
     // 处理 401 错误
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
-      // 开发环境：直接重定向到登录页 - 2025-10-10 18:15:00
+      const isAuthEndpoint = originalRequest.url?.includes('/auth/');
+      const isProfileEndpoint = originalRequest.url?.includes('/auth/profile');
+
+      // 2025-11-29T19:30:00 开发环境下的特殊处理
       if (import.meta.env.DEV) {
-        console.log('[DEV MODE] 401 error, token may be invalid');
-        // 开发环境下由于后端跳过认证，401 不应该发生
-        // 如果发生了，可能是配置问题，直接放行
+        // 对于 /auth/profile 的 401，这是 token 验证失败，需要特殊处理
+        if (isProfileEndpoint) {
+          console.warn('[DEV MODE] Token validation failed for /auth/profile, will be handled by AuthContext');
+          // 不在这里清除 token，让 AuthContext 来处理
+          return Promise.reject(error);
+        }
+
+        // 对于其他认证相关的 API（如 /auth/login），直接拒绝
+        if (isAuthEndpoint && !isProfileEndpoint) {
+          console.warn('[DEV MODE] 401 error on auth endpoint:', originalRequest.url);
+          return Promise.reject(error);
+        }
+
+        // 对于其他 API 的 401，在开发环境下暂时不处理（可能是后端配置问题）
+        console.warn('[DEV MODE] 401 error, token may be invalid:', originalRequest.url);
         return Promise.reject(error);
       }
 
@@ -69,8 +86,11 @@ api.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            originalRequest.headers['Authorization'] = 'Bearer ' + token;
-            return api(originalRequest);
+            if (token) {
+              originalRequest.headers['Authorization'] = 'Bearer ' + token;
+              return api(originalRequest);
+            }
+            return Promise.reject(error);
           })
           .catch((err) => {
             return Promise.reject(err);
@@ -90,8 +110,12 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem('jwt_token');
-        window.location.href = '/login';
+        // 2025-11-29T19:30:00 只有在非 profile 端点时才清除 token 并重定向
+        // profile 端点由 AuthContext 处理
+        if (!isProfileEndpoint) {
+          localStorage.removeItem('jwt_token');
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

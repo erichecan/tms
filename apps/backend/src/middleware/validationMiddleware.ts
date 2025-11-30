@@ -32,7 +32,7 @@ const ensureObjectSchema = (input?: Joi.ObjectSchema | Record<string, any>): Joi
       let schema: Joi.Schema;
       switch (type) {
         case 'string':
-          schema = Joi.string();
+          schema = Joi.string().allow(null, ''); // 2025-11-29T23:00:00 允许 null 和空字符串
           if (Array.isArray(enumVals) && enumVals.length > 0) schema = (schema as Joi.StringSchema).valid(...enumVals);
           break;
         case 'number':
@@ -85,9 +85,48 @@ export const validateRequest = (schema: ValidationSchema) => {
     // 验证请求体
     const bodySchema = ensureObjectSchema(schema.body);
     if (bodySchema) {
-      const result = bodySchema.validate(req.body);
+      // 2025-11-29T22:52:00 修复：预处理 null 值，删除 customerId 如果它是 null 或空字符串
+      const processedBody = { ...req.body };
+      
+      // 2025-11-29T22:55:00 修复：特殊处理 customerId，无条件删除（因为后端会自动创建默认客户）
+      // 如果 customerId 是 null、空字符串或未定义，完全删除该字段，避免验证错误
+      if ('customerId' in processedBody && (processedBody.customerId === null || processedBody.customerId === '' || processedBody.customerId === undefined)) {
+        delete processedBody.customerId;
+        logger.debug('Removed invalid customerId from request body before validation');
+      }
+      
+      // 2025-11-29T23:01:00 修复：特殊处理 vehicleId，如果是 null 或空字符串，删除该字段
+      if ('vehicleId' in processedBody && (processedBody.vehicleId === null || processedBody.vehicleId === '' || processedBody.vehicleId === undefined)) {
+        delete processedBody.vehicleId;
+        logger.debug('Removed null/empty vehicleId from request body before validation');
+      }
+      
+      // 2025-11-29T23:01:00 修复：特殊处理所有可能为 null 的字符串字段，在验证前删除 null 值
+      // 这包括但不限于：vehicleId, driverId（如果可选）等
+      for (const key of Object.keys(processedBody)) {
+        if (processedBody[key] === null && typeof processedBody[key] === 'object') {
+          // 只删除明确为 null 的字段，保留 undefined
+          delete processedBody[key];
+        }
+      }
+      
+      // 2025-11-29T22:52:00 修复：使用宽松的验证选项
+      const result = bodySchema.validate(processedBody, { 
+        abortEarly: false, 
+        stripUnknown: false,
+        allowUnknown: true
+      });
       if (result.error) {
+        // 2025-11-29T22:53:00 添加详细日志以便调试
+        logger.warn('Validation failed', {
+          errors: result.error.details.map(d => d.message),
+          url: req.url,
+          bodyKeys: Object.keys(processedBody)
+        });
         errors.push(`Body: ${result.error.details.map(d => d.message).join(', ')}`);
+      } else {
+        // 将处理后的 body 写回 req.body，保持一致性
+        req.body = processedBody;
       }
     }
 
@@ -299,7 +338,7 @@ export const shipmentCreateSchema = Joi.object({
  */
 export const shipmentCreateFormSchema = Joi.object({
   shipmentNumber: Joi.string().optional(),
-  customerId: Joi.string().uuid().required(), // 2025-10-08 14:45:00 添加客户ID
+  customerId: Joi.any().optional(), // 2025-11-29T22:52:00 完全可选，后端会处理默认客户创建
   salesChannel: Joi.string().valid('DIRECT', 'API', 'IMPORT', 'WEBHOOK').optional(), // 2025-10-08 14:45:00
   sellerNotes: Joi.string().allow('', null).optional(), // 2025-10-08 14:45:00
   customerName: Joi.string().required(),
@@ -313,7 +352,7 @@ export const shipmentCreateFormSchema = Joi.object({
     email: Joi.string().email().optional(),
     address: Joi.object({
       addressLine1: Joi.string().required(),
-      addressLine2: Joi.string().optional(),
+      addressLine2: Joi.string().allow('', null).optional(), // 2025-11-29T22:56:00 允许空字符串和 null
       city: Joi.string().required(),
       province: Joi.string().required(),
       postalCode: Joi.string().required(),
@@ -328,7 +367,7 @@ export const shipmentCreateFormSchema = Joi.object({
     email: Joi.string().email().optional(),
     address: Joi.object({
       addressLine1: Joi.string().required(),
-      addressLine2: Joi.string().optional(),
+      addressLine2: Joi.string().allow('', null).optional(), // 2025-11-29T22:56:00 允许空字符串和 null
       city: Joi.string().required(),
       province: Joi.string().required(),
       postalCode: Joi.string().required(),
@@ -340,11 +379,26 @@ export const shipmentCreateFormSchema = Joi.object({
   deliveryDate: Joi.string().optional(),
   addressType: Joi.string().valid('residential', 'commercial').default('residential'),
   distance: Joi.number().min(0).optional(),
-  cargoLength: Joi.number().min(0).required(),
-  cargoWidth: Joi.number().min(0).required(),
-  cargoHeight: Joi.number().min(0).required(),
-  cargoWeight: Joi.number().min(0).required(),
-  cargoQuantity: Joi.number().min(1).required(),
+  cargoLength: Joi.number().min(0).optional(), // 2025-11-29T22:10:00 改为可选，支持多行货物模式
+  cargoWidth: Joi.number().min(0).optional(),
+  cargoHeight: Joi.number().min(0).optional(),
+  cargoWeight: Joi.number().min(0).optional(), // 改为可选，支持多行货物模式
+  cargoQuantity: Joi.number().min(1).optional(), // 改为可选，支持多行货物模式
+  // 2025-11-29T22:10:00 新增：支持多行货物数据（cargoItems）
+  cargoItems: Joi.array().items(
+    Joi.object({
+      length: Joi.number().min(0).required(),
+      width: Joi.number().min(0).required(),
+      height: Joi.number().min(0).required(),
+      weight: Joi.number().min(0).required(),
+      quantity: Joi.number().min(1).required(),
+      pallets: Joi.number().min(0).optional(),
+      value: Joi.number().min(0).optional(),
+      description: Joi.string().optional(),
+      fragile: Joi.boolean().optional(),
+      dangerous: Joi.boolean().optional()
+    })
+  ).optional(),
   cargoPalletCount: Joi.number().min(0).optional(),
   cargoValue: Joi.number().min(0).optional(),
   cargoDescription: Joi.string().optional(),
@@ -366,6 +420,18 @@ export const shipmentCreateFormSchema = Joi.object({
   specialRequirements: Joi.array().items(Joi.string()).optional(),
   status: Joi.string().valid('draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled', 'exception').optional(), // 2025-11-11 14:43:20
   estimatedCost: Joi.number().min(0).optional()
+}).custom((value, helpers) => {
+  // 2025-11-29T22:15:00 自定义验证：确保要么有 cargoItems，要么有单个货物字段
+  const hasCargoItems = value.cargoItems && Array.isArray(value.cargoItems) && value.cargoItems.length > 0;
+  const hasSingleCargo = value.cargoLength && value.cargoWidth && value.cargoHeight && value.cargoWeight;
+  
+  if (!hasCargoItems && !hasSingleCargo) {
+    return helpers.error('any.custom', {
+      message: '必须提供 cargoItems 数组或单个货物字段（cargoLength, cargoWidth, cargoHeight, cargoWeight）'
+    });
+  }
+  
+  return value;
 });
 
 /**

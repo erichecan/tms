@@ -15,11 +15,17 @@ async function seedDatabase() {
   try {
     logger.info('开始填充种子数据...');
     
-    // 检查是否已有数据
+    // 2025-11-29T21:10:00 检查是否已有完整数据（客户数量 > 1 表示已有完整数据）
     const existingCustomers = await client.query('SELECT COUNT(*) FROM customers');
-    if (parseInt(existingCustomers.rows[0].count) > 0) {
-      logger.info('数据库已有数据，跳过种子数据填充');
+    const customerCount = parseInt(existingCustomers.rows[0].count);
+    if (customerCount > 1) {
+      logger.info(`数据库已有 ${customerCount} 个客户，跳过种子数据填充`);
       return;
+    }
+    
+    // 如果只有少量数据（可能是初始数据），则继续填充完整数据
+    if (customerCount > 0) {
+      logger.info(`数据库已有 ${customerCount} 个客户，将继续填充完整的测试数据`);
     }
     
     const tenantId = '00000000-0000-0000-0000-000000000001';
@@ -102,7 +108,7 @@ async function seedDatabase() {
       ('${tenantId}', '郑司机', '13000130001', 'DL010123456', (SELECT id FROM vehicles WHERE plate_number = '川D40002' LIMIT 1),
        '{"type": "refrigerated", "licensePlate": "川D40002", "capacity": 10000, "dimensions": {"length": 8.0, "width": 2.4, "height": 3.0}, "features": ["GPS", "温度监控"]}',
        'available', '{"rating": 4.5, "totalDeliveries": 98, "onTimeRate": 0.87, "customerSatisfaction": 0.85}')
-      ON CONFLICT (tenant_id, phone) DO NOTHING;
+      ON CONFLICT DO NOTHING; -- 2025-11-29T21:15:00 修复：drivers 表没有唯一约束，使用简单冲突处理
 
       -- =============================================================================
       -- 4. 规则数据 (计费规则、司机薪酬规则)
@@ -126,7 +132,7 @@ async function seedDatabase() {
       ('${tenantId}', '标准客户提成', '标准客户订单司机提成30%', 'payroll', 320,
        '[{"fact": "customerLevel", "operator": "equal", "value": "standard"}]',
        '[{"type": "setDriverCommission", "params": {"percentage": 30}}]', 'active')
-      ON CONFLICT (tenant_id, name) DO NOTHING;
+      ON CONFLICT DO NOTHING; -- 2025-11-29T21:15:00 修复：rules 表没有唯一约束，使用简单冲突处理
     `;
     
     await client.query(seedData);

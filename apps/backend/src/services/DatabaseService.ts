@@ -368,8 +368,59 @@ export class DatabaseService {
    * @returns 用户信息
    */
   async getUserByEmail(tenantId: string, email: string): Promise<User | null> {
-    const query = 'SELECT * FROM users WHERE tenant_id = $1 AND email = $2';
-    const result = await this.query(query, [tenantId, email]);
+    // 2025-11-29T20:45:00 添加详细调试信息，检查数据库连接和查询
+    logger.info(`getUserByEmail called: tenantId=${tenantId} (type: ${typeof tenantId}), email=${email}`);
+    
+    // 首先测试数据库连接，查看实际连接的数据库
+    try {
+      const dbInfo = await this.query('SELECT current_database() as db, current_user as user');
+      logger.info(`Current database: ${dbInfo[0]?.db}, user: ${dbInfo[0]?.user}`);
+    } catch (error) {
+      logger.error(`Failed to get database info: ${error}`);
+    }
+    
+    // 确保 tenantId 是字符串格式的 UUID
+    const tenantIdStr = String(tenantId);
+    
+    // 先测试数据库中是否有任何用户
+    const allUsersCount = await this.query('SELECT COUNT(*) as count FROM users');
+    logger.info(`Total users in database: ${allUsersCount[0]?.count || 0}`);
+    
+    // 方法1: 使用 tenant_id::text 进行文本比较
+    let query = 'SELECT * FROM users WHERE tenant_id::text = $1 AND email = $2';
+    let result = await this.query(query, [tenantIdStr, email]);
+    logger.info(`getUserByEmail query result (method 1 - text cast): ${result.length} rows found`);
+    if (result.length === 0) {
+      logger.warn(`Query: ${query}, params: [${tenantIdStr}, ${email}]`);
+    }
+    
+    // 方法2: 如果方法1失败，尝试直接使用 UUID 比较
+    if (result.length === 0) {
+      query = 'SELECT * FROM users WHERE tenant_id = $1::uuid AND email = $2';
+      result = await this.query(query, [tenantIdStr, email]);
+      logger.info(`getUserByEmail query result (method 2 - UUID cast): ${result.length} rows found`);
+    }
+    
+    // 方法3: 如果方法2也失败，先只按邮箱查询
+    if (result.length === 0) {
+      const emailOnlyResult = await this.query('SELECT id, email, tenant_id::text as tenant_id FROM users WHERE email = $1', [email]);
+      logger.warn(`User not found with tenant filter. Found ${emailOnlyResult.length} user(s) with email: ${email}`);
+      if (emailOnlyResult.length > 0) {
+        logger.warn(`User tenant_id in DB: ${emailOnlyResult[0].tenant_id}, Expected: ${tenantIdStr}`);
+        // 如果邮箱存在，尝试使用数据库中的 tenant_id 查询
+        const actualTenantId = emailOnlyResult[0].tenant_id;
+        query = 'SELECT * FROM users WHERE tenant_id::text = $1 AND email = $2';
+        result = await this.query(query, [actualTenantId, email]);
+        if (result.length > 0) {
+          logger.info(`Found user with actual tenant_id from DB: ${actualTenantId}`);
+          return this.mapUserFromDb(result[0]);
+        }
+      } else {
+        // 如果没有找到任何用户，列出所有用户看看
+        const allUsers = await this.query('SELECT id, email, tenant_id::text as tenant_id FROM users LIMIT 5');
+        logger.warn(`No user found with email ${email}. Sample users in DB: ${JSON.stringify(allUsers)}`);
+      }
+    }
     
     return result.length > 0 ? this.mapUserFromDb(result[0]) : null;
   }
@@ -382,17 +433,32 @@ export class DatabaseService {
    * @returns 更新后的用户
    */
   async updateUser(tenantId: string, userId: string, updates: Partial<Omit<User, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>>): Promise<User> {
+    // 2025-11-29T20:51:00 修复：将驼峰命名转换为数据库下划线命名
+    const fieldMapping: Record<string, string> = {
+      email: 'email',
+      passwordHash: 'password_hash',
+      role: 'role',
+      profile: 'profile',
+      status: 'status',
+      lastLoginAt: 'last_login_at', // 转换为数据库列名
+    };
+    
     const setClause: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
     
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
+        const dbFieldName = fieldMapping[key] || key;
         if (key === 'profile') {
-          setClause.push(`${key} = $${paramIndex}`);
+          setClause.push(`${dbFieldName} = $${paramIndex}`);
           queryParams.push(JSON.stringify(value));
+        } else if (key === 'lastLoginAt') {
+          // 处理日期字段
+          setClause.push(`${dbFieldName} = $${paramIndex}`);
+          queryParams.push(value);
         } else {
-          setClause.push(`${key} = $${paramIndex}`);
+          setClause.push(`${dbFieldName} = $${paramIndex}`);
           queryParams.push(value);
         }
         paramIndex++;
@@ -666,8 +732,9 @@ export class DatabaseService {
   // ==================== 数据映射方法 ====================
 
   private mapTenantFromDb(row: any): Tenant {
+    // 2025-11-29T20:35:00 确保 id 是字符串格式
     return {
-      id: row.id,
+      id: String(row.id), // 确保 UUID 转换为字符串
       name: row.name,
       domain: row.domain,
       schemaName: row.schema_name,

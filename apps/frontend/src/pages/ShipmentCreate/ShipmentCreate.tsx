@@ -729,25 +729,62 @@ const ShipmentCreate: React.FC = () => {
     setRealTimePricing(prev => ({ ...prev, loading: true }));
 
     try {
-      // 构建运单上下文用于后端计费引擎 - 修复字段名并使用Google Maps距离 // 2025-10-10 17:15:00
+      // 2025-11-29T21:45:00 修复：构建符合后端期望的运单上下文格式
+      // 计算总重量和总体积（支持多行货物）
+      let totalWeight = 0;
+      let totalVolume = 0;
+      let totalPallets = 0;
+      
+      if (values.cargoItems && Array.isArray(values.cargoItems) && values.cargoItems.length > 0) {
+        // 多行货物模式
+        values.cargoItems.forEach((item: any) => {
+          const itemWeight = item.weight || 0;
+          const itemLength = item.length || 0;
+          const itemWidth = item.width || 0;
+          const itemHeight = item.height || 0;
+          const quantity = item.quantity || 1;
+          
+          totalWeight += itemWeight * quantity;
+          totalVolume += (itemLength * itemWidth * itemHeight / 1000000) * quantity; // 转换为立方米
+          totalPallets += (item.pallets || 0) * quantity;
+        });
+      } else {
+        // 单行货物模式（兼容旧代码）
+        totalWeight = values.cargoWeight || 100;
+        if (values.cargoLength && values.cargoWidth && values.cargoHeight) {
+          totalVolume = (values.cargoLength * values.cargoWidth * values.cargoHeight / 1000000); // 转换为立方米
+        } else {
+          totalVolume = 1; // 默认1立方米
+        }
+        totalPallets = values.cargoPalletCount || 1;
+      }
+      
+      const distance = values.distance || estimatedDistance || 25;
+      if (distance <= 0) {
+        // 如果距离无效，使用降级计算
+        throw new Error('距离无效，无法调用费用计算引擎');
+      }
+      
+      // 构建符合后端 shipmentContextSchema 的数据结构
       const shipmentContext = {
-        shipmentId: uuidv4(), // 使用真实 UUID 用于预览 // 2025-10-08 14:20:00
+        shipmentId: uuidv4(), // 临时 UUID 用于预览计算
         tenantId: '00000000-0000-0000-0000-000000000001',
         pickupLocation: {
-          address: values.shipperAddress1, // 修复：使用正确的字段名
+          address: values.shipperAddress1 || '', // 确保是字符串
           city: values.shipperCity || 'Toronto'
         },
         deliveryLocation: {
-          address: values.receiverAddress1, // 修复：使用正确的字段名
+          address: values.receiverAddress1 || '', // 确保是字符串
           city: values.receiverCity || 'Toronto'
         },
-        // 使用估算距离或手动输入距离 // 2025-01-27 18:05:00
-        distance: values.distance || estimatedDistance || 25,
-        weight: values.cargoWeight || 100, // 默认100kg
-        volume: values.cargoLength && values.cargoWidth && values.cargoHeight 
-          ? values.cargoLength * values.cargoWidth * values.cargoHeight / 1000000 // 转换为立方米
-          : 1, // 默认1立方米
-        pallets: values.cargoPalletCount || 1
+        distance: Math.max(distance, 1), // 确保是正数
+        weight: Math.max(totalWeight, 0.1), // 确保是正数，最小0.1kg
+        volume: totalVolume > 0 ? totalVolume : 1, // 确保是正数
+        pallets: Math.max(totalPallets, 0), // 可以是0
+        customerId: values.customerId || undefined,
+        cargoType: values.cargoType || 'GENERAL',
+        isHazardous: values.cargoIsDangerous || false,
+        isColdChain: values.requiresColdChain || false
       };
 
       // 构建完整请求参数 - 2025-10-08 14:30:00
@@ -1838,24 +1875,71 @@ const ShipmentCreate: React.FC = () => {
                   )}
                 </Col>
               </Row>
-              <Row gutter={16} style={{ marginTop: 8 }}>
-                <Col span={6}>
-                  <Text strong>货物规格：</Text>
-                  <div>{submittedData.cargoLength}×{submittedData.cargoWidth}×{submittedData.cargoHeight} cm</div>
-                </Col>
-                <Col span={6}>
-                  <Text strong>重量：</Text>
-                  <div>{submittedData.cargoWeight} kg</div>
-                </Col>
-                <Col span={6}>
-                  <Text strong>数量：</Text>
-                  <div>{submittedData.cargoQuantity} 件</div>
-                </Col>
-                <Col span={6}>
-                  <Text strong>价值：</Text>
-                  <div>${submittedData.cargoValue || 0}</div>
-                </Col>
-              </Row>
+              {/* 2025-11-29T22:00:00 修复：支持显示多行货物数据 */}
+              {submittedData.cargoItems && Array.isArray(submittedData.cargoItems) && submittedData.cargoItems.length > 0 ? (
+                <div style={{ marginTop: 8 }}>
+                  <Text strong>货物明细：</Text>
+                  {submittedData.cargoItems.map((item: any, index: number) => (
+                    <div key={index} style={{ marginTop: 8, padding: '8px', background: '#f5f5f5', borderRadius: '4px' }}>
+                      <Row gutter={16}>
+                        <Col span={4}>
+                          <Text strong>件数：</Text>
+                          <div>{item.quantity || 0} 件</div>
+                        </Col>
+                        <Col span={4}>
+                          <Text strong>规格：</Text>
+                          <div>{item.length || 0}×{item.width || 0}×{item.height || 0} cm</div>
+                        </Col>
+                        <Col span={4}>
+                          <Text strong>重量：</Text>
+                          <div>{item.weight || 0} kg</div>
+                        </Col>
+                        <Col span={4}>
+                          <Text strong>托盘：</Text>
+                          <div>{item.pallets || 0} 托</div>
+                        </Col>
+                        <Col span={4}>
+                          <Text strong>价值：</Text>
+                          <div>${item.value || 0}</div>
+                        </Col>
+                        <Col span={4}>
+                          <Text strong>描述：</Text>
+                          <div>{item.description || '-'}</div>
+                        </Col>
+                      </Row>
+                    </div>
+                  ))}
+                  <Row gutter={16} style={{ marginTop: 8 }}>
+                    <Col span={6}>
+                      <Text strong>总重量：</Text>
+                      <div>{submittedData.cargoWeight} kg</div>
+                    </Col>
+                    <Col span={6}>
+                      <Text strong>总数量：</Text>
+                      <div>{submittedData.cargoQuantity} 件</div>
+                    </Col>
+                  </Row>
+                </div>
+              ) : (
+                <Row gutter={16} style={{ marginTop: 8 }}>
+                  <Col span={6}>
+                    <Text strong>货物规格：</Text>
+                    <div>{submittedData.cargoLength || 0}×{submittedData.cargoWidth || 0}×{submittedData.cargoHeight || 0} cm</div>
+                  </Col>
+                  <Col span={6}>
+                    <Text strong>重量：</Text>
+                    <div>{submittedData.cargoWeight || 0} kg</div>
+                  </Col>
+                  <Col span={6}>
+                    <Text strong>数量：</Text>
+                    <div>{submittedData.cargoQuantity || 0} 件</div>
+                  </Col>
+                  <Col span={6}>
+                    <Text strong>价值：</Text>
+                    <div>${submittedData.cargoValue || 0}</div>
+                  </Col>
+                </Row>
+              )}
             </Col>
             <Col span={24}>
               <Title level={5}>费用预估</Title>
