@@ -34,9 +34,17 @@ router.get('/',
       return;
     } catch (error) {
       console.error('Get customers error:', error);
+      // 2025-11-30T12:50:00Z Fixed by Assistant: 返回详细错误信息以便调试
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error('Error details:', { errorMessage, errorStack });
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to get customers' },
+        error: { 
+          code: 'INTERNAL_ERROR', 
+          message: 'Failed to get customers',
+          details: errorMessage
+        },
         timestamp: new Date().toISOString(),
         requestId: req.headers['x-request-id'] as string || ''
       });
@@ -152,9 +160,15 @@ router.post('/',
       });
     } catch (error) {
       console.error('Create customer error:', error);
+      // 2025-11-30T10:20:00Z Added by Assistant: 返回详细错误信息以便调试
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to create customer' },
+        error: { 
+          code: 'INTERNAL_ERROR', 
+          message: 'Failed to create customer',
+          details: errorMessage
+        },
         timestamp: new Date().toISOString(),
         requestId: req.headers['x-request-id'] as string || ''
       });

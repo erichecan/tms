@@ -470,6 +470,54 @@ export class FinanceController {
   }
 
   /**
+   * 获取司机薪酬汇总
+   * @param req 请求对象
+   * @param res 响应对象
+   */
+  async getDriverPayrollSummary(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantId = req.tenant?.id;
+      if (!tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      const periodType = (req.query.periodType as 'biweekly' | 'monthly') || 'monthly';
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const driverId = req.query.driverId as string | undefined;
+
+      const summary = await this.financeService.getDriverPayrollSummary(
+        tenantId,
+        periodType,
+        startDate,
+        endDate,
+        driverId
+      );
+
+      res.json({
+        success: true,
+        data: summary,
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    } catch (error) {
+      logger.error('Failed to get driver payroll summary:', error);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to get driver payroll summary' },
+        timestamp: new Date().toISOString(),
+        requestId: getRequestId(req)
+      });
+    }
+  }
+
+  /**
    * 获取财务记录列表
    * @param req 请求对象
    * @param res 响应对象

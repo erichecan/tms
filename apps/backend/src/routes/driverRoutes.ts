@@ -36,9 +36,17 @@ router.get('/',
       });
     } catch (error) {
       console.error('Get drivers error:', error);
+      // 2025-11-30T13:00:00Z Fixed by Assistant: 返回详细错误信息以便调试
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error('Error details:', { errorMessage, errorStack });
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to get drivers' },
+        error: { 
+          code: 'INTERNAL_ERROR', 
+          message: 'Failed to get drivers',
+          details: errorMessage
+        },
         timestamp: new Date().toISOString(),
         requestId: req.headers['x-request-id'] as string || ''
       });

@@ -211,6 +211,9 @@ export const financeApi = {
   // 2025-11-29T11:25:04Z 标记对账单为已支付
   markAsPaid: (statementId: string, paidAmount: number, paymentDate?: string) => 
     api.put(`/finance/statements/${statementId}/pay`, { paidAmount, paymentDate }),
+  // 2025-11-30T10:50:00Z Added by Assistant: 获取司机薪酬汇总
+  getDriverPayrollSummary: (params?: { periodType?: 'biweekly' | 'monthly', startDate?: string, endDate?: string, driverId?: string }) =>
+    api.get('/finance/payroll/summary', { params }),
 };
 
 // Trip related API calls - 2025-01-27 16:45:00 新增行程管理API

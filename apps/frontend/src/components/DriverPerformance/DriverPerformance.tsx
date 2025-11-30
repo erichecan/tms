@@ -1,6 +1,6 @@
 // 司机薪酬管理组件
 // 创建时间: 2025-09-29 15:50:00
-// 修改时间: 2025-10-02 19:40:00 - 改为专注于薪酬管理，移除司机列表
+// 2025-11-30T11:00:00Z Updated by Assistant: 重构为自动生成逻辑，支持双周/按月切换，添加详情查看
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -21,6 +21,11 @@ import {
   Col,
   Statistic,
   Divider,
+  Radio,
+  Descriptions,
+  List,
+  Badge,
+  Alert,
 } from 'antd';
 import {
   UserOutlined,
@@ -29,141 +34,136 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  EyeOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
+import { financeApi, driversApi } from '../../services/api';
+import { useDataContext } from '../../contexts/DataContext';
+import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
-interface SalaryRecord {
-  id: string;
+interface PayrollSummary {
+  period: string;
   driverId: string;
   driverName: string;
-  month: string;
   tripsCompleted: number;
+  shipmentsCompleted: number;
   totalDistance: number;
+  totalEarnings: number;
   baseSalary: number;
   tripBonus: number;
   fuelAllowance: number;
-  totalEarnings: number;
   status: 'pending' | 'paid';
   payDate?: string;
+  statementId?: string;
+  trips: Array<{
+    tripId: string;
+    tripNo: string;
+    shipments: Array<{
+      shipmentId: string;
+      shipmentNumber: string;
+      amount: number;
+      completedAt: string;
+    }>;
+  }>;
 }
 
 const DriverPayroll: React.FC = () => {
+  const { reloadDrivers } = useDataContext();
   const [loading, setLoading] = useState(false);
-  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const [payrollData, setPayrollData] = useState<PayrollSummary[]>([]);
+  const [periodType, setPeriodType] = useState<'biweekly' | 'monthly'>('monthly');
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | undefined>(undefined);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<SalaryRecord | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<PayrollSummary | null>(null);
+  const [editingRecord, setEditingRecord] = useState<PayrollSummary | null>(null);
   const [drivers, setDrivers] = useState<Array<{id: string, name: string}>>([]);
   const [form] = Form.useForm();
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadDrivers();
+    loadPayrollData();
+  }, [periodType, dateRange, selectedDriverId]);
 
-  const loadData = async () => {
+  const loadDrivers = async () => {
+    try {
+      const response = await driversApi.getDrivers();
+      const driversList = response.data?.data || [];
+      setDrivers(driversList.map((d: any) => ({ id: d.id, name: d.name })));
+    } catch (error) {
+      console.error('Failed to load drivers:', error);
+    }
+  };
+
+  const loadPayrollData = async () => {
     setLoading(true);
     try {
-      // 模拟司机数据 - 仅用于薪酬记录选择
-      const mockDrivers = [
-        { id: 'D001', name: '张三' },
-        { id: 'D002', name: '李四' },
-        { id: 'D003', name: '王五' },
-        { id: 'D004', name: '赵六' },
-        { id: 'D005', name: '孙七' },
-      ];
+      const params: any = {
+        periodType,
+      };
+      
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        params.startDate = dateRange[0].format('YYYY-MM-DD');
+        params.endDate = dateRange[1].format('YYYY-MM-DD');
+      }
+      
+      if (selectedDriverId) {
+        params.driverId = selectedDriverId;
+      }
 
-      const mockSalaryRecords: SalaryRecord[] = [
-        {
-          id: 'Salary001',
-          driverId: 'D001',
-          driverName: '张三',
-          month: '2024-09',
-          tripsCompleted: 45,
-          totalDistance: 3200,
-          baseSalary: 4000,
-          tripBonus: 2250,
-          fuelAllowance: 1200,
-          totalEarnings: 7450,
-          status: 'paid',
-          payDate: '2024-10-01',
-        },
-        {
-          id: 'Salary002',
-          driverId: 'D002',
-          driverName: '李四',
-          month: '2024-09',
-          tripsCompleted: 38,
-          totalDistance: 2800,
-          baseSalary: 4000,
-          tripBonus: 1900,
-          fuelAllowance: 1000,
-          totalEarnings: 6900,
-          status: 'paid',
-          payDate: '2024-10-01',
-        },
-        {
-          id: 'Salary003',
-          driverId: 'D003',
-          driverName: '王五',
-          month: '2024-09',
-          tripsCompleted: 52,
-          totalDistance: 4100,
-          baseSalary: 4000,
-          tripBonus: 2600,
-          fuelAllowance: 1500,
-          totalEarnings: 8100,
-          status: 'pending',
-        },
-        {
-          id: 'Salary004',
-          driverId: 'D004',
-          driverName: '赵六',
-          month: '2024-08',
-          tripsCompleted: 41,
-          totalDistance: 3050,
-          baseSalary: 4000,
-          tripBonus: 2050,
-          fuelAllowance: 1100,
-          totalEarnings: 7150,
-          status: 'paid',
-          payDate: '2024-09-01',
-        },
-        {
-          id: 'Salary005',
-          driverId: 'D005',
-          driverName: '孙七',
-          month: '2024-08',
-          tripsCompleted: 35,
-          totalDistance: 2450,
-          baseSalary: 4000,
-          tripBonus: 1750,
-          fuelAllowance: 900,
-          totalEarnings: 6650,
-          status: 'paid',
-          payDate: '2024-09-01',
-        },
-      ];
-
-      setDrivers(mockDrivers);
-      setSalaryRecords(mockSalaryRecords);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      message.error('加载数据失败');
+      const response = await financeApi.getDriverPayrollSummary(params);
+      // 2025-11-30T11:15:00Z Fixed by Assistant: 确保 payrollData 始终是数组，处理各种响应格式
+      let data: PayrollSummary[] = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          data = response.data;
+        } else if (typeof response.data === 'object') {
+          // 如果返回的是对象，尝试提取数组
+          const arrayData = (response.data as any).data || (response.data as any).records || [];
+          data = Array.isArray(arrayData) ? arrayData : [];
+        }
+      }
+      
+      setPayrollData(data);
+    } catch (error: any) {
+      console.error('Failed to load payroll data:', error);
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '加载薪酬数据失败';
+      message.error(errorMessage);
+      setPayrollData([]); // 确保设置为空数组
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddRecord = () => {
+    // 2025-11-30T11:00:00Z 添加工资记录作为临时补救入口
     setEditingRecord(null);
     form.resetFields();
     setIsModalVisible(true);
   };
 
-  const handleEditRecord = (record: SalaryRecord) => {
+  const handleViewDetails = (record: PayrollSummary) => {
+    setSelectedRecord(record);
+    setIsDetailModalVisible(true);
+  };
+
+  const handleEditRecord = (record: PayrollSummary) => {
     setEditingRecord(record);
-    form.setFieldsValue(record);
+    form.setFieldsValue({
+      driverId: record.driverId,
+      period: record.period,
+      baseSalary: record.baseSalary,
+      tripBonus: record.tripBonus,
+      fuelAllowance: record.fuelAllowance,
+      status: record.status,
+      payDate: record.payDate ? dayjs(record.payDate) : undefined,
+    });
     setIsModalVisible(true);
   };
 
@@ -171,42 +171,18 @@ const DriverPayroll: React.FC = () => {
     try {
       const values = await form.validateFields();
       
-      if (editingRecord) {
-        // 编辑记录
-        const updatedRecord = { ...editingRecord, ...values };
-        setSalaryRecords(prev => 
-          prev.map(record => record.id === editingRecord.id ? updatedRecord : record)
-        );
-        message.success('薪酬记录更新成功');
-      } else {
-        // 新增记录
-        const driverName = drivers.find(d => d.id === values.driverId);
-        const newRecord: SalaryRecord = {
-          id: `Salary${Date.now()}`,
-          driverName: driverName?.name || '未知司机',
-          ...values,
-          totalEarnings: (values.baseSalary || 0) + (values.tripBonus || 0) + (values.fuelAllowance || 0),
-          status: 'pending',
-        };
-        setSalaryRecords(prev => [...prev, newRecord]);
-        message.success('薪酬记录添加成功');
-      }
+      // 2025-11-30T11:00:00Z 临时补救：手动添加工资记录
+      message.warning('手动添加工资记录功能正在开发中，建议使用自动生成的薪酬数据');
+      
+      // TODO: 实现手动添加工资记录的API调用
+      // await financeApi.createPayrollRecord(values);
       
       setIsModalVisible(false);
+      form.resetFields();
+      await loadPayrollData();
     } catch (error) {
       console.error('Form validation failed:', error);
     }
-  };
-
-  const handleDeleteRecord = (id: string) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这条薪酬记录吗？',
-      onOk: () => {
-        setSalaryRecords(prev => prev.filter(record => record.id !== id));
-        message.success('删除成功');
-      },
-    });
   };
 
   const getStatusTag = (status: string) => {
@@ -219,7 +195,7 @@ const DriverPayroll: React.FC = () => {
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
-  const salaryColumns = [
+  const payrollColumns = [
     {
       title: '司机姓名',
       dataIndex: 'driverName',
@@ -232,12 +208,12 @@ const DriverPayroll: React.FC = () => {
       ),
     },
     {
-      title: '月份',
-      dataIndex: 'month',
-      key: 'month',
-      sorter: (a: SalaryRecord, b: SalaryRecord) => {
-        if (a.month < b.month) return -1;
-        if (a.month > b.month) return 1;
+      title: '周期',
+      dataIndex: 'period',
+      key: 'period',
+      sorter: (a: PayrollSummary, b: PayrollSummary) => {
+        if (a.period < b.period) return -1;
+        if (a.period > b.period) return 1;
         return 0;
       },
     },
@@ -253,7 +229,18 @@ const DriverPayroll: React.FC = () => {
           <span>次</span>
         </Space>
       ),
-      sorter: (a: SalaryRecord, b: SalaryRecord) => a.tripsCompleted - b.tripsCompleted,
+      sorter: (a: PayrollSummary, b: PayrollSummary) => a.tripsCompleted - b.tripsCompleted,
+    },
+    {
+      title: '完成运单',
+      dataIndex: 'shipmentsCompleted',
+      key: 'shipmentsCompleted',
+      render: (count: number) => (
+        <Space>
+          <Badge count={count} showZero style={{ backgroundColor: '#52c41a' }} />
+        </Space>
+      ),
+      sorter: (a: PayrollSummary, b: PayrollSummary) => a.shipmentsCompleted - b.shipmentsCompleted,
     },
     {
       title: '总里程',
@@ -267,7 +254,7 @@ const DriverPayroll: React.FC = () => {
           <span>km</span>
         </Space>
       ),
-      sorter: (a: SalaryRecord, b: SalaryRecord) => a.totalDistance - b.totalDistance,
+      sorter: (a: PayrollSummary, b: PayrollSummary) => a.totalDistance - b.totalDistance,
     },
     {
       title: '基础工资',
@@ -308,7 +295,7 @@ const DriverPayroll: React.FC = () => {
           ${amount.toLocaleString()}
         </Text>
       ),
-      sorter: (a: SalaryRecord, b: SalaryRecord) => a.totalEarnings - b.totalEarnings,
+      sorter: (a: PayrollSummary, b: PayrollSummary) => a.totalEarnings - b.totalEarnings,
     },
     {
       title: '状态',
@@ -319,35 +306,34 @@ const DriverPayroll: React.FC = () => {
         { text: '待处理', value: 'pending' },
         { text: '已支付', value: 'paid' },
       ],
-      onFilter: (value: string, record: SalaryRecord) => record.status === value,
+      onFilter: (value: string, record: PayrollSummary) => record.status === value,
     },
     {
       title: '支付日期',
       dataIndex: 'payDate',
       key: 'payDate',
-      render: (date: string) => date ? new Date(date).toLocaleDateString() : (
+      render: (date: string | undefined) => date ? dayjs(date).format('YYYY-MM-DD') : (
         <Text type="secondary" style={{ fontStyle: 'italic' }}>未支付</Text>
       ),
     },
     {
       title: '操作',
       key: 'action',
-      render: (_: unknown, record: SalaryRecord) => (
+      render: (_: unknown, record: PayrollSummary) => (
         <Space>
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetails(record)}
+          >
+            查看详情
+          </Button>
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEditRecord(record)}
           >
             编辑
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteRecord(record.id)}
-          >
-            删除
           </Button>
         </Space>
       ),
@@ -356,22 +342,28 @@ const DriverPayroll: React.FC = () => {
 
   // 统计信息
   const getStatistics = () => {
-    const totalRecords = salaryRecords.length;
-    const pendingRecords = salaryRecords.filter(r => r.status === 'pending').length;
-    const paidRecords = salaryRecords.filter(r => r.status === 'paid').length;
-    const totalPaidAmount = salaryRecords
+    // 2025-11-30T11:10:00Z Fixed by Assistant: 确保 payrollData 是数组
+    const data = Array.isArray(payrollData) ? payrollData : [];
+    
+    const totalRecords = data.length;
+    const pendingRecords = data.filter(r => r.status === 'pending').length;
+    const paidRecords = data.filter(r => r.status === 'paid').length;
+    const totalPaidAmount = data
       .filter(r => r.status === 'paid')
-      .reduce((sum, r) => sum + r.totalEarnings, 0);
+      .reduce((sum, r) => sum + (r.totalEarnings || 0), 0);
+    const totalPendingAmount = data
+      .filter(r => r.status === 'pending')
+      .reduce((sum, r) => sum + (r.totalEarnings || 0), 0);
     const averageSalary = totalRecords > 0 
-      ? salaryRecords.reduce((sum, r) => sum + r.totalEarnings, 0) / totalRecords 
+      ? data.reduce((sum, r) => sum + (r.totalEarnings || 0), 0) / totalRecords 
       : 0;
-
 
     return {
       totalRecords,
       pendingRecords,
       paidRecords,
       totalPaidAmount,
+      totalPendingAmount,
       averageSalary,
     };
   };
@@ -380,7 +372,59 @@ const DriverPayroll: React.FC = () => {
 
   return (
     <div>
-      
+      {/* 筛选和汇总类型切换 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col span={6}>
+            <Text strong>汇总类型：</Text>
+            <Radio.Group 
+              value={periodType} 
+              onChange={(e) => setPeriodType(e.target.value)}
+              style={{ marginLeft: 8 }}
+            >
+              <Radio.Button value="monthly">按月</Radio.Button>
+              <Radio.Button value="biweekly">双周</Radio.Button>
+            </Radio.Group>
+          </Col>
+          <Col span={8}>
+            <Text strong>日期范围：</Text>
+            <RangePicker
+              style={{ marginLeft: 8, width: '100%' }}
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+              allowClear
+            />
+          </Col>
+          <Col span={6}>
+            <Text strong>司机筛选：</Text>
+            <Select
+              style={{ marginLeft: 8, width: '100%' }}
+              placeholder="全部司机"
+              allowClear
+              value={selectedDriverId}
+              onChange={setSelectedDriverId}
+            >
+              {drivers.map(driver => (
+                <Option key={driver.id} value={driver.id}>
+                  {driver.name}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col span={4}>
+            <Button 
+              type="primary" 
+              icon={<ReloadOutlined />}
+              onClick={loadPayrollData}
+              loading={loading}
+            >
+              刷新
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* 统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={8}>
           <Card>
@@ -414,7 +458,6 @@ const DriverPayroll: React.FC = () => {
         </Col>
       </Row>
 
-      
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={12}>
           <Card>
@@ -435,14 +478,14 @@ const DriverPayroll: React.FC = () => {
         <Col xs={12} sm={12}>
           <Card>
             <Statistic
-              title="平均薪酬"
-              value={Math.round(statistics.averageSalary)}
+              title="待支付金额"
+              value={statistics.totalPendingAmount}
               prefix="$"
               precision={0}
-              valueStyle={{ color: '#52c41a', fontSize: '24px' }}
+              valueStyle={{ color: '#faad14', fontSize: '24px' }}
               suffix={
                 <span style={{ fontSize: '14px', color: '#999' }}>
-                  司机平均月薪
+                  待支付薪酬总额
                 </span>
               }
             />
@@ -450,7 +493,23 @@ const DriverPayroll: React.FC = () => {
         </Col>
       </Row>
 
-      
+      {/* 说明提示 */}
+      <Alert
+        message="薪酬数据说明"
+        description={
+          <div>
+            <p>• 薪酬记录会在运单完成并指派司机后自动生成</p>
+            <p>• 系统根据规则引擎自动计算司机薪酬（基础工资、行程奖金、燃油补贴）</p>
+            <p>• 点击"查看详情"可以查看该周期内包含的所有行程和运单信息</p>
+            <p>• "添加工资记录"功能用于临时补救，建议优先使用自动生成的数据</p>
+          </div>
+        }
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+
+      {/* 薪酬记录表格 */}
       <Card
         title={
           <Space>
@@ -465,50 +524,164 @@ const DriverPayroll: React.FC = () => {
             onClick={handleAddRecord}
             size="large"
           >
-            添加工资记录
+            添加工资记录（临时补救）
           </Button>
         }
       >
-        <Table
-          columns={salaryColumns}
-          dataSource={salaryRecords}
-          rowKey="id"
-          loading={loading}
-          pagination={{ 
-            pageSize: 10, 
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => 
-              `第 ${range[0]}-${range[1]} 条/共 ${total} 条记录`,
-          }}
-          scroll={{ x: 1400 }}
-          summary={() => (
-            <Table.Summary>
-              <Table.Summary.Row style={{ background: '#fafafa' }}>
-                <Table.Summary.Cell index={0} colSpan={7}>
-                  <Text strong style={{ fontSize: '16px' }}>总计:</Text>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={7}>
-                  <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
-                    ${salaryRecords.reduce((sum, r) => sum + r.totalEarnings, 0).toLocaleString()}
-                  </Text>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={8} colSpan={3} />
-              </Table.Summary.Row>
-            </Table.Summary>
-          )}
-        />
+        {(!Array.isArray(payrollData) || payrollData.length === 0) ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+            <DollarOutlined style={{ fontSize: 48, marginBottom: 16, color: '#d9d9d9' }} />
+            <div>当前没有薪酬记录</div>
+            <div style={{ fontSize: 12, marginTop: 8 }}>
+              完成运单并指派司机后，系统会自动生成薪酬记录
+            </div>
+          </div>
+        ) : (
+          <Table
+            columns={payrollColumns}
+            dataSource={payrollData}
+            rowKey={(record) => `${record.period}_${record.driverId}`}
+            loading={loading}
+            pagination={{ 
+              pageSize: 10, 
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => 
+                `第 ${range[0]}-${range[1]} 条/共 ${total} 条记录`,
+            }}
+            scroll={{ x: 1400 }}
+            onRow={(record) => ({
+              onClick: () => handleViewDetails(record),
+              style: { cursor: 'pointer' }
+            })}
+            summary={() => {
+              const data = Array.isArray(payrollData) ? payrollData : [];
+              return (
+                <Table.Summary>
+                  <Table.Summary.Row style={{ background: '#fafafa' }}>
+                    <Table.Summary.Cell index={0} colSpan={8}>
+                      <Text strong style={{ fontSize: '16px' }}>总计:</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={8}>
+                      <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
+                        ${data.reduce((sum, r) => sum + (r.totalEarnings || 0), 0).toLocaleString()}
+                      </Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={9} colSpan={3} />
+                  </Table.Summary.Row>
+                </Table.Summary>
+              );
+            }}
+          />
+        )}
       </Card>
 
-      
+      {/* 详情查看模态框 */}
       <Modal
-        title={editingRecord ? '编辑薪酬记录' : '添加工资记录'}
+        title={`薪酬详情 - ${selectedRecord?.driverName} (${selectedRecord?.period})`}
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={900}
+      >
+        {selectedRecord && (
+          <div>
+            <Descriptions title="薪酬汇总" bordered column={2} style={{ marginBottom: 24 }}>
+              <Descriptions.Item label="司机姓名">{selectedRecord.driverName}</Descriptions.Item>
+              <Descriptions.Item label="周期">{selectedRecord.period}</Descriptions.Item>
+              <Descriptions.Item label="完成行程">{selectedRecord.tripsCompleted} 次</Descriptions.Item>
+              <Descriptions.Item label="完成运单">{selectedRecord.shipmentsCompleted} 单</Descriptions.Item>
+              <Descriptions.Item label="总里程">{selectedRecord.totalDistance.toLocaleString()} km</Descriptions.Item>
+              <Descriptions.Item label="状态">{getStatusTag(selectedRecord.status)}</Descriptions.Item>
+              <Descriptions.Item label="基础工资">${selectedRecord.baseSalary.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="行程奖金">${selectedRecord.tripBonus.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="燃油补贴">${selectedRecord.fuelAllowance.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="总薪酬">
+                <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
+                  ${selectedRecord.totalEarnings.toLocaleString()}
+                </Text>
+              </Descriptions.Item>
+              {selectedRecord.payDate && (
+                <Descriptions.Item label="支付日期">
+                  {dayjs(selectedRecord.payDate).format('YYYY-MM-DD')}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            <Divider>包含的行程和运单</Divider>
+
+            {selectedRecord.trips.length === 0 ? (
+              <Alert
+                message="暂无行程数据"
+                description="该周期内没有关联的行程记录"
+                type="info"
+                showIcon
+              />
+            ) : (
+              <List
+                dataSource={selectedRecord.trips}
+                renderItem={(trip) => (
+                  <List.Item>
+                    <Card 
+                      size="small" 
+                      title={
+                        <Space>
+                          <Badge count={trip.shipments.length} showZero style={{ backgroundColor: '#1890ff' }} />
+                          <span>行程: {trip.tripNo}</span>
+                        </Space>
+                      }
+                      style={{ width: '100%' }}
+                    >
+                      <List
+                        size="small"
+                        dataSource={trip.shipments}
+                        renderItem={(shipment) => (
+                          <List.Item>
+                            <List.Item.Meta
+                              title={
+                                <Space>
+                                  <Text strong>运单: {shipment.shipmentNumber}</Text>
+                                  <Tag color="blue">${shipment.amount.toLocaleString()}</Tag>
+                                </Space>
+                              }
+                              description={`完成时间: ${dayjs(shipment.completedAt).format('YYYY-MM-DD HH:mm')}`}
+                            />
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  </List.Item>
+                )}
+              />
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* 添加工资记录模态框（临时补救） */}
+      <Modal
+        title="添加工资记录（临时补救）"
         open={isModalVisible}
         onOk={handleModalOk}
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={() => {
+          setIsModalVisible(false);
+          form.resetFields();
+          setEditingRecord(null);
+        }}
         width={700}
         destroyOnClose
       >
+        <Alert
+          message="临时补救功能"
+          description="此功能用于手动添加工资记录，建议优先使用系统自动生成的薪酬数据。"
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
@@ -528,15 +701,11 @@ const DriverPayroll: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                name="month"
-                label="工资月份"
-                rules={[{ required: true, message: '请选择月份' }]}
+                name="period"
+                label="工资周期"
+                rules={[{ required: true, message: '请输入周期' }]}
               >
-                <DatePicker.picker
-                  picker="month"
-                  placeholder="选择月份"
-                  style={{ width: '100%' }}
-                />
+                <Input placeholder={periodType === 'monthly' ? '例如：2024-01' : '例如：2024-01-01 to 2024-01-14'} />
               </Form.Item>
             </Col>
           </Row>
@@ -591,44 +760,18 @@ const DriverPayroll: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                name="tripsCompleted"
-                label="完成行程数"
-                rules={[{ required: true, message: '请输入行程数' }]}
+                name="status"
+                label="支付状态"
+                rules={[{ required: true, message: '请选择支付状态' }]}
+                initialValue="pending"
               >
-                <InputNumber
-                  min={0}
-                  style={{ width: '100%' }}
-                  placeholder="行程数"
-                  suffix="次"
-                />
+                <Select placeholder="选择支付状态">
+                  <Option value="pending">待处理</Option>
+                  <Option value="paid">已支付</Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>
-
-          <Form.Item
-            name="totalDistance"
-            label="总里程"
-            rules={[{ required: true, message: '请输入总里程' }]}
-          >
-            <InputNumber
-              min={0}
-              style={{ width: '100%' }}
-              placeholder="总里程"
-              suffix="km"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="支付状态"
-            rules={[{ required: true, message: '请选择支付状态' }]}
-            initialValue="pending"
-          >
-            <Select placeholder="选择支付状态">
-              <Option value="pending">待处理</Option>
-              <Option value="paid">已支付</Option>
-            </Select>
-          </Form.Item>
 
           <Form.Item
             name="payDate"

@@ -3,10 +3,17 @@ import Joi from 'joi';
 import { MvpShipmentController } from '../controllers/MvpShipmentController';
 import { DatabaseService } from '../services/DatabaseService';
 import { validateRequest } from '../middleware/validationMiddleware';
+// 2025-11-30T21:00:00 修复：添加认证和租户中间件
+import { authMiddleware } from '../middleware/authMiddleware';
+import { tenantMiddleware } from '../middleware/tenantMiddleware';
 
 const router = Router();
 const dbService = new DatabaseService(); // 数据库服务 // 2025-09-23 10:15:00
 const controller = new MvpShipmentController(dbService); // 控制器 // 2025-09-23 10:15:00
+
+// 2025-11-30T21:00:00 修复：应用认证和租户中间件
+router.use(authMiddleware);
+router.use(tenantMiddleware);
 
 const createShipmentSchema = Joi.object({
   shipperName: Joi.string().required(),

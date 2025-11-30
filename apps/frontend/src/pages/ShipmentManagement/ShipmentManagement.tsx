@@ -18,6 +18,8 @@ import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 �
 import { smartDispatch } from '../../algorithms/dispatch'; // 2025-10-10 18:29:00 引入智能调度算法
 import { smartDispatchOptimized } from '../../algorithms/dispatchOptimized'; // 2025-10-17 23:55:00 引入优化调度算法（Google Maps）
 import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-10-10 11:15:00 引入BOL文档组件
+// 2025-11-30T13:00:00Z Added by Assistant: 使用统一的表格列定义工具
+import { renderShipmentStatus } from '../../utils/tableColumns';
 
 
 const { Title, Text } = Typography;
@@ -545,21 +547,7 @@ const ShipmentManagement: React.FC = () => {
     }
   };
 
-  const getStatusTag = (status: ShipmentStatus) => {
-    const statusMap: Record<ShipmentStatus, { color: string; text: string; icon: React.ReactNode }> = {
-      [ShipmentStatus.PENDING]: { color: 'orange', text: '待处理', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.QUOTED]: { color: 'blue', text: '已报价', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.CONFIRMED]: { color: 'cyan', text: '已确认', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.ASSIGNED]: { color: 'purple', text: '已分配', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.PICKED_UP]: { color: 'geekblue', text: '已取货', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.IN_TRANSIT]: { color: 'blue', text: '运输中', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.DELIVERED]: { color: 'green', text: '已送达', icon: <CheckCircleOutlined /> },
-      [ShipmentStatus.COMPLETED]: { color: 'green', text: '已完成', icon: <CheckCircleOutlined /> },
-      [ShipmentStatus.CANCELLED]: { color: 'red', text: '已取消', icon: <ClockCircleOutlined /> },
-      [ShipmentStatus.EXCEPTION]: { color: 'red', text: '异常', icon: <ClockCircleOutlined /> },
-    };
-    return statusMap[status] || { color: 'default', text: '未知', icon: <ClockCircleOutlined /> };
-  };
+  // 2025-11-30T13:05:00Z Removed by Assistant: 已使用统一的 renderShipmentStatus 函数，删除重复的 getStatusTag
 
   // 表格列定义 // 2025-10-02 02:55:10 根据 docs/request.md 改造
   const columns = [
@@ -643,14 +631,7 @@ const ShipmentManagement: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: ShipmentStatus) => {
-        const statusInfo = getStatusTag(status);
-        return (
-          <Tag color={statusInfo.color} icon={statusInfo.icon}>
-            {statusInfo.text}
-          </Tag>
-        );
-      },
+      render: renderShipmentStatus, // 2025-11-30T13:00:00Z Updated by Assistant: 使用统一的渲染函数
     },
     {
       title: '操作',

@@ -23,9 +23,19 @@ router.get('/',
       res.json({ success: true, data: vehicles });
     } catch (e: any) {
       console.error('Get vehicles error:', e);
+      // 2025-11-30T13:00:00Z Fixed by Assistant: 返回详细错误信息以便调试
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      const errorStack = e instanceof Error ? e.stack : undefined;
+      console.error('Error details:', { errorMessage, errorStack });
       res.status(500).json({ 
         success: false, 
-        error: { code: 'INTERNAL_ERROR', message: e.message } 
+        error: { 
+          code: 'INTERNAL_ERROR', 
+          message: 'Failed to get vehicles',
+          details: errorMessage
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || ''
       });
     }
   }

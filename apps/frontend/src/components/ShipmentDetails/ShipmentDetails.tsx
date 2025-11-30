@@ -56,6 +56,8 @@ import { driversApi, vehiclesApi, shipmentsApi, tripsApi } from '../../services/
 import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-11-11 10:15:05 引入时间格式化工具
 import type { RcFile } from 'antd/es/upload/interface'; // 2025-11-11 10:15:05 引入上传文件类型定义
+// 2025-11-30T20:50:00 修复：添加 DriverForm 导入
+import DriverForm, { transformDriverFormData } from '../DriverForm/DriverForm';
 
 const { Title, Text } = Typography;
 
@@ -1252,27 +1254,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         onOk={async () => {
           try {
             const values = await addDriverForm.validateFields();
-            // 2025-11-30 05:45:00 修复：添加后端必需的字段 licenseNumber 和 vehicleInfo
-            // 2025-11-30 06:00:00 修复：简化司机创建，车辆信息在后端自动生成默认值，不要求用户填写
-            // 2025-11-30 06:15:00 修复：去除手机号中的非数字字符，只保留数字发送给后端
-            const phoneDigitsOnly = values.phone.replace(/\D/g, '');
-            const driverData: any = {
-              name: values.name,
-              phone: phoneDigitsOnly, // 只发送数字
-              status: 'available',
-              licenseNumber: values.licenseNumber || `LIC${Date.now()}`, // 如果没有填写，生成一个临时驾照号
-              // 后端API要求vehicleInfo，但我们在前端不显示给用户，使用默认值
-              vehicleInfo: {
-                type: 'van',
-                licensePlate: `TEMP${Date.now()}`, // 临时车牌号，后端会自动处理
-                capacity: 1000, // 默认载重
-                dimensions: {
-                  length: 300, // 默认长度
-                  width: 200,  // 默认宽度
-                  height: 200  // 默认高度
-                }
-              }
-            };
+            // 2025-11-30T12:50:00Z Updated by Assistant: 使用统一的表单数据转换函数（quick模式）
+            const driverData = transformDriverFormData(values, 'quick');
             const res = await driversApi.createDriver(driverData);
             const created = res?.data?.data || res?.data || { id: `drv_${Date.now()}`, name: values.name, phone: values.phone };
             // 2025-11-30 05:45:00 修复：重新加载司机列表以确保数据一致
@@ -1294,53 +1277,9 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         okText="保存"
         cancelText="取消"
       >
-        {/* 2025-11-30 06:00:00 修复：移除右侧的司机列表，简化表单布局 */}
+        {/* 2025-11-30T12:50:00Z Updated by Assistant: 使用统一的司机表单组件（quick模式） */}
         <Card size="small" title="司机信息">
-          <Form form={addDriverForm} layout="vertical">
-            <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}> 
-              <Input placeholder="张三" />
-            </Form.Item>
-            <Form.Item name="age" label="年龄" rules={[{ required: false, message: '请输入年龄' }]}> 
-              <Input type="number" placeholder="30（可选）" />
-            </Form.Item>
-            <Form.Item 
-              name="phone" 
-              label="手机号" 
-              rules={[
-                { required: true, message: '请输入手机号' }, 
-                { 
-                  validator: (_, value) => {
-                    if (!value) {
-                      return Promise.resolve();
-                    }
-                    // 2025-11-30 06:15:00 修复：加拿大手机号格式验证
-                    // 去除所有非数字字符
-                    const digitsOnly = value.replace(/\D/g, '');
-                    // 加拿大手机号：10位数字，第一位不能是0或1，第四位不能是0或1
-                    const canadianPhonePattern = /^[2-9]\d{2}[2-9]\d{2}\d{4}$/;
-                    if (digitsOnly.length === 10 && canadianPhonePattern.test(digitsOnly)) {
-                      return Promise.resolve();
-                    }
-                    return Promise.reject(new Error('请输入有效的加拿大手机号（10位数字，格式：XXX-XXX-XXXX）'));
-                  }
-                }
-              ]}
-            > 
-              <Input placeholder="416-555-1234 或 (416) 555-1234" />
-            </Form.Item>
-            <Form.Item name="licenseNumber" label="驾照号" rules={[{ required: true, message: '请输入驾照号' }]}> 
-              <Input placeholder="请输入驾照号" />
-            </Form.Item>
-            <Form.Item name="englishLevel" label="英语水平" rules={[{ required: false, message: '请选择英语水平' }]}> 
-              <Select options={[{ label: 'Basic', value: 'basic' }, { label: 'Intermediate', value: 'intermediate' }, { label: 'Fluent', value: 'fluent' }]} placeholder="选择英语水平（可选）" />
-            </Form.Item>
-            <Form.Item name="otherLanguages" label="其他语言"> 
-              <Select mode="multiple" placeholder="选择其他语言" options={[{ label: '普通话', value: 'mandarin' }, { label: '广东话', value: 'cantonese' }, { label: '法语', value: 'french' }]} />
-            </Form.Item>
-            <Form.Item name="licenseClass" label="驾照等级（加拿大）" rules={[{ required: false, message: '请选择驾照等级' }]}> 
-              <Select placeholder="选择驾照等级（可选）" options={[{ label: 'Class G (Ontario)', value: 'G' }, { label: 'Class G1', value: 'G1' }, { label: 'Class G2', value: 'G2' }, { label: 'Class AZ (Tractor-Trailer)', value: 'AZ' }, { label: 'Class DZ (Straight Truck)', value: 'DZ' }, { label: 'Class CZ (Bus)', value: 'CZ' }, { label: 'Class BZ (School Bus)', value: 'BZ' }, { label: 'Class M (Motorcycle)', value: 'M' }]} />
-            </Form.Item>
-          </Form>
+          <DriverForm form={addDriverForm} mode="quick" />
         </Card>
       </Modal>
 
@@ -1352,16 +1291,20 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         onOk={async () => {
           try {
             const values = await addVehicleForm.validateFields();
-            const res = await vehiclesApi.createVehicle({ plateNumber: values.plateNumber, type: values.type, capacityKg: Number(values.capacityKg || 0), status: 'available' });
+            // 2025-11-30T12:50:00Z Updated by Assistant: 使用统一的表单数据转换函数
+            const vehicleData = transformVehicleFormData(values);
+            const res = await vehiclesApi.createVehicle(vehicleData);
             const created = res?.data?.data || res?.data || { id: `veh_${Date.now()}`, plateNumber: values.plateNumber, type: values.type };
             setAvailableVehicles(prev => [created, ...prev]);
             form.setFieldsValue({ vehicleId: created.id });
             message.success('车辆已添加');
             setIsQuickAddVehicleVisible(false);
             addVehicleForm.resetFields();
-          } catch (error) {
-    console.error(error);
-  }
+          } catch (error: any) {
+            console.error('添加车辆失败:', error);
+            const errorMsg = error?.response?.data?.error?.message || error?.message || '添加车辆失败，请检查输入';
+            message.error(errorMsg);
+          }
         }}
         okText="保存"
         cancelText="取消"
@@ -1369,17 +1312,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         <Row gutter={16}>
           <Col span={12}>
             <Card size="small" title="车辆信息（紧凑）">
-              <Form form={addVehicleForm} layout="vertical">
-                <Form.Item name="plateNumber" label="车牌号" rules={[{ required: true, message: '请输入车牌号' }]}> 
-                  <Input placeholder="京A12345" />
-                </Form.Item>
-                <Form.Item name="type" label="车型" rules={[{ required: true, message: '请选择车型' }]}> 
-                  <Select options={[{ label: '厢式货车', value: '厢式货车' }, { label: '平板车', value: '平板车' }, { label: '冷链车', value: '冷链车' }]} />
-                </Form.Item>
-                <Form.Item name="capacityKg" label="载重(kg)" rules={[{ required: true, message: '请输入载重' }]}> 
-                  <Input type="number" placeholder="3000" />
-                </Form.Item>
-              </Form>
+              {/* 2025-11-30T12:50:00Z Updated by Assistant: 使用统一的车辆表单组件 */}
+              <VehicleForm form={addVehicleForm} mode="create" />
             </Card>
           </Col>
           <Col span={12}>

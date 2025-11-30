@@ -10,8 +10,22 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function runPhase2Migration() {
+  // 2025-11-30T19:40:00Z Fixed by Assistant: 添加 DATABASE_URL 验证
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ 错误: DATABASE_URL 环境变量未设置！');
+    console.error('⚠️  请设置 DATABASE_URL 环境变量');
+    process.exit(1);
+  }
+
+  let connectionString = process.env.DATABASE_URL;
+  // 移除 channel_binding 参数（某些环境不支持）
+  if (connectionString.includes('neon.tech')) {
+    connectionString = connectionString.replace(/[&?]channel_binding=[^&]*/, '').replace(/\?\?/, '?').replace(/&&/, '&').replace(/[&?]$/, '');
+  }
+
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
+    ssl: connectionString.includes('neon.tech') ? { rejectUnauthorized: false } : undefined
   });
 
   const client = await pool.connect();

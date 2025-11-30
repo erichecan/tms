@@ -25,11 +25,13 @@ import {
   TruckOutlined, 
   HistoryOutlined,
   EnvironmentOutlined,
-  ToolOutlined,
   DollarOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, DriverStatus, VehicleStatus } from '../../types';
 import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
+// 2025-11-30T12:45:00Z Added by Assistant: 使用统一的司机和车辆表单组件
+import DriverForm, { transformDriverFormData } from '../../components/DriverForm/DriverForm';
+import VehicleForm, { transformVehicleFormData } from '../../components/VehicleForm/VehicleForm';
 import { driversApi, vehiclesApi, tripsApi, locationApi } from '../../services/api'; // 2025-11-11T15:25:48Z Added by Assistant: Real-time location API
 import GoogleMap from '../../components/GoogleMap/GoogleMap'; // 2025-11-11 10:20:05 启用地图组件展示实时位置
 import { formatDateTime } from '../../utils/timeUtils';
@@ -61,7 +63,7 @@ type RealTimeLocation = {
 
 const FleetManagement: React.FC = () => {
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
-  const { availableDrivers, driversLoading, reloadDrivers, availableVehicles, vehiclesLoading, reloadVehicles } = useDataContext();
+  const { availableDrivers, reloadDrivers, availableVehicles, reloadVehicles } = useDataContext();
   
   const [loading, setLoading] = useState(false);
   const [inTransitTrips, setInTransitTrips] = useState<Trip[]>([]);
@@ -78,10 +80,6 @@ const FleetManagement: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [lastLocationSync, setLastLocationSync] = useState<Date | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null); // 2025-11-11 10:20:05 地图标记选中状态
-  const selectedLocation = useMemo(
-    () => (selectedMarkerId ? realTimeLocations.find((location) => location.key === selectedMarkerId) ?? null : null),
-    [selectedMarkerId, realTimeLocations]
-  ); // 2025-11-11 10:20:05 选中标记对应的数据
 
   const fetchRealTimeLocations = useCallback(async (feedback = false) => {
     try {
@@ -203,15 +201,22 @@ const FleetManagement: React.FC = () => {
     }
   }, [realTimeLocations]);
 
-  // 2025-10-31 09:50:00 只加载行程数据，司机和车辆数据由 Hooks 自动加载
+  // 2025-11-30T10:30:00Z Updated by Assistant: 优化行程数据加载，支持多种状态
   const loadTripsData = async () => {
-    // 2025-11-11 10:15:05 新增：行程数据加载
     try {
       setLoading(true);
       const tripsResult = await tripsApi.getTrips();
       const allTrips = tripsResult.data?.data || [];
-      const ongoingTrips = allTrips.filter((trip: Trip) => trip.status === TripStatus.ONGOING);
+      // 2025-11-30T10:30:00Z 支持多种状态：ongoing, planned（已计划但未开始也算在途）
+      const ongoingTrips = allTrips.filter((trip: Trip) => 
+        trip.status === TripStatus.ONGOING || trip.status === TripStatus.PLANNED
+      );
       setInTransitTrips(ongoingTrips);
+      
+      // 如果没有在途行程，显示提示信息
+      if (ongoingTrips.length === 0 && allTrips.length > 0) {
+        console.log('当前没有在途行程，但有其他状态的行程:', allTrips.map((t: Trip) => ({ tripNo: t.tripNo, status: t.status })));
+      }
     } catch (error) {
       console.error('获取行程数据失败:', error);
       setInTransitTrips([]);
@@ -434,10 +439,6 @@ const FleetManagement: React.FC = () => {
     }
   ]; // 2025-11-11T15:25:48Z Added by Assistant: Real-time table columns
 
-  const trackedVehicleCount = realTimeLocations.length;
-  const activeTripCount = realTimeLocations.filter(location => location.tripStatus === 'ongoing').length;
-  const idleVehicleCount = realTimeLocations.filter(location => !location.tripId).length; // 2025-11-11T15:25:48Z Added by Assistant: Location summary metrics
-
   const handleTripClick = (trip: Trip) => {
     setSelectedTrip(trip);
   };
@@ -466,66 +467,157 @@ const FleetManagement: React.FC = () => {
             children: (
               <div>
                 <Row gutter={[24, 24]}>
+                  {/* 左侧：在途行程和空闲资源 */}
                   <Col span={14}>
-                    <Card title="在途行程" style={{ marginBottom: 16 }}>
-                      <Table
-                        columns={inTransitColumns}
-                        dataSource={inTransitTrips}
-                        rowKey="id"
-                        loading={loading}
-                        pagination={false}
-                        size="small"
-                        scroll={{ x: 500 }}
-                        onRow={(record) => ({
-                          onClick: () => handleTripClick(record),
-                          style: { cursor: 'pointer' }
-                        })}
-                      />
+                    <Card 
+                      title={
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>在途行程</span>
+                          <Button 
+                            type="link" 
+                            size="small"
+                            onClick={loadFleetData}
+                            loading={loading}
+                          >
+                            刷新
+                          </Button>
+                        </div>
+                      }
+                      style={{ marginBottom: 16 }}
+                    >
+                      {inTransitTrips.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                          <TruckOutlined style={{ fontSize: 48, marginBottom: 16, color: '#d9d9d9' }} />
+                          <div>当前没有在途行程</div>
+                          <div style={{ fontSize: 12, marginTop: 8 }}>
+                            创建新行程或查看已完成行程
+                          </div>
+                        </div>
+                      ) : (
+                        <Table
+                          columns={inTransitColumns}
+                          dataSource={inTransitTrips}
+                          rowKey="id"
+                          loading={loading}
+                          pagination={false}
+                          size="small"
+                          scroll={{ x: 500 }}
+                          onRow={(record) => ({
+                            onClick: () => handleTripClick(record),
+                            style: { cursor: 'pointer' }
+                          })}
+                        />
+                      )}
                     </Card>
                     
                     <Card title="空闲资源">
                       <Row gutter={[16, 16]}>
                         <Col span={12}>
-                          <Card size="small" title={`空闲司机 (${availableDrivers.length})`} extra={<Button type="link" onClick={() => setIsAddDriverVisible(true)}>添加司机</Button>}>
-                            <List
-                              dataSource={availableDrivers}
-                              renderItem={(driver) => (
-                                <List.Item>
-                                  <List.Item.Meta
-                                    avatar={<Avatar icon={<TeamOutlined />} />}
-                                    title={driver.name}
-                                    description={driver.phone}
-                                  />
-                                  <Tag color="green">空闲</Tag>
-                                </List.Item>
-                              )}
-                            />
+                          <Card size="small" title={`空闲司机 (${availableDrivers.length})`} extra={<Button type="link" size="small" onClick={() => setIsAddDriverVisible(true)}>添加</Button>}>
+                            {availableDrivers.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '20px 0', color: '#999', fontSize: 12 }}>
+                                暂无空闲司机
+                              </div>
+                            ) : (
+                              <List
+                                dataSource={availableDrivers}
+                                renderItem={(driver) => (
+                                  <List.Item>
+                                    <List.Item.Meta
+                                      avatar={<Avatar icon={<TeamOutlined />} />}
+                                      title={driver.name}
+                                      description={driver.phone}
+                                    />
+                                    <Tag color="green">空闲</Tag>
+                                  </List.Item>
+                                )}
+                              />
+                            )}
                           </Card>
                         </Col>
                         <Col span={12}>
-                          <Card size="small" title={`空闲车辆 (${availableVehicles.length})`} extra={<Button type="link" onClick={() => setIsAddVehicleVisible(true)}>添加车辆</Button>}>
-                            <List
-                              dataSource={availableVehicles}
-                              renderItem={(vehicle) => (
-                                <List.Item>
-                                  <List.Item.Meta
-                                    avatar={<Avatar icon={<TruckOutlined />} />}
-                                    title={vehicle.plateNumber}
-                                    description={`${vehicle.type} - ${vehicle.capacityKg}kg`}
-                                  />
-                                  <Tag color="green">空闲</Tag>
-                                </List.Item>
-                              )}
-                            />
+                          <Card size="small" title={`空闲车辆 (${availableVehicles.length})`} extra={<Button type="link" size="small" onClick={() => setIsAddVehicleVisible(true)}>添加</Button>}>
+                            {availableVehicles.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '20px 0', color: '#999', fontSize: 12 }}>
+                                暂无空闲车辆
+                              </div>
+                            ) : (
+                              <List
+                                dataSource={availableVehicles}
+                                renderItem={(vehicle) => (
+                                  <List.Item>
+                                    <List.Item.Meta
+                                      avatar={<Avatar icon={<TruckOutlined />} />}
+                                      title={vehicle.plateNumber}
+                                      description={`${vehicle.type} - ${vehicle.capacityKg}kg`}
+                                    />
+                                    <Tag color="green">空闲</Tag>
+                                  </List.Item>
+                                )}
+                              />
+                            )}
                           </Card>
                         </Col>
                       </Row>
                     </Card>
                   </Col>
+                  
+                  {/* 右侧：实时位置地图 */}
+                  <Col span={10}>
+                    <Card 
+                      title={
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>
+                            <EnvironmentOutlined /> 实时位置
+                          </span>
+                          <Button 
+                            type="link" 
+                            size="small"
+                            onClick={handleManualLocationRefresh}
+                            loading={locationLoading}
+                          >
+                            刷新
+                          </Button>
+                        </div>
+                      }
+                      style={{ height: '100%' }}
+                    >
+                      {locationError && (
+                        <Alert
+                          message="位置数据获取失败"
+                          description={locationError}
+                          type="warning"
+                          showIcon
+                          style={{ marginBottom: 16 }}
+                        />
+                      )}
+                      
+                      {realTimeLocations.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
+                          <EnvironmentOutlined style={{ fontSize: 48, marginBottom: 16, color: '#d9d9d9' }} />
+                          <div>暂无实时位置数据</div>
+                          <div style={{ fontSize: 12, marginTop: 8 }}>
+                            车辆和司机位置将显示在地图上
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ height: '600px', width: '100%' }}>
+                          <GoogleMap
+                            center={mapCenter}
+                            markers={mapMarkers}
+                            onMarkerClick={handleMarkerClick}
+                            zoom={12}
+                          />
+                          {lastLocationSync && (
+                            <div style={{ marginTop: 8, fontSize: 12, color: '#999', textAlign: 'center' }}>
+                              最后更新: {formatDateTime(lastLocationSync.toISOString())}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  </Col>
                 </Row>
-                
-                {/* 2025-11-30 03:10:00 移除：车队实时位置板块，统一使用 Google 地图显示 */}
-                {/* 地图显示已整合到其他位置，此处移除实时位置表格 */}
 
                 <div style={{ marginTop: 24, textAlign: 'center' }}>
                   <Button 
@@ -728,24 +820,19 @@ const FleetManagement: React.FC = () => {
         onOk={async () => {
           try {
             const values = await driverForm.validateFields();
-            await driversApi.createDriver({
-              name: values.name,
-              phone: values.phone,
-              age: values.age || '',
-              englishProficiency: values.englishProficiency || '',
-              otherLanguages: values.otherLanguages || [],
-              licenseClass: values.licenseClass || '',
-              status: 'available'
-            });
+            // 2025-11-30T12:45:00Z Updated by Assistant: 使用统一的表单数据转换函数
+            const driverData = transformDriverFormData(values, 'create');
+            await driversApi.createDriver(driverData);
             message.success('司机已添加');
             setIsAddDriverVisible(false);
             driverForm.resetFields();
             // 2025-11-11T16:00:00Z Added by Assistant: Refresh global data context for cross-page synchronization
             await reloadDrivers();
             loadTripsData();
-          } catch (e) {
+          } catch (e: any) {
             console.error('Failed to add driver:', e);
-            message.error('添加司机失败');
+            const errorMessage = e?.response?.data?.error?.message || e?.message || '添加司机失败';
+            message.error(errorMessage);
           }
         }}
         width={720}
@@ -753,42 +840,8 @@ const FleetManagement: React.FC = () => {
         <Row gutter={16}>
           <Col span={12}>
             <Card size="small" title="司机信息">
-              <Form form={driverForm} layout="vertical">
-                <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}> 
-                  <Input placeholder="张三" />
-                </Form.Item>
-                <Form.Item label="年龄" name="age" rules={[{ required: true, message: '请输入年龄' }]}> 
-                  <Input type="number" placeholder="30" />
-                </Form.Item>
-                <Form.Item label="手机号" name="phone" rules={[{ required: true, message: '请输入手机号' }]}> 
-                  <Input placeholder="13800000000" />
-                </Form.Item>
-                <Form.Item label="英语水平" name="englishLevel"> 
-                  <Select options={[{ label: 'Basic', value: 'basic' }, { label: 'Intermediate', value: 'intermediate' }, { label: 'Fluent', value: 'fluent' }]} placeholder="选择英语水平" />
-                </Form.Item>
-                <Form.Item label="其他语言" name="otherLanguages"> 
-                  <Select
-                    mode="multiple"
-                    placeholder="选择其他语言"
-                    options={[{ label: '普通话', value: 'mandarin' }, { label: '广东话', value: 'cantonese' }, { label: '法语', value: 'french' }]}
-                  />
-                </Form.Item>
-                <Form.Item label="驾照等级" name="licenseClass"> 
-                  <Select
-                    placeholder="选择驾照等级"
-                    options={[
-                      { label: 'Class G (Ontario)', value: 'G' },
-                      { label: 'Class G1', value: 'G1' },
-                      { label: 'Class G2', value: 'G2' },
-                      { label: 'Class AZ (Tractor-Trailer)', value: 'AZ' },
-                      { label: 'Class DZ (Straight Truck)', value: 'DZ' },
-                      { label: 'Class CZ (Bus)', value: 'CZ' },
-                      { label: 'Class BZ (School Bus)', value: 'BZ' },
-                      { label: 'Class M (Motorcycle)', value: 'M' }
-                    ]}
-                  />
-                </Form.Item>
-              </Form>
+              {/* 2025-11-30T12:45:00Z Updated by Assistant: 使用统一的司机表单组件 */}
+              <DriverForm form={driverForm} mode="create" />
             </Card>
           </Col>
           <Col span={12}>

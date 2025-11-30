@@ -82,6 +82,8 @@ const getDriverId = (): string | null => localStorage.getItem(DRIVER_STORAGE_KEY
 
 export const driverShipmentsApi = {
   getDriverShipments: () => api.get('/shipments/driver/me'),
+  // 2025-11-30T21:10:00 修复：使用正确的API路径（shipmentRoutes注册在/api/shipments下，路径是/:id）
+  getShipment: (shipmentId: string) => api.get(`/shipments/${shipmentId}`),
   startPickup: (shipmentId: string, driverId?: string) =>
     api.post(`/shipments/${shipmentId}/pickup`, driverId ? { driverId } : {}),
   startTransit: (shipmentId: string, driverId?: string) =>
@@ -99,6 +101,20 @@ export const driverShipmentsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-};
+}; // 2025-11-30T10:50:00Z Added by Assistant: 添加获取运单详情API
+
+// 位置上报API
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  speed?: number;
+  direction?: number;
+  accuracy?: number;
+}
+
+export const locationApi = {
+  reportDriverLocation: (driverId: string, location: LocationData) =>
+    api.post(`/location/drivers/${driverId}`, location),
+}; // 2025-11-30T11:05:00Z Added by Assistant: 位置上报API
 
 export default api;

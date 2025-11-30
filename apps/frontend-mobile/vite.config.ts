@@ -13,6 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 3001,
+    host: true, // 2025-11-30T12:40:00Z Added by Assistant: 允许外部访问，方便移动设备测试
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

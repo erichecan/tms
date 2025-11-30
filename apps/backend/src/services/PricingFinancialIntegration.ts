@@ -21,7 +21,7 @@ export class PricingFinancialIntegration {
    * @param shipmentId 运单ID
    * @param finalCost 最终费用
    */
-  async generateFinancialRecordsOnCompletion(shipmentId: string, finalCost: number): Promise<void> {
+  async generateFinancialRecordsOnCompletion(shipmentId: string, finalCost: number, tenantId?: string): Promise<void> {
     const client = await this.db.getConnection();
     
     try {
@@ -38,6 +38,11 @@ export class PricingFinancialIntegration {
       }
 
       const shipment = shipmentResult.rows[0];
+
+      // 2025-11-30T14:00:00Z Added by Assistant: 租户验证 - 确保运单属于正确的租户
+      if (tenantId && shipment.tenant_id !== tenantId) {
+        throw new Error(`运单 ${shipmentId} 不属于租户 ${tenantId}`);
+      }
 
       if (!['delivered', 'pod_pending_review', 'completed'].includes(shipment.status)) {
         throw new Error(`运单 ${shipmentId} 状态不正确，无法生成财务记录`);
@@ -137,10 +142,13 @@ export class PricingFinancialIntegration {
     pricingCalculation?: any
   ): Promise<void> {
     
+    // 2025-11-30T14:00:00Z Added by Assistant: 使用 tenant_id 确保租户隔离
+    const tenantId = shipment.tenant_id;
+    
     // 检查是否已存在应收记录（幂等性）
     const existingReceivable = await client.query(
-      'SELECT id FROM financial_records WHERE reference_id = $1 AND type = $2',
-      [(shipment.customer_id || shipment.id), 'receivable']
+      'SELECT id FROM financial_records WHERE tenant_id = $1 AND reference_id = $2 AND type = $3',
+      [tenantId, (shipment.customer_id || shipment.id), 'receivable']
     );
 
     if (existingReceivable.rowCount > 0) {
@@ -195,10 +203,13 @@ export class PricingFinancialIntegration {
     pricingCalculation?: any
   ): Promise<void> {
     
+    // 2025-11-30T14:00:00Z Added by Assistant: 使用 tenant_id 确保租户隔离
+    const tenantId = shipment.tenant_id;
+    
     // 检查是否已存在应付记录（幂等性）
     const existingPayable = await client.query(
-      'SELECT id FROM financial_records WHERE reference_id = $1 AND type = $2',
-      [(shipment.driver_id || shipment.id), 'payable']
+      'SELECT id FROM financial_records WHERE tenant_id = $1 AND reference_id = $2 AND type = $3',
+      [tenantId, (shipment.driver_id || shipment.id), 'payable']
     );
 
     if (existingPayable.rowCount > 0) {

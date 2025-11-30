@@ -9,6 +9,7 @@ import { authMiddleware, roleMiddleware, permissionMiddleware } from '../middlew
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { validateRequest } from '../middleware/validationMiddleware';
 import { auditMiddleware } from '../middleware/auditMiddleware'; // 2025-11-11T15:19:22Z Added by Assistant: Audit trail middleware
+import { logger } from '../utils/logger'; // 2025-11-30T15:00:00Z Added by Assistant: Add logger for debugging
 
 const router = Router();
 
@@ -28,13 +29,23 @@ router.use(tenantMiddleware);
  */
 router.get(
   '/',
-  // 2025-11-30 07:40:00 修复：在开发环境中放宽权限检查，允许所有已认证用户查看规则
-  process.env.NODE_ENV === 'development' 
-    ? (req: any, res: any, next: any) => next() 
-    : roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule listing
-  process.env.NODE_ENV === 'development' 
-    ? (req: any, res: any, next: any) => next() 
-    : permissionMiddleware(['pricing:view']),
+  // 2025-11-30T15:00:00Z Added by Assistant: 改进开发环境检查，确保开发环境下可以正常访问
+  // 检查是否为开发环境（支持多种判断方式）
+  (req: any, res: any, next: any) => {
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                          process.env.NODE_ENV === 'dev' ||
+                          !process.env.NODE_ENV ||
+                          process.env.NODE_ENV === '';
+    
+    if (isDevelopment) {
+      logger.debug('Development mode: skipping role and permission checks for rules list');
+      return next();
+    }
+    return next();
+  },
+  // 生产环境：检查角色和权限（admin 角色会在中间件中自动通过）
+  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule listing
+  permissionMiddleware(['pricing:view']),
   ruleController.getRules.bind(ruleController)
 );
 

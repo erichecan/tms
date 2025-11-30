@@ -36,6 +36,8 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
+// 2025-11-30T12:35:00Z Added by Assistant: 使用统一的客户表单组件和工具
+import CustomerForm, { transformCustomerFormData } from '../../components/CustomerForm/CustomerForm';
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 import { v4 as uuidv4 } from 'uuid'; // UUID 生成库 // 2025-10-08 14:20:00
 
@@ -293,33 +295,8 @@ const ShipmentCreate: React.FC = () => {
       // 只验证客户表单字段，而不是整个运单表单 // 2025-10-01 21:55:00
       const values = await customerForm.validateFields();
       
-      // 转换表单数据为后端API期望的格式
-      const customerData = {
-        name: values.name,
-        level: values.level || 'standard',
-        contactInfo: {
-          email: values.email,
-          phone: values.phone,
-          address: {
-            street: values.pickupAddressLine1 || '测试街道',
-            city: values.pickupCity || '测试城市',
-            state: values.pickupProvince || '测试省份',
-            postalCode: values.pickupPostalCode || '100000',
-            country: values.pickupCountry || '中国'
-          }
-        },
-        billingInfo: {
-          companyName: values.name,
-          taxId: 'TEST001',
-          billingAddress: {
-            street: values.pickupAddressLine1 || '测试街道',
-            city: values.pickupCity || '测试城市',
-            state: values.pickupProvince || '测试省份',
-            postalCode: values.pickupPostalCode || '100000',
-            country: values.pickupCountry || '中国'
-          }
-        }
-      };
+      // 2025-11-30T12:35:00Z Updated by Assistant: 使用统一的表单数据转换函数
+      const customerData = transformCustomerFormData(values);
       
       const response = await customersApi.createCustomer(customerData);
       const newCustomer = response.data;
@@ -334,9 +311,10 @@ const ShipmentCreate: React.FC = () => {
       setIsAddCustomerModalVisible(false);
       customerForm.resetFields(); // 重置客户表单而不是运单表单 // 2025-10-01 21:55:00
       message.success('客户添加成功');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add customer:', error);
-      message.error('添加客户失败');
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '添加客户失败';
+      message.error(errorMessage);
     }
   };
   
@@ -2085,101 +2063,8 @@ const ShipmentCreate: React.FC = () => {
         cancelText="取消"
         width={800}
       >
-        <Form form={customerForm} layout="vertical">
-          <Form.Item
-            name="name"
-            label="客户姓名"
-            rules={[{ required: true, message: '请输入客户姓名' }]}
-          >
-            <Input placeholder="请输入客户姓名" />
-          </Form.Item>
-          
-          <Form.Item
-            name="email"
-            label="邮箱"
-            rules={[
-              { type: 'email', message: '请输入有效的邮箱地址' }
-            ]}
-          >
-            <Input placeholder="请输入邮箱（可选）" />
-          </Form.Item>
-          
-          <Form.Item
-            name="phone"
-            label="电话"
-            rules={[{ required: true, message: '请输入电话号码' }]}
-          >
-            <Input placeholder="请输入电话号码" />
-          </Form.Item>
-          
-          <Form.Item
-            name="level"
-            label="客户等级"
-            initialValue="standard"
-          >
-            <Select>
-              <Option value="standard">普通</Option>
-              <Option value="premium">高级</Option>
-              <Option value="vip">VIP</Option>
-            </Select>
-          </Form.Item>
-          
-          <Divider>默认地址设置</Divider>
-          
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="pickupCountry"
-                label="取货地址-国家"
-                initialValue="中国"
-              >
-                <Input placeholder="国家" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="pickupProvince"
-                label="取货地址-省份"
-              >
-                <Input placeholder="省份" />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="pickupCity"
-                label="取货地址-城市"
-              >
-                <Input placeholder="城市" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="pickupPostalCode"
-                label="取货地址-邮编"
-              >
-                <Input placeholder="邮编" />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Form.Item
-            name="pickupAddressLine1"
-            label="取货地址-详细地址"
-          >
-            <Input placeholder="详细地址" />
-          </Form.Item>
-          
-          <Form.Item
-            name="pickupIsResidential"
-            label="取货地址类型"
-            valuePropName="checked"
-          >
-            <input type="checkbox" /> 住宅地址
-          </Form.Item>
-        </Form>
+        {/* 2025-11-30T12:40:00Z Updated by Assistant: 使用统一的客户表单组件 */}
+        <CustomerForm form={customerForm} mode="create" />
       </Modal>
     </div>
   );

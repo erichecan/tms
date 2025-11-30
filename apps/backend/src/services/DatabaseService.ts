@@ -47,6 +47,7 @@ export class DatabaseService {
     // 检测是否在 Cloud Run 环境（通过 K_SERVICE 环境变量）
     const isCloudRun = process.env.K_SERVICE;
     
+    // 2025-11-30T19:15:00Z Fixed by Assistant: 强制优先使用 DATABASE_URL，完全忽略独立的 DB_USER 等配置
     if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
       // 检查是否是 Cloud SQL Unix socket 连接（包含 /cloudsql/）
       if (isCloudRun && envUrl.includes('/cloudsql/')) {
@@ -83,23 +84,40 @@ export class DatabaseService {
         // 标准 PostgreSQL 连接字符串（支持本地、Neon、或其他 PostgreSQL 服务）
         // Neon 格式: postgresql://user:password@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
         // 本地格式: postgresql://user:password@localhost:5432/dbname
+        // 2025-11-30T13:10:00Z Fixed by Assistant: 修复 Neon 数据库连接配置
+        // 移除 channel_binding=require（某些环境不支持）并确保 SSL 配置正确
+        // 2025-11-30T13:35:00Z Fixed by Assistant: 移除所有可能导致连接问题的参数
+        // 2025-11-30T19:15:00Z Fixed by Assistant: 确保完全使用 DATABASE_URL，不依赖任何独立环境变量
+        let connectionString = envUrl;
+        if (envUrl.includes('neon.tech')) {
+          // 移除 channel_binding 参数，避免连接问题
+          connectionString = envUrl.replace(/[&?]channel_binding=[^&]*/, '');
+          // 清理可能的双问号或双&
+          connectionString = connectionString.replace(/\?\?/, '?').replace(/&&/, '&');
+          // 清理末尾的&或?
+          connectionString = connectionString.replace(/[&?]$/, '');
+        }
+        
         poolConfig = { 
-          connectionString: envUrl,
-          // Neon 需要 SSL，但连接字符串中已包含 sslmode=require
+          connectionString: connectionString,
+          // Neon 需要 SSL
           ssl: envUrl.includes('neon.tech') ? { rejectUnauthorized: false } : undefined
         };
-        console.log('Using standard PostgreSQL connection string:', envUrl.includes('neon.tech') ? 'Neon' : 'Standard');
+        const userMatch = connectionString.match(/\/\/([^:]+):/);
+        const dbUser = userMatch ? userMatch[1] : 'unknown';
+        console.log('✅ Using DATABASE_URL connection string:', envUrl.includes('neon.tech') ? 'Neon' : 'Standard');
+        console.log('✅ Database user from URL:', dbUser);
+        console.log('⚠️  Ignoring DB_USER, DB_PASSWORD, DB_HOST environment variables when DATABASE_URL is present');
       }
     } else {
-      // 使用独立的环境变量配置
-      const host = process.env.DB_HOST || 'localhost';
-      const port = parseInt(process.env.DB_PORT || '5432', 10);
-      const database = process.env.DB_NAME || 'tms_platform';
-      const user = process.env.DB_USER || 'tms_user';
-      const password = String(process.env.DB_PASSWORD || 'tms_password'); // 强制为字符串
-
-      poolConfig = { host, port, database, user, password };
-      console.log('Using individual DB config:', { host, port, database, user, password: '***' });
+      // 2025-11-30T19:30:00Z Fixed by Assistant: 移除回退逻辑，强制要求 DATABASE_URL
+      // DATABASE_URL 是必需的，不再支持独立的数据库配置变量
+      const errorMsg = 'DATABASE_URL environment variable is required. Please set DATABASE_URL in your .env file.';
+      logger.error(errorMsg);
+      console.error('❌ FATAL ERROR: ' + errorMsg);
+      console.error('⚠️  应用无法启动：必须设置 DATABASE_URL 环境变量！');
+      console.error('⚠️  不再支持使用独立的 DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD 变量！');
+      throw new Error(errorMsg);
     }
 
     this.pool = new Pool({
@@ -817,26 +835,27 @@ export class DatabaseService {
       }
     }
 
+    // 2025-11-30T10:15:00Z Fixed by Assistant: 修复数据库插入 - 根据实际表结构调整字段
+    // 注意：customers 表只有 contact_info 和 billing_info，没有 default_pickup_address 和 default_delivery_address
     const query = `
       INSERT INTO customers (
-        tenant_id, name, level, phone, email, 
-        contact_info, billing_info, 
-        default_pickup_address, default_delivery_address
+        tenant_id, name, level, email,
+        contact_info, billing_info
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
+    
+    // 从 contactInfo 中提取 email
+    const email = customer.contactInfo?.email || customer.email || '';
     
     const result = await this.query(query, [
       tenantId,
       customer.name,
       customer.level,
-      customer.phone || '',
-      customer.email || '',
-      JSON.stringify(customer.contactInfo),
-      customer.billingInfo ? JSON.stringify(customer.billingInfo) : null,
-      customer.defaultPickupAddress ? JSON.stringify(customer.defaultPickupAddress) : null,
-      customer.defaultDeliveryAddress ? JSON.stringify(customer.defaultDeliveryAddress) : null
+      email,
+      JSON.stringify(customer.contactInfo || {}),
+      customer.billingInfo ? JSON.stringify(customer.billingInfo) : null
     ]);
     
     return this.mapCustomerFromDb(result[0]);
@@ -870,7 +889,8 @@ export class DatabaseService {
     let paramIndex = 2;
     
     if (search) {
-      whereClause += ` AND (name ILIKE $${paramIndex} OR contact_info->>'email' ILIKE $${paramIndex})`;
+      // 2025-11-30T12:55:00Z Fixed by Assistant: 修复搜索查询，同时搜索 name、email 字段和 contact_info JSONB 字段
+      whereClause += ` AND (name ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR contact_info->>'email' ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
@@ -887,10 +907,15 @@ export class DatabaseService {
     const total = parseInt(countResult[0].count);
     
     // 获取数据
+    // 2025-11-30T12:55:00Z Fixed by Assistant: 验证排序字段，防止SQL注入
+    const allowedSortFields = ['created_at', 'updated_at', 'name', 'level'];
+    const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
+    const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
     const dataQuery = `
       SELECT * FROM customers 
       ${whereClause}
-      ORDER BY ${sort} ${order.toUpperCase()}
+      ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -969,6 +994,27 @@ export class DatabaseService {
    * @returns 更新后的司机信息
    */
   async updateDriver(tenantId: string, driverId: string, updates: Partial<Omit<Driver, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>>): Promise<Driver | null> {
+    // 2025-11-30T13:30:00Z Added by Assistant: 唯一性检查 - 检查更新后的 phone 和 license_number 是否与其他记录冲突
+    if (updates.phone) {
+      const existingPhone = await this.query(
+        'SELECT id FROM drivers WHERE tenant_id = $1 AND phone = $2 AND id != $3',
+        [tenantId, updates.phone, driverId]
+      );
+      if (existingPhone.length > 0) {
+        throw new Error(`司机电话 "${updates.phone}" 在同一租户内已存在`);
+      }
+    }
+
+    if (updates.licenseNumber) {
+      const existingLicense = await this.query(
+        'SELECT id FROM drivers WHERE tenant_id = $1 AND license_number = $2 AND id != $3',
+        [tenantId, updates.licenseNumber, driverId]
+      );
+      if (existingLicense.length > 0) {
+        throw new Error(`司机驾照号 "${updates.licenseNumber}" 在同一租户内已存在`);
+      }
+    }
+
     const updateFields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -1066,10 +1112,15 @@ export class DatabaseService {
     const total = parseInt(countResult[0].count);
     
     // 获取数据
+    // 2025-11-30T13:00:00Z Fixed by Assistant: 验证排序字段，防止SQL注入
+    const allowedSortFields = ['created_at', 'updated_at', 'name', 'phone', 'status'];
+    const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
+    const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
     const dataQuery = `
       SELECT * FROM drivers 
       ${whereClause}
-      ORDER BY ${sort} ${order.toUpperCase()}
+      ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -1108,10 +1159,44 @@ export class DatabaseService {
       throw new Error(`运单号 "${shipment.shipmentNumber}" 在同一租户内已存在`);
     }
 
+    // 2025-11-30T13:45:00Z Added by Assistant: 外键存在性验证 - 确保 customer_id, driver_id, vehicle_id 属于同一租户
+    if (shipment.customerId) {
+      const customer = await this.query(
+        'SELECT id FROM customers WHERE id = $1 AND tenant_id = $2',
+        [shipment.customerId, tenantId]
+      );
+      if (customer.length === 0) {
+        throw new Error(`客户 ID "${shipment.customerId}" 不存在或不属于当前租户`);
+      }
+    }
+
+    if (shipment.driverId) {
+      const driver = await this.query(
+        'SELECT id FROM drivers WHERE id = $1 AND tenant_id = $2',
+        [shipment.driverId, tenantId]
+      );
+      if (driver.length === 0) {
+        throw new Error(`司机 ID "${shipment.driverId}" 不存在或不属于当前租户`);
+      }
+    }
+
+    // 注意：vehicle_id 可能存储在 shipment 的其他字段中，需要根据实际数据结构检查
+    // 如果 vehicle_id 在 shipment 对象中，也需要验证
+    const shipmentAny = shipment as any;
+    if (shipmentAny.vehicleId) {
+      const vehicle = await this.query(
+        'SELECT id FROM vehicles WHERE id = $1 AND tenant_id = $2',
+        [shipmentAny.vehicleId, tenantId]
+      );
+      if (vehicle.length === 0) {
+        throw new Error(`车辆 ID "${shipmentAny.vehicleId}" 不存在或不属于当前租户`);
+      }
+    }
+
     // 2025-11-30 02:00:00 修复：提取发货人和收货人信息，保存到独立字段以支持BOL显示
     const pickupAddr = shipment.pickupAddress as any;
     const deliveryAddr = shipment.deliveryAddress as any;
-    const shipmentAny = shipment as any;
+    // shipmentAny 已在上面声明，无需重复声明
     
     const query = `
       INSERT INTO shipments (
@@ -1170,6 +1255,17 @@ export class DatabaseService {
   async getShipment(tenantId: string, shipmentId: string): Promise<Shipment | null> {
     const query = 'SELECT * FROM shipments WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, shipmentId]);
+    
+    return result.length > 0 ? this.mapShipmentFromDb(result[0]) : null;
+  }
+
+  /**
+   * 通过运单ID和司机ID获取运单（不依赖租户ID）
+   * 2025-11-30T20:45:00 添加此方法用于司机查询自己的运单
+   */
+  async getShipmentByDriver(shipmentId: string, driverId: string): Promise<Shipment | null> {
+    const query = 'SELECT * FROM shipments WHERE id = $1 AND driver_id = $2';
+    const result = await this.query(query, [shipmentId, driverId]);
     
     return result.length > 0 ? this.mapShipmentFromDb(result[0]) : null;
   }
@@ -1242,10 +1338,15 @@ export class DatabaseService {
     const total = parseInt(countResult[0].count);
     
     // 获取数据
+    // 2025-11-30T13:00:00Z Fixed by Assistant: 验证排序字段，防止SQL注入
+    const allowedSortFields = ['created_at', 'updated_at', 'shipment_number', 'status', 'estimated_pickup_date', 'estimated_delivery_date'];
+    const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
+    const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
     const dataQuery = `
       SELECT * FROM shipments 
       ${whereClause}
-      ORDER BY ${sort} ${order.toUpperCase()}
+      ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -2219,6 +2320,23 @@ export class DatabaseService {
     capacity: number;
     status: string;
   }): Promise<any> {
+    // 2025-11-30T13:30:00Z Added by Assistant: 唯一性检查 - 检查更新后的 plate_number 是否与其他记录冲突
+    // 首先获取当前车辆的 tenant_id
+    const currentVehicle = await this.query('SELECT tenant_id FROM vehicles WHERE id = $1', [id]);
+    if (currentVehicle.length === 0) {
+      throw new Error('Vehicle not found');
+    }
+    const tenantId = currentVehicle[0].tenant_id;
+
+    // 检查车牌号是否已存在（排除当前车辆）
+    const existingVehicle = await this.query(
+      'SELECT id FROM vehicles WHERE tenant_id = $1 AND plate_number = $2 AND id != $3',
+      [tenantId, vehicle.plateNumber, id]
+    );
+    if (existingVehicle.length > 0) {
+      throw new Error(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+    }
+
     const query = `
       UPDATE vehicles 
       SET 
@@ -2257,9 +2375,13 @@ export class DatabaseService {
    * 删除车辆
    * @param id 车辆ID
    */
-  async deleteVehicle(id: string): Promise<void> {
-    const query = 'DELETE FROM vehicles WHERE id = $1';
-    await this.query(query, [id]);
+  async deleteVehicle(tenantId: string, id: string): Promise<void> {
+    // 2025-11-30T14:15:00Z Added by Assistant: 添加租户验证，确保只能删除属于当前租户的车辆
+    const query = 'DELETE FROM vehicles WHERE id = $1 AND tenant_id = $2';
+    const result = await this.query(query, [id, tenantId]);
+    if (result.length === 0) {
+      throw new Error('Vehicle not found or does not belong to the tenant');
+    }
   }
 
   /**
@@ -2281,6 +2403,29 @@ export class DatabaseService {
    * @returns 更新后的客户
    */
   async updateCustomer(tenantId: string, customerId: string, updates: any): Promise<any | null> {
+    // 2025-11-30T13:30:00Z Added by Assistant: 唯一性检查 - 检查更新后的 name 和 email 是否与其他记录冲突
+    if (updates.name !== undefined) {
+      const existingName = await this.query(
+        'SELECT id FROM customers WHERE tenant_id = $1 AND name = $2 AND id != $3',
+        [tenantId, updates.name, customerId]
+      );
+      if (existingName.length > 0) {
+        throw new Error(`客户名称 "${updates.name}" 在同一租户内已存在`);
+      }
+    }
+
+    // 如果更新了 email，检查 email 是否已存在
+    const emailToCheck = updates.email || (updates.contactInfo?.email);
+    if (emailToCheck) {
+      const existingEmail = await this.query(
+        'SELECT id FROM customers WHERE tenant_id = $1 AND email = $2 AND id != $3',
+        [tenantId, emailToCheck, customerId]
+      );
+      if (existingEmail.length > 0) {
+        throw new Error(`客户邮箱 "${emailToCheck}" 在同一租户内已存在`);
+      }
+    }
+
     const fields = [];
     const values = [];
     let paramIndex = 1;

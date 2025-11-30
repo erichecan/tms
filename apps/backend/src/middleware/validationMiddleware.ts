@@ -437,17 +437,20 @@ export const shipmentCreateFormSchema = Joi.object({
 /**
  * 客户创建验证模式
  */
+// 2025-11-30T10:10:00Z Updated by Assistant: 支持加拿大地址格式（电话号码和邮政编码）
 export const customerCreateSchema = Joi.object({
   name: Joi.string().min(1).max(255).required(),
   level: Joi.string().valid('standard', 'vip', 'premium').default('standard'),
   contactInfo: Joi.object({
     email: Joi.string().email().required(),
-    phone: Joi.string().pattern(/^1[3-9]\d{9}$/).required(),
+    // 支持加拿大电话号码格式：(416) 123-4567, 416-123-4567, 4161234567, +1-416-123-4567
+    phone: Joi.string().pattern(/^(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/).required(),
     address: Joi.object({
       street: Joi.string().required(),
       city: Joi.string().required(),
-      state: Joi.string().required(),
-      postalCode: Joi.string().pattern(/^\d{6}$/).required(),
+      state: Joi.string().required(), // 加拿大省份：ON, BC, QC, AB 等
+      // 支持加拿大邮政编码格式：A1A 1A1 或 A1A1A1
+      postalCode: Joi.string().pattern(/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/).required(),
       country: Joi.string().required()
     }).required(),
     contactPerson: Joi.string().max(100).optional()
@@ -459,7 +462,8 @@ export const customerCreateSchema = Joi.object({
       street: Joi.string().required(),
       city: Joi.string().required(),
       state: Joi.string().required(),
-      postalCode: Joi.string().pattern(/^\d{6}$/).required(),
+      // 支持加拿大邮政编码格式：A1A 1A1 或 A1A1A1
+      postalCode: Joi.string().pattern(/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/).required(),
       country: Joi.string().required()
     }).required(),
     paymentTerms: Joi.string().max(100).optional()

@@ -71,9 +71,17 @@ export class ShipmentController {
       });
     } catch (error) {
       logger.error('Failed to get shipments:', error);
+      // 2025-11-30T13:00:00Z Fixed by Assistant: 返回详细错误信息以便调试
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error('Error details:', { errorMessage, errorStack });
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to get shipments' },
+        error: { 
+          code: 'INTERNAL_ERROR', 
+          message: 'Failed to get shipments',
+          details: errorMessage
+        },
         timestamp: new Date().toISOString(),
         requestId: getRequestId(req)
       });
@@ -338,12 +346,53 @@ export class ShipmentController {
         return;
       }
 
-      const shipment = await this.shipmentService.getShipment(tenantId, shipmentId);
+      // 2025-11-30T21:05:00 如果是司机角色，优先使用司机查询（不依赖租户ID）
+      let shipment: Shipment | null = null;
+      
+      if (req.user?.role === 'driver' && req.user?.id) {
+        // 先尝试通过司机ID直接查询
+        shipment = await this.dbService.getShipmentByDriver(shipmentId, req.user.id);
+        
+        if (shipment) {
+          logger.info(`Shipment found via driver-specific query: shipmentId=${shipmentId}, driverId=${req.user.id}`);
+        } else if (tenantId) {
+          // 如果直接查询失败，尝试通过司机运单列表查询
+          try {
+            const driverShipments = await this.shipmentService.getDriverShipments(tenantId, req.user.id);
+            shipment = driverShipments.find(s => s.id === shipmentId) || null;
+            if (shipment) {
+              logger.info(`Shipment found via driver shipments list: shipmentId=${shipmentId}, driverId=${req.user.id}`);
+            }
+          } catch (err) {
+            logger.error('Failed to get driver shipments as fallback:', err);
+          }
+        }
+      }
+      
+      // 如果还没有找到，使用正常的租户查询
+      if (!shipment) {
+        shipment = await this.shipmentService.getShipment(tenantId, shipmentId);
+        if (shipment) {
+          logger.info(`Shipment found via tenant query: shipmentId=${shipmentId}, tenantId=${tenantId}`);
+        }
+      }
       
       if (!shipment) {
+        logger.warn(`Shipment not found: shipmentId=${shipmentId}, tenantId=${tenantId}, userId=${req.user?.id}, role=${req.user?.role}`);
         res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Shipment not found' },
+          timestamp: new Date().toISOString(),
+          requestId: getRequestId(req)
+        });
+        return;
+      }
+
+      // 2025-11-30T20:20:00 添加司机权限检查：司机只能查看分配给自己的运单
+      if (req.user?.role === 'driver' && shipment.driverId !== req.user.id) {
+        res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Driver can only access own shipments' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -607,7 +656,7 @@ export class ShipmentController {
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
-      } else if (error.message.includes('not assigned') || error.message.includes('must be assigned')) {
+      } else if (error.message.includes('not assigned') || error.message.includes('must be assigned') || error.message.includes('must be scheduled') || error.message.includes('must be confirmed')) {
         res.status(400).json({
           success: false,
           error: { code: 'INVALID_STATUS', message: error.message },
@@ -617,7 +666,7 @@ export class ShipmentController {
       } else {
         res.status(500).json({
           success: false,
-          error: { code: 'INTERNAL_ERROR', message: 'Failed to start pickup' },
+          error: { code: 'INTERNAL_ERROR', message: error.message || 'Failed to start pickup' },
           timestamp: new Date().toISOString(),
           requestId: getRequestId(req)
         });
@@ -788,7 +837,7 @@ export class ShipmentController {
 
       if (resolvedFinalCost > 0) {
         try {
-          await this.pricingIntegration.generateFinancialRecordsOnCompletion(shipmentId, resolvedFinalCost);
+          await this.pricingIntegration.generateFinancialRecordsOnCompletion(shipmentId, resolvedFinalCost, tenantId);
         } catch (financeError) {
           logger.error('Failed to generate financial records on completion', financeError);
         }

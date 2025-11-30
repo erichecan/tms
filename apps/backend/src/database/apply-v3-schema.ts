@@ -4,8 +4,22 @@ import path from 'path';
 
 // 2025-01-27 16:45:00 应用TMS v3.0-PC Schema更新
 
+// 2025-11-30T19:40:00Z Fixed by Assistant: 强制使用 DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  console.error('❌ 错误: DATABASE_URL 环境变量未设置！');
+  console.error('⚠️  请设置 DATABASE_URL 环境变量');
+  process.exit(1);
+}
+
+let connectionString = process.env.DATABASE_URL;
+// 移除 channel_binding 参数（某些环境不支持）
+if (connectionString.includes('neon.tech')) {
+  connectionString = connectionString.replace(/[&?]channel_binding=[^&]*/, '').replace(/\?\?/, '?').replace(/&&/, '&').replace(/[&?]$/, '');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://tms_user:tms_password@localhost:5432/tms_platform',
+  connectionString: connectionString,
+  ssl: connectionString.includes('neon.tech') ? { rejectUnauthorized: false } : undefined
 });
 
 async function applySchema() {

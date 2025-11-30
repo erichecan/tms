@@ -15,15 +15,15 @@ SET email = contact_info->>'email'
 WHERE email IS NULL AND contact_info->>'email' IS NOT NULL;
 
 -- 添加唯一性约束：同一租户内 email 唯一（如果 email 存在）
+-- 使用部分唯一索引实现（PostgreSQL 不支持 UNIQUE 约束中的 WHERE 子句）
 DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'customers_tenant_id_email_key'
+        SELECT 1 FROM pg_indexes 
+        WHERE indexname = 'customers_tenant_id_email_key'
     ) THEN
-        ALTER TABLE customers 
-        ADD CONSTRAINT customers_tenant_id_email_key 
-        UNIQUE (tenant_id, email) 
+        CREATE UNIQUE INDEX customers_tenant_id_email_key 
+        ON customers (tenant_id, email) 
         WHERE email IS NOT NULL;
     END IF;
 END $$;
@@ -49,29 +49,29 @@ CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email) WHERE email I
 -- =============================================================================
 
 -- 添加唯一性约束：同一租户内 phone 唯一（如果 phone 存在）
+-- 使用部分唯一索引实现
 DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'drivers_tenant_id_phone_key'
+        SELECT 1 FROM pg_indexes 
+        WHERE indexname = 'drivers_tenant_id_phone_key'
     ) THEN
-        ALTER TABLE drivers 
-        ADD CONSTRAINT drivers_tenant_id_phone_key 
-        UNIQUE (tenant_id, phone) 
+        CREATE UNIQUE INDEX drivers_tenant_id_phone_key 
+        ON drivers (tenant_id, phone) 
         WHERE phone IS NOT NULL;
     END IF;
 END $$;
 
 -- 添加唯一性约束：同一租户内 license_number 唯一（如果 license_number 存在）
+-- 使用部分唯一索引实现
 DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'drivers_tenant_id_license_number_key'
+        SELECT 1 FROM pg_indexes 
+        WHERE indexname = 'drivers_tenant_id_license_number_key'
     ) THEN
-        ALTER TABLE drivers 
-        ADD CONSTRAINT drivers_tenant_id_license_number_key 
-        UNIQUE (tenant_id, license_number) 
+        CREATE UNIQUE INDEX drivers_tenant_id_license_number_key 
+        ON drivers (tenant_id, license_number) 
         WHERE license_number IS NOT NULL;
     END IF;
 END $$;

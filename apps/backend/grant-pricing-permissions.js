@@ -3,13 +3,24 @@
 
 const { Pool } = require('pg');
 
-// 使用管理员用户连接（拥有表的用户）
+// 数据库连接配置 - 2025-11-30T19:35:00Z Updated: 统一使用 DATABASE_URL
+// 2025-11-30T19:35:00Z Fixed by Assistant: 强制使用 DATABASE_URL，不再使用独立的 DB_* 变量
+if (!process.env.DATABASE_URL) {
+  console.error('❌ 错误: DATABASE_URL 环境变量未设置！');
+  console.error('⚠️  请设置 DATABASE_URL 环境变量，例如：');
+  console.error('   export DATABASE_URL=postgresql://user:password@host:port/database');
+  process.exit(1);
+}
+
+let connectionString = process.env.DATABASE_URL;
+// 移除 channel_binding 参数（某些环境不支持）
+if (connectionString.includes('neon.tech')) {
+  connectionString = connectionString.replace(/[&?]channel_binding=[^&]*/, '').replace(/\?\?/, '?').replace(/&&/, '&').replace(/[&?]$/, '');
+}
+
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME || 'tms_platform',
-  user: process.env.DB_USER || process.env.USER || 'apony-it',
-  password: process.env.DB_PASSWORD || '',
+  connectionString: connectionString,
+  ssl: connectionString.includes('neon.tech') ? { rejectUnauthorized: false } : undefined
 });
 
 async function grantPermissions() {

@@ -149,6 +149,13 @@ export const roleMiddleware = (allowedRoles: string[]) => {
       return;
     }
 
+    // 2025-11-30T15:00:00Z Added by Assistant: Admin 角色自动通过所有角色检查
+    if (req.user.role === 'admin') {
+      logger.debug(`Role check passed: user ${req.user.email} has admin role`);
+      next();
+      return;
+    }
+
     const effectiveRoles = [
       req.user.role,
       req.user.tenantRole
@@ -157,6 +164,7 @@ export const roleMiddleware = (allowedRoles: string[]) => {
     const hasRole = allowedRoles.some(role => effectiveRoles.includes(role));
 
     if (!hasRole) {
+      logger.warn(`Role check failed: user ${req.user.email} (roles: ${effectiveRoles.join(', ')}) not in allowed roles: ${allowedRoles.join(', ')}`);
       res.status(403).json({
         success: false,
         error: { code: 'FORBIDDEN', message: 'Insufficient permissions' },
@@ -186,8 +194,16 @@ export const permissionMiddleware = (requiredPermissions: string[]) => {
       return;
     }
 
+    // 2025-11-30T15:00:00Z Added by Assistant: Admin 角色自动通过所有权限检查
+    if (req.user.role === 'admin') {
+      logger.debug(`Permission check passed: user ${req.user.email} has admin role`);
+      next();
+      return;
+    }
+
     const tenantRole = req.user.tenantRole ?? '';
     if (tenantRole === 'SYSTEM_ADMIN' || tenantRole === 'TENANT_ADMIN') {
+      logger.debug(`Permission check passed: user ${req.user.email} has tenant admin role: ${tenantRole}`);
       next();
       return;
     }
@@ -198,6 +214,7 @@ export const permissionMiddleware = (requiredPermissions: string[]) => {
     });
 
     if (missing.length > 0) {
+      logger.warn(`Permission check failed: user ${req.user.email} missing permissions: ${missing.join(', ')}, has: ${req.user.permissions.join(', ') || 'none'}`);
       res.status(403).json({
         success: false,
         error: { code: 'FORBIDDEN', message: 'Missing permissions', details: missing },
@@ -207,6 +224,7 @@ export const permissionMiddleware = (requiredPermissions: string[]) => {
       return;
     }
 
+    logger.debug(`Permission check passed: user ${req.user.email} has all required permissions`);
     next();
   };
 };

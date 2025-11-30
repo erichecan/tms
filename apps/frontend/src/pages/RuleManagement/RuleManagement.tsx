@@ -86,21 +86,24 @@ const RuleManagement: React.FC = () => {
       await rulesApi.deleteRule(ruleId);
       message.success('规则删除成功');
       loadRules();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete rule:', error);
-      message.error('删除规则失败');
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '删除规则失败';
+      message.error(`删除规则失败: ${errorMessage}`);
     }
   };
 
   const handleToggleStatus = async (rule: Rule) => {
     try {
       const newStatus = rule.status === RuleStatus.ACTIVE ? RuleStatus.INACTIVE : RuleStatus.ACTIVE;
-      await rulesApi.updateRule(rule.id, { ...rule, status: newStatus });
+      // 2025-11-30T15:30:00Z Added by Assistant: 修复状态切换，只发送必要的字段
+      await rulesApi.updateRule(rule.id, { status: newStatus });
       message.success(`规则已${newStatus === RuleStatus.ACTIVE ? '启用' : '禁用'}`);
       loadRules();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to toggle rule status:', error);
-      message.error('更新规则状态失败');
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '更新规则状态失败';
+      message.error(`更新规则状态失败: ${errorMessage}`);
     }
   };
 
@@ -337,18 +340,84 @@ const RuleManagement: React.FC = () => {
             <div>
               <Text strong>触发条件：</Text>
               <div style={{ marginTop: 8 }}>
-                <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
-                  {JSON.stringify(viewingRule.conditions, null, 2)}
-                </pre>
+                {viewingRule.conditions && viewingRule.conditions.length > 0 ? (
+                  <div>
+                    {viewingRule.conditions.map((condition: any, index: number) => {
+                      const factMap: Record<string, string> = {
+                        customerLevel: '客户等级',
+                        weight: '货物总重(kg)',
+                        distance: '运输距离(km)',
+                        destinationPostcode: '目的地邮编',
+                        requiresTailgate: '是否需要尾板',
+                        pickupDate: '取货日期',
+                        deliveryDate: '送达日期',
+                      };
+                      const operatorMap: Record<string, string> = {
+                        equal: '等于',
+                        equals: '等于',
+                        notEqual: '不等于',
+                        notEquals: '不等于',
+                        greaterThan: '大于',
+                        lessThan: '小于',
+                        greaterThanOrEqual: '大于等于',
+                        lessThanOrEqual: '小于等于',
+                        contains: '包含',
+                        startsWith: '开头是',
+                        endsWith: '结尾是',
+                      };
+                      const factLabel = factMap[condition.fact] || condition.fact;
+                      const operatorLabel = operatorMap[condition.operator] || condition.operator;
+                      return (
+                        <div key={index} style={{ marginBottom: 8, padding: 8, background: '#f5f5f5', borderRadius: 4 }}>
+                          <Text>如果 <strong>{factLabel}</strong> {operatorLabel} <strong>{condition.value}</strong></Text>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <Text type="secondary">无触发条件</Text>
+                )}
               </div>
             </div>
             <Divider />
             <div>
               <Text strong>执行动作：</Text>
               <div style={{ marginTop: 8 }}>
-                <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
-                  {JSON.stringify(viewingRule.actions, null, 2)}
-                </pre>
+                {viewingRule.actions && viewingRule.actions.length > 0 ? (
+                  <div>
+                    {viewingRule.actions.map((action: any, index: number) => {
+                      const actionTypeMap: Record<string, string> = {
+                        applyDiscount: '应用折扣',
+                        addFee: '增加附加费',
+                        modifyBaseRate: '修改基础费率',
+                        setDriverCommission: '设置司机提成',
+                        setFixedAmount: '设置固定金额',
+                        calculateBaseFee: '计算基础运费',
+                      };
+                      const actionLabel = actionTypeMap[action.type] || action.type;
+                      const params = action.params || action.parameters || {};
+                      const paramText = Object.entries(params)
+                        .map(([key, value]) => {
+                          const keyMap: Record<string, string> = {
+                            percentage: '百分比',
+                            value: '数值',
+                            ratePerKm: '每公里费率',
+                            amount: '金额',
+                          };
+                          const keyLabel = keyMap[key] || key;
+                          return `${keyLabel}: ${value}`;
+                        })
+                        .join(', ');
+                      return (
+                        <div key={index} style={{ marginBottom: 8, padding: 8, background: '#f5f5f5', borderRadius: 4 }}>
+                          <Text><strong>{actionLabel}</strong>{paramText ? ` (${paramText})` : ''}</Text>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <Text type="secondary">无执行动作</Text>
+                )}
               </div>
             </div>
           </div>

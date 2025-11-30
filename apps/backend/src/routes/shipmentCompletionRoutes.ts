@@ -84,7 +84,8 @@ shipmentCompletionRoutes.post('/:id/complete', async (req, res) => {
     }
 
     // 触发财务记录生成
-    await financeIntegration.generateFinancialRecordsOnCompletion(shipmentId, finalCost);
+    const tenantId = shipment.rows[0].tenant_id || (req as any).tenant?.id;
+    await financeIntegration.generateFinancialRecordsOnCompletion(shipmentId, finalCost, tenantId);
 
     logger.info(`运单 ${shipmentId} 已完成`, {
       finalCost,
@@ -271,9 +272,17 @@ shipmentCompletionRoutes.post('/bulk-complete', async (req, res) => {
     // 异步并发处理每个运单
     const promises = shipments.map(async (shipment: any) => {
       try {
+        // 获取运单的 tenant_id
+        const shipmentData = await dbService.query(
+          'SELECT tenant_id FROM shipments WHERE id = $1',
+          [shipment.shipmentId]
+        );
+        const tenantId = shipmentData.rows[0]?.tenant_id || (req as any).tenant?.id;
+        
         await financeIntegration.generateFinancialRecordsOnCompletion(
           shipment.shipmentId, 
-          shipment.finalCost
+          shipment.finalCost,
+          tenantId
         );
         
         results.push({

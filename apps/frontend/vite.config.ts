@@ -17,7 +17,7 @@ export default defineConfig({
       host: true, // 允许外部访问
       proxy: {
         '/api': {
-          target: process.env.VITE_API_BASE_URL || 'http://localhost:5000',
+          target: process.env.VITE_API_BASE_URL || 'http://localhost:8000', // 2025-11-30T10:05:00Z Fixed by Assistant: 修复代理目标端口为 8000
           changeOrigin: true,
           secure: false,
         },

@@ -46,6 +46,9 @@ const getProjectRoot = (): string => {
 const projectRoot = getProjectRoot();
 const envPath = path.resolve(projectRoot, '.env');
 
+// 2025-11-30T19:55:00Z Fixed by Assistant: 使用 dotenv 从项目根目录加载环境变量
+dotenv.config({ path: envPath, override: true });
+
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   const envLines = envContent.split('\n');
@@ -117,12 +120,7 @@ import { PricingEngineController } from './controllers/PricingEngineController';
 import { PricingFinancialIntegration } from './services/PricingFinancialIntegration';
 import { PricingPermissionService } from './services/PricingPermissionService'; // 计费规则引擎 // 2025-09-29 02:35:00
 
-// 2025-11-29T20:40:00 再次使用 dotenv.config 加载环境变量，确保所有变量都被加载
-if (envPath) {
-  dotenv.config({ path: envPath, override: false }); // override: false 表示不覆盖已存在的环境变量
-} else {
-  dotenv.config(); // 如果手动加载失败，使用默认路径
-}
+// 2025-11-30T19:50:00Z Fixed by Assistant: 环境变量已在上面的代码块中加载
 
 // 创建Express应用
 const app = express();
@@ -148,9 +146,10 @@ const dbService = new DatabaseService();
 
 // 中间件配置
 // 2025-10-17T15:00:00 - 修复 CORS 配置，使用环境变量
+// 2025-11-30T14:00:00Z Fixed by Assistant: 修复 CORS 配置，确保移动端可以访问
 const allowedOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
 
 console.log('CORS Configuration:', {
   NODE_ENV: process.env.NODE_ENV,
@@ -158,15 +157,48 @@ console.log('CORS Configuration:', {
   allowedOrigins
 });
 
-app.use(helmet()); // 安全头
-app.use(compression()); // 响应压缩
+// 2025-11-30T14:00:00Z Fixed by Assistant: 将 CORS 放在 helmet 之前，确保 CORS 头不被覆盖
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // 允许没有 origin 的请求（如移动应用或 Postman）
+    if (!origin) {
+      console.log('CORS: Allowing request without origin');
+      return callback(null, true);
+    }
+    // 检查 origin 是否在允许列表中（不区分大小写）
+    const normalizedOrigin = origin.trim().toLowerCase();
+    const normalizedAllowed = allowedOrigins.map(o => o.trim().toLowerCase());
+    
+    if (normalizedAllowed.includes(normalizedOrigin) || allowedOrigins.includes(origin)) {
+      console.log('CORS: Allowing origin:', origin);
+      callback(null, true);
+    } else {
+      console.warn('CORS: Blocked origin:', origin);
+      console.warn('CORS: Allowed origins:', allowedOrigins);
+      // 允许所有本地开发环境的请求
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        console.log('CORS: Allowing localhost origin:', origin);
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
-  exposedHeaders: ['Content-Length', 'X-Request-Id']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID', 'Accept'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+app.use(helmet({
+  // 2025-11-30T14:00:00Z Fixed by Assistant: 配置 helmet 允许 CORS
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // 安全头
+app.use(compression()); // 响应压缩
 
 // 请求日志
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));

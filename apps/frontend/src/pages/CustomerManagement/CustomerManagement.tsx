@@ -7,6 +7,9 @@ import { Customer, Shipment, ShipmentAddress } from '../../types';
 import PageLayout from '../../components/Layout/PageLayout'; // 2025-09-29 13:40:00 恢复PageLayout导入，与创建运单页面保持一致
 import { formatCurrency } from '../../utils/formatCurrency';
 import { formatDateTime } from '../../utils/timeUtils'; // 2025-10-02 16:38:00 引入时间格式化工具
+// 2025-11-30T12:30:00Z Added by Assistant: 使用统一的客户表单组件和工具
+import CustomerForm, { transformCustomerFormData } from '../../components/CustomerForm/CustomerForm';
+import { renderCustomerLevel, renderShipmentStatus } from '../../utils/tableColumns';
 
 const { Title } = Typography;
 
@@ -97,42 +100,18 @@ const CustomerManagement: React.FC = () => {
     try {
       const values = await form.validateFields();
       
-      // 转换表单数据为后端API期望的格式
-      const customerData = {
-        name: values.name,
-        level: values.level,
-        contactInfo: {
-          email: values.email,
-          phone: values.phone,
-          address: {
-            street: values.pickupAddressLine1 || '测试街道',
-            city: values.pickupCity || '测试城市',
-            state: values.pickupProvince || '测试省份',
-            postalCode: values.pickupPostalCode || '100000',
-            country: values.pickupCountry || '中国'
-          }
-        },
-        billingInfo: {
-          companyName: values.name,
-          taxId: 'TEST001',
-          billingAddress: {
-            street: values.pickupAddressLine1 || '测试街道',
-            city: values.pickupCity || '测试城市',
-            state: values.pickupProvince || '测试省份',
-            postalCode: values.pickupPostalCode || '100000',
-            country: values.pickupCountry || '中国'
-          }
-        }
-      };
+      // 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的表单数据转换函数
+      const customerData = transformCustomerFormData(values);
       
       await customersApi.createCustomer(customerData);
       message.success('客户添加成功');
       setIsAddModalVisible(false);
       form.resetFields();
       reloadCustomers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add customer:', error);
-      message.error('添加客户失败');
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '添加客户失败';
+      message.error(errorMessage);
     }
   };
 
@@ -188,22 +167,13 @@ const CustomerManagement: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
     },
-    {
-      title: '客户等级',
-      dataIndex: 'level',
-      key: 'level',
-      width: 100,
-      render: (level: string) => {
-        const normalized = (level || '').toLowerCase();
-        const text =
-          normalized === 'vip1' ? 'VIP1' :
-          normalized === 'vip2' ? 'VIP2' :
-          normalized === 'vip3' ? 'VIP3' :
-          normalized === 'vip4' ? 'VIP4' :
-          normalized === 'vip5' ? 'VIP5' : 'VIP1';
-        return <Tag color="purple">{text}</Tag>;
+      {
+        title: '客户等级',
+        dataIndex: 'level',
+        key: 'level',
+        width: 100,
+        render: renderCustomerLevel, // 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的渲染函数
       },
-    },
     {
       title: '邮箱',
       dataIndex: 'email',
@@ -404,103 +374,8 @@ const CustomerManagement: React.FC = () => {
         cancelText="取消"
         width={800}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="客户姓名"
-            rules={[{ required: true, message: '请输入客户姓名' }]}
-          >
-            <Input placeholder="请输入客户姓名" />
-          </Form.Item>
-          
-          <Form.Item
-            name="email"
-            label="邮箱"
-            rules={[
-              { type: 'email', message: '请输入有效的邮箱地址' }
-            ]}
-          >
-            <Input placeholder="请输入邮箱（可选）" />
-          </Form.Item>
-          
-          <Form.Item
-            name="phone"
-            label="电话"
-            rules={[{ required: true, message: '请输入电话号码' }]}
-          >
-            <Input placeholder="请输入电话号码" />
-          </Form.Item>
-          
-          <Form.Item
-            name="level"
-            label="客户等级"
-            initialValue="vip1"
-          >
-            <Select>
-              <Select.Option value="vip1">VIP1</Select.Option>
-              <Select.Option value="vip2">VIP2</Select.Option>
-              <Select.Option value="vip3">VIP3</Select.Option>
-              <Select.Option value="vip4">VIP4</Select.Option>
-              <Select.Option value="vip5">VIP5</Select.Option>
-            </Select>
-          </Form.Item>
-          
-          <Divider>默认地址设置</Divider>
-          
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="pickupCountry"
-                label="取货地址-国家"
-                initialValue="中国"
-              >
-                <Input placeholder="国家" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="pickupProvince"
-                label="取货地址-省份"
-              >
-                <Input placeholder="省份" />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="pickupCity"
-                label="取货地址-城市"
-              >
-                <Input placeholder="城市" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="pickupPostalCode"
-                label="取货地址-邮编"
-              >
-                <Input placeholder="邮编" />
-              </Form.Item>
-            </Col>
-          </Row>
-          
-          <Form.Item
-            name="pickupAddressLine1"
-            label="取货地址-详细地址"
-          >
-            <Input placeholder="详细地址" />
-          </Form.Item>
-          
-          <Form.Item
-            name="pickupIsResidential"
-            label="取货地址类型"
-            valuePropName="checked"
-          >
-            <input type="checkbox" /> 住宅地址
-          </Form.Item>
-        </Form>
+        {/* 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的客户表单组件 */}
+        <CustomerForm form={form} mode="create" />
       </Modal>
 
       
@@ -515,57 +390,10 @@ const CustomerManagement: React.FC = () => {
         }}
         okText="确认"
         cancelText="取消"
+        width={800}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="客户姓名"
-            rules={[{ required: true, message: '请输入客户姓名' }]}
-          >
-            <Input placeholder="请输入客户姓名" />
-          </Form.Item>
-          
-          <Form.Item
-            name="email"
-            label="邮箱"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' }
-            ]}
-          >
-            <Input placeholder="请输入邮箱" />
-          </Form.Item>
-          
-          <Form.Item
-            name="phone"
-            label="电话"
-            rules={[{ required: true, message: '请输入电话号码' }]}
-          >
-            <Input placeholder="请输入电话号码" />
-          </Form.Item>
-          
-          <Form.Item
-            name="address"
-            label="地址"
-            rules={[{ required: true, message: '请输入地址' }]}
-          >
-            <Input placeholder="请输入地址" />
-          </Form.Item>
-          
-          <Form.Item
-            name="level"
-            label="客户等级"
-            initialValue="vip1"
-          >
-            <Select>
-              <Select.Option value="vip1">VIP1</Select.Option>
-              <Select.Option value="vip2">VIP2</Select.Option>
-              <Select.Option value="vip3">VIP3</Select.Option>
-              <Select.Option value="vip4">VIP4</Select.Option>
-              <Select.Option value="vip5">VIP5</Select.Option>
-            </Select>
-          </Form.Item>
-        </Form>
+        {/* 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的客户表单组件 */}
+        <CustomerForm form={form} mode="edit" initialValues={editingCustomer || undefined} />
       </Modal>
 
       
@@ -599,21 +427,7 @@ const CustomerManagement: React.FC = () => {
               dataIndex: 'status',
               key: 'status',
               width: 100,
-              render: (status: string) => {
-                const statusMap: { [key: string]: { color: string; text: string } } = {
-                  'pending': { color: 'orange', text: '待处理' },
-                  'quoted': { color: 'blue', text: '已报价' },
-                  'confirmed': { color: 'green', text: '已确认' },
-                  'assigned': { color: 'purple', text: '已分配' },
-                  'picked_up': { color: 'cyan', text: '已取货' },
-                  'in_transit': { color: 'blue', text: '运输中' },
-                  'delivered': { color: 'green', text: '已送达' },
-                  'completed': { color: 'green', text: '已完成' },
-                  'cancelled': { color: 'red', text: '已取消' },
-                };
-                const statusInfo = statusMap[status] || { color: 'default', text: status };
-                return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
-              },
+              render: renderShipmentStatus, // 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的渲染函数
             },
             {
               title: '发货地址',

@@ -279,8 +279,9 @@ export class ShipmentService {
         throw new Error('Driver not assigned to this shipment');
       }
 
-      if (shipment.status !== ShipmentStatus.SCHEDULED) {
-        throw new Error('Shipment must be scheduled before pickup'); // 2025-11-11 14:31:00
+      // 2025-11-30T20:15:00 允许从 confirmed 或 scheduled 状态开始取货
+      if (shipment.status !== ShipmentStatus.SCHEDULED && shipment.status !== ShipmentStatus.CONFIRMED) {
+        throw new Error(`Shipment must be scheduled or confirmed before pickup. Current status: ${shipment.status}`); // 2025-11-30T20:15:00
       }
 
       const updates: ShipmentUpdate = {

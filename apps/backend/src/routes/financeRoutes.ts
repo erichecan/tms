@@ -111,4 +111,11 @@ router.get('/statements', financeController.getStatements.bind(financeController
  */
 router.get('/records', financeController.getFinancialRecords.bind(financeController));
 
+/**
+ * @route GET /api/v1/finance/payroll/summary
+ * @desc 获取司机薪酬汇总（按双周/按月）
+ * @access Private
+ */
+router.get('/payroll/summary', financeController.getDriverPayrollSummary.bind(financeController));
+
 export default router;

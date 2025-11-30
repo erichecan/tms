@@ -197,13 +197,19 @@ export class FinanceService {
       }
 
       // 构建对账单项目
-      const items: StatementItem[] = shipments.data.map(shipment => ({
-        id: shipment.id,
-        description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description}`,
-        amount: shipment.actualCost || shipment.estimatedCost,
-        date: shipment.timeline.completed || shipment.createdAt,
-        reference: shipment.shipmentNumber
-      }));
+      const items: StatementItem[] = shipments.data.map(shipment => {
+        const completedDate = shipment.timeline?.completed 
+          ? (typeof shipment.timeline.completed === 'string' ? new Date(shipment.timeline.completed) : shipment.timeline.completed)
+          : (typeof shipment.createdAt === 'string' ? new Date(shipment.createdAt) : shipment.createdAt);
+        
+        return {
+          id: shipment.id,
+          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''}`,
+          amount: shipment.actualCost || shipment.estimatedCost,
+          date: completedDate instanceof Date ? completedDate : new Date(completedDate),
+          reference: shipment.shipmentNumber
+        };
+      });
 
       // 计算总金额
       const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
@@ -286,7 +292,9 @@ export class FinanceService {
           distance: shipment.transportDistance || 0,
           weight: shipment.cargoInfo.weight,
           volume: shipment.cargoInfo.volume,
-          deliveryTime: shipment.timeline?.delivered?.getTime() - shipment.timeline?.pickedUp?.getTime(),
+          deliveryTime: (shipment.timeline?.delivered && shipment.timeline?.pickupInProgress) 
+            ? (new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickupInProgress).getTime())
+            : 0,
           customerLevel: shipment.customer?.level || 'standard'
         };
 
@@ -311,11 +319,15 @@ export class FinanceService {
           commission = facts.finalCost * 0.3; // 默认30%
         }
 
+        const completedDate = shipment.timeline?.completed 
+          ? (typeof shipment.timeline.completed === 'string' ? new Date(shipment.timeline.completed) : shipment.timeline.completed)
+          : (typeof shipment.createdAt === 'string' ? new Date(shipment.createdAt) : shipment.createdAt);
+        
         items.push({
           id: shipment.id,
-          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description}`,
+          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''}`,
           amount: commission,
-          date: shipment.timeline.completed || shipment.createdAt,
+          date: completedDate instanceof Date ? completedDate : new Date(completedDate),
           reference: shipment.shipmentNumber
         });
 
@@ -516,6 +528,199 @@ export class FinanceService {
       };
     } catch (error) {
       logger.error('Failed to get financial report:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取司机薪酬汇总（按双周/按月）
+   * @param tenantId 租户ID
+   * @param periodType 汇总类型：'biweekly' | 'monthly'
+   * @param startDate 开始日期
+   * @param endDate 结束日期
+   * @param driverId 可选的司机ID
+   * @returns 司机薪酬汇总列表
+   */
+  async getDriverPayrollSummary(
+    tenantId: string,
+    periodType: 'biweekly' | 'monthly',
+    startDate?: Date,
+    endDate?: Date,
+    driverId?: string
+  ): Promise<Array<{
+    period: string; // 格式：'2024-01-01 to 2024-01-14' 或 '2024-01'
+    driverId: string;
+    driverName: string;
+    tripsCompleted: number;
+    shipmentsCompleted: number;
+    totalDistance: number;
+    totalEarnings: number;
+    baseSalary: number;
+    tripBonus: number;
+    fuelAllowance: number;
+    status: 'pending' | 'paid';
+    payDate?: Date;
+    statementId?: string;
+    trips: Array<{
+      tripId: string;
+      tripNo: string;
+      shipments: Array<{
+        shipmentId: string;
+        shipmentNumber: string;
+        amount: number;
+        completedAt: Date;
+      }>;
+    }>;
+  }>> {
+    try {
+      // 2025-11-30T10:50:00Z Added by Assistant: 获取司机薪酬汇总数据
+      // 获取已完成运单，按司机和周期分组
+      let shipmentsQuery = `
+        SELECT 
+          s.id as shipment_id,
+          s.shipment_number,
+          s.driver_id,
+          d.name as driver_name,
+          s.actual_cost,
+          s.estimated_cost,
+          s.status,
+          s.timeline,
+          s.created_at,
+          s.updated_at,
+          fr.amount as payable_amount,
+          fr.status as payable_status,
+          fr.paid_at,
+          st.id as statement_id
+        FROM shipments s
+        LEFT JOIN drivers d ON s.driver_id = d.id AND s.tenant_id = d.tenant_id
+        LEFT JOIN financial_records fr ON fr.reference_id = s.driver_id 
+          AND fr.type = 'payable' 
+          AND fr.tenant_id = s.tenant_id
+        LEFT JOIN statements st ON st.reference_id = s.driver_id 
+          AND st.type = 'driver'
+          AND st.tenant_id = s.tenant_id
+        WHERE s.tenant_id = $1
+          AND s.status = 'completed'
+          AND s.driver_id IS NOT NULL
+      `;
+
+      const queryParams: any[] = [tenantId];
+      let paramIndex = 2;
+
+      if (driverId) {
+        shipmentsQuery += ` AND s.driver_id = $${paramIndex}`;
+        queryParams.push(driverId);
+        paramIndex++;
+      }
+
+      if (startDate) {
+        shipmentsQuery += ` AND s.updated_at >= $${paramIndex}`;
+        queryParams.push(startDate);
+        paramIndex++;
+      }
+
+      if (endDate) {
+        shipmentsQuery += ` AND s.updated_at <= $${paramIndex}`;
+        queryParams.push(endDate);
+        paramIndex++;
+      }
+
+      shipmentsQuery += ` ORDER BY s.updated_at DESC`;
+
+      const shipments = await this.dbService.query(shipmentsQuery, queryParams);
+
+      // 按周期分组
+      const grouped: Map<string, any> = new Map();
+
+      for (const shipment of shipments) {
+        const completedDate = shipment.timeline?.completed 
+          ? new Date(shipment.timeline.completed) 
+          : new Date(shipment.updated_at);
+        
+        let periodKey: string;
+        if (periodType === 'biweekly') {
+          // 双周：每两周一个周期，从每月1号开始
+          const year = completedDate.getFullYear();
+          const month = completedDate.getMonth();
+          const day = completedDate.getDate();
+          const weekOfMonth = Math.floor((day - 1) / 14);
+          const periodStart = new Date(year, month, weekOfMonth * 14 + 1);
+          const periodEnd = new Date(year, month, Math.min(weekOfMonth * 14 + 14, new Date(year, month + 1, 0).getDate()));
+          periodKey = `${periodStart.toISOString().split('T')[0]} to ${periodEnd.toISOString().split('T')[0]}`;
+        } else {
+          // 按月
+          periodKey = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        const key = `${periodKey}_${shipment.driver_id}`;
+        
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            period: periodKey,
+            driverId: shipment.driver_id,
+            driverName: shipment.driver_name || '未知司机',
+            tripsCompleted: 0,
+            shipmentsCompleted: 0,
+            totalDistance: 0,
+            totalEarnings: 0,
+            baseSalary: 0,
+            tripBonus: 0,
+            fuelAllowance: 0,
+            status: shipment.payable_status === 'paid' ? 'paid' : 'pending',
+            payDate: shipment.paid_at,
+            statementId: shipment.statement_id,
+            trips: []
+          });
+        }
+
+        const group = grouped.get(key);
+        group.shipmentsCompleted += 1;
+        
+        // 计算薪酬（使用应付金额或默认30%）
+        const amount = shipment.payable_amount || (shipment.actual_cost || shipment.estimated_cost || 0) * 0.3;
+        group.totalEarnings += amount;
+        group.tripBonus += amount * 0.7; // 假设70%是行程奖金
+        group.fuelAllowance += amount * 0.1; // 假设10%是燃油补贴
+        group.baseSalary = 0; // 基础工资需要单独计算
+      }
+
+      // 获取行程信息
+      for (const [key, group] of grouped.entries()) {
+        const tripsQuery = `
+          SELECT t.id, t.trip_no, t.shipments
+          FROM trips t
+          WHERE t.tenant_id = $1
+            AND t.driver_id = $2
+            AND t.status IN ('completed', 'ongoing')
+        `;
+        const trips = await this.dbService.query(tripsQuery, [tenantId, group.driverId]);
+        
+        for (const trip of trips) {
+          const tripShipments = trip.shipments || [];
+          const relevantShipments = shipments.filter((s: any) => 
+            tripShipments.includes(s.shipment_id) && 
+            s.driver_id === group.driverId
+          );
+          
+          if (relevantShipments.length > 0) {
+            group.trips.push({
+              tripId: trip.id,
+              tripNo: trip.trip_no,
+              shipments: relevantShipments.map((s: any) => ({
+                shipmentId: s.shipment_id,
+                shipmentNumber: s.shipment_number,
+                amount: s.payable_amount || (s.actual_cost || s.estimated_cost || 0) * 0.3,
+                completedAt: s.timeline?.completed ? new Date(s.timeline.completed) : new Date(s.updated_at)
+              }))
+            });
+            group.tripsCompleted += 1;
+          }
+        }
+      }
+
+      return Array.from(grouped.values());
+    } catch (error) {
+      logger.error('Failed to get driver payroll summary:', error);
       throw error;
     }
   }

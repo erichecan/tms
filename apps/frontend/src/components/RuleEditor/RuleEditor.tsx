@@ -55,7 +55,19 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
         status: rule.status === RuleStatus.ACTIVE,
       });
       setConditions(rule.conditions || []);
-      setActions(rule.actions || []);
+      // 2025-11-30T15:30:00Z Added by Assistant: 修复编辑规则时参数值不显示的问题
+      // 将 actions 中的 params 转换为 parameters 格式，以兼容前端显示
+      const normalizedActions = (rule.actions || []).map((action: any) => {
+        if (action.params && !action.parameters) {
+          // 如果使用 params，转换为 parameters 格式
+          return {
+            ...action,
+            parameters: action.params,
+          };
+        }
+        return action;
+      });
+      setActions(normalizedActions);
     } else {
       form.resetFields();
       setConditions([]);
@@ -141,11 +153,32 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
       setLoading(true);
       const formValues = form.getFieldsValue();
       
+      // 2025-11-30T15:30:00Z Added by Assistant: 修复保存时参数格式，将 parameters 转换为 params
+      const normalizedActions = actions.map((action: any) => {
+        if (action.parameters) {
+          return {
+            type: action.type,
+            params: action.parameters,
+          };
+        }
+        // 如果已经是 params 格式（从数据库读取的数据），保持不变
+        if ((action as any).params) {
+          return {
+            type: action.type,
+            params: (action as any).params,
+          };
+        }
+        return {
+          type: action.type,
+          params: {},
+        };
+      });
+      
       const ruleData = {
         ...formValues,
         status: formValues.status ? RuleStatus.ACTIVE : RuleStatus.INACTIVE,
         conditions,
-        actions,
+        actions: normalizedActions,
       };
 
       if (rule) {
@@ -157,9 +190,10 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
       }
 
       onSave();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save rule:', error);
-      message.error('保存规则失败');
+      const errorMessage = error?.response?.data?.error?.message || error?.message || '保存规则失败';
+      message.error(`保存规则失败: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -460,8 +494,27 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
                 <Col span={12}>
                   <Input
                     placeholder="输入参数值"
-                    value={action.parameters?.value || ''}
-                    onChange={(e) => handleUpdateAction(index, 'parameters', { value: e.target.value })}
+                    value={
+                      action.parameters?.value || 
+                      action.parameters?.percentage || 
+                      action.parameters?.amount || 
+                      action.parameters?.ratePerKm ||
+                      (action as any).params?.value || 
+                      (action as any).params?.percentage || 
+                      (action as any).params?.amount || 
+                      (action as any).params?.ratePerKm ||
+                      ''
+                    }
+                    onChange={(e) => {
+                      // 2025-11-30T15:30:00Z Added by Assistant: 修复参数值更新逻辑
+                      // 根据动作类型确定参数键名
+                      const paramKey = action.type === 'applyDiscount' ? 'percentage' :
+                                      action.type === 'addFee' || action.type === 'setFixedAmount' ? 'amount' :
+                                      action.type === 'modifyBaseRate' || action.type === 'calculateBaseFee' ? 'ratePerKm' :
+                                      'value';
+                      const newParams = { [paramKey]: e.target.value };
+                      handleUpdateAction(index, 'parameters', newParams);
+                    }}
                   />
                 </Col>
               </Row>
