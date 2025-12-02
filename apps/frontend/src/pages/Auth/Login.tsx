@@ -79,9 +79,6 @@ const Login: React.FC = () => {
             </Button>
           </Form.Item>
         </Form>
-        <Typography.Text type="secondary">
-          管理员账号: admin@demo.tms-platform.com / password
-        </Typography.Text>
       </Card>
     </div>
   );
