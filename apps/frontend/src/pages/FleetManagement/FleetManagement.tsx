@@ -25,7 +25,8 @@ import {
   TruckOutlined, 
   HistoryOutlined,
   EnvironmentOutlined,
-  DollarOutlined
+  DollarOutlined,
+  CarOutlined
 } from '@ant-design/icons';
 import { Trip, TripStatus, Driver, Vehicle, DriverStatus, VehicleStatus } from '../../types';
 import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
@@ -39,6 +40,7 @@ import DriverPayroll from '../../components/DriverPerformance/DriverPerformance'
 // 2025-11-30 03:15:00 移除：车辆维护组件（根据计划要求）
 // import VehicleMaintenance from '../../components/VehicleMaintenance/VehicleMaintenance';
 import ScheduleManagement from '../../components/ScheduleManagement/ScheduleManagement'; // 2025-11-29T11:25:04Z 排班管理组件
+import VehicleManagement from '../../components/VehicleManagement/VehicleManagement'; // 2025-12-02T20:20:00Z 车辆管理组件
 
 const { Title, Text } = Typography;
 
@@ -670,6 +672,20 @@ const FleetManagement: React.FC = () => {
           //     </div>
           //   )
           // },
+          {
+            key: "vehicles",
+            label: (
+              <span>
+                <CarOutlined />
+                车辆管理
+              </span>
+            ),
+            children: (
+              <div style={{ padding: '16px 0' }}>
+                <VehicleManagement />
+              </div>
+            )
+          },
           {
             key: "schedule",
             label: (
