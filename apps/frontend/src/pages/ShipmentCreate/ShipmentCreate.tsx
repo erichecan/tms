@@ -46,7 +46,6 @@ import { v4 as uuidv4 } from 'uuid'; // UUID 生成库 // 2025-10-08 14:20:00
 import { useDataContext } from '../../contexts/DataContext';
 // 2025-12-02T21:00:00Z Added by Assistant: 集成 Google Maps 地址自动完成功能
 import AddressAutocomplete from '../../components/AddressAutocomplete/AddressAutocomplete';
-import { AddressInfo } from '../../types/maps';
 
 
 const { Title, Text } = Typography;
