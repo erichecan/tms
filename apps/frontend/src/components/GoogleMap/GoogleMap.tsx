@@ -50,12 +50,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         setLoading(true);
         setError(null);
 
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) {
-          throw new Error('缺少 VITE_GOOGLE_MAPS_API_KEY 配置');
-        }
-        
-        // 2025-10-10 17:35:00 使用mapsService统一初始化，避免重复创建Loader
+        // 2025-12-02T21:30:00Z Fixed by Assistant: 使用 mapsService 统一初始化，它会处理 API Key 检查
+        // mapsService 会从环境变量读取 VITE_GOOGLE_MAPS_API_KEY，如果未配置会抛出更友好的错误
         const mapsServiceInstance = (await import('../../services/mapsService')).default;
         await mapsServiceInstance.initialize();
         

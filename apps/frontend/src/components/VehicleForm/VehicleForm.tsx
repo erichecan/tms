@@ -3,7 +3,8 @@
 // 用途：统一车辆创建和编辑表单，确保数据格式一致性和错误处理统一
 
 import React, { useEffect } from 'react';
-import { Form, Input, Select } from 'antd';
+import { Form, Input, Select, Space } from 'antd';
+import { CarOutlined, AppstoreOutlined, WeightOutlined } from '@ant-design/icons';
 import { Vehicle } from '../../types';
 
 const { Option } = Select;
@@ -37,39 +38,66 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
   }, [initialValues, mode, form]);
 
   return (
-    <Form form={form} layout="vertical">
-      <Form.Item
-        name="plateNumber"
-        label="车牌号"
-        rules={[{ required: true, message: '请输入车牌号' }]}
-      >
-        <Input placeholder="例如：ABC-1234" />
-      </Form.Item>
-      
-      <Form.Item
-        name="type"
-        label="车型"
-        rules={[{ required: true, message: '请选择车型' }]}
-      >
-        <Select placeholder="选择车型">
-          {VEHICLE_TYPES.map(type => (
-            <Option key={type.value} value={type.value}>
-              {type.label}
-            </Option>
-          ))}
-        </Select>
-      </Form.Item>
-      
-      <Form.Item
-        name="capacityKg"
-        label="载重(kg)"
-        rules={[
-          { required: true, message: '请输入载重' },
-          { type: 'number', min: 0, message: '载重必须大于0' }
-        ]}
-      >
-        <Input type="number" placeholder="3000" />
-      </Form.Item>
+    <Form 
+      form={form} 
+      layout="vertical" 
+      requiredMark={false}
+      style={{ 
+        maxWidth: '100%',
+      }}
+    >
+      <div style={{ marginBottom: 24 }}>
+        <Space style={{ marginBottom: 16, fontSize: 14, color: '#8c8c8c', fontWeight: 500 }}>
+          <CarOutlined />
+          <span>车辆信息</span>
+        </Space>
+        
+        <Form.Item
+          name="plateNumber"
+          label={<span style={{ fontSize: 13, fontWeight: 500 }}>车牌号</span>}
+          style={{ marginBottom: 16 }}
+        >
+          <Input 
+            placeholder="例如：ABC-1234（可选）" 
+            size="large"
+            style={{ borderRadius: 6 }}
+          />
+        </Form.Item>
+        
+        <Form.Item
+          name="type"
+          label={<span style={{ fontSize: 13, fontWeight: 500 }}>车型</span>}
+          style={{ marginBottom: 16 }}
+        >
+          <Select 
+            placeholder="选择车型（可选）"
+            size="large"
+            style={{ borderRadius: 6 }}
+          >
+            {VEHICLE_TYPES.map(type => (
+              <Option key={type.value} value={type.value}>
+                {type.label}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+        
+        <Form.Item
+          name="capacityKg"
+          label={<span style={{ fontSize: 13, fontWeight: 500 }}>载重 (kg)</span>}
+          rules={[
+            { type: 'number', min: 0, message: '载重必须大于0' }
+          ]}
+          style={{ marginBottom: 0 }}
+        >
+          <Input 
+            type="number" 
+            placeholder="请输入载重，例如：3000（可选）" 
+            size="large"
+            style={{ borderRadius: 6 }}
+          />
+        </Form.Item>
+      </div>
     </Form>
   );
 };

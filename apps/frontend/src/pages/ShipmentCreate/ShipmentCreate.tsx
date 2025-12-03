@@ -1003,7 +1003,7 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="customerId"
             label="客户选择 (Customer)"
-            rules={[{ required: true, message: '请选择客户' }]}
+            // 2025-12-02T21:35:00Z Fixed by Assistant: 移除必填验证，允许创建运单时不选择客户
             style={{ marginBottom: 8 }}
           >
             <Select
@@ -1976,6 +1976,7 @@ const ShipmentCreate: React.FC = () => {
             <Form
               form={form}
               layout="vertical"
+              requiredMark={false}
               onValuesChange={handleFormChange}
               initialValues={{
                 priority: 'vip1',
