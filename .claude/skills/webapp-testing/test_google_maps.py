@@ -107,7 +107,16 @@ def test_google_maps_display():
             if not submit_clicked:
                 raise Exception("无法找到登录按钮")
             
-            page.wait_for_url("**/dashboard", timeout=30000)
+            # 等待登录完成，可能跳转到 dashboard 或首页
+            try:
+                page.wait_for_url("**/dashboard", timeout=15000)
+            except:
+                # 如果没有跳转到 dashboard，检查是否在首页
+                current_url = page.url
+                if '/login' not in current_url:
+                    print(f"   登录后跳转到: {current_url}")
+                else:
+                    raise Exception("登录失败，仍在登录页面")
             time.sleep(3)
             print("✅ 登录成功")
             
@@ -121,8 +130,17 @@ def test_google_maps_display():
             time.sleep(2)  # 等待地图加载
             
             # 检查是否有地图相关的元素
-            map_elements = page.locator('[id*="map"], [class*="map"], canvas').count()
+            map_elements = page.locator('[id*="map"], [class*="map"], canvas, iframe[src*="maps"]').count()
             print(f"   找到 {map_elements} 个可能的地图元素")
+            
+            # 检查页面中是否包含 Google Maps 相关的脚本
+            page_content = page.content()
+            has_google_maps_script = 'maps.googleapis.com' in page_content or 'google.maps' in page_content
+            print(f"   页面包含 Google Maps 脚本: {'是' if has_google_maps_script else '否'}")
+            
+            # 检查地址输入框（用于测试地址自动完成）
+            address_inputs = page.locator('input[placeholder*="地址"], input[placeholder*="address"], input[name*="address"]').count()
+            print(f"   找到 {address_inputs} 个地址输入框")
             
             # 检查控制台日志
             maps_logs = [log for log in console_logs if 'map' in log.lower() or 'google' in log.lower()]
@@ -131,8 +149,8 @@ def test_google_maps_display():
                 for log in maps_logs[:5]:  # 只显示前5条
                     print(f"   {log}")
             
-            # 4. 访问运单详情页面（如果有地图显示）
-            print("\n[5/5] 尝试访问运单详情页面（如果存在）...")
+            # 6. 访问运单详情页面（如果有地图显示）
+            print("\n[6/6] 尝试访问运单详情页面（如果存在）...")
             try:
                 # 先获取一个运单列表
                 page.goto(f"{BASE_URL}/shipments", wait_until="networkidle")
