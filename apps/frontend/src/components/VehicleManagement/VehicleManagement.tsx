@@ -152,10 +152,18 @@ const VehicleManagement: React.FC = () => {
   const handleAddMonthlyCost = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setEditingCost(null);
+    // 2025-12-02T20:50:00Z 修复：先重置表单，然后设置 dayjs 对象
     costForm.resetFields();
-    costForm.setFieldsValue({
-      month: dayjs().format('YYYY-MM'),
-    });
+    // 使用 setTimeout 确保在 Modal 渲染后设置值
+    setTimeout(() => {
+      costForm.setFieldsValue({
+        month: dayjs(),
+        fuel: undefined,
+        lease: undefined,
+        insurance: undefined,
+        maintenance: undefined,
+      });
+    }, 0);
     setIsCostModalVisible(true);
   };
 
@@ -169,13 +177,22 @@ const VehicleManagement: React.FC = () => {
     
     if (monthlyCost) {
       setEditingCost(monthlyCost);
-      costForm.setFieldsValue({
-        month: dayjs(month, 'YYYY-MM'),
-        fuel: monthlyCost.fuel,
-        lease: monthlyCost.lease,
-        insurance: monthlyCost.insurance,
-        maintenance: monthlyCost.maintenance,
-      });
+      // 2025-12-02T20:50:00Z 修复：确保 dayjs 对象有效
+      const monthDayjs = dayjs(month, 'YYYY-MM');
+      if (!monthDayjs.isValid()) {
+        message.error('月份格式无效');
+        return;
+      }
+      // 使用 setTimeout 确保在 Modal 渲染后设置值
+      setTimeout(() => {
+        costForm.setFieldsValue({
+          month: monthDayjs,
+          fuel: monthlyCost.fuel || 0,
+          lease: monthlyCost.lease || 0,
+          insurance: monthlyCost.insurance || 0,
+          maintenance: monthlyCost.maintenance || 0,
+        });
+      }, 0);
       setIsCostModalVisible(true);
     } else {
       message.warning('该月份暂无费用记录');
@@ -187,8 +204,22 @@ const VehicleManagement: React.FC = () => {
       const values = await costForm.validateFields();
       if (!selectedVehicle) return;
 
-      const month = dayjs(values.month).format('YYYY-MM');
-      const firstDayOfMonth = dayjs(values.month).startOf('month').format('YYYY-MM-DD');
+      // 2025-12-02T20:50:00Z 修复：确保 values.month 是 dayjs 对象
+      const monthValue = values.month;
+      if (!monthValue) {
+        message.error('请选择月份');
+        return;
+      }
+      
+      // 如果已经是 dayjs 对象，直接使用；否则尝试解析
+      const monthDayjs = dayjs.isDayjs(monthValue) ? monthValue : dayjs(monthValue);
+      if (!monthDayjs.isValid()) {
+        message.error('月份格式无效');
+        return;
+      }
+
+      const month = monthDayjs.format('YYYY-MM');
+      const firstDayOfMonth = monthDayjs.startOf('month').format('YYYY-MM-DD');
       
       // 获取或创建成本分类（这里简化处理，使用默认分类）
       let costCategories: any[] = [];
@@ -454,7 +485,11 @@ const VehicleManagement: React.FC = () => {
         open={isCostModalVisible}
         onCancel={() => {
           setIsCostModalVisible(false);
+          // 2025-12-02T20:50:00Z 修复：重置表单时使用 initialValues 确保 MonthPicker 有有效值
           costForm.resetFields();
+          costForm.setFieldsValue({
+            month: dayjs(),
+          });
           setSelectedVehicle(null);
           setEditingCost(null);
         }}
@@ -462,18 +497,33 @@ const VehicleManagement: React.FC = () => {
         width={600}
         okText="保存"
         cancelText="取消"
+        destroyOnClose={true} // 2025-12-02T20:50:00Z 修复：关闭时销毁表单，避免状态残留
       >
-        <Form form={costForm} layout="vertical">
+        <Form 
+          form={costForm} 
+          layout="vertical"
+          preserve={false} // 2025-12-02T20:52:00Z 修复：不保留字段值，避免状态残留
+        >
           <Form.Item
             name="month"
             label="月份"
-            rules={[{ required: true, message: '请选择月份' }]}
+            rules={[
+              { required: true, message: '请选择月份' },
+            ]}
+            getValueFromEvent={(value) => {
+              // 2025-12-02T20:52:00Z 修复：确保返回的是 dayjs 对象
+              if (!value) return null;
+              if (dayjs.isDayjs(value)) return value;
+              const parsed = dayjs(value);
+              return parsed.isValid() ? parsed : null;
+            }}
           >
             <MonthPicker
               style={{ width: '100%' }}
               format="YYYY-MM"
               placeholder="选择月份"
               disabled={!!editingCost}
+              picker="month"
             />
           </Form.Item>
 
