@@ -149,18 +149,56 @@ const VehicleManagement: React.FC = () => {
     return monthlyData;
   };
 
-  const handleAddMonthlyCost = (vehicle: Vehicle) => {
+  // 2025-01-27T00:00:00Z 查找车辆最近一个月的 lease 和 insurance 费用，用于自动继承
+  const getLastMonthLeaseAndInsurance = (costs: VehicleCost[]): { lease: number; insurance: number } => {
+    const monthlyData = groupCostsByMonth(costs);
+    const months = Object.keys(monthlyData).sort().reverse(); // 从最新月份开始查找
+    
+    // 查找最近一个有 lease 或 insurance 费用的月份
+    for (const month of months) {
+      const monthlyCost = monthlyData[month];
+      if (monthlyCost.lease > 0 || monthlyCost.insurance > 0) {
+        return {
+          lease: monthlyCost.lease || 0,
+          insurance: monthlyCost.insurance || 0,
+        };
+      }
+    }
+    
+    return { lease: 0, insurance: 0 };
+  };
+
+  const handleAddMonthlyCost = async (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setEditingCost(null);
     // 2025-12-02T20:50:00Z 修复：先重置表单，然后设置 dayjs 对象
     costForm.resetFields();
+    
+    // 2025-01-27T00:00:00Z 自动继承功能：加载历史费用数据，查找最近一个月的 lease 和 insurance 费用
+    let inheritedLease = undefined;
+    let inheritedInsurance = undefined;
+    
+    try {
+      const costs = vehicleCosts[vehicle.id] || await loadVehicleCosts(vehicle.id);
+      const lastMonthCosts = getLastMonthLeaseAndInsurance(costs);
+      if (lastMonthCosts.lease > 0) {
+        inheritedLease = lastMonthCosts.lease;
+      }
+      if (lastMonthCosts.insurance > 0) {
+        inheritedInsurance = lastMonthCosts.insurance;
+      }
+    } catch (error) {
+      console.error('加载历史费用数据失败:', error);
+      // 即使加载失败，也继续打开弹窗
+    }
+    
     // 使用 setTimeout 确保在 Modal 渲染后设置值
     setTimeout(() => {
       costForm.setFieldsValue({
         month: dayjs(),
         fuel: undefined,
-        lease: undefined,
-        insurance: undefined,
+        lease: inheritedLease, // 2025-01-27T00:00:00Z 自动继承最近一个月的 lease 费用
+        insurance: inheritedInsurance, // 2025-01-27T00:00:00Z 自动继承最近一个月的 insurance 费用
         maintenance: undefined,
       });
     }, 0);
