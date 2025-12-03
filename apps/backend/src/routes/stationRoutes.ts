@@ -23,7 +23,13 @@ router.use(tenantMiddleware);
 // GET /api/stations - 获取站点列表
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       stationType,
       isActive,
@@ -59,7 +65,13 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/stations/:id - 获取单个站点
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const station = await stationService.getStationById(tenantId, id);
@@ -87,7 +99,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/stations - 创建站点
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateStationInput = req.body;
 
     if (!input.stationCode || !input.stationName || !input.stationType || !input.address) {
@@ -116,7 +134,13 @@ router.post('/', async (req: Request, res: Response) => {
 // PUT /api/stations/:id - 更新站点
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateStationInput = req.body;
 
@@ -139,7 +163,13 @@ router.put('/:id', async (req: Request, res: Response) => {
 // DELETE /api/stations/:id - 删除站点
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await stationService.deleteStation(tenantId, id);
@@ -162,7 +192,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // GET /api/stations/warehouses - 获取仓库列表
 router.get('/warehouses', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       warehouseType,
       isActive,
@@ -198,7 +234,13 @@ router.get('/warehouses', async (req: Request, res: Response) => {
 // GET /api/stations/warehouses/:id - 获取单个仓库
 router.get('/warehouses/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const warehouse = await warehouseService.getWarehouseById(tenantId, id);
@@ -226,7 +268,13 @@ router.get('/warehouses/:id', async (req: Request, res: Response) => {
 // POST /api/stations/warehouses - 创建仓库
 router.post('/warehouses', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateWarehouseInput = req.body;
 
     if (!input.warehouseCode || !input.warehouseName || !input.warehouseType || !input.address) {
@@ -255,7 +303,13 @@ router.post('/warehouses', async (req: Request, res: Response) => {
 // PUT /api/stations/warehouses/:id - 更新仓库
 router.put('/warehouses/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateWarehouseInput = req.body;
 
@@ -278,7 +332,13 @@ router.put('/warehouses/:id', async (req: Request, res: Response) => {
 // DELETE /api/stations/warehouses/:id - 删除仓库
 router.delete('/warehouses/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await warehouseService.deleteWarehouse(tenantId, id);
@@ -301,7 +361,13 @@ router.delete('/warehouses/:id', async (req: Request, res: Response) => {
 // GET /api/stations/hubs - 获取枢纽列表
 router.get('/hubs', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       isActive,
       search,
@@ -335,7 +401,13 @@ router.get('/hubs', async (req: Request, res: Response) => {
 // GET /api/stations/hubs/:id - 获取单个枢纽
 router.get('/hubs/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const hub = await warehouseService.getHubById(tenantId, id);
@@ -363,7 +435,13 @@ router.get('/hubs/:id', async (req: Request, res: Response) => {
 // POST /api/stations/hubs - 创建枢纽
 router.post('/hubs', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateHubInput = req.body;
 
     if (!input.hubCode || !input.hubName || !input.address) {
@@ -392,7 +470,13 @@ router.post('/hubs', async (req: Request, res: Response) => {
 // PUT /api/stations/hubs/:id - 更新枢纽
 router.put('/hubs/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateHubInput = req.body;
 
@@ -415,7 +499,13 @@ router.put('/hubs/:id', async (req: Request, res: Response) => {
 // DELETE /api/stations/hubs/:id - 删除枢纽
 router.delete('/hubs/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await warehouseService.deleteHub(tenantId, id);

@@ -558,6 +558,7 @@ export class FinanceService {
     baseSalary: number;
     tripBonus: number;
     fuelAllowance: number;
+    bonus?: number; // 2025-12-02T18:45:00Z 奖金（手动调整）
     status: 'pending' | 'paid';
     payDate?: Date;
     statementId?: string;

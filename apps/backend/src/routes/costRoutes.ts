@@ -21,7 +21,13 @@ router.use(tenantMiddleware);
 // GET /api/costs/categories - 获取成本分类列表
 router.get('/categories', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       categoryType,
       isActive,
@@ -50,7 +56,13 @@ router.get('/categories', async (req: Request, res: Response) => {
 // GET /api/costs/categories/:id - 获取单个成本分类
 router.get('/categories/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const category = await costService.getCostCategoryById(tenantId, id);
@@ -78,7 +90,13 @@ router.get('/categories/:id', async (req: Request, res: Response) => {
 // POST /api/costs/categories - 创建成本分类
 router.post('/categories', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateCostCategoryInput = req.body;
 
     if (!input.categoryCode || !input.categoryName || !input.categoryType) {
@@ -107,7 +125,13 @@ router.post('/categories', async (req: Request, res: Response) => {
 // PUT /api/costs/categories/:id - 更新成本分类
 router.put('/categories/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateCostCategoryInput = req.body;
 
@@ -130,7 +154,13 @@ router.put('/categories/:id', async (req: Request, res: Response) => {
 // DELETE /api/costs/categories/:id - 删除成本分类
 router.delete('/categories/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await costService.deleteCostCategory(tenantId, id);
@@ -153,7 +183,13 @@ router.delete('/categories/:id', async (req: Request, res: Response) => {
 // GET /api/costs/vehicles - 获取车辆成本记录列表
 router.get('/vehicles', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       vehicleId,
       costType,
@@ -195,7 +231,13 @@ router.get('/vehicles', async (req: Request, res: Response) => {
 // GET /api/costs/vehicles/:id - 获取单个成本记录
 router.get('/vehicles/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const cost = await costService.getVehicleCostById(tenantId, id);
@@ -223,7 +265,13 @@ router.get('/vehicles/:id', async (req: Request, res: Response) => {
 // POST /api/costs/vehicles - 创建车辆成本记录
 router.post('/vehicles', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateVehicleCostInput = req.body;
 
     if (!input.vehicleId || !input.costCategoryId || !input.costDate || input.costAmount === undefined || !input.costType) {
@@ -252,7 +300,13 @@ router.post('/vehicles', async (req: Request, res: Response) => {
 // PUT /api/costs/vehicles/:id - 更新车辆成本记录
 router.put('/vehicles/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateVehicleCostInput = req.body;
 
@@ -275,7 +329,13 @@ router.put('/vehicles/:id', async (req: Request, res: Response) => {
 // DELETE /api/costs/vehicles/:id - 删除车辆成本记录
 router.delete('/vehicles/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await costService.deleteVehicleCost(tenantId, id);
@@ -296,7 +356,13 @@ router.delete('/vehicles/:id', async (req: Request, res: Response) => {
 // GET /api/costs/summary - 获取成本汇总统计
 router.get('/summary', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       vehicleId,
       startDate,
@@ -327,7 +393,13 @@ router.get('/summary', async (req: Request, res: Response) => {
 // POST /api/costs/compare - 成本对比分析
 router.post('/compare', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { vehicleIds, startDate, endDate } = req.body;
 
     if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) {

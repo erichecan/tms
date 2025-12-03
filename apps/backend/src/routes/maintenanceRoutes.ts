@@ -19,7 +19,13 @@ router.use(tenantMiddleware);
 // GET /api/maintenance/records - 获取维护记录列表
 router.get('/records', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       vehicleId,
       status,
@@ -59,7 +65,13 @@ router.get('/records', async (req: Request, res: Response) => {
 // GET /api/maintenance/records/:id - 获取单个维护记录
 router.get('/records/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const record = await maintenanceService.getMaintenanceRecordById(tenantId, id);
@@ -87,7 +99,13 @@ router.get('/records/:id', async (req: Request, res: Response) => {
 // GET /api/maintenance/vehicles/:vehicleId/records - 获取车辆的维护记录
 router.get('/vehicles/:vehicleId/records', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { vehicleId } = req.params;
 
     const records = await maintenanceService.getMaintenanceRecordsByVehicle(
@@ -111,7 +129,13 @@ router.get('/vehicles/:vehicleId/records', async (req: Request, res: Response) =
 // POST /api/maintenance/records - 创建维护记录
 router.post('/records', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateMaintenanceRecordInput = req.body;
 
     // 验证必填字段
@@ -141,7 +165,13 @@ router.post('/records', async (req: Request, res: Response) => {
 // PUT /api/maintenance/records/:id - 更新维护记录
 router.put('/records/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateMaintenanceRecordInput = req.body;
 
@@ -164,7 +194,13 @@ router.put('/records/:id', async (req: Request, res: Response) => {
 // DELETE /api/maintenance/records/:id - 删除维护记录
 router.delete('/records/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await maintenanceService.deleteMaintenanceRecord(tenantId, id);
@@ -185,7 +221,13 @@ router.delete('/records/:id', async (req: Request, res: Response) => {
 // GET /api/maintenance/upcoming - 获取即将到期的维护提醒
 router.get('/upcoming', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const daysAhead = req.query.daysAhead
       ? parseInt(req.query.daysAhead as string)
       : 30;
@@ -206,11 +248,18 @@ router.get('/upcoming', async (req: Request, res: Response) => {
 });
 
 // ==================== 保养计划管理 ====================
-
-// GET /api/maintenance/plans - 获取保养计划列表
+// 2025-11-30T22:20:00 暂时注释：这些功能需要 maintenancePlanService, workOrderService, sparePartsService 实现
+// TODO: 实现这些服务后取消注释
+/*
 router.get('/plans', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       vehicleId,
       isActive,
@@ -244,7 +293,13 @@ router.get('/plans', async (req: Request, res: Response) => {
 // GET /api/maintenance/plans/:id - 获取单个保养计划
 router.get('/plans/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const plan = await maintenancePlanService.getMaintenancePlanById(tenantId, id);
@@ -272,7 +327,13 @@ router.get('/plans/:id', async (req: Request, res: Response) => {
 // GET /api/maintenance/vehicles/:vehicleId/plans - 获取车辆的保养计划
 router.get('/vehicles/:vehicleId/plans', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { vehicleId } = req.params;
     const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
 
@@ -298,7 +359,13 @@ router.get('/vehicles/:vehicleId/plans', async (req: Request, res: Response) => 
 // POST /api/maintenance/plans - 创建保养计划
 router.post('/plans', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateMaintenancePlanInput = req.body;
 
     if (!input.vehicleId || !input.planName || !input.maintenanceType || !input.intervalType) {
@@ -327,7 +394,13 @@ router.post('/plans', async (req: Request, res: Response) => {
 // PUT /api/maintenance/plans/:id - 更新保养计划
 router.put('/plans/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateMaintenancePlanInput = req.body;
 
@@ -350,7 +423,13 @@ router.put('/plans/:id', async (req: Request, res: Response) => {
 // DELETE /api/maintenance/plans/:id - 删除保养计划
 router.delete('/plans/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await maintenancePlanService.deleteMaintenancePlan(tenantId, id);
@@ -371,7 +450,13 @@ router.delete('/plans/:id', async (req: Request, res: Response) => {
 // POST /api/maintenance/plans/:id/execute - 执行保养计划
 router.post('/plans/:id/execute', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const { executionDate, executionMileage } = req.body;
 
@@ -406,7 +491,13 @@ router.post('/plans/:id/execute', async (req: Request, res: Response) => {
 // GET /api/maintenance/plans/upcoming - 获取即将到期的保养计划
 router.get('/plans/upcoming', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const daysAhead = req.query.daysAhead
       ? parseInt(req.query.daysAhead as string)
       : 30;
@@ -431,7 +522,13 @@ router.get('/plans/upcoming', async (req: Request, res: Response) => {
 // GET /api/maintenance/work-orders - 获取工单列表
 router.get('/work-orders', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       vehicleId,
       status,
@@ -475,7 +572,13 @@ router.get('/work-orders', async (req: Request, res: Response) => {
 // GET /api/maintenance/work-orders/:id - 获取单个工单
 router.get('/work-orders/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const workOrder = await workOrderService.getWorkOrderById(tenantId, id);
@@ -503,7 +606,13 @@ router.get('/work-orders/:id', async (req: Request, res: Response) => {
 // GET /api/maintenance/vehicles/:vehicleId/work-orders - 获取车辆的工单
 router.get('/vehicles/:vehicleId/work-orders', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { vehicleId } = req.params;
 
     const workOrders = await workOrderService.getWorkOrdersByVehicle(tenantId, vehicleId);
@@ -524,7 +633,13 @@ router.get('/vehicles/:vehicleId/work-orders', async (req: Request, res: Respons
 // POST /api/maintenance/work-orders - 创建工单
 router.post('/work-orders', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateWorkOrderInput = req.body;
 
     if (!input.vehicleId || !input.workOrderType || !input.description) {
@@ -553,7 +668,13 @@ router.post('/work-orders', async (req: Request, res: Response) => {
 // PUT /api/maintenance/work-orders/:id - 更新工单
 router.put('/work-orders/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateWorkOrderInput = req.body;
 
@@ -576,7 +697,13 @@ router.put('/work-orders/:id', async (req: Request, res: Response) => {
 // DELETE /api/maintenance/work-orders/:id - 删除工单
 router.delete('/work-orders/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await workOrderService.deleteWorkOrder(tenantId, id);
@@ -599,7 +726,13 @@ router.delete('/work-orders/:id', async (req: Request, res: Response) => {
 // GET /api/maintenance/spare-parts - 获取备件列表
 router.get('/spare-parts', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       partCategory,
       isActive,
@@ -637,7 +770,13 @@ router.get('/spare-parts', async (req: Request, res: Response) => {
 // GET /api/maintenance/spare-parts/:id - 获取单个备件
 router.get('/spare-parts/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const part = await sparePartsService.getSparePartById(tenantId, id);
@@ -665,7 +804,13 @@ router.get('/spare-parts/:id', async (req: Request, res: Response) => {
 // POST /api/maintenance/spare-parts - 创建备件
 router.post('/spare-parts', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateSparePartInput = req.body;
 
     if (!input.partNumber || !input.partName || input.unitPrice === undefined) {
@@ -694,7 +839,13 @@ router.post('/spare-parts', async (req: Request, res: Response) => {
 // PUT /api/maintenance/spare-parts/:id - 更新备件
 router.put('/spare-parts/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateSparePartInput = req.body;
 
@@ -717,7 +868,13 @@ router.put('/spare-parts/:id', async (req: Request, res: Response) => {
 // DELETE /api/maintenance/spare-parts/:id - 删除备件
 router.delete('/spare-parts/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await sparePartsService.deleteSparePart(tenantId, id);
@@ -738,7 +895,13 @@ router.delete('/spare-parts/:id', async (req: Request, res: Response) => {
 // POST /api/maintenance/spare-parts/:id/adjust-stock - 库存调整
 router.post('/spare-parts/:id/adjust-stock', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: StockAdjustmentInput = req.body;
 
@@ -768,7 +931,13 @@ router.post('/spare-parts/:id/adjust-stock', async (req: Request, res: Response)
 // GET /api/maintenance/spare-parts/low-stock - 获取低库存备件
 router.get('/spare-parts/low-stock', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
 
     const parts = await sparePartsService.getLowStockParts(tenantId);
 
@@ -784,6 +953,7 @@ router.get('/spare-parts/low-stock', async (req: Request, res: Response) => {
     });
   }
 });
+*/
 
 export default router;
 

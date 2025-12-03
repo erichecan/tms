@@ -188,7 +188,7 @@ export default function Dashboard() {
         司机任务面板
       </NavBar>
 
-      <PullToRefresh onRefresh={onRefresh} refreshing={refreshing}>
+      <PullToRefresh onRefresh={onRefresh}>
         {loading && !refreshing ? (
           renderSkeleton()
         ) : shipments.length === 0 ? (

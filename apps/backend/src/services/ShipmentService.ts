@@ -66,11 +66,12 @@ export class ShipmentService {
 
   private stampTimeline(timeline: ShipmentTimeline | undefined, status: ShipmentStatus): ShipmentTimeline {
     // 2025-11-11 14:23:45 统一记录运单状态时间线
-    const nextTimeline: ShipmentTimeline = { ...(timeline || {}) };
+    // 2025-11-30T22:10:00 修复：确保 created 字段始终存在
     const isoNow = new Date().toISOString();
-    if (!nextTimeline.created) {
-      nextTimeline.created = isoNow; // 2025-11-11 14:23:45
-    }
+    const nextTimeline: ShipmentTimeline = {
+      created: timeline?.created || isoNow, // 确保 created 始终存在
+      ...(timeline || {}),
+    };
     const fieldKey = TIMELINE_FIELD_MAP[status];
     if (fieldKey) {
       nextTimeline[fieldKey] = isoNow; // 2025-11-11 14:23:45
@@ -192,8 +193,8 @@ export class ShipmentService {
     try {
       // 检查司机是否可用
       const driver = await this.dbService.getDriver(tenantId, assignment.driverId);
-      // 2025-11-30 06:30:00 修复：使用正确的司机状态值（'available' 而不是 'active'）
-      if (!driver || driver.status !== 'available') {
+      // 2025-11-30T22:15:00 修复：使用正确的司机状态值（'active' 而不是 'available'）
+      if (!driver || driver.status !== 'active') {
         throw new Error('Driver not available');
       }
 

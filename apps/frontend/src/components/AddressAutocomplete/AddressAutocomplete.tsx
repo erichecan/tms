@@ -108,7 +108,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         google.maps.event.clearInstanceListeners(autocomplete);
       }
     };
-  }, []);
+  }, [onChange, onAddressSelected]); // 2025-12-02T10:30:00Z Fixed by Assistant: 添加依赖项
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange?.(e.target.value);

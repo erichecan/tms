@@ -7,8 +7,7 @@ import { Form, Input, Select, Row, Col, Divider } from 'antd';
 import { Customer } from '../../types';
 import {
   phoneValidationRule,
-  emailValidationRule,
-  postalCodeRequiredValidationRule,
+  emailOptionalValidationRule,
   postalCodeValidationRule,
   formatPostalCode,
 } from '../../utils/validationRules';
@@ -53,16 +52,16 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
   useEffect(() => {
     if (initialValues && mode === 'edit') {
       // 填充表单数据
-      const contactInfo = initialValues.contactInfo || {};
+      const contactInfo = (initialValues as any).contactInfo || {};
       const address = contactInfo.address || {};
-      const billingInfo = initialValues.billingInfo || {};
+      const billingInfo = (initialValues as any).billingInfo || {};
       const billingAddress = billingInfo.billingAddress || {};
       
       form.setFieldsValue({
         name: initialValues.name,
         email: contactInfo.email || '',
         phone: contactInfo.phone || '',
-        level: initialValues.level || 'standard',
+        level: (initialValues as any).level || 'standard',
         // 地址信息
         pickupCountry: address.country || 'Canada',
         pickupProvince: address.state || '',
@@ -99,7 +98,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           <Form.Item
             name="email"
             label="邮箱"
-            rules={emailValidationRule}
+            rules={emailOptionalValidationRule}
           >
             <Input placeholder="example@email.com" />
           </Form.Item>
@@ -108,10 +107,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           <Form.Item
             name="phone"
             label="电话"
-            rules={[
-              { required: true, message: '请输入电话号码' },
-              phoneValidationRule
-            ]}
+            rules={[phoneValidationRule]}
           >
             <Input placeholder="416-123-4567 或 (416) 123-4567" />
           </Form.Item>
@@ -132,7 +128,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
         </Select>
       </Form.Item>
       
-      <Divider>默认地址设置（加拿大格式）</Divider>
+      <Divider>默认地址设置（可选）</Divider>
       
       <Row gutter={16}>
         <Col span={12}>
@@ -140,7 +136,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
             name="pickupCountry"
             label="国家"
             initialValue="Canada"
-            rules={[{ required: true, message: '请选择国家' }]}
           >
             <Select placeholder="选择国家">
               <Option value="Canada">加拿大 (Canada)</Option>
@@ -152,7 +147,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           <Form.Item
             name="pickupProvince"
             label="省份/州"
-            rules={[{ required: true, message: '请选择或输入省份' }]}
           >
             <Select
               placeholder="选择省份"
@@ -177,7 +171,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           <Form.Item
             name="pickupCity"
             label="城市"
-            rules={[{ required: true, message: '请输入城市' }]}
           >
             <Input placeholder="例如：Toronto, Vancouver" />
           </Form.Item>
@@ -186,7 +179,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           <Form.Item
             name="pickupPostalCode"
             label="邮政编码"
-            rules={postalCodeRequiredValidationRule}
+            rules={[postalCodeValidationRule]}
           >
             <Input 
               placeholder="A1A 1A1 或 12345" 
@@ -204,7 +197,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
       <Form.Item
         name="pickupAddressLine1"
         label="地址行1"
-        rules={[{ required: true, message: '请输入地址行1' }]}
       >
         <Input placeholder="例如：123 Main Street" />
       </Form.Item>

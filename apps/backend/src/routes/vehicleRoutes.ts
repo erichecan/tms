@@ -186,7 +186,7 @@ router.delete('/:id',
       }
 
       // 删除车辆
-      await dbService.deleteVehicle(id);
+      await dbService.deleteVehicle(tenantId, id);
 
       res.json({ success: true, message: '车辆删除成功' });
     } catch (e: any) {

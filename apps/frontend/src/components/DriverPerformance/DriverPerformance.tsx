@@ -56,6 +56,7 @@ interface PayrollSummary {
   baseSalary: number;
   tripBonus: number;
   fuelAllowance: number;
+  bonus?: number; // 2025-12-02T18:35:00Z 奖金（手动调整）
   status: 'pending' | 'paid';
   payDate?: string;
   statementId?: string;
@@ -287,15 +288,33 @@ const DriverPayroll: React.FC = () => {
       ),
     },
     {
+      title: '奖金',
+      dataIndex: 'bonus',
+      key: 'bonus',
+      render: (amount: number | undefined) => (
+        <Text strong style={{ fontSize: '14px', color: '#13c2c2' }}>
+          ${(amount || 0).toLocaleString()}
+        </Text>
+      ),
+    },
+    {
       title: '总薪酬',
       dataIndex: 'totalEarnings',
       key: 'totalEarnings',
-      render: (amount: number) => (
-        <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-          ${amount.toLocaleString()}
-        </Text>
-      ),
-      sorter: (a: PayrollSummary, b: PayrollSummary) => a.totalEarnings - b.totalEarnings,
+      render: (amount: number, record: PayrollSummary) => {
+        // 2025-12-02T18:40:00Z 更新总薪酬计算，包含奖金
+        const total = amount + (record.bonus || 0);
+        return (
+          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
+            ${total.toLocaleString()}
+          </Text>
+        );
+      },
+      sorter: (a: PayrollSummary, b: PayrollSummary) => {
+        const totalA = a.totalEarnings + (a.bonus || 0);
+        const totalB = b.totalEarnings + (b.bonus || 0);
+        return totalA - totalB;
+      },
     },
     {
       title: '状态',
@@ -564,7 +583,7 @@ const DriverPayroll: React.FC = () => {
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={8}>
                       <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
-                        ${data.reduce((sum, r) => sum + (r.totalEarnings || 0), 0).toLocaleString()}
+                        ${data.reduce((sum, r) => sum + (r.totalEarnings || 0) + (r.bonus || 0), 0).toLocaleString()}
                       </Text>
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={9} colSpan={3} />
@@ -600,9 +619,10 @@ const DriverPayroll: React.FC = () => {
               <Descriptions.Item label="基础工资">${selectedRecord.baseSalary.toLocaleString()}</Descriptions.Item>
               <Descriptions.Item label="行程奖金">${selectedRecord.tripBonus.toLocaleString()}</Descriptions.Item>
               <Descriptions.Item label="燃油补贴">${selectedRecord.fuelAllowance.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="奖金">${(selectedRecord.bonus || 0).toLocaleString()}</Descriptions.Item>
               <Descriptions.Item label="总薪酬">
                 <Text strong style={{ color: '#1890ff', fontSize: '18px' }}>
-                  ${selectedRecord.totalEarnings.toLocaleString()}
+                  ${(selectedRecord.totalEarnings + (selectedRecord.bonus || 0)).toLocaleString()}
                 </Text>
               </Descriptions.Item>
               {selectedRecord.payDate && (
@@ -758,6 +778,22 @@ const DriverPayroll: React.FC = () => {
                 />
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item
+                name="bonus"
+                label="奖金"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="奖金（可选）"
+                  prefix="$"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="status"

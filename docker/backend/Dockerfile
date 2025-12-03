@@ -29,9 +29,9 @@ COPY --from=builder /app/packages /app/packages
 # 使用根 workspace 的生产依赖
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/backend/package.json /app/package.json
-# 拷贝数据库schema文件 // 2025-10-17T17:26:00
-COPY --from=builder /app/database_schema.sql /database_schema.sql
-COPY --from=builder /app/init_users.sql /init_users.sql
+# 2025-11-30T22:35:00 修复：这些 SQL 文件不存在，移除复制步骤（使用 Neon 数据库，不需要这些文件）
+# COPY --from=builder /app/database_schema.sql /database_schema.sql
+# COPY --from=builder /app/init_users.sql /init_users.sql
 
 # 设置默认端口（Cloud Run 使用 8080，但可通过环境变量覆盖）// 2025-10-16 17:04:00
 ENV PORT=8080

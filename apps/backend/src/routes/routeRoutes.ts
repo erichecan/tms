@@ -21,7 +21,13 @@ router.use(tenantMiddleware);
 // GET /api/routes - 获取线路列表
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const {
       routeType,
       isActive,
@@ -57,7 +63,13 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/routes/:id - 获取单个线路
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const route = await routeService.getRouteById(tenantId, id);
@@ -85,7 +97,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/routes - 创建线路
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const input: CreateRouteInput = req.body;
 
     if (!input.routeCode || !input.routeName || !input.routeType || !input.originLocation || !input.destinationLocation) {
@@ -114,7 +132,13 @@ router.post('/', async (req: Request, res: Response) => {
 // PUT /api/routes/:id - 更新线路
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
     const input: UpdateRouteInput = req.body;
 
@@ -137,7 +161,13 @@ router.put('/:id', async (req: Request, res: Response) => {
 // DELETE /api/routes/:id - 删除线路
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     await routeService.deleteRoute(tenantId, id);
@@ -158,7 +188,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // GET /api/routes/:id/metrics - 计算线路里程和过路费
 router.get('/:id/metrics', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { id } = req.params;
 
     const metrics = await routeService.calculateRouteMetrics(tenantId, id);
@@ -181,7 +217,13 @@ router.get('/:id/metrics', async (req: Request, res: Response) => {
 // GET /api/routes/:routeId/segments - 获取线路的所有路段
 router.get('/:routeId/segments', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { routeId } = req.params;
 
     const segments = await routeService.getRouteSegments(tenantId, routeId);
@@ -202,7 +244,13 @@ router.get('/:routeId/segments', async (req: Request, res: Response) => {
 // POST /api/routes/:routeId/segments - 创建路段
 router.post('/:routeId/segments', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { routeId } = req.params;
     const input: CreateRouteSegmentInput = req.body;
 
@@ -232,7 +280,13 @@ router.post('/:routeId/segments', async (req: Request, res: Response) => {
 // PUT /api/routes/segments/:segmentId - 更新路段
 router.put('/segments/:segmentId', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { segmentId } = req.params;
     const input: UpdateRouteSegmentInput = req.body;
 
@@ -255,7 +309,13 @@ router.put('/segments/:segmentId', async (req: Request, res: Response) => {
 // DELETE /api/routes/segments/:segmentId - 删除路段
 router.delete('/segments/:segmentId', async (req: Request, res: Response) => {
   try {
-    const tenantId = req.tenantId!;
+    const tenantId = req.tenant?.id || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'TENANT_REQUIRED', message: 'Tenant ID is required' },
+      });
+    }
     const { segmentId } = req.params;
 
     await routeService.deleteRouteSegment(tenantId, segmentId);

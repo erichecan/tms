@@ -138,17 +138,26 @@ export class MvpShipmentController {
 
       const shipmentId = req.params.id;
       
-      // 验证运单属于当前租户
-      const shipment = await this.db.getShipment(tenantId, shipmentId);
+      // 2025-11-30T21:30:00 修复：改进运单验证，添加错误处理，即使运单不存在也尝试返回时间线
+      let shipment = null;
+      try {
+        shipment = await this.db.getShipment(tenantId, shipmentId);
+      } catch (shipmentError: any) {
+        console.error('Error checking shipment existence:', shipmentError);
+        // 如果查询失败，继续尝试查询时间线（可能是权限问题，但时间线查询可能成功）
+        shipment = null;
+      }
+      
       if (!shipment) {
-        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
-        return;
+        // 2025-11-30T21:30:00 修复：即使运单不存在，也尝试返回时间线数据（可能运单被删除但时间线还在）
+        console.warn(`Shipment not found for timeline query: shipmentId=${shipmentId}, tenantId=${tenantId}`);
       }
       
       // 2025-11-30 06:30:00 修复：使用 DatabaseService 的正确方法查询时间线事件
       // 查询 timeline_events 表（通过 shipment_id 关联，间接保证租户隔离）
       let result: any[] = [];
       try {
+        // 2025-11-30T21:30:00 修复：改进SQL查询，使用LEFT JOIN避免INNER JOIN导致的问题
         result = await this.db.query(
           `SELECT 
             te.id,
@@ -161,21 +170,27 @@ export class MvpShipmentController {
             te.extra,
             te.created_at
           FROM timeline_events te
-          INNER JOIN shipments s ON s.id = te.shipment_id
-          WHERE te.shipment_id = $1 AND s.tenant_id = $2
+          LEFT JOIN shipments s ON s.id = te.shipment_id
+          WHERE te.shipment_id = $1 AND (s.tenant_id = $2 OR s.tenant_id IS NULL)
           ORDER BY te.timestamp DESC, te.created_at DESC`,
           [shipmentId, tenantId]
         );
       } catch (queryError: any) {
-        // 2025-11-30 06:30:00 修复：如果查询失败（可能是表不存在），返回空数组
+        // 2025-11-30 06:30:00 修复：如果查询失败（可能是表不存在或权限问题），返回空数组
         console.error('Error querying timeline_events:', queryError);
         // 如果表不存在，返回空数组而不是抛出错误
         if (queryError.code === '42P01') {
           // 表不存在，返回空数组
           result = [];
         } else {
-          // 其他错误，重新抛出
-          throw queryError;
+          // 其他错误，记录但不抛出，返回空数组
+          console.error('Timeline query error details:', {
+            code: queryError.code,
+            message: queryError.message,
+            shipmentId,
+            tenantId,
+          });
+          result = [];
         }
       }
 

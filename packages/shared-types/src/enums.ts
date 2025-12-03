@@ -6,6 +6,10 @@ export enum UserRole {
   ADMIN = 'admin',
   MANAGER = 'manager',
   OPERATOR = 'operator',
+  DISPATCHER = 'dispatcher', // 2025-12-02T18:50:00Z 调度员
+  CEO = 'ceo', // 2025-12-02T18:50:00Z 首席执行官
+  GENERAL_MANAGER = 'general_manager', // 2025-12-02T18:50:00Z 总经理
+  FLEET_MANAGER = 'fleet_manager', // 2025-12-02T18:50:00Z 车队经理
   DRIVER = 'driver',
   CUSTOMER = 'customer'
 }

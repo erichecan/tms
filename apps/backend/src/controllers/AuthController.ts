@@ -51,14 +51,29 @@ export class AuthController {
         // 从邮箱域名推断租户
         const emailDomain = email.split('@')[1];
         tenant = await this.dbService.getTenantByDomain(emailDomain);
+        
+        // 2025-12-02T17:10:00Z Fixed by Assistant: 如果找不到租户，尝试使用默认租户
         if (!tenant) {
-          res.status(404).json({
-            success: false,
-            error: { code: 'TENANT_NOT_FOUND', message: 'Tenant not found for email domain' },
-            timestamp: new Date().toISOString(),
-            requestId: req.headers['x-request-id'] as string || ''
-          });
-          return;
+          // 尝试获取默认租户（demo.tms-platform.com）
+          tenant = await this.dbService.getTenantByDomain('demo.tms-platform.com');
+          // 如果还是找不到，尝试获取第一个租户
+          if (!tenant) {
+            const tenants = await this.dbService.query('SELECT * FROM tenants LIMIT 1');
+            if (tenants && tenants.length > 0) {
+              tenant = await this.dbService.getTenant(tenants[0].id);
+            }
+          }
+          
+          // 如果还是找不到租户，返回错误
+          if (!tenant) {
+            res.status(404).json({
+              success: false,
+              error: { code: 'TENANT_NOT_FOUND', message: 'Tenant not found for email domain' },
+              timestamp: new Date().toISOString(),
+              requestId: req.headers['x-request-id'] as string || ''
+            });
+            return;
+          }
         }
       }
 

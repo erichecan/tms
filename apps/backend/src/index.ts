@@ -88,6 +88,7 @@ import mvpPodRoutes from './routes/mvpPodRoutes'; // MVP POD // 2025-09-23 10:30
 import financeRoutes from './routes/financeRoutes';
 import customerRoutes from './routes/customerRoutes';
 import driverRoutes from './routes/driverRoutes';
+import userRoutes from './routes/userRoutes'; // 2025-12-02T19:00:00Z 用户管理路由
 import driverCertificateRoutes from './routes/driverCertificateRoutes'; // 司机证照管理 // 2025-11-29T11:25:04Z
 import driverViolationRoutes from './routes/driverViolationRoutes'; // 司机违章管理 // 2025-11-29T11:25:04Z
 import driverScheduleRoutes from './routes/driverScheduleRoutes'; // 司机排班管理 // 2025-11-29T11:25:04Z
@@ -147,41 +148,62 @@ const dbService = new DatabaseService();
 // 中间件配置
 // 2025-10-17T15:00:00 - 修复 CORS 配置，使用环境变量
 // 2025-11-30T14:00:00Z Fixed by Assistant: 修复 CORS 配置，确保移动端可以访问
-const allowedOrigins = process.env.CORS_ORIGIN 
-  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
+// 2025-11-30T22:45:00Z Fixed by Assistant: 修复 CORS 配置，支持通配符和 Cloud Run 前端域名
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+const isWildcard = corsOrigin === '*';
+const allowedOriginsList: string[] = isWildcard 
+  ? [] // 通配符时不使用列表
+  : corsOrigin.split(',').map(origin => origin.trim());
+
+// 默认允许的本地开发环境
+const defaultLocalOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001'
+];
 
 console.log('CORS Configuration:', {
   NODE_ENV: process.env.NODE_ENV,
   CORS_ORIGIN: process.env.CORS_ORIGIN,
-  allowedOrigins
+  isWildcard,
+  allowedOrigins: isWildcard ? '*' : allowedOriginsList
 });
 
 // 2025-11-30T14:00:00Z Fixed by Assistant: 将 CORS 放在 helmet 之前，确保 CORS 头不被覆盖
 app.use(cors({
   origin: (origin, callback) => {
+    // 如果配置为通配符，允许所有来源
+    if (isWildcard) {
+      console.log('CORS: Allowing all origins (wildcard)');
+      return callback(null, true);
+    }
+    
     // 允许没有 origin 的请求（如移动应用或 Postman）
     if (!origin) {
       console.log('CORS: Allowing request without origin');
       return callback(null, true);
     }
+    
     // 检查 origin 是否在允许列表中（不区分大小写）
     const normalizedOrigin = origin.trim().toLowerCase();
-    const normalizedAllowed = allowedOrigins.map(o => o.trim().toLowerCase());
+    const normalizedAllowed = allowedOriginsList.map(o => o.trim().toLowerCase());
     
-    if (normalizedAllowed.includes(normalizedOrigin) || allowedOrigins.includes(origin)) {
+    // 检查是否匹配允许的来源
+    const isAllowed = normalizedAllowed.includes(normalizedOrigin) || allowedOriginsList.includes(origin);
+    
+    // 也检查默认的本地开发环境
+    const isLocal = defaultLocalOrigins.some(local => 
+      normalizedOrigin.includes(local.toLowerCase()) || origin.includes(local)
+    );
+    
+    if (isAllowed || isLocal) {
       console.log('CORS: Allowing origin:', origin);
       callback(null, true);
     } else {
       console.warn('CORS: Blocked origin:', origin);
-      console.warn('CORS: Allowed origins:', allowedOrigins);
-      // 允许所有本地开发环境的请求
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        console.log('CORS: Allowing localhost origin:', origin);
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      console.warn('CORS: Allowed origins:', isWildcard ? '*' : allowedOriginsList);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -234,6 +256,7 @@ app.use('/api/shipments', mvpPodRoutes); // MVP POD 上传 // 2025-09-23 10:30:0
 app.use('/api/finance', financeRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/drivers', driverRoutes);
+app.use('/api/users', userRoutes); // 2025-12-02T19:00:00Z 用户管理路由
 app.use('/api/drivers', driverCertificateRoutes); // 司机证照管理 // 2025-11-29T11:25:04Z
 app.use('/api/drivers', driverViolationRoutes); // 司机违章管理 // 2025-11-29T11:25:04Z
 app.use('/api/drivers', driverScheduleRoutes); // 司机排班管理 // 2025-11-29T11:25:04Z

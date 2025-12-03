@@ -47,6 +47,7 @@ import {
   BranchesOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { usersApi } from '../../services/api'; // 2025-12-02T19:05:00Z 导入用户API
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -246,39 +247,34 @@ const GranularPermissions: React.FC = () => {
         },
       ];
 
-      // 模拟用户数据
-      const mockUsers: User[] = [
-        {
-          id: 'U001',
-          username: 'admin',
-          email: 'admin@tms.com',
-          fullName: '系统管理员',
-          roles: ['R001'],
-          status: 'active',
-          lastLogin: '2025-09-29 16:30:00',
-          createdAt: '2025-09-01 10:00:00',
-        },
-        {
-          id: 'U002',
-          username: 'operator1',
-          email: 'operator1@tms.com',
-          fullName: '张三',
-          roles: ['R002'],
-          status: 'active',
-          lastLogin: '2025-09-29 15:45:00',
-          createdAt: '2025-09-05 09:00:00',
-        },
-        {
-          id: 'U003',
-          username: 'finance1',
-          email: 'finance1@tms.com',
-          fullName: '李四',
-          roles: ['R003'],
-          status: 'active',
-          lastLogin: '2025-09-29 14:20:00',
-          createdAt: '2025-09-10 14:00:00',
-        },
-      ];
+      // 2025-12-02T19:05:00Z 从API获取真实用户数据
+      try {
+        const usersResponse = await usersApi.getUsers({
+          page: 1,
+          limit: 100,
+          sort: 'created_at',
+          order: 'desc'
+        });
+        
+        // 将后端返回的用户数据映射到前端User接口格式
+        const apiUsers: User[] = (usersResponse.data?.data || []).map((user: any) => ({
+          id: user.id,
+          username: user.email?.split('@')[0] || user.email,
+          email: user.email,
+          fullName: user.profile?.name || `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim() || user.email,
+          roles: [user.role], // 将单个role转换为数组格式
+          status: user.status === 'active' ? 'active' : user.status === 'inactive' ? 'inactive' : 'locked',
+          lastLogin: user.lastLoginAt ? dayjs(user.lastLoginAt).format('YYYY-MM-DD HH:mm:ss') : '',
+          createdAt: user.createdAt ? dayjs(user.createdAt).format('YYYY-MM-DD HH:mm:ss') : ''
+        }));
+        
+        setUsers(apiUsers);
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        message.error('加载用户列表失败');
+        // 如果API调用失败，使用空数组
+        setUsers([]);
+      }
 
       // 模拟资源权限数据
       const mockResourcePermissions: ResourcePermission[] = [
@@ -310,7 +306,7 @@ const GranularPermissions: React.FC = () => {
 
       setPermissions(mockPermissions);
       setRoles(mockRoles);
-      setUsers(mockUsers);
+      // 用户数据已在上面通过API加载
       setResourcePermissions(mockResourcePermissions);
     } catch (error) {
       message.error('加载权限数据失败');

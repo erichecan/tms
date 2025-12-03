@@ -2,7 +2,53 @@ import axios from 'axios';
 import { UserLoginPayload, AuthResponse } from '../types/index';
 
 // 2025-11-29 17:40:00 修复：使用代理，不需要完整 URL，使用相对路径
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// 2025-12-02T17:20:00Z Fixed by Assistant: 生产环境必须使用完整后端 URL
+// 2025-12-02T18:00:00Z Fixed by Assistant: 自动确保 API_BASE_URL 包含 /api 后缀
+// Vite 环境变量：构建时注入 VITE_API_BASE_URL（完整后端URL，应该包含 /api 后缀）
+// 开发环境：使用相对路径 /api（会被 Vite 代理到 localhost:8000）
+// 注意：Vite 的环境变量必须以 VITE_ 开头，且需要在构建时注入
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// 如果没有环境变量，检查是否是生产环境
+if (!API_BASE_URL) {
+  // 开发环境使用相对路径（会被 Vite 代理）
+  if (import.meta.env.DEV) {
+    API_BASE_URL = '/api';
+  } else {
+    // 生产环境：如果未配置，尝试从 window.location 推断后端 URL
+    const frontendUrl = window.location.origin;
+    // 尝试推断后端 URL
+    if (frontendUrl.includes('tms-frontend')) {
+      API_BASE_URL = frontendUrl.replace('tms-frontend', 'tms-backend') + '/api';
+      console.warn('⚠️ 使用推断的后端 URL:', API_BASE_URL);
+    } else {
+      // 如果无法推断，使用相对路径（可能不工作）
+      API_BASE_URL = '/api';
+      console.warn('⚠️ 无法推断后端 URL，使用相对路径 /api');
+    }
+  }
+}
+
+// 2025-12-02T18:00:00Z 修复：确保 API_BASE_URL 以 /api 结尾
+// 如果配置的是完整后端 URL 但不包含 /api，自动添加
+if (API_BASE_URL && !API_BASE_URL.endsWith('/api')) {
+  // 如果是一个完整的 URL（包含 http/https），确保有 /api 后缀
+  if (API_BASE_URL.startsWith('http://') || API_BASE_URL.startsWith('https://')) {
+    // 移除末尾的斜杠（如果有）
+    API_BASE_URL = API_BASE_URL.replace(/\/+$/, '');
+    // 添加 /api 后缀
+    if (!API_BASE_URL.endsWith('/api')) {
+      API_BASE_URL = API_BASE_URL + '/api';
+      console.log('🔧 自动添加 /api 后缀到 API_BASE_URL:', API_BASE_URL);
+    }
+  } else if (!API_BASE_URL.startsWith('/api')) {
+    // 相对路径，确保以 /api 开头
+    API_BASE_URL = '/api' + (API_BASE_URL.startsWith('/') ? '' : '/') + API_BASE_URL.replace(/^\/+/, '');
+    console.log('🔧 自动添加 /api 前缀到相对路径:', API_BASE_URL);
+  }
+}
+
+console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -1,6 +1,9 @@
 // TMS平台共享类型定义
 // 创建时间: 2025-01-27 15:30:45
 
+// 2025-11-30T22:05:00 修复：导入 enum 以便类型定义可以使用
+import { ShipmentStatus, FeeType } from './enums';
+
 // 基础类型
 export interface BaseEntity {
   id: string;
@@ -27,7 +30,7 @@ export interface User extends BaseEntity {
   lastLoginAt?: Date;
 }
 
-export type UserRole = 'admin' | 'manager' | 'operator' | 'driver' | 'customer';
+export type UserRole = 'admin' | 'manager' | 'operator' | 'dispatcher' | 'ceo' | 'general_manager' | 'fleet_manager' | 'driver' | 'customer';
 
 export interface UserProfile {
   firstName: string;
@@ -207,20 +210,8 @@ export interface AdditionalFee {
   appliedBy: string;
 }
 
-export type FeeType = 'fuel' | 'toll' | 'waiting' | 'overtime' | 'special' | 'other';
-
-export type ShipmentStatus =
-  | 'draft'
-  | 'pending_confirmation'
-  | 'confirmed'
-  | 'scheduled'
-  | 'pickup_in_progress'
-  | 'in_transit'
-  | 'delivered'
-  | 'pod_pending_review'
-  | 'completed'
-  | 'cancelled'
-  | 'exception'; // 2025-11-11 14:12:05 对齐 PRD 枚举
+// 2025-11-30T22:00:00 修复：移除 type 定义，统一使用 enum（通过 export * from './enums' 导出）
+// export type FeeType 和 export type ShipmentStatus 已移除，统一使用 enums.ts 中的 enum 定义
 
 export interface ShipmentTimeline {
   created: Date | string; // 2025-11-11 14:12:05 保留兼容字段
@@ -367,7 +358,7 @@ export interface Notification extends BaseEntity {
 
 export type NotificationType = 'info' | 'warning' | 'error' | 'success';
 
-// 导出所有类型
+// 导出所有类型（enum 已在文件开头导入并在类型中使用，这里再次导出供外部使用）
 export * from './enums';
 export * from './constants';
 export * from './pricing-engine';

@@ -22,6 +22,8 @@ export interface Shipment {
   deliveryAddress?: Address;
   customerName?: string;
   estimatedCost?: number;
+  createdAt?: string | Date; // 2025-11-30T22:25:00 添加 createdAt 字段
+  description?: string; // 2025-11-30T22:25:00 添加 description 字段
   timeline?: Array<{
     id: string;
     eventType: string;

@@ -19,14 +19,26 @@ RUN npm run build:frontend
 # ---- Final Stage ----
 FROM nginx:alpine
 
-# 复制前端Nginx站点配置（仅server块） // 2025-09-26 09:14:00
-COPY docker/frontend/site.conf /etc/nginx/conf.d/default.conf
-
 # 从builder阶段复制构建好的静态文件
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
-# 暴露端口
-EXPOSE 80
+# 创建启动脚本，动态生成 Nginx 配置 // 2025-11-30T22:55:00 修复 Cloud Run 端口配置
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'PORT=${PORT:-8080}' >> /docker-entrypoint.sh && \
+    echo 'echo "server {" > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "    listen $PORT;" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "    server_name _;" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "    root /usr/share/nginx/html;" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "    index index.html;" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "    location / {" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "        try_files \$uri /index.html;" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "    }" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "}" >> /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
-# 启动Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# 暴露端口（Cloud Run 使用 PORT 环境变量）
+EXPOSE 8080
+
+# 启动脚本
+CMD ["/docker-entrypoint.sh"]

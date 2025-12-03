@@ -2,7 +2,7 @@
 // 创建时间: 2025-11-29T11:25:04Z
 // 第一阶段：核心主数据完善 - 到期提醒定时任务
 
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 import { DatabaseService } from '../services/DatabaseService';
 import { VehicleCertificateService } from '../services/VehicleCertificateService';
 import { VehicleInsuranceService } from '../services/VehicleInsuranceService';

@@ -444,6 +444,83 @@ export class DatabaseService {
   }
 
   /**
+   * 获取用户列表
+   * @param tenantId 租户ID
+   * @param params 查询参数
+   * @returns 分页用户列表
+   */
+  async getUsers(tenantId: string, params?: {
+    page?: number;
+    limit?: number;
+    sort?: string;
+    order?: 'asc' | 'desc';
+    search?: string;
+    filters?: {
+      role?: string;
+      status?: string;
+    };
+  }): Promise<PaginatedResponse<User>> {
+    // 2025-12-02T18:55:00Z 添加用户列表查询方法，支持分页、搜索、角色筛选
+    const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params || {};
+    const offset = (page - 1) * limit;
+    
+    let whereClause = 'WHERE tenant_id = $1';
+    const queryParams: any[] = [tenantId];
+    let paramIndex = 2;
+    
+    if (search) {
+      whereClause += ` AND (email ILIKE $${paramIndex} OR profile->>'firstName' ILIKE $${paramIndex} OR profile->>'lastName' ILIKE $${paramIndex} OR profile->>'name' ILIKE $${paramIndex})`;
+      queryParams.push(`%${search || ''}%`);
+      paramIndex++;
+    }
+    
+    if (filters?.role) {
+      whereClause += ` AND role = $${paramIndex}`;
+      queryParams.push(filters.role);
+      paramIndex++;
+    }
+    
+    if (filters?.status) {
+      whereClause += ` AND status = $${paramIndex}`;
+      queryParams.push(filters.status);
+      paramIndex++;
+    }
+    
+    // 获取总数
+    const countQuery = `SELECT COUNT(*) FROM users ${whereClause}`;
+    const countResult = await this.query(countQuery, queryParams);
+    const total = parseInt(countResult[0].count);
+    
+    // 获取数据
+    const allowedSortFields = ['created_at', 'updated_at', 'email', 'role', 'status'];
+    const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
+    const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    const dataQuery = `
+      SELECT * FROM users 
+      ${whereClause}
+      ORDER BY ${safeSort} ${safeOrder}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    queryParams.push(limit, offset);
+    const dataResult = await this.query(dataQuery, queryParams);
+    
+    return {
+      success: true,
+      data: dataResult.map(row => this.mapUserFromDb(row)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      },
+      timestamp: new Date().toISOString(),
+      requestId: ''
+    };
+  }
+
+  /**
    * 更新用户
    * @param tenantId 租户ID
    * @param userId 用户ID

@@ -4,6 +4,9 @@ export enum UserRole {
   ADMIN = 'admin',
   MANAGER = 'manager',
   DISPATCHER = 'dispatcher',
+  CEO = 'ceo', // 2025-12-02T18:50:00Z 首席执行官
+  GENERAL_MANAGER = 'general_manager', // 2025-12-02T18:50:00Z 总经理
+  FLEET_MANAGER = 'fleet_manager', // 2025-12-02T18:50:00Z 车队经理
   DRIVER = 'driver',
   CUSTOMER = 'customer',
 }
@@ -89,6 +92,54 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.CUSTOMER_READ,
     Permission.DRIVER_READ,
     Permission.VEHICLE_READ,
+    Permission.TRIP_CREATE,
+    Permission.TRIP_READ,
+    Permission.TRIP_UPDATE,
+  ],
+  
+  [UserRole.CEO]: [
+    // CEO拥有所有权限（与ADMIN相同）
+    ...Object.values(Permission),
+  ],
+  
+  [UserRole.GENERAL_MANAGER]: [
+    // 总经理权限（管理权限，比manager更广，但不包括系统配置）
+    Permission.SHIPMENT_CREATE,
+    Permission.SHIPMENT_READ,
+    Permission.SHIPMENT_UPDATE,
+    Permission.SHIPMENT_DELETE,
+    Permission.SHIPMENT_ASSIGN,
+    Permission.CUSTOMER_CREATE,
+    Permission.CUSTOMER_READ,
+    Permission.CUSTOMER_UPDATE,
+    Permission.CUSTOMER_DELETE,
+    Permission.DRIVER_CREATE,
+    Permission.DRIVER_READ,
+    Permission.DRIVER_UPDATE,
+    Permission.DRIVER_DELETE,
+    Permission.VEHICLE_CREATE,
+    Permission.VEHICLE_READ,
+    Permission.VEHICLE_UPDATE,
+    Permission.VEHICLE_DELETE,
+    Permission.TRIP_CREATE,
+    Permission.TRIP_READ,
+    Permission.TRIP_UPDATE,
+    Permission.TRIP_DELETE,
+    Permission.FINANCE_READ,
+    Permission.FINANCE_CREATE,
+    Permission.FINANCE_UPDATE,
+  ],
+  
+  [UserRole.FLEET_MANAGER]: [
+    // 车队经理权限（专注于车辆和车队管理）
+    Permission.SHIPMENT_READ,
+    Permission.DRIVER_CREATE,
+    Permission.DRIVER_READ,
+    Permission.DRIVER_UPDATE,
+    Permission.VEHICLE_CREATE,
+    Permission.VEHICLE_READ,
+    Permission.VEHICLE_UPDATE,
+    Permission.VEHICLE_DELETE,
     Permission.TRIP_CREATE,
     Permission.TRIP_READ,
     Permission.TRIP_UPDATE,

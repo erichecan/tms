@@ -58,6 +58,8 @@ import { formatDateTime } from '../../utils/timeUtils'; // 2025-11-11 10:15:05 �
 import type { RcFile } from 'antd/es/upload/interface'; // 2025-11-11 10:15:05 引入上传文件类型定义
 // 2025-11-30T20:50:00 修复：添加 DriverForm 导入
 import DriverForm, { transformDriverFormData } from '../DriverForm/DriverForm';
+// 2025-11-30T21:30:00 修复：添加 VehicleForm 导入
+import VehicleForm, { transformVehicleFormData } from '../VehicleForm/VehicleForm';
 
 const { Title, Text } = Typography;
 

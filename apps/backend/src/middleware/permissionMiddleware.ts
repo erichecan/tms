@@ -4,12 +4,15 @@ import { UserRole, Permission, ROLE_PERMISSIONS } from '../types/permissions';
 // 2025-01-27 17:20:00 权限控制中间件
 
 // 2025-10-01 14:50:00 修复类型不兼容：对齐 authMiddleware 中扩展的 Request.user 形状
+// 2025-11-30T22:15:00 修复：添加 permissions 字段以匹配 authMiddleware 的定义
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
     role: string; // 与 authMiddleware 声明保持一致
     tenantId: string;
+    tenantRole?: string;
+    permissions: string[];
   };
 }
 

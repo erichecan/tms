@@ -1,13 +1,15 @@
 // 2025-11-30T10:55:00Z Created by Assistant: 运单详情页面
-import { useEffect, useState } from 'react';
+// 2025-11-30T21:25:00 添加货物信息显示和BOL下载功能
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { NavBar, Card, Tag, Button, Space, Skeleton, Toast, Divider } from 'antd-mobile';
-import { LeftOutline, PhoneFill, EnvironmentOutline } from 'antd-mobile-icons'; // 2025-11-30T13:25:00Z Fixed by Assistant: 修复图标名称
+import { NavBar, Card, Tag, Button, Space, Skeleton, Toast, Divider, Modal } from 'antd-mobile';
+import { LeftOutline, PhoneFill, EnvironmentOutline, FileOutline } from 'antd-mobile-icons'; // 2025-11-30T21:25:00 添加FileOutline图标用于下载
 import { driverShipmentsApi, DRIVER_STORAGE_KEY } from '../../services/api';
 import { Shipment, ShipmentStatus } from '../../types';
 import PODUploader from '../../components/PODUploader/PODUploader'; // 2025-11-30T11:35:00Z Added by Assistant: POD上传组件
 import { navigateToAddress, makePhoneCall, formatAddress as formatAddressUtil } from '../../services/navigationService'; // 2025-11-30T11:45:00Z Added by Assistant: 导航服务
 import MapView from '../../components/MapView/MapView'; // 2025-11-30T12:10:00Z Added by Assistant: 地图组件
+import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-11-30T21:25:00 添加BOL文档组件
 
 const actionLabelMap: Record<string, string> = {
   pending: '确认接单',
@@ -53,6 +55,8 @@ export default function ShipmentDetail() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null); // 2025-11-30T12:10:00Z Added by Assistant: 当前位置
+  const [bolModalVisible, setBolModalVisible] = useState(false); // 2025-11-30T21:25:00 BOL预览模态框显示状态
+  const bolContainerRef = useRef<HTMLDivElement>(null); // 2025-11-30T21:25:00 BOL容器引用
 
   useEffect(() => {
     if (!id || !driverId) {
@@ -186,6 +190,89 @@ export default function ShipmentDetail() {
         content: error.message || '导航失败',
       });
     }
+  };
+
+  // 2025-11-30T21:25:00 处理BOL下载
+  const handleDownloadBOL = async () => {
+    if (!shipment) return;
+    try {
+      Toast.show({
+        icon: 'loading',
+        content: '正在生成BOL文档...',
+        duration: 0,
+      });
+      
+      // 等待隐藏容器中的BOL文档渲染完成
+      setTimeout(() => {
+        const bolElement = bolContainerRef.current?.querySelector('.bol-document');
+        if (!bolElement) {
+          Toast.clear();
+          Toast.show({
+            icon: 'fail',
+            content: 'BOL文档加载失败',
+          });
+          return;
+        }
+        
+        // 使用html2canvas生成PDF
+        import('html2canvas').then((html2canvas) => {
+          import('jspdf').then((jsPDF) => {
+            html2canvas.default(bolElement as HTMLElement, {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
+            }).then((canvas) => {
+              const imgData = canvas.toDataURL('image/png');
+              const pdf = new jsPDF.default('p', 'mm', 'a4');
+              const imgWidth = 210;
+              const pageHeight = 297;
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              let heightLeft = imgHeight;
+              let position = 0;
+              
+              pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+              
+              while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+              }
+              
+              const fileName = `BOL-${shipment.shipmentNumber || shipment.shipmentNo || shipment.id}-${new Date().toISOString().split('T')[0]}.pdf`;
+              pdf.save(fileName);
+              
+              Toast.clear();
+              Toast.show({
+                icon: 'success',
+                content: 'BOL文档下载成功',
+              });
+            }).catch((error) => {
+              console.error('PDF生成失败:', error);
+              Toast.clear();
+              Toast.show({
+                icon: 'fail',
+                content: 'PDF生成失败，请重试',
+              });
+            });
+          });
+        });
+      }, 500);
+    } catch (error: any) {
+      console.error('下载BOL失败:', error);
+      Toast.clear();
+      Toast.show({
+        icon: 'fail',
+        content: error.message || '下载失败，请重试',
+      });
+    }
+  };
+
+  // 2025-11-30T21:25:00 预览BOL文档
+  const handlePreviewBOL = () => {
+    setBolModalVisible(true);
   };
 
   if (loading) {
@@ -326,6 +413,120 @@ export default function ShipmentDetail() {
           </Space>
         </Card>
 
+        {/* 货物信息 - 2025-11-30T21:25:00 添加货物信息显示 */}
+        <Card style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 16, fontWeight: 'bold' }}>货物信息</div>
+            <Space>
+              <Button
+                size="small"
+                color="primary"
+                fill="outline"
+                onClick={handlePreviewBOL}
+              >
+                <FileOutline style={{ marginRight: 4 }} />
+                预览
+              </Button>
+              <Button
+                size="small"
+                color="primary"
+                onClick={handleDownloadBOL}
+              >
+                <FileOutline style={{ marginRight: 4 }} />
+                下载PDF
+              </Button>
+            </Space>
+          </div>
+          {(() => {
+            const cargoInfo = (shipment as any).cargoInfo || {};
+            const cargoItems = cargoInfo.cargoItems || [];
+            
+            // 多行货物模式
+            if (cargoItems && Array.isArray(cargoItems) && cargoItems.length > 0) {
+              const totalWeight = cargoItems.reduce((sum: number, item: any) => sum + ((item.weight || 0) * (item.quantity || 1)), 0);
+              const totalQuantity = cargoItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+              
+              return (
+                <Space direction="vertical" style={{ width: '100%', '--gap': '8px' }}>
+                  <div style={{ fontSize: 14, color: '#888', marginBottom: 4 }}>货物明细：</div>
+                  {cargoItems.map((item: any, index: number) => (
+                    <div key={index} style={{ padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, color: '#666' }}>件数：</span>
+                        <span style={{ fontSize: 14, fontWeight: 'bold' }}>{item.quantity || 0} 件</span>
+                      </div>
+                      {(item.length || item.width || item.height) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, color: '#666' }}>规格：</span>
+                          <span style={{ fontSize: 14 }}>{item.length || 0}×{item.width || 0}×{item.height || 0} cm</span>
+                        </div>
+                      )}
+                      {item.weight && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, color: '#666' }}>重量：</span>
+                          <span style={{ fontSize: 14 }}>{item.weight || 0} kg</span>
+                        </div>
+                      )}
+                      {item.description && (
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #ddd' }}>
+                          <span style={{ fontSize: 13, color: '#666' }}>描述：</span>
+                          <div style={{ fontSize: 14, marginTop: 4 }}>{item.description}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <Divider />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ fontSize: 14, color: '#666' }}>总件数：<span style={{ fontWeight: 'bold' }}>{totalQuantity} 件</span></div>
+                    <div style={{ fontSize: 14, color: '#666' }}>总重量：<span style={{ fontWeight: 'bold' }}>{totalWeight.toFixed(2)} kg</span></div>
+                    {cargoInfo.volume && (
+                      <div style={{ fontSize: 14, color: '#666' }}>总体积：<span style={{ fontWeight: 'bold' }}>{cargoInfo.volume.toFixed(2)} m³</span></div>
+                    )}
+                  </div>
+                </Space>
+              );
+            }
+            
+            // 单行货物模式或兼容旧数据
+            const description = cargoInfo.description || shipment.description || '无';
+            const weight = cargoInfo.weight || (shipment as any).weightKg || 0;
+            const dimensions = cargoInfo.dimensions || {
+              length: (shipment as any).lengthCm || 0,
+              width: (shipment as any).widthCm || 0,
+              height: (shipment as any).heightCm || 0,
+            };
+            
+            return (
+              <Space direction="vertical" style={{ width: '100%', '--gap': '8px' }}>
+                {description && description !== '无' && (
+                  <div>
+                    <div style={{ fontSize: 14, color: '#888', marginBottom: 4 }}>货物描述：</div>
+                    <div style={{ fontSize: 15, color: '#333' }}>{description}</div>
+                  </div>
+                )}
+                {(weight > 0 || (dimensions.length > 0 && dimensions.width > 0 && dimensions.height > 0)) && (
+                  <>
+                    <Divider />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      {weight > 0 && (
+                        <div style={{ fontSize: 14, color: '#666' }}>重量：<span style={{ fontWeight: 'bold' }}>{weight.toFixed(2)} kg</span></div>
+                      )}
+                      {dimensions.length > 0 && dimensions.width > 0 && dimensions.height > 0 && (
+                        <div style={{ fontSize: 14, color: '#666' }}>
+                          尺寸：<span style={{ fontWeight: 'bold' }}>{dimensions.length}×{dimensions.width}×{dimensions.height} cm</span>
+                        </div>
+                      )}
+                      {cargoInfo.volume && (
+                        <div style={{ fontSize: 14, color: '#666' }}>体积：<span style={{ fontWeight: 'bold' }}>{cargoInfo.volume.toFixed(2)} m³</span></div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </Space>
+            );
+          })()}
+        </Card>
+
         {/* 地图视图 */}
         {/* 2025-11-30T21:15:00 修复：使用 shipment.pickupAddress 和 shipment.deliveryAddress 而不是未定义的 pickup 和 delivery 变量 */}
         {((shipment.pickupAddress as any)?.latitude && (shipment.pickupAddress as any)?.longitude) || 
@@ -378,6 +579,43 @@ export default function ShipmentDetail() {
           </div>
         )}
       </div>
+
+      {/* 隐藏的BOL容器用于PDF生成 - 2025-11-30T21:25:00 */}
+      <div
+        ref={bolContainerRef}
+        style={{
+          position: 'fixed',
+          left: '-10000px',
+          top: '0',
+          width: '21cm',
+          visibility: 'hidden',
+        }}
+      >
+        {shipment && <BOLDocument shipment={shipment} showPrintButton={false} />}
+      </div>
+
+      {/* BOL预览模态框 - 2025-11-30T21:25:00 */}
+      <Modal
+        visible={bolModalVisible}
+        content={
+          <div style={{ maxHeight: '80vh', overflow: 'auto', padding: '12px' }}>
+            {shipment && (
+              <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%' }}>
+                <BOLDocument shipment={shipment} showPrintButton={false} />
+              </div>
+            )}
+          </div>
+        }
+        closeOnAction
+        onClose={() => setBolModalVisible(false)}
+        actions={[
+          {
+            key: 'close',
+            text: '关闭',
+          },
+        ]}
+        title="BOL 文档预览"
+      />
     </div>
   );
 }

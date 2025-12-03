@@ -33,9 +33,10 @@ export function useLocation(): UseLocationResult {
 
     // 使用 Permissions API 检查权限（如果支持）
     if ('permissions' in navigator) {
-      navigator.permissions
+      // 2025-11-30T22:30:00 修复：类型断言解决 Permissions API 类型问题
+      (navigator.permissions as any)
         .query({ name: 'geolocation' })
-        .then((result) => {
+        .then((result: any) => {
           setHasPermission(result.state === 'granted');
           result.onchange = () => {
             setHasPermission(result.state === 'granted');
@@ -47,11 +48,16 @@ export function useLocation(): UseLocationResult {
         });
     } else {
       // Permissions API 不支持，尝试获取位置来判断
-      navigator.geolocation.getCurrentPosition(
-        () => setHasPermission(true),
-        () => setHasPermission(false),
-        { timeout: 100 }
-      );
+      // 2025-11-30T22:30:00 修复：类型断言解决 geolocation API 类型问题
+      if ('geolocation' in navigator) {
+        (navigator as any).geolocation.getCurrentPosition(
+          () => setHasPermission(true),
+          () => setHasPermission(false),
+          { timeout: 100 }
+        );
+      } else {
+        setHasPermission(false);
+      }
     }
   }, [isSupported]);
 
