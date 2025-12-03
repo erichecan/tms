@@ -44,6 +44,9 @@ import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处
 import { v4 as uuidv4 } from 'uuid'; // UUID 生成库 // 2025-10-08 14:20:00
 // 2025-12-02 新增：使用 DataContext 统一管理客户数据
 import { useDataContext } from '../../contexts/DataContext';
+// 2025-12-02T21:00:00Z Added by Assistant: 集成 Google Maps 地址自动完成功能
+import AddressAutocomplete from '../../components/AddressAutocomplete/AddressAutocomplete';
+import { AddressInfo } from '../../types/maps';
 
 
 const { Title, Text } = Typography;
@@ -1141,11 +1144,21 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperAddress1"
                   label="地址行1 (Address Line 1) 🌍"
                   style={{ marginBottom: 8 }}
-                  tooltip="输入完整街道地址，系统将自动估算运输距离"
+                  tooltip="输入完整街道地址，系统将自动估算运输距离。支持 Google Maps 地址自动完成。"
                 >
-                  <Input 
-                    placeholder="输入街道地址..." 
-                    onChange={handleAddressChange}
+                  <AddressAutocomplete
+                    placeholder="输入街道地址（支持自动完成）..."
+                    onChange={(address, addressInfo) => {
+                      handleAddressChange({ target: { value: address } } as React.ChangeEvent<HTMLInputElement>);
+                      // 2025-12-02T21:00:00Z Added by Assistant: 自动填充地址信息
+                      if (addressInfo) {
+                        form.setFieldsValue({
+                          shipperCity: addressInfo.city,
+                          shipperProvince: addressInfo.province,
+                          shipperPostalCode: addressInfo.postalCode,
+                        });
+                      }
+                    }}
                   />
           </Form.Item>
         </Col>
@@ -1273,9 +1286,24 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverAddress1"
                   label="地址行1 (Address Line 1) 🌍"
                   style={{ marginBottom: 8 }}
-                  tooltip="输入完整街道地址，系统将自动估算运输距离"
+                  tooltip="输入完整街道地址，系统将自动估算运输距离。支持 Google Maps 地址自动完成。"
                 >
-                  <Input 
+                  <AddressAutocomplete
+                    placeholder="输入街道地址（支持自动完成）..."
+                    onChange={(address, addressInfo) => {
+                      handleAddressChange({ target: { value: address } } as React.ChangeEvent<HTMLInputElement>);
+                      // 2025-12-02T21:00:00Z Added by Assistant: 自动填充收货地址信息
+                      if (addressInfo) {
+                        form.setFieldsValue({
+                          receiverCity: addressInfo.city,
+                          receiverProvince: addressInfo.province,
+                          receiverPostalCode: addressInfo.postalCode,
+                        });
+                      }
+                    }}
+                  />
+                  {/* 保留原有的 Input 作为后备，但已被 AddressAutocomplete 替换 */}
+                  {/* <Input 
                     placeholder="输入街道地址..." 
                     onChange={handleAddressChange}
                   />
