@@ -1302,11 +1302,6 @@ const ShipmentCreate: React.FC = () => {
                       }
                     }}
                   />
-                  {/* 保留原有的 Input 作为后备，但已被 AddressAutocomplete 替换 */}
-                  {/* <Input 
-                    placeholder="输入街道地址..." 
-                    onChange={handleAddressChange}
-                  />
           </Form.Item>
         </Col>
               <Col span={24}>
