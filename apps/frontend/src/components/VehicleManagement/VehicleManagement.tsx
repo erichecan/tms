@@ -20,6 +20,7 @@ import {
   Row,
   Col,
   Popconfirm,
+  Statistic,
 } from 'antd';
 import {
   PlusOutlined,
@@ -65,10 +66,50 @@ const VehicleManagement: React.FC = () => {
   const [editingCost, setEditingCost] = useState<MonthlyCost | null>(null);
   const [vehicleCosts, setVehicleCosts] = useState<Record<string, VehicleCost[]>>({});
   const [costForm] = Form.useForm();
+  // 2025-01-27T00:00:00Z 本月车辆油费总数和维护费用总数
+  const [monthlyTotalFuel, setMonthlyTotalFuel] = useState<number>(0);
+  const [monthlyTotalMaintenance, setMonthlyTotalMaintenance] = useState<number>(0);
 
   useEffect(() => {
     loadVehicles();
+    loadMonthlyTotals(); // 2025-01-27T00:00:00Z 加载本月油费和维护费用总数
   }, [allVehicles]);
+
+  // 2025-01-27T00:00:00Z 加载本月所有车辆的油费总数和维护费用总数
+  const loadMonthlyTotals = async () => {
+    try {
+      const currentMonth = dayjs().format('YYYY-MM');
+      const firstDayOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
+      const lastDayOfMonth = dayjs().endOf('month').format('YYYY-MM-DD');
+
+      // 获取本月所有车辆的油费
+      const fuelResponse = await costsApi.getVehicleCosts({
+        costType: 'fuel',
+        startDate: firstDayOfMonth,
+        endDate: lastDayOfMonth,
+        page: 1,
+        limit: 10000,
+      });
+      const fuelCosts = fuelResponse.data?.data || [];
+      const totalFuel = fuelCosts.reduce((sum: number, cost: VehicleCost) => sum + cost.costAmount, 0);
+
+      // 获取本月所有车辆的维护费用（labor类型）
+      const maintenanceResponse = await costsApi.getVehicleCosts({
+        costType: 'labor',
+        startDate: firstDayOfMonth,
+        endDate: lastDayOfMonth,
+        page: 1,
+        limit: 10000,
+      });
+      const maintenanceCosts = maintenanceResponse.data?.data || [];
+      const totalMaintenance = maintenanceCosts.reduce((sum: number, cost: VehicleCost) => sum + cost.costAmount, 0);
+
+      setMonthlyTotalFuel(totalFuel);
+      setMonthlyTotalMaintenance(totalMaintenance);
+    } catch (error) {
+      console.error('加载本月费用总数失败:', error);
+    }
+  };
 
   const loadVehicles = async () => {
     try {
@@ -268,11 +309,12 @@ const VehicleManagement: React.FC = () => {
         console.error('获取成本分类失败:', error);
       }
 
+      // 2025-01-27T00:00:00Z 暂时不保存油费和维护费用，因为暂时不能细化到每一个车辆
       const costTypes = [
-        { type: 'fuel' as const, amount: values.fuel || 0, label: '油费' },
+        // { type: 'fuel' as const, amount: values.fuel || 0, label: '油费' }, // 暂时隐藏
         { type: 'other' as const, amount: values.lease || 0, label: 'Lease费用', description: 'Lease费用' },
         { type: 'insurance' as const, amount: values.insurance || 0, label: '保险' },
-        { type: 'labor' as const, amount: values.maintenance || 0, label: '维护费用' },
+        // { type: 'labor' as const, amount: values.maintenance || 0, label: '维护费用' }, // 暂时隐藏
       ];
 
       // 如果有编辑的费用，先删除该月的旧记录
@@ -329,6 +371,9 @@ const VehicleManagement: React.FC = () => {
         if (selectedVehicle) {
           await loadVehicleCosts(selectedVehicle.id);
         }
+        
+        // 2025-01-27T00:00:00Z 重新加载本月费用总数统计
+        await loadMonthlyTotals();
       }
     } catch (error: any) {
       console.error('保存月度费用失败:', error);
@@ -411,7 +456,33 @@ const VehicleManagement: React.FC = () => {
         <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
           <Col>
             <Title level={4}>🚛 车辆管理</Title>
-            <Text type="secondary">管理车辆信息和月度费用（油费、lease、保险、维护费用）</Text>
+            <Text type="secondary">管理车辆信息和月度费用（lease、保险费用）</Text>
+          </Col>
+        </Row>
+
+        {/* 2025-01-27T00:00:00Z 本月车辆油费总数和维护费用总数统计 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12}>
+            <Card>
+              <Statistic
+                title={`本月车辆油费总数 (${dayjs().format('YYYY-MM')})`}
+                value={monthlyTotalFuel}
+                precision={2}
+                prefix="$"
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Card>
+              <Statistic
+                title={`本月车辆维护费用总数 (${dayjs().format('YYYY-MM')})`}
+                value={monthlyTotalMaintenance}
+                precision={2}
+                prefix="$"
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
           </Col>
         </Row>
 
@@ -446,13 +517,6 @@ const VehicleManagement: React.FC = () => {
                           width: 120,
                         },
                         {
-                          title: '油费',
-                          dataIndex: 'fuel',
-                          key: 'fuel',
-                          width: 120,
-                          render: (value: number) => `$${value.toFixed(2)}`,
-                        },
-                        {
                           title: 'Lease费用',
                           dataIndex: 'lease',
                           key: 'lease',
@@ -467,19 +531,12 @@ const VehicleManagement: React.FC = () => {
                           render: (value: number) => `$${value.toFixed(2)}`,
                         },
                         {
-                          title: '维护费用',
-                          dataIndex: 'maintenance',
-                          key: 'maintenance',
-                          width: 120,
-                          render: (value: number) => `$${value.toFixed(2)}`,
-                        },
-                        {
                           title: '总计',
                           key: 'total',
                           width: 120,
                           render: (_: unknown, row: MonthlyCost & { vehicleId: string }) => (
                             <Text strong>
-                              ${(row.fuel + row.lease + row.insurance + row.maintenance).toFixed(2)}
+                              ${(row.lease + row.insurance).toFixed(2)}
                             </Text>
                           ),
                         },
@@ -567,10 +624,11 @@ const VehicleManagement: React.FC = () => {
 
           <Row gutter={16}>
             <Col span={12}>
+              {/* 2025-01-27T00:00:00Z 暂时隐藏油费输入，因为暂时不能细化到每一个车辆 */}
               <Form.Item
                 name="fuel"
                 label="油费 (CAD)"
-                rules={[{ required: false, message: '请输入油费' }]}
+                style={{ display: 'none' }}
               >
                 <InputNumber
                   min={0}
@@ -615,10 +673,11 @@ const VehicleManagement: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
+              {/* 2025-01-27T00:00:00Z 暂时隐藏维护费用输入，因为暂时不能细化到每一个车辆 */}
               <Form.Item
                 name="maintenance"
                 label="维护费用 (CAD)"
-                rules={[{ required: false, message: '请输入维护费用' }]}
+                style={{ display: 'none' }}
               >
                 <InputNumber
                   min={0}

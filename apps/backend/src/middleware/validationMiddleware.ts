@@ -293,44 +293,44 @@ export const userLoginSchema = Joi.object({
  * 运单创建验证模式
  */
 export const shipmentCreateSchema = Joi.object({
-  customerId: Joi.string().uuid().required(),
+  customerId: Joi.string().uuid().required(), // 客户选择仍然是必填
   pickupAddress: Joi.object({
-    street: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    postalCode: Joi.string().pattern(/^\d{6}$/).required(),
-    country: Joi.string().required(),
+    street: Joi.string().optional(), // 2025-12-02 改为可选
+    city: Joi.string().optional(), // 2025-12-02 改为可选
+    state: Joi.string().optional(), // 2025-12-02 改为可选
+    postalCode: Joi.string().pattern(/^\d{6}$/).optional(), // 2025-12-02 改为可选
+    country: Joi.string().optional(), // 2025-12-02 改为可选
     coordinates: Joi.object({
-      lat: Joi.number().min(-90).max(90).required(),
-      lng: Joi.number().min(-180).max(180).required()
+      lat: Joi.number().min(-90).max(90).optional(), // 2025-12-02 改为可选
+      lng: Joi.number().min(-180).max(180).optional() // 2025-12-02 改为可选
     }).optional(),
     instructions: Joi.string().max(500).optional()
-  }).required(),
+  }).optional(), // 2025-12-02 改为可选
   deliveryAddress: Joi.object({
-    street: Joi.string().required(),
-    city: Joi.string().required(),
-    state: Joi.string().required(),
-    postalCode: Joi.string().pattern(/^\d{6}$/).required(),
-    country: Joi.string().required(),
+    street: Joi.string().optional(), // 2025-12-02 改为可选
+    city: Joi.string().optional(), // 2025-12-02 改为可选
+    state: Joi.string().optional(), // 2025-12-02 改为可选
+    postalCode: Joi.string().pattern(/^\d{6}$/).optional(), // 2025-12-02 改为可选
+    country: Joi.string().optional(), // 2025-12-02 改为可选
     coordinates: Joi.object({
-      lat: Joi.number().min(-90).max(90).required(),
-      lng: Joi.number().min(-180).max(180).required()
+      lat: Joi.number().min(-90).max(90).optional(), // 2025-12-02 改为可选
+      lng: Joi.number().min(-180).max(180).optional() // 2025-12-02 改为可选
     }).optional(),
     instructions: Joi.string().max(500).optional()
-  }).required(),
+  }).optional(), // 2025-12-02 改为可选
   cargoInfo: Joi.object({
-    description: Joi.string().required(),
-    weight: Joi.number().min(0).max(50000).required(),
-    volume: Joi.number().min(0).max(100).required(),
+    description: Joi.string().optional(), // 2025-12-02 改为可选
+    weight: Joi.number().min(0).max(50000).optional(), // 2025-12-02 改为可选
+    volume: Joi.number().min(0).max(100).optional(), // 2025-12-02 改为可选
     dimensions: Joi.object({
-      length: Joi.number().min(0).required(),
-      width: Joi.number().min(0).required(),
-      height: Joi.number().min(0).required()
-    }).required(),
-    value: Joi.number().min(0).required(),
+      length: Joi.number().min(0).optional(), // 2025-12-02 改为可选
+      width: Joi.number().min(0).optional(), // 2025-12-02 改为可选
+      height: Joi.number().min(0).optional() // 2025-12-02 改为可选
+    }).optional(), // 2025-12-02 改为可选
+    value: Joi.number().min(0).optional(), // 2025-12-02 改为可选
     specialRequirements: Joi.array().items(Joi.string()).optional(),
     hazardous: Joi.boolean().default(false)
-  }).required()
+  }).optional() // 2025-12-02 改为可选
 });
 
 /**
@@ -341,40 +341,40 @@ export const shipmentCreateFormSchema = Joi.object({
   customerId: Joi.any().optional(), // 2025-11-29T22:52:00 完全可选，后端会处理默认客户创建
   salesChannel: Joi.string().valid('DIRECT', 'API', 'IMPORT', 'WEBHOOK').optional(), // 2025-10-08 14:45:00
   sellerNotes: Joi.string().allow('', null).optional(), // 2025-10-08 14:45:00
-  customerName: Joi.string().required(),
-  customerPhone: Joi.string().required(),
+  customerName: Joi.string().optional(), // 2025-12-02 改为可选
+  customerPhone: Joi.string().optional(), // 2025-12-02 改为可选
   customerEmail: Joi.string().email().allow('', null).optional(),
   priority: Joi.string().valid('low', 'normal', 'high', 'urgent', 'vip1', 'vip2', 'vip3', 'vip4', 'vip5').default('normal'), // 2025-10-08 14:45:00 添加VIP等级
   shipper: Joi.object({
-    name: Joi.string().required(),
+    name: Joi.string().optional(), // 2025-12-02 改为可选
     company: Joi.string().optional(),
-    phone: Joi.string().required(),
+    phone: Joi.string().optional(), // 2025-12-02 改为可选
     email: Joi.string().email().optional(),
     address: Joi.object({
-      addressLine1: Joi.string().required(),
+      addressLine1: Joi.string().optional(), // 2025-12-02 改为可选
       addressLine2: Joi.string().allow('', null).optional(), // 2025-11-29T22:56:00 允许空字符串和 null
-      city: Joi.string().required(),
-      province: Joi.string().required(),
-      postalCode: Joi.string().required(),
-      country: Joi.string().required(),
+      city: Joi.string().optional(), // 2025-12-02 改为可选
+      province: Joi.string().optional(), // 2025-12-02 改为可选
+      postalCode: Joi.string().optional(), // 2025-12-02 改为可选
+      country: Joi.string().optional(), // 2025-12-02 改为可选
       isResidential: Joi.boolean().optional()
-    }).required()
-  }).required(),
+    }).optional() // 2025-12-02 改为可选
+  }).optional(), // 2025-12-02 改为可选
   receiver: Joi.object({
-    name: Joi.string().required(),
+    name: Joi.string().optional(), // 2025-12-02 改为可选
     company: Joi.string().optional(),
-    phone: Joi.string().required(),
+    phone: Joi.string().optional(), // 2025-12-02 改为可选
     email: Joi.string().email().optional(),
     address: Joi.object({
-      addressLine1: Joi.string().required(),
+      addressLine1: Joi.string().optional(), // 2025-12-02 改为可选
       addressLine2: Joi.string().allow('', null).optional(), // 2025-11-29T22:56:00 允许空字符串和 null
-      city: Joi.string().required(),
-      province: Joi.string().required(),
-      postalCode: Joi.string().required(),
-      country: Joi.string().required(),
+      city: Joi.string().optional(), // 2025-12-02 改为可选
+      province: Joi.string().optional(), // 2025-12-02 改为可选
+      postalCode: Joi.string().optional(), // 2025-12-02 改为可选
+      country: Joi.string().optional(), // 2025-12-02 改为可选
       isResidential: Joi.boolean().optional()
-    }).required()
-  }).required(),
+    }).optional() // 2025-12-02 改为可选
+  }).optional(), // 2025-12-02 改为可选
   pickupDate: Joi.string().optional(),
   deliveryDate: Joi.string().optional(),
   addressType: Joi.string().valid('residential', 'commercial').default('residential'),
@@ -387,11 +387,11 @@ export const shipmentCreateFormSchema = Joi.object({
   // 2025-11-29T22:10:00 新增：支持多行货物数据（cargoItems）
   cargoItems: Joi.array().items(
     Joi.object({
-      length: Joi.number().min(0).required(),
-      width: Joi.number().min(0).required(),
-      height: Joi.number().min(0).required(),
-      weight: Joi.number().min(0).required(),
-      quantity: Joi.number().min(1).required(),
+      length: Joi.number().min(0).optional(), // 2025-12-02 改为可选
+      width: Joi.number().min(0).optional(), // 2025-12-02 改为可选
+      height: Joi.number().min(0).optional(), // 2025-12-02 改为可选
+      weight: Joi.number().min(0).optional(), // 2025-12-02 改为可选
+      quantity: Joi.number().min(1).optional(), // 2025-12-02 改为可选
       pallets: Joi.number().min(0).optional(),
       value: Joi.number().min(0).optional(),
       description: Joi.string().optional(),
@@ -420,19 +420,7 @@ export const shipmentCreateFormSchema = Joi.object({
   specialRequirements: Joi.array().items(Joi.string()).optional(),
   status: Joi.string().valid('draft', 'pending_confirmation', 'confirmed', 'scheduled', 'pickup_in_progress', 'in_transit', 'delivered', 'pod_pending_review', 'completed', 'cancelled', 'exception').optional(), // 2025-11-11 14:43:20
   estimatedCost: Joi.number().min(0).optional()
-}).custom((value, helpers) => {
-  // 2025-11-29T22:15:00 自定义验证：确保要么有 cargoItems，要么有单个货物字段
-  const hasCargoItems = value.cargoItems && Array.isArray(value.cargoItems) && value.cargoItems.length > 0;
-  const hasSingleCargo = value.cargoLength && value.cargoWidth && value.cargoHeight && value.cargoWeight;
-  
-  if (!hasCargoItems && !hasSingleCargo) {
-    return helpers.error('any.custom', {
-      message: '必须提供 cargoItems 数组或单个货物字段（cargoLength, cargoWidth, cargoHeight, cargoWeight）'
-    });
-  }
-  
-  return value;
-});
+}); // 2025-12-02 移除自定义验证，允许所有字段为空（除客户选择外）
 
 /**
  * 客户创建验证模式

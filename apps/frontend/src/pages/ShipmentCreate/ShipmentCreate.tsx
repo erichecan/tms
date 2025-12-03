@@ -33,6 +33,8 @@ import {
   CheckCircleOutlined,
   PlusOutlined,
   DeleteOutlined,
+  RightOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
@@ -40,6 +42,8 @@ import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 
 import CustomerForm, { transformCustomerFormData } from '../../components/CustomerForm/CustomerForm';
 import dayjs, { type Dayjs } from 'dayjs'; // 添加 dayjs 导入用于日期处理 // 2025-09-26 03:30:00
 import { v4 as uuidv4 } from 'uuid'; // UUID 生成库 // 2025-10-08 14:20:00
+// 2025-12-02 新增：使用 DataContext 统一管理客户数据
+import { useDataContext } from '../../contexts/DataContext';
 
 
 const { Title, Text } = Typography;
@@ -52,8 +56,8 @@ const ShipmentCreate: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<unknown[]>([]); // 2025-01-27 16:45:00 恢复客户列表状态
-  const [customersLoading, setCustomersLoading] = useState(false); // 2025-01-27 16:45:00 恢复客户加载状态
+  // 2025-12-02 修改：使用 DataContext 统一管理客户数据，实现跨页面同步
+  const { customers, customersLoading, reloadCustomers } = useDataContext();
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   
@@ -95,6 +99,9 @@ const ShipmentCreate: React.FC = () => {
   // 2025-10-28 新增：安全合规部分展开状态
   const [safetySectionActiveKeys, setSafetySectionActiveKeys] = useState<string[]>([]);
   
+  // 2025-12-02 新增：货物信息展开状态，用于折叠/展开详细字段
+  const [cargoExpanded, setCargoExpanded] = useState<Record<number, boolean>>({});
+  
   // 2025-11-24T18:20:00Z Added by Assistant: 用于实时费用计算的防抖定时器
   const pricingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -125,25 +132,7 @@ const ShipmentCreate: React.FC = () => {
   // 从localStorage恢复表单状态
   const CACHE_KEY = 'shipment_form_cache';
   
-  // 加载客户数据 - 2025-01-27 16:45:00 新增客户数据加载
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  const loadCustomers = async () => {
-    try {
-      setCustomersLoading(true);
-      const response = await customersApi.getCustomers();
-      // 2025-01-27 17:10:00 修复API返回结构，后端返回分页对象
-      setCustomers(response.data?.data || []);
-    } catch (error) {
-      console.error('加载客户列表失败:', error);
-      message.error('加载客户列表失败');
-      setCustomers([]); // 2025-01-27 17:10:00 确保失败时设置为空数组
-    } finally {
-      setCustomersLoading(false);
-    }
-  };
+  // 2025-12-02 移除：客户数据现在由 DataContext 统一管理，无需本地加载
   
   // 城市间距离估算表 (单位: 公里)
   const cityDistanceEstimates: { [key: string]: number } = {
@@ -301,8 +290,8 @@ const ShipmentCreate: React.FC = () => {
       const response = await customersApi.createCustomer(customerData);
       const newCustomer = response.data;
       
-      // 添加到客户列表
-      setCustomers([...customers, newCustomer]);
+      // 2025-12-02 修改：刷新客户列表以确保下拉菜单显示最新数据
+      await reloadCustomers();
       
       // 自动选择新创建的客户
       form.setFieldsValue({ customerId: newCustomer.id });
@@ -961,7 +950,6 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="salesChannel"
             label="销售渠道 (Sales Channel)"
-            rules={[{ required: true, message: '请选择销售渠道' }]}
             style={{ marginBottom: 8 }}
           >
             <Select placeholder="选择销售渠道">
@@ -1079,7 +1067,6 @@ const ShipmentCreate: React.FC = () => {
           <Form.Item
             name="customerName"
             label="客户联系人 (Contact Person)"
-            rules={[{ required: true, message: '请输入联系人' }]}
             style={{ marginBottom: 8 }}
           >
             <Input placeholder="请输入联系人" />
@@ -1090,7 +1077,6 @@ const ShipmentCreate: React.FC = () => {
             name="customerPhone"
             label="联系电话 (Phone)"
             rules={[
-              { required: true, message: '请输入联系电话' },
               { 
                 pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, 
                 message: '请输入有效的手机号码（支持北美和中国格式）' 
@@ -1136,7 +1122,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperName"
                   label="发货人姓名 (Shipper Name)"
-                  rules={[{ required: true, message: '请输入发货人姓名' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入发货人姓名" />
@@ -1155,7 +1140,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperAddress1"
                   label="地址行1 (Address Line 1) 🌍"
-                  rules={[{ required: true, message: '请输入地址行1' }]}
                   style={{ marginBottom: 8 }}
                   tooltip="输入完整街道地址，系统将自动估算运输距离"
                 >
@@ -1178,7 +1162,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperCity"
                   label="城市 (City)"
-                  rules={[{ required: true, message: '请输入城市' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入城市" />
@@ -1188,7 +1171,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperProvince"
                   label="省份/州 (Province/State)"
-                  rules={[{ required: true, message: '请输入省份/州' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入省份/州" />
@@ -1198,7 +1180,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperPostalCode"
                   label="邮政编码 (Postal Code)"
-                  rules={[{ required: true, message: '请输入邮政编码' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入邮政编码" />
@@ -1208,7 +1189,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="shipperCountry"
                   label="国家 (Country)"
-                  rules={[{ required: true, message: '请选择国家' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Select>
@@ -1223,7 +1203,6 @@ const ShipmentCreate: React.FC = () => {
                   name="shipperPhone"
                   label="联系电话 (Contact Phone)"
                   rules={[
-                    { required: true, message: '请输入联系电话' },
                     { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
                   ]}
                 >
@@ -1240,7 +1219,7 @@ const ShipmentCreate: React.FC = () => {
                 </Form.Item>
               </Col>
               <Col span={24}>
-          <Form.Item name="pickupDate" label="取货日期 (Pickup Date)" rules={[{ required: true, message: '请选择取货日期' }]}>
+          <Form.Item name="pickupDate" label="取货日期 (Pickup Date)">
             <DatePicker 
               format="YYYY-MM-DD"
               style={{ width: '100%' }} 
@@ -1250,7 +1229,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" rules={[{ required: true, message: '请选择取货时间段' }]} style={{ marginBottom: 8 }}>
+          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" style={{ marginBottom: 8 }}>
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
@@ -1275,7 +1254,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverName"
                   label="收货人姓名 (Receiver Name)"
-                  rules={[{ required: true, message: '请输入收货人姓名' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入收货人姓名" />
@@ -1294,7 +1272,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverAddress1"
                   label="地址行1 (Address Line 1) 🌍"
-                  rules={[{ required: true, message: '请输入地址行1' }]}
                   style={{ marginBottom: 8 }}
                   tooltip="输入完整街道地址，系统将自动估算运输距离"
                 >
@@ -1317,7 +1294,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverCity"
                   label="城市 (City)"
-                  rules={[{ required: true, message: '请输入城市' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入城市" />
@@ -1327,7 +1303,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverProvince"
                   label="省份/州 (Province/State)"
-                  rules={[{ required: true, message: '请输入省份/州' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入省份/州" />
@@ -1337,7 +1312,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverPostalCode"
                   label="邮政编码 (Postal Code)"
-                  rules={[{ required: true, message: '请输入邮政编码' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入邮政编码" />
@@ -1347,7 +1321,6 @@ const ShipmentCreate: React.FC = () => {
                 <Form.Item
                   name="receiverCountry"
                   label="国家 (Country)"
-                  rules={[{ required: true, message: '请选择国家' }]}
                   style={{ marginBottom: 8 }}
                 >
                   <Select>
@@ -1362,7 +1335,6 @@ const ShipmentCreate: React.FC = () => {
                   name="receiverPhone"
                   label="联系电话 (Contact Phone)"
                   rules={[
-                    { required: true, message: '请输入联系电话' },
                     { pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, message: '请输入有效的电话号码' }
                   ]}
                   style={{ marginBottom: 8 }}
@@ -1380,7 +1352,7 @@ const ShipmentCreate: React.FC = () => {
                 </Form.Item>
               </Col>
               <Col span={24}>
-          <Form.Item name="deliveryDate" label="送达日期 (Delivery Date)" rules={[{ required: true, message: '请选择送达日期' }]}>
+          <Form.Item name="deliveryDate" label="送达日期 (Delivery Date)">
             <DatePicker 
               format="YYYY-MM-DD"
               style={{ width: '100%' }} 
@@ -1390,7 +1362,7 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)" rules={[{ required: true, message: '请选择送达时间段' }]}>
+          <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)">
             <TimePicker.RangePicker
               style={{ width: '100%' }}
               format="HH:mm"
@@ -1491,89 +1463,39 @@ const ShipmentCreate: React.FC = () => {
                     size="small" 
                     style={{ marginBottom: 12 }}
                   >
-                    {/* 2025-10-28 优化：调整字体大小和布局，确保所有字段在一行 */}
-                    <Row gutter={[6, 0]} style={{ fontSize: '12px' }}>
-                      <Col span={2}>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'length']}
-                          label={<span style={{ fontSize: '12px' }}>长(cm)</span>}
-                          rules={[{ required: true, message: '请输入长度' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <InputNumber placeholder="长" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
+                    {/* 2025-12-02 重构：托盘和件数前置显示，其他字段可折叠 */}
+                    <Row gutter={[6, 8]} style={{ fontSize: '12px' }}>
+                      {/* 主要显示区域：托盘和件数 */}
+                      <Col span={4}>
+                        <Form.Item {...field} name={[field.name, 'pallets']} label={<span style={{ fontSize: '12px' }}>托盘</span>} style={{ marginBottom: 0 }}>
+                          <InputNumber placeholder="托盘数" min={0} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={2}>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'width']}
-                          label={<span style={{ fontSize: '12px' }}>宽(cm)</span>}
-                          rules={[{ required: true, message: '请输入宽度' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <InputNumber placeholder="宽" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={2}>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'height']}
-                          label={<span style={{ fontSize: '12px' }}>高(cm)</span>}
-                          rules={[{ required: true, message: '请输入高度' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <InputNumber placeholder="高" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={2}>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'weight']}
-                          label={<span style={{ fontSize: '12px' }}>重(kg)</span>}
-                          rules={[{ required: true, message: '请输入重量' }]}
-                          style={{ marginBottom: 0 }}
-                        >
-                          <InputNumber placeholder="重" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={2}>
+                      <Col span={4}>
                         <Form.Item 
                           {...field} 
                           name={[field.name, 'quantity']} 
                           label={<span style={{ fontSize: '12px' }}>件数</span>}
-                          rules={[{ required: true }]} 
                           style={{ marginBottom: 0 }}
                         >
-                          <InputNumber placeholder="件" min={1} style={{ width: '100%', fontSize: '12px' }} />
+                          <InputNumber placeholder="件数" min={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
+                      {/* 展开/收起按钮 */}
                       <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'pallets']} label={<span style={{ fontSize: '12px' }}>托盘</span>} style={{ marginBottom: 0 }}>
-                          <InputNumber placeholder="托" min={0} style={{ width: '100%', fontSize: '12px' }} />
-                        </Form.Item>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px', paddingTop: '6px' }}>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={cargoExpanded[index] ? <DownOutlined /> : <RightOutlined />}
+                            onClick={() => setCargoExpanded({ ...cargoExpanded, [index]: !cargoExpanded[index] })}
+                            style={{ fontSize: '12px' }}
+                          >
+                            {cargoExpanded[index] ? '收起' : '展开'}
+                          </Button>
+                        </div>
                       </Col>
-                      <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'value']} label={<span style={{ fontSize: '12px' }}>价值</span>} style={{ marginBottom: 0 }}>
-                          <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%', fontSize: '12px' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={3}>
-                        <Form.Item {...field} name={[field.name, 'description']} label={<span style={{ fontSize: '12px' }}>描述</span>} style={{ marginBottom: 0 }}>
-                          <Input placeholder="描述" style={{ fontSize: '12px' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'fragile']} label={<span style={{ fontSize: '12px' }}>易碎</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
-                          <Switch size="small" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={2}>
-                        <Form.Item {...field} name={[field.name, 'dangerous']} label={<span style={{ fontSize: '12px' }}>危险</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
-                          <Switch size="small" />
-                        </Form.Item>
-                      </Col>
-                      {/* 2025-10-28 新增：删除图标（圆形） */}
+                      {/* 删除按钮 */}
                       <Col span={1}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px', paddingTop: '6px' }}>
                           {fields.length > 1 && (
@@ -1589,6 +1511,72 @@ const ShipmentCreate: React.FC = () => {
                         </div>
                       </Col>
                     </Row>
+                    
+                    {/* 可折叠区域：其他详细信息 */}
+                    {cargoExpanded[index] && (
+                      <Row gutter={[6, 8]} style={{ fontSize: '12px', marginTop: 8, paddingTop: 8, borderTop: '1px solid #f0f0f0' }}>
+                        <Col span={4}>
+                          <Form.Item
+                            {...field}
+                            name={[field.name, 'length']}
+                            label={<span style={{ fontSize: '12px' }}>长(cm)</span>}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <InputNumber placeholder="长" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={4}>
+                          <Form.Item
+                            {...field}
+                            name={[field.name, 'width']}
+                            label={<span style={{ fontSize: '12px' }}>宽(cm)</span>}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <InputNumber placeholder="宽" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={4}>
+                          <Form.Item
+                            {...field}
+                            name={[field.name, 'height']}
+                            label={<span style={{ fontSize: '12px' }}>高(cm)</span>}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <InputNumber placeholder="高" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={4}>
+                          <Form.Item
+                            {...field}
+                            name={[field.name, 'weight']}
+                            label={<span style={{ fontSize: '12px' }}>重(kg)</span>}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <InputNumber placeholder="重" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={4}>
+                          <Form.Item {...field} name={[field.name, 'value']} label={<span style={{ fontSize: '12px' }}>价值</span>} style={{ marginBottom: 0 }}>
+                            <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%', fontSize: '12px' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={4}>
+                          <Form.Item {...field} name={[field.name, 'description']} label={<span style={{ fontSize: '12px' }}>描述</span>} style={{ marginBottom: 0 }}>
+                            <Input placeholder="描述" style={{ fontSize: '12px' }} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={3}>
+                          <Form.Item {...field} name={[field.name, 'fragile']} label={<span style={{ fontSize: '12px' }}>易碎</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
+                            <Switch size="small" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={3}>
+                          <Form.Item {...field} name={[field.name, 'dangerous']} label={<span style={{ fontSize: '12px' }}>危险</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
+                            <Switch size="small" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    )}
                   </Card>
                 ))}
                 <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} style={{ marginTop: 8 }}>
@@ -1621,7 +1609,6 @@ const ShipmentCreate: React.FC = () => {
               <Form.Item
                 name="cargoType"
                 label="货物类型 (Cargo Type)"
-                rules={[{ required: true, message: '请选择货物类型' }]}
                 style={{ marginBottom: 8 }}
               >
                 <Select placeholder="选择货物类型">

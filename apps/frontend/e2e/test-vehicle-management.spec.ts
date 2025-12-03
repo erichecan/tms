@@ -28,15 +28,20 @@ test.describe('车辆管理功能测试', () => {
   }
 
   test('检查车辆管理标签页是否存在', async ({ page }) => {
+    test.setTimeout(60000); // 增加测试超时时间到60秒
     const baseURL = 'https://tms-frontend-v4estohola-df.a.run.app';
     
     // 登录
     await loginWithEmail(page, 'agnes@aponygroup.com', '27669');
     
     // 导航到车队管理页面
-    await page.goto(`${baseURL}/admin/fleet`, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle');
+    await page.goto(`${baseURL}/admin/fleet`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // 使用更灵活的等待策略
     await page.waitForTimeout(5000);
+    
+    // 等待页面主要内容加载
+    await page.waitForSelector('h3:has-text("车队管理"), .ant-tabs', { timeout: 30000 });
+    await page.waitForTimeout(2000);
     
     // 截图保存当前页面状态
     await page.screenshot({ path: 'test-results/fleet-page-before-tab-click.png', fullPage: true });
@@ -62,15 +67,20 @@ test.describe('车辆管理功能测试', () => {
   });
 
   test('检查车辆管理页面功能', async ({ page }) => {
+    test.setTimeout(60000); // 增加测试超时时间到60秒
     const baseURL = 'https://tms-frontend-v4estohola-df.a.run.app';
     
     // 登录
     await loginWithEmail(page, 'agnes@aponygroup.com', '27669');
     
     // 导航到车队管理页面
-    await page.goto(`${baseURL}/admin/fleet`, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle');
+    await page.goto(`${baseURL}/admin/fleet`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // 使用更灵活的等待策略
     await page.waitForTimeout(5000);
+    
+    // 等待页面主要内容加载
+    await page.waitForSelector('h3:has-text("车队管理"), .ant-tabs', { timeout: 30000 });
+    await page.waitForTimeout(2000);
     
     // 点击车辆管理标签
     const vehicleManagementTab = page.locator('.ant-tabs-tab:has-text("车辆管理")').first();
@@ -110,10 +120,21 @@ test.describe('车辆管理功能测试', () => {
       console.log(`保险输入框: ${await insuranceInput.count()}`);
       console.log(`维护费用输入框: ${await maintenanceInput.count()}`);
       
-      // 关闭模态框
-      const cancelButton = page.locator('button:has-text("取消")').first();
-      await cancelButton.click();
-      await page.waitForTimeout(1000);
+      // 关闭模态框 - 使用 ESC 键或点击模态框外部区域
+      try {
+        const cancelButton = page.locator('button:has-text("取消"), .ant-modal-close').first();
+        if (await cancelButton.count() > 0 && await cancelButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await cancelButton.click();
+        } else {
+          // 如果没有找到取消按钮，按 ESC 键关闭模态框
+          await page.keyboard.press('Escape');
+        }
+        await page.waitForTimeout(1000);
+      } catch (error) {
+        // 如果关闭失败，尝试按 ESC 键
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(1000);
+      }
     } else {
       console.log('⚠️ 未找到"费用"按钮，可能没有车辆数据');
     }

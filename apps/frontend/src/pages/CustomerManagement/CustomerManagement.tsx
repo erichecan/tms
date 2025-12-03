@@ -30,7 +30,8 @@ const CustomerManagement: React.FC = () => {
   // 2025-11-24T19:40:00Z Added by Assistant: 实现搜索、筛选和排序功能
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [sortOrder, setSortOrder] = useState<string>('name_asc');
+  // 2025-12-02 修改：默认按添加时间降序排序（最新添加的在前面）
+  const [sortOrder, setSortOrder] = useState<string>('created_desc');
 
   const handleDelete = async (id: string) => {
     try {

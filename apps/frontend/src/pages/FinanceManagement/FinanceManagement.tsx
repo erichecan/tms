@@ -71,6 +71,12 @@ const FinanceManagement: React.FC = () => {
     startDate: undefined as string | undefined,
     endDate: undefined as string | undefined,
   });
+  // 2025-01-27T00:00:00Z 每月车辆油费总数和维护费用总数
+  const [monthlyVehicleCosts, setMonthlyVehicleCosts] = useState<Array<{
+    month: string;
+    totalFuel: number;
+    totalMaintenance: number;
+  }>>([]);
 
   const [form] = Form.useForm();
   const [costForm] = Form.useForm(); // 2025-11-29T11:25:04Z 成本记录表单
@@ -124,11 +130,64 @@ const FinanceManagement: React.FC = () => {
       const categoriesResponse = await costsApi.getCostCategories({ isActive: true });
       setCostCategories(categoriesResponse.data?.data || []);
       
+      // 2025-01-27T00:00:00Z 加载每月车辆油费总数和维护费用总数
+      await loadMonthlyVehicleCosts();
+      
       // 2025-11-30 01:50:00 修复：车辆数据从 DataContext 获取，不再直接调用 API
     } catch (error: any) {
       message.error('加载成本数据失败: ' + (error.message || '未知错误'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 2025-01-27T00:00:00Z 加载每月车辆油费总数和维护费用总数
+  const loadMonthlyVehicleCosts = async () => {
+    try {
+      // 获取最近12个月的数据
+      const months: string[] = [];
+      for (let i = 11; i >= 0; i--) {
+        months.push(dayjs().subtract(i, 'month').format('YYYY-MM'));
+      }
+
+      const monthlyData: Array<{ month: string; totalFuel: number; totalMaintenance: number }> = [];
+
+      for (const month of months) {
+        const firstDay = dayjs(month, 'YYYY-MM').startOf('month').format('YYYY-MM-DD');
+        const lastDay = dayjs(month, 'YYYY-MM').endOf('month').format('YYYY-MM-DD');
+
+        // 获取该月的油费总数
+        const fuelResponse = await costsApi.getVehicleCosts({
+          costType: 'fuel',
+          startDate: firstDay,
+          endDate: lastDay,
+          page: 1,
+          limit: 10000,
+        });
+        const fuelCosts = fuelResponse.data?.data || [];
+        const totalFuel = fuelCosts.reduce((sum: number, cost: any) => sum + cost.costAmount, 0);
+
+        // 获取该月的维护费用总数（labor类型）
+        const maintenanceResponse = await costsApi.getVehicleCosts({
+          costType: 'labor',
+          startDate: firstDay,
+          endDate: lastDay,
+          page: 1,
+          limit: 10000,
+        });
+        const maintenanceCosts = maintenanceResponse.data?.data || [];
+        const totalMaintenance = maintenanceCosts.reduce((sum: number, cost: any) => sum + cost.costAmount, 0);
+
+        monthlyData.push({
+          month,
+          totalFuel,
+          totalMaintenance,
+        });
+      }
+
+      setMonthlyVehicleCosts(monthlyData);
+    } catch (error) {
+      console.error('加载每月车辆费用失败:', error);
     }
   };
 
@@ -647,6 +706,56 @@ const FinanceManagement: React.FC = () => {
                     ))}
                   </Row>
                 )}
+
+                {/* 2025-01-27T00:00:00Z 每月车辆油费总数和维护费用总数统计表 */}
+                <Card title="每月车辆费用统计" style={{ marginBottom: 16 }}>
+                  <Table
+                    columns={[
+                      {
+                        title: '月份',
+                        dataIndex: 'month',
+                        key: 'month',
+                        width: 120,
+                      },
+                      {
+                        title: '油费总数',
+                        dataIndex: 'totalFuel',
+                        key: 'totalFuel',
+                        width: 150,
+                        render: (value: number) => (
+                          <Text strong style={{ color: '#1890ff' }}>
+                            ${value.toFixed(2)}
+                          </Text>
+                        ),
+                      },
+                      {
+                        title: '维护费用总数',
+                        dataIndex: 'totalMaintenance',
+                        key: 'totalMaintenance',
+                        width: 150,
+                        render: (value: number) => (
+                          <Text strong style={{ color: '#52c41a' }}>
+                            ${value.toFixed(2)}
+                          </Text>
+                        ),
+                      },
+                      {
+                        title: '合计',
+                        key: 'total',
+                        width: 150,
+                        render: (_: unknown, record: { totalFuel: number; totalMaintenance: number }) => (
+                          <Text strong style={{ color: '#cf1322' }}>
+                            ${(record.totalFuel + record.totalMaintenance).toFixed(2)}
+                          </Text>
+                        ),
+                      },
+                    ]}
+                    dataSource={monthlyVehicleCosts}
+                    rowKey="month"
+                    pagination={false}
+                    size="small"
+                  />
+                </Card>
 
                 {/* 成本记录表格 */}
                 <Table
