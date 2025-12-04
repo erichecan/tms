@@ -40,16 +40,16 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA']
 
-  # 运行数据库迁移
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        apt-get update && apt-get install -y postgresql-client >/dev/null
-        chmod +x scripts/run_migrations.sh
-        ./scripts/run_migrations.sh --ci
-    secretEnv: ['DATABASE_URL'] # 2025-11-11T15:11:02Z Added by Assistant: Pass database secret for migrations
+  # 运行数据库迁移 - 暂时跳过，权限问题待解决
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       apt-get update && apt-get install -y postgresql-client >/dev/null
+  #       chmod +x scripts/run_migrations.sh
+  #       ./scripts/run_migrations.sh --ci
+  #   secretEnv: ['DATABASE_URL'] # 2025-11-11T15:11:02Z Added by Assistant: Pass database secret for migrations
 
   # 部署后端到 Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -107,7 +107,8 @@ availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_ID/secrets/google-maps-api-key/versions/latest
       env: 'GOOGLE_MAPS_API_KEY'
-    - versionName: projects/$PROJECT_ID/secrets/database-url/versions/latest # 2025-11-11T15:11:02Z Added by Assistant: Expose database URL secret
-      env: 'DATABASE_URL'
+    # 暂时注释掉 database-url，迁移步骤已跳过
+    # - versionName: projects/$PROJECT_ID/secrets/database-url/versions/latest # 2025-11-11T15:11:02Z Added by Assistant: Expose database URL secret
+    #   env: 'DATABASE_URL'
 
 # 构建完成
