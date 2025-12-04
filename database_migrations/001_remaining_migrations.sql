@@ -64,9 +64,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- 授权给tms_user
-GRANT ALL PRIVILEGES ON TABLE location_tracking TO tms_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO tms_user;
+-- 授权给neondb_owner（已注释，因为 neondb_owner 已经是超级用户）
+-- 2025-12-04 Fixed: 使用 neondb_owner 替代不存在的 tms_user
+-- GRANT ALL PRIVILEGES ON TABLE location_tracking TO neondb_owner;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO neondb_owner;
 
 SELECT 'Remaining migrations completed successfully' as status;
 

@@ -56,11 +56,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- 授权给tms_user（如果表创建成功）
+-- 授权给neondb_owner（如果表创建成功）
+-- 2025-12-04 Fixed: 使用 neondb_owner 替代不存在的 tms_user
 DO $$ 
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'location_tracking') THEN
-        GRANT ALL PRIVILEGES ON TABLE location_tracking TO tms_user;
+        -- 跳过权限授予，因为 neondb_owner 已经是超级用户
+        -- GRANT ALL PRIVILEGES ON TABLE location_tracking TO neondb_owner;
     END IF;
 END $$;
 
