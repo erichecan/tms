@@ -64,7 +64,7 @@ steps:
       - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
       - '--set-env-vars=NODE_ENV=production,CORS_ORIGIN=*'
       - '--memory=512Mi'
-      - '--cpu=0.25' # 2025-11-24T15:45:10Z Added by Assistant: reduce CPU for free tier
+      - '--cpu=1' # 2025-12-04 Fixed: CPU must be >= 1 when concurrency > 1
       - '--concurrency=80' # 2025-11-24T15:45:10Z Added by Assistant: raise concurrency to stay within free tier
       - '--min-instances=0'
       - '--max-instances=2' # 2025-11-24T15:45:10Z Added by Assistant: cap burst capacity
@@ -83,7 +83,7 @@ steps:
       - '--platform=managed'
       - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app' # 2025-11-24T16:35:00Z Updated by Assistant: use dynamic backend URL
       - '--memory=256Mi'
-      - '--cpu=0.25' # 2025-11-24T15:45:10Z Added by Assistant: minimal CPU for frontend
+      - '--cpu=1' # 2025-12-04 Fixed: CPU must be >= 1 when concurrency > 1
       - '--concurrency=150' # 2025-11-24T15:45:10Z Added by Assistant: leverage Cloud Run concurrency
       - '--min-instances=0'
       - '--max-instances=2'
