@@ -322,15 +322,17 @@ class MapsService {
 }
 
 // 创建默认配置的MapsService实例
-// 2025-12-05T13:50:00Z Added by Assistant: 添加配置时的调试信息
+// 2025-12-05T14:00:00Z Added by Assistant: 增强配置创建时的调试信息
 const rawApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-console.log('🔧 [Google Maps] 创建 MapsService 配置:', {
-  timestamp: new Date().toISOString(),
-  envKeyExists: 'VITE_GOOGLE_MAPS_API_KEY' in import.meta.env,
-  envKeyValue: rawApiKey ? `${rawApiKey.substring(0, 8)}...` : '(空字符串)',
-  envKeyLength: rawApiKey.length,
-  allEnvKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')),
-});
+console.log('🔧 [Google Maps] 创建 MapsService 配置:');
+console.log('  📍 时间戳:', new Date().toISOString());
+console.log('  🔑 环境变量存在:', 'VITE_GOOGLE_MAPS_API_KEY' in import.meta.env);
+console.log('  📝 原始 API Key 值:', rawApiKey ? `${rawApiKey.substring(0, 8)}...${rawApiKey.substring(rawApiKey.length - 8)}` : '(空字符串)');
+console.log('  📏 API Key 长度:', rawApiKey.length);
+console.log('  📋 API Key 类型:', typeof rawApiKey);
+console.log('  ✂️  trim() 后:', rawApiKey.trim() ? `${rawApiKey.trim().substring(0, 8)}...` : '(空字符串)');
+console.log('  📦 所有 VITE_ 环境变量:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
+console.log('  🔍 import.meta.env 完整对象:', import.meta.env);
 
 const defaultConfig: MapsConfig = {
   apiKey: rawApiKey,
@@ -345,5 +347,19 @@ const defaultConfig: MapsConfig = {
   },
 };
 
+console.log('  ✅ defaultConfig 创建完成:', {
+  apiKey: defaultConfig.apiKey ? `${defaultConfig.apiKey.substring(0, 8)}...` : '(空)',
+  apiKeyLength: defaultConfig.apiKey?.length || 0,
+  libraries: defaultConfig.libraries,
+});
+
 export const mapsService = new MapsService(defaultConfig);
+console.log('  ✅ MapsService 实例创建完成');
+
+// 2025-12-05T14:00:00Z Added by Assistant: 验证实例的配置
+console.log('  🔍 MapsService 实例验证:', {
+  hasConfig: !!mapsService,
+  // 注意：config 是私有属性，无法直接访问，但可以通过初始化测试
+});
+
 export default mapsService;
