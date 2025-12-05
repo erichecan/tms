@@ -109,13 +109,10 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 # 密钥配置 - 2025-10-21 16:35:00
-# 2025-12-04T23:00:00Z Fixed by Assistant: 分离前端和后端 API Key secrets
+# 2025-12-05T17:50:00Z Fixed: 使用现有的 google-maps-api-key secret（前后端共用）
 availableSecrets:
   secretManager:
-    # 前端 API Key - 用于 Maps JavaScript API 和 Places API
-    - versionName: projects/$PROJECT_ID/secrets/google-maps-api-key-frontend/versions/latest
-      env: 'GOOGLE_MAPS_API_KEY_FRONTEND'
-    # 后端 API Key - 用于 Geocoding API、Directions API 和 Distance Matrix API
+    # Google Maps API Key - 前后端共用
     - versionName: projects/$PROJECT_ID/secrets/google-maps-api-key/versions/latest
       env: 'GOOGLE_MAPS_API_KEY'
     # 暂时注释掉 database-url，迁移步骤已跳过
