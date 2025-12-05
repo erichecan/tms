@@ -1485,15 +1485,15 @@ const ShipmentCreate: React.FC = () => {
                     size="small" 
                     style={{ marginBottom: 12 }}
                   >
-                    {/* 2025-12-02 重构：托盘和件数前置显示，其他字段可折叠 */}
+                    {/* 2025-12-05T11:30:00Z Updated: 托盘和件数前置，长宽高重量价值默认隐藏，使用>>展开 */}
                     <Row gutter={[6, 8]} style={{ fontSize: '12px' }}>
-                      {/* 主要显示区域：托盘和件数 */}
-                      <Col span={4}>
+                      {/* 主要显示区域：托盘和件数 - 移动到最前面 */}
+                      <Col span={6}>
                         <Form.Item {...field} name={[field.name, 'pallets']} label={<span style={{ fontSize: '12px' }}>托盘</span>} style={{ marginBottom: 0 }}>
                           <InputNumber placeholder="托盘数" min={0} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      <Col span={4}>
+                      <Col span={6}>
                         <Form.Item 
                           {...field} 
                           name={[field.name, 'quantity']} 
@@ -1503,22 +1503,26 @@ const ShipmentCreate: React.FC = () => {
                           <InputNumber placeholder="件数" min={1} style={{ width: '100%', fontSize: '12px' }} />
                         </Form.Item>
                       </Col>
-                      {/* 展开/收起按钮 */}
-                      <Col span={2}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px', paddingTop: '6px' }}>
+                      {/* 展开/收起按钮 - 使用>>标识 */}
+                      <Col span={3}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', height: '32px', paddingTop: '6px' }}>
                           <Button
                             type="text"
                             size="small"
-                            icon={cargoExpanded[index] ? <DownOutlined /> : <RightOutlined />}
                             onClick={() => setCargoExpanded({ ...cargoExpanded, [index]: !cargoExpanded[index] })}
-                            style={{ fontSize: '12px' }}
+                            style={{ 
+                              fontSize: '14px', 
+                              padding: '0 4px',
+                              color: '#1890ff',
+                              fontWeight: 'bold'
+                            }}
                           >
-                            {cargoExpanded[index] ? '收起' : '展开'}
+                            {cargoExpanded[index] ? '<<' : '>>'}
                           </Button>
                         </div>
                       </Col>
                       {/* 删除按钮 */}
-                      <Col span={1}>
+                      <Col span={2}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px', paddingTop: '6px' }}>
                           {fields.length > 1 && (
                             <Button 
@@ -1534,10 +1538,10 @@ const ShipmentCreate: React.FC = () => {
                       </Col>
                     </Row>
                     
-                    {/* 可折叠区域：其他详细信息 */}
+                    {/* 可折叠区域：长宽高、重量、价值 - 默认隐藏 */}
                     {cargoExpanded[index] && (
                       <Row gutter={[6, 8]} style={{ fontSize: '12px', marginTop: 8, paddingTop: 8, borderTop: '1px solid #f0f0f0' }}>
-                        <Col span={4}>
+                        <Col span={6}>
                           <Form.Item
                             {...field}
                             name={[field.name, 'length']}
@@ -1547,7 +1551,7 @@ const ShipmentCreate: React.FC = () => {
                             <InputNumber placeholder="长" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={4}>
+                        <Col span={6}>
                           <Form.Item
                             {...field}
                             name={[field.name, 'width']}
@@ -1557,7 +1561,7 @@ const ShipmentCreate: React.FC = () => {
                             <InputNumber placeholder="宽" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={4}>
+                        <Col span={6}>
                           <Form.Item
                             {...field}
                             name={[field.name, 'height']}
@@ -1567,7 +1571,7 @@ const ShipmentCreate: React.FC = () => {
                             <InputNumber placeholder="高" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={4}>
+                        <Col span={6}>
                           <Form.Item
                             {...field}
                             name={[field.name, 'weight']}
@@ -1577,22 +1581,22 @@ const ShipmentCreate: React.FC = () => {
                             <InputNumber placeholder="重" min={0} precision={1} style={{ width: '100%', fontSize: '12px' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={4}>
+                        <Col span={6}>
                           <Form.Item {...field} name={[field.name, 'value']} label={<span style={{ fontSize: '12px' }}>价值</span>} style={{ marginBottom: 0 }}>
                             <InputNumber placeholder="价值" min={0} precision={2} style={{ width: '100%', fontSize: '12px' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={4}>
+                        <Col span={6}>
                           <Form.Item {...field} name={[field.name, 'description']} label={<span style={{ fontSize: '12px' }}>描述</span>} style={{ marginBottom: 0 }}>
                             <Input placeholder="描述" style={{ fontSize: '12px' }} />
                           </Form.Item>
                         </Col>
-                        <Col span={3}>
+                        <Col span={6}>
                           <Form.Item {...field} name={[field.name, 'fragile']} label={<span style={{ fontSize: '12px' }}>易碎</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
                             <Switch size="small" />
                           </Form.Item>
                         </Col>
-                        <Col span={3}>
+                        <Col span={6}>
                           <Form.Item {...field} name={[field.name, 'dangerous']} label={<span style={{ fontSize: '12px' }}>危险</span>} valuePropName="checked" style={{ marginBottom: 0 }}>
                             <Switch size="small" />
                           </Form.Item>
