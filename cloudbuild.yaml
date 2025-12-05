@@ -75,6 +75,7 @@ steps:
       - '--max-instances=2' # 2025-11-24T15:45:10Z Added by Assistant: cap burst capacity
       - '--timeout=180' # 2025-11-24T15:45:10Z Added by Assistant: shrink request timeout
       - '--ingress=all' # 2025-11-24T15:45:10Z Added by Assistant: keep only public ingress
+    secretEnv: ['GOOGLE_MAPS_API_KEY'] # 2025-12-04T23:05:00Z Fixed by Assistant: 声明使用后端 API Key secret（通过 --set-secrets 传递到 Cloud Run）
 
   # 部署前端到 Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
