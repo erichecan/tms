@@ -20,7 +20,7 @@ steps:
     dir: '.'
 
   # 构建前端 Docker 镜像 // 2025-12-04 添加版本信息
-  # 2025-12-04T23:00:00Z Fixed by Assistant: 使用专门的前端 API key secret
+  # 2025-12-05T17:50:00Z Fixed: 使用现有的 google-maps-api-key secret
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args:
@@ -30,12 +30,12 @@ steps:
         docker build \
           -t gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA \
           --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
-          --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY_FRONTEND \
+          --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
           --build-arg BUILD_VERSION=$COMMIT_SHA \
           --build-arg BUILD_TIME=$$BUILD_TIME \
           -f docker/frontend/Dockerfile .
     dir: '.'
-    secretEnv: ['GOOGLE_MAPS_API_KEY_FRONTEND']
+    secretEnv: ['GOOGLE_MAPS_API_KEY']
 
   # 推送后端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
