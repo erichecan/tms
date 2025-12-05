@@ -46,10 +46,30 @@ class MapsService {
 
   private async doInitialize(): Promise<void> {
     try {
+      // 2025-12-05T13:50:00Z Added by Assistant: 添加详细的调试信息
+      console.group('🔍 [Google Maps] 初始化调试信息');
+      console.log('📦 环境变量检查:');
+      console.log('  - import.meta.env:', import.meta.env);
+      console.log('  - import.meta.env.VITE_GOOGLE_MAPS_API_KEY:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+      console.log('  - API Key 类型:', typeof import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+      console.log('  - API Key 长度:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.length || 0);
+      console.log('  - API Key 前8位:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.substring(0, 8) || '(未设置)');
+      console.log('📋 配置信息:');
+      console.log('  - config.apiKey:', this.config.apiKey ? `${this.config.apiKey.substring(0, 8)}...` : '(空)');
+      console.log('  - config.apiKey.trim():', this.config.apiKey?.trim() || '(空)');
+      console.log('  - isInitialized:', this.isInitialized);
+      console.groupEnd();
+
       // 2025-11-24T18:00:00Z Updated by Assistant: 改进错误处理和 API 密钥验证
+      // 2025-12-05T13:50:00Z Added by Assistant: 增强错误信息
       if (!this.config.apiKey || this.config.apiKey.trim() === '') {
-        const error = new Error('Google Maps API Key 未配置。请设置 VITE_GOOGLE_MAPS_API_KEY 环境变量。');
-        console.error('❌', error.message);
+        const error = new Error('缺少 VITE_GOOGLE_MAPS_API_KEY 配置');
+        console.error('❌ [Google Maps] 配置错误:', {
+          message: error.message,
+          envValue: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+          configValue: this.config.apiKey,
+          envKeys: Object.keys(import.meta.env).filter(key => key.includes('GOOGLE') || key.includes('MAPS')),
+        });
         throw error;
       }
 
@@ -64,19 +84,39 @@ class MapsService {
         });
       }
 
+      console.log('🚀 [Google Maps] 开始加载 Google Maps API...');
+      console.log('  - API Key 前8位:', this.config.apiKey.substring(0, 8));
+      console.log('  - Libraries:', this.config.libraries);
+      
       this.maps = await MapsService.loaderInstance.load();
       this.isInitialized = true;
-      console.log('✅ Google Maps API initialized successfully');
+      console.log('✅ [Google Maps] Google Maps API initialized successfully');
+      console.log('  - Maps object:', this.maps);
+      console.log('  - window.google:', window.google);
+      console.log('  - window.google.maps:', window.google?.maps);
     } catch (error: any) {
-      console.error('❌ Failed to initialize Google Maps API:', error);
+      console.error('❌ [Google Maps] Failed to initialize Google Maps API:', error);
+      console.error('❌ [Google Maps] 错误详情:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        errorType: error?.constructor?.name,
+      });
       
       // 2025-11-24T18:00:00Z Added by Assistant: 提供更详细的错误信息
+      // 2025-12-05T13:50:00Z Added by Assistant: 增强错误提示
       if (error.message?.includes('ApiNotActivatedMapError')) {
-        console.error('提示: Google Maps API 未启用。请在 Google Cloud Console 中启用 Maps JavaScript API。');
+        console.error('💡 提示: Google Maps API 未启用。请在 Google Cloud Console 中启用 Maps JavaScript API。');
       } else if (error.message?.includes('RefererNotAllowedMapError')) {
-        console.error('提示: 当前域名未在 API 密钥限制中允许。请在 Google Cloud Console 中配置 API 密钥限制。');
+        console.error('💡 提示: 当前域名未在 API 密钥限制中允许。请在 Google Cloud Console 中配置 API 密钥限制。');
+        console.error('   当前域名:', window.location.origin);
       } else if (error.message?.includes('InvalidKeyMapError')) {
-        console.error('提示: API 密钥无效。请检查 VITE_GOOGLE_MAPS_API_KEY 环境变量是否正确。');
+        console.error('💡 提示: API 密钥无效。请检查 VITE_GOOGLE_MAPS_API_KEY 环境变量是否正确。');
+        console.error('   使用的 API Key 前8位:', this.config.apiKey?.substring(0, 8) || '(未设置)');
+      } else if (error.message?.includes('缺少') || error.message?.includes('未配置')) {
+        console.error('💡 提示: API Key 未配置。');
+        console.error('   构建时环境变量:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '(未设置)');
+        console.error('   检查方法: 在浏览器控制台运行 console.log(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)');
       }
       
       MapsService.initPromise = null; // 失败时清除Promise，允许重试
@@ -282,8 +322,18 @@ class MapsService {
 }
 
 // 创建默认配置的MapsService实例
+// 2025-12-05T13:50:00Z Added by Assistant: 添加配置时的调试信息
+const rawApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+console.log('🔧 [Google Maps] 创建 MapsService 配置:', {
+  timestamp: new Date().toISOString(),
+  envKeyExists: 'VITE_GOOGLE_MAPS_API_KEY' in import.meta.env,
+  envKeyValue: rawApiKey ? `${rawApiKey.substring(0, 8)}...` : '(空字符串)',
+  envKeyLength: rawApiKey.length,
+  allEnvKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')),
+});
+
 const defaultConfig: MapsConfig = {
-  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+  apiKey: rawApiKey,
   libraries: ['places', 'geometry'],
   language: 'en',
   region: 'CA',
