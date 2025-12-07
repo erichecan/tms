@@ -1,47 +1,58 @@
 ---
-name: 🐛 Bug Report
-about: Create a report to help us improve
+name: 🐛 Bug 报告
+about: 报告一个 Bug
 title: '[BUG] '
-labels: ['bug', 'needs-triage']
+labels: bug
 assignees: ''
 ---
 
-## 🐛 Bug Description
-A clear and concise description of what the bug is.
+## 🐛 Bug 描述
 
-## 🔄 Steps to Reproduce
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+清晰简洁地描述 Bug 是什么。
 
-## ✅ Expected Behavior
-A clear and concise description of what you expected to happen.
+## 🔄 复现步骤
 
-## ❌ Actual Behavior
-A clear and concise description of what actually happened.
+复现该 Bug 的步骤：
+1. 进入 '...'
+2. 点击 '....'
+3. 滚动到 '....'
+4. 看到错误
 
-## 📸 Screenshots
-If applicable, add screenshots to help explain your problem.
+## ✅ 期望行为
 
-## 🖥️ Environment
-- **OS**: [e.g. macOS, Windows, Linux]
-- **Browser**: [e.g. Chrome, Safari, Firefox]
-- **Version**: [e.g. v0.1.0]
-- **Tenant**: [e.g. demo.tms-platform.com]
+清晰简洁地描述你期望发生什么。
 
-## 📋 Additional Context
-Add any other context about the problem here.
+## 📸 截图
 
-## 🔍 Investigation
-- [ ] I have searched existing issues
-- [ ] I have checked the logs
-- [ ] I have tested in different browsers
-- [ ] I have cleared browser cache
+如果适用，添加截图以帮助解释你的问题。
 
-## 🚨 Severity
-- [ ] Critical (System down/Data loss)
-- [ ] High (Major functionality broken)
-- [ ] Medium (Minor functionality affected)
-- [ ] Low (Cosmetic issue)
+## 💻 环境信息
+
+- **操作系统**: [例如: macOS 14.0]
+- **浏览器**: [例如: Chrome 120.0]
+- **Node.js 版本**: [例如: 18.17.0]
+- **项目版本**: [例如: v3.2.0]
+
+## 📋 日志信息
+
+如果适用，请粘贴相关的日志信息。
+
+```
+在这里粘贴日志
+```
+
+## 🔍 额外信息
+
+添加关于问题的任何其他上下文。
+
+## 📝 相关文件
+
+- 文件路径: `apps/frontend/src/...`
+- 相关 Issue: #123
+
+## 🏷️ 优先级
+
+- [ ] P0 - Critical（关键，影响核心功能）
+- [ ] P1 - High（高优先级，影响用户体验）
+- [ ] P2 - Medium（中优先级，影响较小）
+- [ ] P3 - Low（低优先级，优化建议）

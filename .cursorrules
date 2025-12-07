@@ -1,0 +1,114 @@
+# TMS 项目 GitFlow 自动化规则
+
+## 分支创建规则
+
+当用户请求开发新功能、修复 Bug、重构代码等操作时，自动创建符合 GitFlow 规范的分支。
+
+### 分支命名规范
+
+1. **功能开发**: feature/{module}-{description}
+   - 模块: shipment, customer, driver, vehicle, finance, pricing, rule, fleet, schedule, auth, api, ui, mobile
+   - 示例: feature/shipment-create-form
+
+2. **Bug 修复**: fix/{module}-{description}
+   - 示例: fix/customer-phone-validation
+
+3. **代码重构**: refactor/{module}-{description}
+   - 示例: refactor/customer-form-component
+
+4. **测试**: test/{module}-{test_type}
+   - 测试类型: e2e, unit, integration, performance, security
+   - 示例: test/shipment-e2e
+
+5. **文档**: docs/{doc_type}-{description}
+   - 文档类型: api, user, developer, deployment
+   - 示例: docs/api-shipment-endpoints
+
+6. **构建/工具**: chore/{tool_type}-{description}
+   - 工具类型: ci, build, deps, config
+   - 示例: chore/deps-update-dependencies
+
+7. **紧急修复**: hotfix/{module}-{description}
+   - 示例: hotfix/shipment-critical-bug
+
+### 自动化流程
+
+1. 检测用户意图（功能开发、Bug 修复等）
+2. 从对话中提取模块和描述
+3. 生成符合规范的分支名
+4. 执行 git 命令创建分支
+5. 切换到新分支
+
+### 命令模板
+
+```bash
+# 检查当前分支
+git branch --show-current
+
+# 确保在 develop 分支（功能开发、Bug 修复、重构）
+git checkout develop
+git pull origin develop
+
+# 创建新分支
+git checkout -b {branch_name}
+
+# 推送分支到远程
+git push -u origin {branch_name}
+```
+
+### 特殊规则
+
+- 紧急修复 (hotfix) 从 main 分支创建
+- 测试分支可以从功能分支或 develop 创建
+- 所有其他分支从 develop 创建
+
+### 模块识别规则
+
+从用户对话中识别模块关键词:
+- shipment: 运单、订单、shipment
+- customer: 客户、customer
+- driver: 司机、driver
+- vehicle: 车辆、vehicle
+- finance: 财务、支付、finance
+- pricing: 定价、计费、pricing
+- rule: 规则、rule
+- fleet: 车队、fleet
+- schedule: 排班、schedule
+- auth: 认证、登录、auth
+- api: API、接口
+- ui: UI、界面、页面
+- mobile: 移动端、mobile
+
+### 提交消息规范
+
+使用 Conventional Commits 规范:
+- feat: 新功能
+- fix: Bug 修复
+- docs: 文档更新
+- style: 代码格式
+- refactor: 重构
+- perf: 性能优化
+- test: 测试相关
+- chore: 构建过程或辅助工具的变动
+
+格式: `<type>(<scope>): <subject>`
+
+示例:
+- feat(shipment): 实现运单创建表单统一组件
+- fix(customer): 修复客户手机号验证规则
+- refactor(api): 重构 API 错误处理逻辑
+
+### 代码质量要求
+
+- 所有代码修改都需要添加注释和时间戳（格式: 2025-12-05 12:00:00）
+- 遵循项目代码规范
+- 确保没有 ESLint 错误
+- 添加适当的类型定义（TypeScript）
+
+### 相关文档
+
+- GitFlow 工作流程: `docs/GITFLOW_WORKFLOW.md`
+- 分支命名规范: `docs/GITFLOW_WORKFLOW.md#分支命名规范`
+- Cursor 自动化规则: `docs/CURSOR_BRANCH_AUTOMATION.md`
+- Issues 列表: `docs/TMS_ISSUES_SUMMARY.md`
+

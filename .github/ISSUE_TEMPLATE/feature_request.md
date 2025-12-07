@@ -1,54 +1,69 @@
 ---
-name: ✨ Feature Request
-about: Suggest an idea for this project
+name: ✨ 功能请求
+about: 建议新功能或改进
 title: '[FEATURE] '
-labels: ['enhancement', 'needs-triage']
+labels: enhancement
 assignees: ''
 ---
 
-## ✨ Feature Description
-A clear and concise description of the feature you'd like to see implemented.
+## 💡 功能描述
 
-## 🎯 Problem Statement
-What problem does this feature solve? Is your feature request related to a problem? Please describe.
+清晰简洁地描述你想要的功能。
 
-## 💡 Proposed Solution
-Describe the solution you'd like. A clear and concise description of what you want to happen.
+## 🎯 问题/痛点
 
-## 🔄 Alternative Solutions
-Describe any alternative solutions or features you've considered.
+描述这个功能解决什么问题或痛点。例如：
+- 当前操作需要 5 步才能完成
+- 缺少某个关键功能
+- 用户体验不佳
 
-## 📊 Business Value
-- [ ] Improves user experience
-- [ ] Increases operational efficiency
-- [ ] Reduces manual work
-- [ ] Enhances data accuracy
-- [ ] Improves system performance
-- [ ] Other: ___________
+## 💭 解决方案
 
-## 🎨 Mockups/Designs
-If applicable, add mockups, designs, or wireframes to help explain your feature.
+清晰简洁地描述你想要实现的功能。
 
-## 📋 Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+## 🔄 替代方案
 
-## 🔗 Related Issues
-Link any related issues here.
+描述你考虑过的任何替代方案或功能。
 
-## 📚 Additional Context
-Add any other context or screenshots about the feature request here.
+## 📋 功能模块
 
-## 🏷️ Priority
-- [ ] Critical (Blocks other work)
-- [ ] High (Important for next release)
-- [ ] Medium (Nice to have)
-- [ ] Low (Future consideration)
+选择相关模块（可多选）:
+- [ ] 运单管理 (Shipment)
+- [ ] 客户管理 (Customer)
+- [ ] 司机管理 (Driver)
+- [ ] 车辆管理 (Vehicle)
+- [ ] 财务管理 (Finance)
+- [ ] 定价引擎 (Pricing)
+- [ ] 规则管理 (Rule)
+- [ ] 车队管理 (Fleet)
+- [ ] 排班管理 (Schedule)
+- [ ] 认证授权 (Auth)
+- [ ] API
+- [ ] UI/UX
+- [ ] 移动端 (Mobile)
+- [ ] 其他
 
-## 👥 Stakeholders
-Who would benefit from this feature?
-- [ ] End users
-- [ ] Administrators
-- [ ] Developers
-- [ ] Other: ___________
+## 📝 用户故事
+
+作为 [用户类型]，
+我想要 [功能描述]，
+以便 [价值/收益]。
+
+## 🎨 设计/界面
+
+如果适用，请添加设计稿或界面截图。
+
+## 📚 参考资料
+
+添加任何其他上下文或相关文档链接。
+
+## 🏷️ 优先级
+
+- [ ] P0 - Critical（关键功能）
+- [ ] P1 - High（高优先级）
+- [ ] P2 - Medium（中优先级）
+- [ ] P3 - Low（低优先级，优化建议）
+
+## 🔗 相关 Issue
+
+关联的相关 Issue: #123
