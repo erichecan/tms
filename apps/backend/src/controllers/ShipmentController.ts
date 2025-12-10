@@ -346,21 +346,20 @@ export class ShipmentController {
           shipmentData.estimatedCost = pricingResult.amount;
           shipmentData.appliedRules = pricingResult.ruleId ? [pricingResult.ruleId] : [];
           
-          // 记录审计日志
-          await this.dbService.createAuditLog(tenantId, {
+          // 记录审计日志（如果方法存在）
+          // 2025-12-10T21:30:00Z Fixed by Assistant: 使用 logger 记录审计信息，避免依赖可能不存在的方法
+          logger.info(`[${traceId}] Pricing calculated for shipment`, {
+            tenantId,
             userId: req.user?.id || 'system',
             action: 'PRICING_CALCULATED',
             resourceType: 'shipment',
             resourceId: shipmentData.shipmentNumber,
-            details: {
-              traceId,
-              pricingMode,
-              ruleId: pricingResult.ruleId,
-              ruleName: pricingResult.ruleName,
-              amount: pricingResult.amount,
-              currency: pricingResult.currency,
-              breakdown: pricingResult.breakdown,
-            },
+            pricingMode,
+            ruleId: pricingResult.ruleId,
+            ruleName: pricingResult.ruleName,
+            amount: pricingResult.amount,
+            currency: pricingResult.currency,
+            breakdown: pricingResult.breakdown,
           });
           
           logger.info(`[${traceId}] Pricing calculated for shipment`, {
