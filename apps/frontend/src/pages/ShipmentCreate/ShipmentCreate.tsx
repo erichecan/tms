@@ -63,6 +63,11 @@ const ShipmentCreate: React.FC = () => {
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   
+  // 2025-12-10T22:00:00Z Added by Assistant: 计费模式和时间段切换状态
+  const [pricingMode, setPricingMode] = useState<'distance-based' | 'time-based'>('distance-based');
+  const [usePickupTimeWindow, setUsePickupTimeWindow] = useState(false);
+  const [useDeliveryTimeWindow, setUseDeliveryTimeWindow] = useState(false);
+  
   // 实时计费相关状态 - 2025-10-01 21:40:00
   const [realTimePricing, setRealTimePricing] = useState<{
     totalCost: number;
@@ -531,7 +536,35 @@ const ShipmentCreate: React.FC = () => {
         }
       }
 
-      // 处理时间范围
+      // 2025-12-10T22:00:00Z Added by Assistant: 处理计费模式和时间段字段
+      const currentPricingMode = values.pricingMode || pricingMode || 'distance-based';
+      const currentUseTimeWindow = usePickupTimeWindow || useDeliveryTimeWindow;
+      
+      // 处理取货时间（时间点或时间段）
+      let pickupAt: string | undefined;
+      let pickupWindow: { start: string; end: string } | undefined;
+      if (usePickupTimeWindow && values.pickupStart && values.pickupEnd) {
+        pickupWindow = {
+          start: dayjs(values.pickupStart).toISOString(),
+          end: dayjs(values.pickupEnd).toISOString(),
+        };
+      } else if (!usePickupTimeWindow && values.pickupAt) {
+        pickupAt = dayjs(values.pickupAt).toISOString();
+      }
+      
+      // 处理送货时间（时间点或时间段）
+      let deliveryAt: string | undefined;
+      let deliveryWindow: { start: string; end: string } | undefined;
+      if (useDeliveryTimeWindow && values.deliveryStart && values.deliveryEnd) {
+        deliveryWindow = {
+          start: dayjs(values.deliveryStart).toISOString(),
+          end: dayjs(values.deliveryEnd).toISOString(),
+        };
+      } else if (!useDeliveryTimeWindow && values.deliveryAt) {
+        deliveryAt = dayjs(values.deliveryAt).toISOString();
+      }
+      
+      // 兼容旧的时间字段格式（用于向后兼容）
       const pickupDateStr = values.pickupDate?.format('YYYY-MM-DD');
       const deliveryDateStr = values.deliveryDate?.format('YYYY-MM-DD');
       const pickupTime = (pickupDateStr && values.pickupTimeRange)
@@ -545,6 +578,15 @@ const ShipmentCreate: React.FC = () => {
       // 构建运单数据
       const shipmentData = {
         shipmentNumber: `TMS${Date.now()}`,
+        // 2025-12-10T22:00:00Z Added by Assistant: 计费模式和时间段
+        pricingMode: currentPricingMode,
+        useTimeWindow: currentUseTimeWindow,
+        pickupAt: pickupAt,
+        deliveryAt: deliveryAt,
+        pickupStart: pickupWindow?.start,
+        pickupEnd: pickupWindow?.end,
+        deliveryStart: deliveryWindow?.start,
+        deliveryEnd: deliveryWindow?.end,
         // 订单元信息精简：仅保留销售渠道与销售备注 // 2025-10-01 10:20:45
         salesChannel: values.salesChannel,
         sellerNotes: values.sellerNotes,
@@ -1106,11 +1148,32 @@ const ShipmentCreate: React.FC = () => {
   );
 
   // 地址与时间模块 - 修改为左右布局，符合北美地址习惯，移除地图功能 // 2025-09-30 10:45:00
+  // 2025-12-10T22:00:00Z Added by Assistant: 添加计费模式和时间段支持
   const renderAddressTimeSection = () => (
     <Card 
       title="地址与时间"
       style={{ marginBottom: 12 }}
     >
+      {/* 2025-12-10T22:00:00Z Added by Assistant: 计费模式选择 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col span={24}>
+          <Form.Item
+            name="pricingMode"
+            label="计费模式 (Pricing Mode)"
+            initialValue="distance-based"
+            rules={[{ required: true, message: '请选择计费模式' }]}
+          >
+            <Radio.Group
+              value={pricingMode}
+              onChange={(e) => setPricingMode(e.target.value)}
+            >
+              <Radio value="distance-based">路程计费 (Distance-based)</Radio>
+              <Radio value="time-based">时间计费 (Time-based)</Radio>
+            </Radio.Group>
+          </Form.Item>
+        </Col>
+      </Row>
+      
       <Row gutter={[16, 8]}>
         
         <Col span={12}>
@@ -1230,26 +1293,86 @@ const ShipmentCreate: React.FC = () => {
                   <Input placeholder="请输入邮箱地址（可选）" />
                 </Form.Item>
               </Col>
+              {/* 2025-12-10T22:00:00Z Added by Assistant: 取货时间点/时间段切换 */}
               <Col span={24}>
-          <Form.Item name="pickupDate" label="取货日期 (Pickup Date)">
-            <DatePicker 
-              format="YYYY-MM-DD"
-              style={{ width: '100%' }} 
-              placeholder="选择取货日期"
-              disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
-            />
-          </Form.Item>
-        </Col>
-              <Col span={24}>
-          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" style={{ marginBottom: 8 }}>
-            <TimePicker.RangePicker
-              style={{ width: '100%' }}
-              format="HH:mm"
-              minuteStep={30}
-              hourStep={1}
-            />
-          </Form.Item>
+                <Form.Item>
+                  <Checkbox
+                    checked={usePickupTimeWindow}
+                    onChange={(e) => {
+                      setUsePickupTimeWindow(e.target.checked);
+                      // 切换时清空相关字段
+                      if (e.target.checked) {
+                        form.setFieldsValue({ pickupAt: undefined });
+                      } else {
+                        form.setFieldsValue({ pickupStart: undefined, pickupEnd: undefined });
+                      }
+                    }}
+                  >
+                    使用时间段 (Use Time Window)
+                  </Checkbox>
+                </Form.Item>
               </Col>
+              {usePickupTimeWindow ? (
+                <>
+                  <Col span={12}>
+                    <Form.Item
+                      name="pickupStart"
+                      label="取货开始时间 (Pickup Start)"
+                      rules={[{ required: true, message: '请选择取货开始时间' }]}
+                    >
+                      <DatePicker
+                        showTime
+                        format="YYYY-MM-DD HH:mm"
+                        style={{ width: '100%' }}
+                        placeholder="选择取货开始时间"
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="pickupEnd"
+                      label="取货结束时间 (Pickup End)"
+                      rules={[
+                        { required: true, message: '请选择取货结束时间' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const start = getFieldValue('pickupStart');
+                            if (!value || !start || dayjs(value).isAfter(dayjs(start))) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(new Error('结束时间必须晚于开始时间'));
+                          },
+                        }),
+                      ]}
+                    >
+                      <DatePicker
+                        showTime
+                        format="YYYY-MM-DD HH:mm"
+                        style={{ width: '100%' }}
+                        placeholder="选择取货结束时间"
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
+                    </Form.Item>
+                  </Col>
+                </>
+              ) : (
+                <Col span={24}>
+                  <Form.Item
+                    name="pickupAt"
+                    label="取货时间 (Pickup Time)"
+                    rules={[{ required: true, message: '请选择取货时间' }]}
+                  >
+                    <DatePicker
+                      showTime
+                      format="YYYY-MM-DD HH:mm"
+                      style={{ width: '100%' }}
+                      placeholder="选择取货时间"
+                      disabledDate={(current) => current && current < dayjs().startOf('day')}
+                    />
+                  </Form.Item>
+                </Col>
+              )}
             </Row>
           </Card>
         </Col>
@@ -1373,26 +1496,86 @@ const ShipmentCreate: React.FC = () => {
                   <Input placeholder="请输入邮箱地址（可选）" />
                 </Form.Item>
               </Col>
+              {/* 2025-12-10T22:00:00Z Added by Assistant: 送货时间点/时间段切换 */}
               <Col span={24}>
-          <Form.Item name="deliveryDate" label="送达日期 (Delivery Date)">
-            <DatePicker 
-              format="YYYY-MM-DD"
-              style={{ width: '100%' }} 
-              placeholder="选择送达日期"
-              disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
-            />
-          </Form.Item>
-        </Col>
-              <Col span={24}>
-          <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)">
-            <TimePicker.RangePicker
-              style={{ width: '100%' }}
-              format="HH:mm"
-              minuteStep={30}
-              hourStep={1}
-            />
-          </Form.Item>
-        </Col>
+                <Form.Item>
+                  <Checkbox
+                    checked={useDeliveryTimeWindow}
+                    onChange={(e) => {
+                      setUseDeliveryTimeWindow(e.target.checked);
+                      // 切换时清空相关字段
+                      if (e.target.checked) {
+                        form.setFieldsValue({ deliveryAt: undefined });
+                      } else {
+                        form.setFieldsValue({ deliveryStart: undefined, deliveryEnd: undefined });
+                      }
+                    }}
+                  >
+                    使用时间段 (Use Time Window)
+                  </Checkbox>
+                </Form.Item>
+              </Col>
+              {useDeliveryTimeWindow ? (
+                <>
+                  <Col span={12}>
+                    <Form.Item
+                      name="deliveryStart"
+                      label="送货开始时间 (Delivery Start)"
+                      rules={[{ required: true, message: '请选择送货开始时间' }]}
+                    >
+                      <DatePicker
+                        showTime
+                        format="YYYY-MM-DD HH:mm"
+                        style={{ width: '100%' }}
+                        placeholder="选择送货开始时间"
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="deliveryEnd"
+                      label="送货结束时间 (Delivery End)"
+                      rules={[
+                        { required: true, message: '请选择送货结束时间' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const start = getFieldValue('deliveryStart');
+                            if (!value || !start || dayjs(value).isAfter(dayjs(start))) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(new Error('结束时间必须晚于开始时间'));
+                          },
+                        }),
+                      ]}
+                    >
+                      <DatePicker
+                        showTime
+                        format="YYYY-MM-DD HH:mm"
+                        style={{ width: '100%' }}
+                        placeholder="选择送货结束时间"
+                        disabledDate={(current) => current && current < dayjs().startOf('day')}
+                      />
+                    </Form.Item>
+                  </Col>
+                </>
+              ) : (
+                <Col span={24}>
+                  <Form.Item
+                    name="deliveryAt"
+                    label="送货时间 (Delivery Time)"
+                    rules={[{ required: true, message: '请选择送货时间' }]}
+                  >
+                    <DatePicker
+                      showTime
+                      format="YYYY-MM-DD HH:mm"
+                      style={{ width: '100%' }}
+                      placeholder="选择送货时间"
+                      disabledDate={(current) => current && current < dayjs().startOf('day')}
+                    />
+                  </Form.Item>
+                </Col>
+              )}
             </Row>
           </Card>
         </Col>
@@ -1997,6 +2180,8 @@ const ShipmentCreate: React.FC = () => {
                 cargoType: 'GENERAL',
                 requiresColdChain: false,
                 needSignature: false,
+                // 2025-12-10T22:00:00Z Added by Assistant: 计费模式初始值
+                pricingMode: 'distance-based',
               }}
             >
               
