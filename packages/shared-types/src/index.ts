@@ -170,6 +170,21 @@ export interface Shipment extends BaseEntity {
   appliedRules: string[];
   status: ShipmentStatus;
   timeline: ShipmentTimeline;
+  // 2025-12-10T19:00:00Z Added by Assistant: 计费模式和时间段支持
+  pricingMode?: PricingMode; // 计费模式：路程计费或时间计费
+  pickupAt?: Date | string; // 取货时间点（当不使用时间段时）
+  deliveryAt?: Date | string; // 送货时间点（当不使用时间段时）
+  pickupWindow?: TimeWindow; // 取货时间段（当使用时间段时）
+  deliveryWindow?: TimeWindow; // 送货时间段（当使用时间段时）
+}
+
+// 2025-12-10T19:00:00Z Added by Assistant: 计费模式枚举
+export type PricingMode = 'distance-based' | 'time-based';
+
+// 2025-12-10T19:00:00Z Added by Assistant: 时间段类型
+export interface TimeWindow {
+  start: Date | string; // ISO 8601 格式
+  end: Date | string; // ISO 8601 格式
 }
 
 export interface Address {

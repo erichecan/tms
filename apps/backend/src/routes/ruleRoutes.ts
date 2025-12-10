@@ -44,8 +44,9 @@ router.get(
     return next();
   },
   // 生产环境：检查角色和权限（admin 角色会在中间件中自动通过）
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule listing
-  permissionMiddleware(['pricing:view']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 访问规则管理
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   ruleController.getRules.bind(ruleController)
 );
 
@@ -56,8 +57,9 @@ router.get(
  */
 router.get(
   '/:id',
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule detail
-  permissionMiddleware(['pricing:view']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 访问规则详情
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   ruleController.getRule.bind(ruleController)
 );
 
@@ -67,8 +69,9 @@ router.get(
  * @access Private
  */
 router.post('/', 
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule creation
-  permissionMiddleware(['pricing:create']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 创建规则
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   validateRequest({
     body: {
       name: { type: 'string', required: true },
@@ -93,8 +96,9 @@ router.post('/',
  * @access Private
  */
 router.put('/:id',
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule updates
-  permissionMiddleware(['pricing:edit']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 更新规则
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   validateRequest({
     body: {
       name: { type: 'string', required: false },
@@ -114,8 +118,9 @@ router.put('/:id',
 );
 
 router.delete('/:id',
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule deletion
-  permissionMiddleware(['pricing:delete']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 删除规则
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   auditMiddleware({
     entityType: 'rule',
     operation: 'delete'
@@ -129,8 +134,9 @@ router.delete('/:id',
  * @access Private
  */
 router.post('/validate',
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule validation
-  permissionMiddleware(['pricing:edit']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 验证规则
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   validateRequest({
     body: {
       name: { type: 'string', required: true },
@@ -148,8 +154,9 @@ router.post('/validate',
  * @access Private
  */
 router.post('/test',
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict rule testing
-  permissionMiddleware(['pricing:test']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 测试规则
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   validateRequest({
     body: {
       facts: { type: 'object', required: true }
@@ -159,8 +166,9 @@ router.post('/test',
 );
 
 router.get('/:id/stats',
-  roleMiddleware(['admin', 'manager', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-11-11T15:19:22Z Added by Assistant: Restrict stats visibility
-  permissionMiddleware(['pricing:view']),
+  // 2025-12-10T19:00:00Z Updated by Assistant: 允许 dispatcher 查看规则统计
+  roleMiddleware(['admin', 'manager', 'dispatcher', 'TENANT_ADMIN', 'SYSTEM_ADMIN']), // 2025-12-10T19:00:00Z Added dispatcher
+  permissionMiddleware(['rules:manage']), // 2025-12-10T19:00:00Z Changed to rules:manage
   ruleController.getRuleStats.bind(ruleController)
 );
 

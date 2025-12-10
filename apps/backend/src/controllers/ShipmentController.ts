@@ -20,9 +20,11 @@ export class ShipmentController {
   private shipmentService: ShipmentService;
   private dbService: DatabaseService;
   private pricingIntegration: PricingFinancialIntegration;
+  private ruleEngineService: RuleEngineService; // 2025-12-10T19:00:00Z Added by Assistant: 规则引擎服务
 
   constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService) {
     this.dbService = dbService;
+    this.ruleEngineService = ruleEngineService; // 2025-12-10T19:00:00Z Added by Assistant: 保存规则引擎服务引用
     this.shipmentService = new ShipmentService(dbService, ruleEngineService);
     const pricingEngineService = new PricingEngineService(dbService);
     this.pricingIntegration = new PricingFinancialIntegration(dbService, pricingEngineService); // 2025-11-11T15:36:41Z Added by Assistant: Instantiate financial integration
@@ -141,6 +143,60 @@ export class ShipmentController {
         : (isDraft ? ShipmentStatus.DRAFT : ShipmentStatus.PENDING_CONFIRMATION); // 2025-11-11 14:36:40
 
       // 2025-11-30 02:10:00 修复：提取发货人和收货人信息，确保BOL显示完整数据
+      // 2025-12-10T19:00:00Z Added by Assistant: 处理计费模式和时间段字段
+      const pricingMode = body.pricingMode as 'distance-based' | 'time-based' | undefined;
+      const useTimeWindow = body.useTimeWindow === true;
+      
+      // 处理时间点/时间段
+      let pickupAt: Date | undefined;
+      let deliveryAt: Date | undefined;
+      let pickupWindow: { start: string; end: string } | undefined;
+      let deliveryWindow: { start: string; end: string } | undefined;
+      
+      if (useTimeWindow) {
+        // 使用时间段
+        if (body.pickupStart && body.pickupEnd) {
+          pickupWindow = {
+            start: new Date(body.pickupStart).toISOString(),
+            end: new Date(body.pickupEnd).toISOString(),
+          };
+          // 验证时间段
+          if (new Date(body.pickupStart) > new Date(body.pickupEnd)) {
+            res.status(400).json({
+              success: false,
+              error: { code: 'INVALID_TIME_WINDOW', message: '取货开始时间必须早于结束时间' },
+              timestamp: new Date().toISOString(),
+              requestId: getRequestId(req)
+            });
+            return;
+          }
+        }
+        if (body.deliveryStart && body.deliveryEnd) {
+          deliveryWindow = {
+            start: new Date(body.deliveryStart).toISOString(),
+            end: new Date(body.deliveryEnd).toISOString(),
+          };
+          // 验证时间段
+          if (new Date(body.deliveryStart) > new Date(body.deliveryEnd)) {
+            res.status(400).json({
+              success: false,
+              error: { code: 'INVALID_TIME_WINDOW', message: '送货开始时间必须早于结束时间' },
+              timestamp: new Date().toISOString(),
+              requestId: getRequestId(req)
+            });
+            return;
+          }
+        }
+      } else {
+        // 使用时间点
+        if (body.pickupAt) {
+          pickupAt = new Date(body.pickupAt);
+        }
+        if (body.deliveryAt) {
+          deliveryAt = new Date(body.deliveryAt);
+        }
+      }
+      
       const shipmentData: any = {
         shipmentNumber: body.shipmentNumber || `TMS${Date.now()}`,
         customerId: customerId,
@@ -166,6 +222,12 @@ export class ShipmentController {
         receiverName: body.receiver?.name || body.receiverName || null,
         receiverPhone: body.receiver?.phone || body.receiverPhone || null,
         receiver: body.receiver || null,
+        // 2025-12-10T19:00:00Z Added by Assistant: 计费模式和时间段
+        pricingMode: pricingMode || 'distance-based', // 默认路程计费
+        pickupAt: pickupAt,
+        deliveryAt: deliveryAt,
+        pickupWindow: pickupWindow,
+        deliveryWindow: deliveryWindow,
         cargoInfo: (() => {
           // 2025-11-29T22:05:00 修复：支持多行货物数据（cargoItems）
           if (body.cargoItems && Array.isArray(body.cargoItems) && body.cargoItems.length > 0) {
@@ -243,39 +305,93 @@ export class ShipmentController {
       }
 
       console.log('Creating shipment with data:', JSON.stringify(shipmentData, null, 2));
-      // 计费：在创建前同步触发计费规则引擎并落库 // 2025-10-06 00:12:30
+      
+      // 2025-12-10T19:00:00Z Added by Assistant: 根据计费模式调用规则引擎
+      const traceId = `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       try {
-        const { PricingEngineService } = await import('../services/PricingEngineService');
-        const pricingEngine = new PricingEngineService(this.dbService);
+        let pricingResult: {
+          ruleId?: string;
+          ruleName?: string;
+          amount: number;
+          currency: string;
+          breakdown: Record<string, any>;
+          appliedAt: string;
+        } | null = null;
 
-        // 构建计费上下文（简化版） // 2025-10-06 00:12:30
-        const shipmentContext: any = {
-          shipmentId: undefined,
-          pickupAddress: shipmentData.pickupAddress,
-          deliveryAddress: shipmentData.deliveryAddress,
-          cargoInfo: shipmentData.cargoInfo,
-          customerId: shipmentData.customerId,
-          requestedServices: body.requestedServices || [],
-          scheduledAt: body.pickupTime || new Date().toISOString(),
-        };
-
-        // 默认模板回退 // 2025-10-06 00:12:30
-        let calculation = null as any;
-        try {
-          calculation = await pricingEngine.calculatePricing(shipmentContext);
-        } catch (err: any) {
-          // 如果未匹配上模板，使用默认模板ID（例如由环境变量或约定ID提供） // 2025-10-06 00:12:30
-          const defaultTemplateId = process.env.DEFAULT_PRICING_TEMPLATE_ID || undefined;
-          calculation = await pricingEngine.calculatePricing(shipmentContext, defaultTemplateId);
+        if (pricingMode === 'distance-based') {
+          // 路程计费：需要距离信息
+          const distanceKm = body.distanceKm || shipmentData.transportDistance || 0;
+          if (distanceKm > 0) {
+            pricingResult = await this.ruleEngineService.evaluateDistance(tenantId, {
+              distanceKm,
+              vehicleType: body.vehicleType || 'van',
+              regionCode: body.regionCode || shipmentData.pickupAddress?.country || 'CA',
+              timeWindow: pickupWindow,
+              priority: body.priority || 'standard',
+            });
+          }
+        } else if (pricingMode === 'time-based') {
+          // 时间计费：需要服务时间（分钟）
+          const serviceMinutes = body.serviceMinutes || 60; // 默认1小时
+          pricingResult = await this.ruleEngineService.evaluateTime(tenantId, {
+            serviceMinutes,
+            vehicleType: body.vehicleType || 'van',
+            regionCode: body.regionCode || shipmentData.pickupAddress?.country || 'CA',
+            timeWindow: pickupWindow,
+            priority: body.priority || 'standard',
+          });
         }
 
-        if (calculation) {
-          shipmentData.estimatedCost = calculation.totalRevenue ?? shipmentData.estimatedCost;
-          shipmentData.appliedRules = calculation.appliedRules ?? [];
-          // 可选：把分项明细写入扩展表由服务处理，这里只落核心字段 // 2025-10-06 00:12:30
+        if (pricingResult && pricingResult.amount > 0) {
+          shipmentData.estimatedCost = pricingResult.amount;
+          shipmentData.appliedRules = pricingResult.ruleId ? [pricingResult.ruleId] : [];
+          
+          // 记录审计日志
+          await this.dbService.createAuditLog(tenantId, {
+            userId: req.user?.id || 'system',
+            action: 'PRICING_CALCULATED',
+            resourceType: 'shipment',
+            resourceId: shipmentData.shipmentNumber,
+            details: {
+              traceId,
+              pricingMode,
+              ruleId: pricingResult.ruleId,
+              ruleName: pricingResult.ruleName,
+              amount: pricingResult.amount,
+              currency: pricingResult.currency,
+              breakdown: pricingResult.breakdown,
+            },
+          });
+          
+          logger.info(`[${traceId}] Pricing calculated for shipment`, {
+            tenantId,
+            pricingMode,
+            ruleId: pricingResult.ruleId,
+            amount: pricingResult.amount,
+          });
+        } else {
+          // 无匹配规则，标记为待报价
+          logger.warn(`[${traceId}] No matching rule found for pricing mode: ${pricingMode}`, {
+            tenantId,
+            pricingMode,
+          });
+          // 如果用户允许，可以保存为待报价状态
+          if (body.allowPendingQuote !== true) {
+            // 如果不允许待报价，使用默认计费或抛出错误
+            shipmentData.estimatedCost = shipmentData.estimatedCost || 0;
+          }
         }
-      } catch (pricingError) {
-        logger.warn('创建运单前计费失败，继续持久化但estimatedCost可能为空', pricingError);
+      } catch (pricingError: any) {
+        logger.error(`[${traceId}] Pricing calculation failed`, {
+          tenantId,
+          pricingMode,
+          error: pricingError.message,
+          stack: pricingError.stack,
+        });
+        // 如果用户允许，继续保存为待报价
+        if (body.allowPendingQuote !== true) {
+          logger.warn('创建运单前计费失败，继续持久化但estimatedCost可能为空', pricingError);
+        }
       }
 
       const shipment = await this.shipmentService.createShipment(tenantId, shipmentData, {

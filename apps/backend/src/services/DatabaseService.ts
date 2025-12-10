@@ -1275,6 +1275,13 @@ export class DatabaseService {
     const deliveryAddr = shipment.deliveryAddress as any;
     // shipmentAny 已在上面声明，无需重复声明
     
+    // 2025-12-10T19:00:00Z Added by Assistant: 处理计费模式和时间段字段
+    const pricingMode = (shipment as any).pricingMode || null;
+    const pickupAt = (shipment as any).pickupAt ? new Date((shipment as any).pickupAt) : null;
+    const deliveryAt = (shipment as any).deliveryAt ? new Date((shipment as any).deliveryAt) : null;
+    const pickupWindow = (shipment as any).pickupWindow ? JSON.stringify((shipment as any).pickupWindow) : null;
+    const deliveryWindow = (shipment as any).deliveryWindow ? JSON.stringify((shipment as any).deliveryWindow) : null;
+    
     const query = `
       INSERT INTO shipments (
         tenant_id, shipment_number, customer_id, driver_id, 
@@ -1282,9 +1289,10 @@ export class DatabaseService {
         estimated_cost, actual_cost, additional_fees, 
         applied_rules, status, timeline,
         shipper_name, shipper_phone, shipper_addr_line1, shipper_city, shipper_province, shipper_postal_code, shipper_country,
-        receiver_name, receiver_phone, receiver_addr_line1, receiver_city, receiver_province, receiver_postal_code, receiver_country
+        receiver_name, receiver_phone, receiver_addr_line1, receiver_city, receiver_province, receiver_postal_code, receiver_country,
+        pricing_mode, pickup_at, delivery_at, pickup_window, delivery_window
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
       RETURNING *
     `;
     
@@ -1318,6 +1326,12 @@ export class DatabaseService {
       deliveryAddr?.province || deliveryAddr?.state || null,
       deliveryAddr?.postalCode || null,
       deliveryAddr?.country || null,
+      // 2025-12-10T19:00:00Z Added by Assistant: 计费模式和时间段
+      pricingMode,
+      pickupAt,
+      deliveryAt,
+      pickupWindow,
+      deliveryWindow,
     ]);
     
     return this.mapShipmentFromDb(result[0]);
@@ -2179,6 +2193,7 @@ export class DatabaseService {
 
   private mapShipmentFromDb(row: any): Shipment {
     // 2025-11-30 02:05:00 修复：映射发货人和收货人信息，支持BOL显示
+    // 2025-12-10T19:00:00Z Added by Assistant: 映射计费模式和时间段字段
     const shipment: any = {
       id: row.id,
       tenantId: row.tenant_id,
@@ -2197,6 +2212,12 @@ export class DatabaseService {
       timeline: row.timeline || {},
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      // 2025-12-10T19:00:00Z Added by Assistant: 计费模式和时间段
+      pricingMode: row.pricing_mode || null,
+      pickupAt: row.pickup_at || null,
+      deliveryAt: row.delivery_at || null,
+      pickupWindow: row.pickup_window || null,
+      deliveryWindow: row.delivery_window || null,
       // 发货人信息（优先使用独立字段，如果没有则从JSON字段中提取）
       shipperName: row.shipper_name || (row.pickup_address as any)?.name || null,
       shipperPhone: row.shipper_phone || (row.pickup_address as any)?.phone || null,

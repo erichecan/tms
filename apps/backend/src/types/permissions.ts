@@ -51,6 +51,9 @@ export enum Permission {
   // 系统管理权限
   SYSTEM_ADMIN = 'system:admin',
   SYSTEM_CONFIG = 'system:config',
+  
+  // 规则管理权限
+  RULES_MANAGE = 'rules:manage', // 2025-12-10T19:00:00Z Added by Assistant: 规则管理权限
 }
 
 export interface UserPermissions {
@@ -95,6 +98,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.TRIP_CREATE,
     Permission.TRIP_READ,
     Permission.TRIP_UPDATE,
+    Permission.RULES_MANAGE, // 2025-12-10T19:00:00Z Added by Assistant: 调度员可管理规则
   ],
   
   [UserRole.CEO]: [

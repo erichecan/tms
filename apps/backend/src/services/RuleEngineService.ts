@@ -191,6 +191,249 @@ export class RuleEngineService {
   }
 
   /**
+   * 评估路程计费规则
+   * 2025-12-10T19:00:00Z Added by Assistant: 按路程计费模式评估规则
+   * @param tenantId 租户ID
+   * @param params 计费参数
+   * @returns 计费结果
+   */
+  async evaluateDistance(
+    tenantId: string,
+    params: {
+      distanceKm: number;
+      vehicleType?: string;
+      regionCode?: string;
+      timeWindow?: { start: string; end: string };
+      priority?: string;
+      [key: string]: any;
+    }
+  ): Promise<{
+    ruleId?: string;
+    ruleName?: string;
+    amount: number;
+    currency: string;
+    breakdown: Record<string, any>;
+    appliedAt: string;
+  }> {
+    const traceId = `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+    
+    try {
+      // 构建事实数据
+      const facts: Record<string, any> = {
+        type: 'distance',
+        distanceKm: params.distanceKm,
+        vehicleType: params.vehicleType || 'van',
+        regionCode: params.regionCode || 'CA',
+        priority: params.priority || 'standard',
+        ...params,
+      };
+
+      // 如果有时间段，添加到事实中
+      if (params.timeWindow) {
+        facts.timeWindow = params.timeWindow;
+        facts.pickupStart = params.timeWindow.start;
+        facts.pickupEnd = params.timeWindow.end;
+      }
+
+      // 执行规则引擎
+      const result = await this.executeRules(tenantId, facts);
+      
+      // 解析结果
+      let totalAmount = 0;
+      let matchedRuleId: string | undefined;
+      let matchedRuleName: string | undefined;
+      const breakdown: Record<string, any> = {};
+
+      if (result.events && result.events.length > 0) {
+        for (const event of result.events) {
+          const ruleId = event.params?.ruleId || 'unknown';
+          const ruleName = event.params?.ruleName || 'Unknown Rule';
+          const amount = event.params?.amount || event.params?.baseRate || 0;
+          
+          if (event.type === 'setBaseRate' || event.type === 'addFee') {
+            totalAmount += amount;
+            breakdown[ruleId] = {
+              ruleId,
+              ruleName,
+              amount,
+              type: event.type,
+            };
+            
+            if (!matchedRuleId) {
+              matchedRuleId = ruleId;
+              matchedRuleName = ruleName;
+            }
+          }
+        }
+      }
+
+      // 如果没有匹配的规则，返回默认值
+      if (totalAmount === 0) {
+        logger.warn(`[${traceId}] No matching rule found for distance-based pricing`, {
+          tenantId,
+          params,
+        });
+        
+        return {
+          amount: 0,
+          currency: 'CAD',
+          breakdown: {},
+          appliedAt: new Date().toISOString(),
+        };
+      }
+
+      const executionTime = Date.now() - startTime;
+      logger.info(`[${traceId}] Distance-based pricing evaluated`, {
+        tenantId,
+        ruleId: matchedRuleId,
+        amount: totalAmount,
+        executionTime,
+      });
+
+      return {
+        ruleId: matchedRuleId,
+        ruleName: matchedRuleName,
+        amount: totalAmount,
+        currency: 'CAD',
+        breakdown,
+        appliedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      logger.error(`[${traceId}] Failed to evaluate distance-based pricing`, {
+        tenantId,
+        params,
+        error: error instanceof Error ? error.message : String(error),
+        executionTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 评估时间计费规则
+   * 2025-12-10T19:00:00Z Added by Assistant: 按时间计费模式评估规则
+   * @param tenantId 租户ID
+   * @param params 计费参数
+   * @returns 计费结果
+   */
+  async evaluateTime(
+    tenantId: string,
+    params: {
+      serviceMinutes: number;
+      vehicleType?: string;
+      regionCode?: string;
+      timeWindow?: { start: string; end: string };
+      priority?: string;
+      [key: string]: any;
+    }
+  ): Promise<{
+    ruleId?: string;
+    ruleName?: string;
+    amount: number;
+    currency: string;
+    breakdown: Record<string, any>;
+    appliedAt: string;
+  }> {
+    const traceId = `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+    
+    try {
+      // 构建事实数据
+      const facts: Record<string, any> = {
+        type: 'time',
+        serviceMinutes: params.serviceMinutes,
+        serviceHours: params.serviceMinutes / 60,
+        vehicleType: params.vehicleType || 'van',
+        regionCode: params.regionCode || 'CA',
+        priority: params.priority || 'standard',
+        ...params,
+      };
+
+      // 如果有时间段，添加到事实中
+      if (params.timeWindow) {
+        facts.timeWindow = params.timeWindow;
+        facts.pickupStart = params.timeWindow.start;
+        facts.pickupEnd = params.timeWindow.end;
+      }
+
+      // 执行规则引擎
+      const result = await this.executeRules(tenantId, facts);
+      
+      // 解析结果
+      let totalAmount = 0;
+      let matchedRuleId: string | undefined;
+      let matchedRuleName: string | undefined;
+      const breakdown: Record<string, any> = {};
+
+      if (result.events && result.events.length > 0) {
+        for (const event of result.events) {
+          const ruleId = event.params?.ruleId || 'unknown';
+          const ruleName = event.params?.ruleName || 'Unknown Rule';
+          const amount = event.params?.amount || event.params?.baseRate || 0;
+          
+          if (event.type === 'setBaseRate' || event.type === 'addFee') {
+            totalAmount += amount;
+            breakdown[ruleId] = {
+              ruleId,
+              ruleName,
+              amount,
+              type: event.type,
+            };
+            
+            if (!matchedRuleId) {
+              matchedRuleId = ruleId;
+              matchedRuleName = ruleName;
+            }
+          }
+        }
+      }
+
+      // 如果没有匹配的规则，返回默认值
+      if (totalAmount === 0) {
+        logger.warn(`[${traceId}] No matching rule found for time-based pricing`, {
+          tenantId,
+          params,
+        });
+        
+        return {
+          amount: 0,
+          currency: 'CAD',
+          breakdown: {},
+          appliedAt: new Date().toISOString(),
+        };
+      }
+
+      const executionTime = Date.now() - startTime;
+      logger.info(`[${traceId}] Time-based pricing evaluated`, {
+        tenantId,
+        ruleId: matchedRuleId,
+        amount: totalAmount,
+        executionTime,
+      });
+
+      return {
+        ruleId: matchedRuleId,
+        ruleName: matchedRuleName,
+        amount: totalAmount,
+        currency: 'CAD',
+        breakdown,
+        appliedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      logger.error(`[${traceId}] Failed to evaluate time-based pricing`, {
+        tenantId,
+        params,
+        error: error instanceof Error ? error.message : String(error),
+        executionTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * 创建新规则
    * @param tenantId 租户ID
    * @param rule 规则数据
