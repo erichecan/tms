@@ -536,9 +536,11 @@ const ShipmentCreate: React.FC = () => {
         }
       }
 
-      // 处理时间范围
+      // 2025-12-05 12:30:00 处理时间范围和时间点
       const pickupDateStr = values.pickupDate?.format('YYYY-MM-DD');
       const deliveryDateStr = values.deliveryDate?.format('YYYY-MM-DD');
+      
+      // 兼容旧的时间格式（用于显示）
       const pickupTime = (pickupDateStr && values.pickupTimeRange)
         ? `${pickupDateStr} ${values.pickupTimeRange[0].format('HH')}:00 - ${pickupDateStr} ${values.pickupTimeRange[1].format('HH')}:00`
         : (pickupDateStr ? `${pickupDateStr} 00:00 - ${pickupDateStr} 23:59` : undefined);
@@ -546,6 +548,50 @@ const ShipmentCreate: React.FC = () => {
       const deliveryTime = (deliveryDateStr && values.deliveryTimeRange)
         ? `${deliveryDateStr} ${values.deliveryTimeRange[0].format('HH')}:00 - ${deliveryDateStr} ${values.deliveryTimeRange[1].format('HH')}:00`
         : (deliveryDateStr ? `${deliveryDateStr} 00:00 - ${deliveryDateStr} 23:59` : undefined);
+
+      // 2025-12-05 12:30:00 根据时间段模式开关处理取货时间数据
+      let pickupAt: string | undefined = undefined;
+      let pickupWindow: { start: string; end: string } | undefined = undefined;
+      
+      if (values.pickupTimeWindowMode) {
+        // 时间点模式：使用 pickupAt
+        if (pickupDateStr && values.pickupAt) {
+          const pickupDateTime = dayjs(`${pickupDateStr} ${values.pickupAt.format('HH:mm')}`);
+          pickupAt = pickupDateTime.toISOString();
+        }
+      } else {
+        // 时间段模式：使用 pickupWindow
+        if (pickupDateStr && values.pickupTimeRange && values.pickupTimeRange.length === 2) {
+          const startTime = dayjs(`${pickupDateStr} ${values.pickupTimeRange[0].format('HH:mm')}`);
+          const endTime = dayjs(`${pickupDateStr} ${values.pickupTimeRange[1].format('HH:mm')}`);
+          pickupWindow = {
+            start: startTime.toISOString(),
+            end: endTime.toISOString()
+          };
+        }
+      }
+
+      // 2025-12-05 12:30:00 根据时间段模式开关处理送货时间数据
+      let deliveryAt: string | undefined = undefined;
+      let deliveryWindow: { start: string; end: string } | undefined = undefined;
+      
+      if (values.deliveryTimeWindowMode) {
+        // 时间点模式：使用 deliveryAt
+        if (deliveryDateStr && values.deliveryAt) {
+          const deliveryDateTime = dayjs(`${deliveryDateStr} ${values.deliveryAt.format('HH:mm')}`);
+          deliveryAt = deliveryDateTime.toISOString();
+        }
+      } else {
+        // 时间段模式：使用 deliveryWindow
+        if (deliveryDateStr && values.deliveryTimeRange && values.deliveryTimeRange.length === 2) {
+          const startTime = dayjs(`${deliveryDateStr} ${values.deliveryTimeRange[0].format('HH:mm')}`);
+          const endTime = dayjs(`${deliveryDateStr} ${values.deliveryTimeRange[1].format('HH:mm')}`);
+          deliveryWindow = {
+            start: startTime.toISOString(),
+            end: endTime.toISOString()
+          };
+        }
+      }
 
       // 构建运单数据
       const shipmentData = {
@@ -619,7 +665,12 @@ const ShipmentCreate: React.FC = () => {
         status: 'pending',
         estimatedCost: realTimePricing.totalCost, // 2025-10-27 修复：使用实时计费数据而非calculateEstimatedCost
         // 2025-10-28 新增：保留多行货物数据
-        cargoItems: values.cargoItems || []
+        cargoItems: values.cargoItems || [],
+        // 2025-12-05 12:30:00 添加时间段和时间点数据
+        pickupAt: pickupAt,
+        deliveryAt: deliveryAt,
+        pickupWindow: pickupWindow,
+        deliveryWindow: deliveryWindow
       };
 
       setSubmittedData(shipmentData);
