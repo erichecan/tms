@@ -126,6 +126,11 @@ const ShipmentCreate: React.FC = () => {
       setSafetySectionActiveKeys([]);
     }
   }, [cargoType]);
+
+  // 2025-12-05 12:25:00 监听取货时间段模式开关，用于切换时间段/时间点控件
+  const pickupTimeWindowMode = Form.useWatch('pickupTimeWindowMode', form);
+  // 2025-12-05 12:25:00 监听送货时间段模式开关，用于切换时间段/时间点控件
+  const deliveryTimeWindowMode = Form.useWatch('deliveryTimeWindowMode', form);
   
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
 
@@ -1241,14 +1246,40 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" style={{ marginBottom: 8 }}>
-            <TimePicker.RangePicker
-              style={{ width: '100%' }}
-              format="HH:mm"
-              minuteStep={30}
-              hourStep={1}
-            />
+          {/* 2025-12-05 12:25:00 添加取货时间段模式开关 */}
+          <Form.Item name="pickupTimeWindowMode" valuePropName="checked" style={{ marginBottom: 8 }}>
+            <Space>
+              <Switch 
+                onChange={(checked) => {
+                  form.setFieldsValue({ pickupTimeWindowMode: checked });
+                }}
+              />
+              <Text type="secondary">时间段模式 (Time Window Mode)</Text>
+            </Space>
           </Form.Item>
+        </Col>
+              <Col span={24}>
+          {/* 2025-12-05 12:25:00 根据取货时间段模式开关显示时间段或时间点 */}
+          {pickupTimeWindowMode ? (
+            <Form.Item name="pickupAt" label="取货时间 (Pickup Time)" style={{ marginBottom: 8 }}>
+              <TimePicker
+                style={{ width: '100%' }}
+                format="HH:mm"
+                minuteStep={30}
+                hourStep={1}
+                placeholder="选择取货时间"
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" style={{ marginBottom: 8 }}>
+              <TimePicker.RangePicker
+                style={{ width: '100%' }}
+                format="HH:mm"
+                minuteStep={30}
+                hourStep={1}
+              />
+            </Form.Item>
+          )}
               </Col>
             </Row>
           </Card>
@@ -1384,14 +1415,40 @@ const ShipmentCreate: React.FC = () => {
           </Form.Item>
         </Col>
               <Col span={24}>
-          <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)">
-            <TimePicker.RangePicker
-              style={{ width: '100%' }}
-              format="HH:mm"
-              minuteStep={30}
-              hourStep={1}
-            />
+          {/* 2025-12-05 12:25:00 添加送货时间段模式开关 */}
+          <Form.Item name="deliveryTimeWindowMode" valuePropName="checked" style={{ marginBottom: 8 }}>
+            <Space>
+              <Switch 
+                onChange={(checked) => {
+                  form.setFieldsValue({ deliveryTimeWindowMode: checked });
+                }}
+              />
+              <Text type="secondary">时间段模式 (Time Window Mode)</Text>
+            </Space>
           </Form.Item>
+        </Col>
+              <Col span={24}>
+          {/* 2025-12-05 12:25:00 根据送货时间段模式开关显示时间段或时间点 */}
+          {deliveryTimeWindowMode ? (
+            <Form.Item name="deliveryAt" label="送达时间 (Delivery Time)">
+              <TimePicker
+                style={{ width: '100%' }}
+                format="HH:mm"
+                minuteStep={30}
+                hourStep={1}
+                placeholder="选择送达时间"
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)">
+              <TimePicker.RangePicker
+                style={{ width: '100%' }}
+                format="HH:mm"
+                minuteStep={30}
+                hourStep={1}
+              />
+            </Form.Item>
+          )}
         </Col>
             </Row>
           </Card>
@@ -1997,6 +2054,8 @@ const ShipmentCreate: React.FC = () => {
                 cargoType: 'GENERAL',
                 requiresColdChain: false,
                 needSignature: false,
+                pickupTimeWindowMode: false, // 2025-12-05 12:25:00 取货时间段模式默认关闭
+                deliveryTimeWindowMode: false, // 2025-12-05 12:25:00 送货时间段模式默认关闭
               }}
             >
               
