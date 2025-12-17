@@ -1,0 +1,11 @@
+{
+  "name": "order-email-notifier-fn-i18n",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cloud Functions 邮件通知服务（多语言 + Logo + 附件支持）",
+  "main": "index.js",
+  "dependencies": {
+    "nodemailer": "^6.9.8",
+    "@google-cloud/secret-manager": "^5.6.0"
+  }
+}

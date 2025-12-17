@@ -593,6 +593,32 @@ const ShipmentCreate: React.FC = () => {
         }
       }
 
+      // 2025-12-05 13:00:00 处理计费模式和服务时间计算
+      const pricingMode = values.pricingMode || 'distance-based';
+      let serviceMinutes: number | undefined = undefined;
+      let distanceKm: number | undefined = undefined;
+
+      if (pricingMode === 'time-based') {
+        // 时间计费模式：计算服务时间（分钟）
+        if (pickupTimeWindowMode && pickupAt && deliveryAt) {
+          // 时间点模式：计算从取货到送货的时间差
+          const pickupTime = dayjs(pickupAt);
+          const deliveryTime = dayjs(deliveryAt);
+          serviceMinutes = Math.max(deliveryTime.diff(pickupTime, 'minute'), 30); // 最少30分钟
+        } else if (!pickupTimeWindowMode && pickupWindow) {
+          // 时间段模式：使用取货时间段的时长
+          const startTime = dayjs(pickupWindow.start);
+          const endTime = dayjs(pickupWindow.end);
+          serviceMinutes = Math.max(endTime.diff(startTime, 'minute'), 30); // 最少30分钟
+        } else {
+          // 默认值：1小时
+          serviceMinutes = 60;
+        }
+      } else {
+        // 距离计费模式：使用距离
+        distanceKm = values.distance || estimatedDistance || 0;
+      }
+
       // 构建运单数据
       const shipmentData = {
         shipmentNumber: `TMS${Date.now()}`,
@@ -670,7 +696,11 @@ const ShipmentCreate: React.FC = () => {
         pickupAt: pickupAt,
         deliveryAt: deliveryAt,
         pickupWindow: pickupWindow,
-        deliveryWindow: deliveryWindow
+        deliveryWindow: deliveryWindow,
+        // 2025-12-05 13:00:00 添加计费模式和相关参数
+        pricingMode: pricingMode,
+        distanceKm: distanceKm,
+        serviceMinutes: serviceMinutes
       };
 
       setSubmittedData(shipmentData);
@@ -1520,6 +1550,13 @@ const ShipmentCreate: React.FC = () => {
               </Radio.Button>
             </Radio.Group>
           </Form.Item>
+          {/* 2025-12-05 12:40:00 添加计费模式选择 */}
+          <Form.Item name="pricingMode" label="计费模式 (Pricing Mode)" style={{ marginTop: 16 }}>
+            <Radio.Group>
+              <Radio value="distance-based">按距离计费</Radio>
+              <Radio value="time-based">按时间计费</Radio>
+            </Radio.Group>
+          </Form.Item>
         </Col>
         <Col span={12}>
           <Form.Item name="distance" label="预估距离 (Estimated Distance - km)">
@@ -2107,6 +2144,7 @@ const ShipmentCreate: React.FC = () => {
                 needSignature: false,
                 pickupTimeWindowMode: false, // 2025-12-05 12:25:00 取货时间段模式默认关闭
                 deliveryTimeWindowMode: false, // 2025-12-05 12:25:00 送货时间段模式默认关闭
+                pricingMode: 'distance-based', // 2025-12-05 12:40:00 计费模式默认按距离计费
               }}
             >
               

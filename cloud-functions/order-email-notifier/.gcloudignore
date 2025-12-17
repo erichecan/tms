@@ -1,0 +1,9 @@
+# Cloud Functions .gcloudignore
+node_modules/
+.env
+.env.*
+*.log
+.git/
+.DS_Store
+*.md
+!README.md

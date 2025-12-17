@@ -346,13 +346,15 @@ export class ShipmentController {
           shipmentData.estimatedCost = pricingResult.amount;
           shipmentData.appliedRules = pricingResult.ruleId ? [pricingResult.ruleId] : [];
           
-          // 记录审计日志
-          await this.dbService.createAuditLog(tenantId, {
-            userId: req.user?.id || 'system',
-            action: 'PRICING_CALCULATED',
-            resourceType: 'shipment',
-            resourceId: shipmentData.shipmentNumber,
-            details: {
+          // 记录审计日志 - 2025-12-16 23:00:00 Fixed: 使用 recordAuditLog 方法
+          await this.dbService.recordAuditLog({
+            tenantId,
+            entityType: 'shipment',
+            entityId: shipmentData.shipmentNumber,
+            operation: 'PRICING_CALCULATED',
+            actorId: req.user?.id || 'system',
+            actorType: 'user',
+            extraData: {
               traceId,
               pricingMode,
               ruleId: pricingResult.ruleId,
