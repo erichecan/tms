@@ -210,7 +210,7 @@ const GranularPermissions: React.FC = () => {
         },
       ];
 
-      // 模拟角色数据
+      // 模拟角色数据 // 2025-12-18 00:55:00 补充调度员和车队经理角色，方便在角色管理中配置
       const mockRoles: Role[] = [
         {
           id: 'R001',
@@ -244,6 +244,30 @@ const GranularPermissions: React.FC = () => {
           status: 'active',
           createdAt: '2025-09-01 10:00:00',
           updatedAt: '2025-09-29 15:30:00',
+        },
+        {
+          id: 'R004',
+          name: '调度员',
+          code: 'dispatcher',
+          description: '负责运单分配和调度工作',
+          // 这里先关联运单查看/更新/指派等权限节点，后续可在 UI 中微调
+          permissions: ['P001', 'P001-01', 'P001-02', 'P001-03'],
+          userCount: 0,
+          status: 'active',
+          createdAt: '2025-12-18 00:55:00',
+          updatedAt: '2025-12-18 00:55:00',
+        },
+        {
+          id: 'R005',
+          name: '车队经理',
+          code: 'fleet_manager',
+          description: '负责车辆与司机管理、车队运营',
+          // 这里先关联车辆与司机相关权限节点，后续可在 UI 中微调
+          permissions: ['P002', 'P003'],
+          userCount: 0,
+          status: 'active',
+          createdAt: '2025-12-18 00:55:00',
+          updatedAt: '2025-12-18 00:55:00',
         },
       ];
 
