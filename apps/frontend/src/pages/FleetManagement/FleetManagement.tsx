@@ -907,13 +907,14 @@ const FleetManagement: React.FC = () => {
           <Col span={12}>
             <Card size="small" title="车辆信息">
               <Form form={vehicleForm} layout="vertical">
-                <Form.Item label="车牌号" name="plateNumber" rules={[{ required: true, message: '请输入车牌号' }]}>
+                {/* 2025-12-18 01:05:00 去掉必填校验，车辆字段全部改为可选 */}
+                <Form.Item label="车牌号" name="plateNumber">
                   <Input placeholder="京A12345" />
                 </Form.Item>
-                <Form.Item label="车型" name="type" rules={[{ required: true, message: '请选择车型' }]}>
+                <Form.Item label="车型" name="type">
                   <Select options={[{ label: '厢式货车', value: '厢式货车' }, { label: '平板车', value: '平板车' }, { label: '冷链车', value: '冷链车' }]} />
                 </Form.Item>
-                <Form.Item label="载重(kg)" name="capacityKg" rules={[{ required: true, message: '请输入载重' }]}>
+                <Form.Item label="载重(kg)" name="capacityKg">
                   <Input type="number" placeholder="3000" />
                 </Form.Item>
               </Form>

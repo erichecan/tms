@@ -82,12 +82,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
           </Select>
         </Form.Item>
         
+        {/* 2025-12-18 01:05:00 去掉载重字段的校验规则，改为完全可选 */}
         <Form.Item
           name="capacityKg"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>载重 (kg)</span>}
-          rules={[
-            { type: 'number', min: 0, message: '载重必须大于0' }
-          ]}
           style={{ marginBottom: 0 }}
         >
           <Input 
