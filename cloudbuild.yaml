@@ -13,8 +13,8 @@ steps:
       - |
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
-          -t gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA \
-          --build-arg BUILD_VERSION=$COMMIT_SHA \
+          -t gcr.io/$PROJECT_ID/tms-backend:${_TAG} \
+          --build-arg BUILD_VERSION=${_TAG} \
           --build-arg BUILD_TIME=$$BUILD_TIME \
           -f docker/backend/Dockerfile .
     dir: '.'
@@ -28,10 +28,10 @@ steps:
       - |
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
-          -t gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA \
+          -t gcr.io/$PROJECT_ID/tms-frontend:${_TAG} \
           --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
-          --build-arg BUILD_VERSION=$COMMIT_SHA \
+          --build-arg BUILD_VERSION=${_TAG} \
           --build-arg BUILD_TIME=$$BUILD_TIME \
           -f docker/frontend/Dockerfile .
     dir: '.'
@@ -45,10 +45,10 @@ steps:
       - |
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
-          -t gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA \
+          -t gcr.io/$PROJECT_ID/tms-frontend-mobile:${_TAG} \
           --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
-          --build-arg BUILD_VERSION=$COMMIT_SHA \
+          --build-arg BUILD_VERSION=${_TAG} \
           --build-arg BUILD_TIME=$$BUILD_TIME \
           -f docker/frontend-mobile/Dockerfile .
     dir: '.'
@@ -56,15 +56,15 @@ steps:
 
   # 推送后端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/tms-backend:${_TAG}']
 
   # 推送前端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:${_TAG}']
 
   # 推送移动端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend-mobile:${_TAG}']
 
   # 运行数据库迁移 - 暂时跳过，权限问题待解决
   # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -84,7 +84,7 @@ steps:
       - 'run'
       - 'deploy'
       - 'tms-backend'
-      - '--image=gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
+      - '--image=gcr.io/$PROJECT_ID/tms-backend:${_TAG}'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
       - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
@@ -105,7 +105,7 @@ steps:
       - 'run'
       - 'deploy'
       - 'tms-frontend'
-      - '--image=gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
+      - '--image=gcr.io/$PROJECT_ID/tms-frontend:${_TAG}'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
       - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app' # 2025-11-24T16:35:00Z Updated by Assistant: use dynamic backend URL
@@ -124,7 +124,7 @@ steps:
       - 'run'
       - 'deploy'
       - 'tms-frontend-mobile'
-      - '--image=gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA'
+      - '--image=gcr.io/$PROJECT_ID/tms-frontend-mobile:${_TAG}'
       - '--region=us-central1'
       - '--platform=managed'
       - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app'
@@ -138,9 +138,9 @@ steps:
 
 # 镜像标签
 images:
-  - 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/tms-backend:${_TAG}'
+  - 'gcr.io/$PROJECT_ID/tms-frontend:${_TAG}'
+  - 'gcr.io/$PROJECT_ID/tms-frontend-mobile:${_TAG}'
 
 # 构建选项
 options:
