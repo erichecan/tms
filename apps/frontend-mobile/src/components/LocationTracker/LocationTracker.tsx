@@ -1,5 +1,6 @@
 // 2025-11-30T11:15:00Z Created by Assistant: 位置追踪组件
-import { useEffect, useState } from 'react';
+// 2025-12-19 11:40:00 需求：默认开启但可记忆关闭；仅在存在进行中运单时才上报
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from '../../hooks/useLocation';
 import { Toast, Dialog } from 'antd-mobile';
 import { LocationFill } from 'antd-mobile-icons';
@@ -9,13 +10,17 @@ interface LocationTrackerProps {
   showIndicator?: boolean; // 是否显示追踪状态指示器
   interval?: number; // 上报间隔（毫秒）
   distanceThreshold?: number; // 距离阈值（米）
+  hasOngoingShipment?: boolean; // 是否存在进行中运单（决定是否允许上报） // 2025-12-19 11:40:00
 }
+
+const LOCATION_TRACKING_ENABLED_KEY = 'mobile_location_tracking_enabled'; // 2025-12-19 11:40:00 记忆司机手动开关
 
 export default function LocationTracker({
   autoStart = false,
   showIndicator = true,
   interval = 30000,
   distanceThreshold = 50,
+  hasOngoingShipment = false,
 }: LocationTrackerProps) {
   const {
     isTracking,
@@ -28,13 +33,36 @@ export default function LocationTracker({
   } = useLocation();
 
   const [requestingPermission, setRequestingPermission] = useState(false);
+  const [userEnabled, setUserEnabled] = useState<boolean>(() => {
+    const stored = localStorage.getItem(LOCATION_TRACKING_ENABLED_KEY);
+    if (stored === null) return true; // 默认开启 // 2025-12-19 11:40:00
+    return stored === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(LOCATION_TRACKING_ENABLED_KEY, String(userEnabled)); // 2025-12-19 11:40:00
+  }, [userEnabled]);
+
+  const effectiveEnabled = useMemo(() => {
+    // 仅进行中运单时允许上报 // 2025-12-19 11:40:00
+    return userEnabled && hasOngoingShipment;
+  }, [userEnabled, hasOngoingShipment]);
 
   // 自动开始追踪
   useEffect(() => {
-    if (autoStart && isSupported && hasPermission && !isTracking) {
+    if (!autoStart) return;
+
+    // 无进行中运单或用户关闭时，确保停止 // 2025-12-19 11:40:00
+    if (!effectiveEnabled) {
+      if (isTracking) stopTracking();
+      return;
+    }
+
+    if (isSupported && !isTracking) {
       handleStartTracking();
     }
-  }, [autoStart, isSupported, hasPermission, isTracking]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, isSupported, effectiveEnabled, isTracking]);
 
   // 处理错误
   useEffect(() => {
@@ -149,17 +177,31 @@ export default function LocationTracker({
 
   // 切换追踪状态
   const toggleTracking = () => {
-    if (isTracking) {
-      handleStopTracking();
-    } else {
-      handleStartTracking();
+    // 2025-12-19 11:40:00：切换“用户开关”，并记忆；实际追踪由 effectiveEnabled 决定
+    if (userEnabled) {
+      setUserEnabled(false);
+      if (isTracking) handleStopTracking();
+      return;
     }
+
+    setUserEnabled(true);
+    if (!hasOngoingShipment) {
+      Toast.show({
+        icon: 'success',
+        content: '已开启位置上报，将在有进行中运单时自动上报',
+        duration: 2500,
+      });
+      return;
+    }
+    handleStartTracking();
   };
 
   // 如果不需要显示指示器，只执行追踪逻辑
   if (!showIndicator) {
     return null;
   }
+
+  const indicatorColor = effectiveEnabled ? (isTracking ? '#52c41a' : '#1677ff') : '#999'; // 2025-12-19 11:40:00
 
   return (
     <div
@@ -171,7 +213,7 @@ export default function LocationTracker({
         width: 48,
         height: 48,
         borderRadius: 24,
-        background: isTracking ? '#52c41a' : '#999',
+        background: indicatorColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -179,7 +221,15 @@ export default function LocationTracker({
         zIndex: 999,
         cursor: 'pointer',
       }}
-      title={isTracking ? '位置上报中，点击关闭' : '点击开启位置上报'}
+      title={
+        !userEnabled
+          ? '位置上报已关闭（点击开启）'
+          : !hasOngoingShipment
+            ? '等待进行中运单（点击可关闭开关）'
+            : isTracking
+              ? '位置上报中，点击关闭'
+              : '点击开启位置上报'
+      }
     >
       <LocationFill
         style={{

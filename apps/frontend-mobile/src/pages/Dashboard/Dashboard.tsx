@@ -1,5 +1,6 @@
 // 2025-11-11 10:15:05 重构：司机移动端任务面板
 // 2025-11-30T10:45:00Z Refactored by Assistant: 使用 Ant Design Mobile 组件重构任务列表页面
+// 2025-12-19 11:41:00 需求：位置上报默认开启且记忆开关；仅在进行中运单存在时才上报
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, PullToRefresh, List, Skeleton, Empty, Toast, Dialog } from 'antd-mobile';
@@ -26,6 +27,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [hasOngoingShipment, setHasOngoingShipment] = useState(false); // 2025-12-19 11:41:00
+
+  const computeHasOngoingShipment = (list: Shipment[]): boolean => {
+    // 2025-12-19 11:41:00：进行中运单集合（用于位置上报开关）
+    const ongoingStatuses = new Set([
+      'assigned',
+      'confirmed',
+      'scheduled',
+      'pickup_in_progress',
+      'picked_up',
+      'in_transit',
+    ]);
+    return list.some((s: Shipment) => ongoingStatuses.has(String(s.status)));
+  };
 
   useEffect(() => {
     if (!driverId || !token) {
@@ -41,6 +56,7 @@ export default function Dashboard() {
     const cachedShipments = OfflineService.getCachedShipments();
     if (cachedShipments && cachedShipments.length > 0) {
       setShipments(cachedShipments);
+      setHasOngoingShipment(computeHasOngoingShipment(cachedShipments)); // 2025-12-19 11:41:00
     }
     
     loadShipments();
@@ -60,6 +76,7 @@ export default function Dashboard() {
       const response = await driverShipmentsApi.getDriverShipments();
       const shipmentsData = response.data?.data || [];
       setShipments(shipmentsData);
+      setHasOngoingShipment(computeHasOngoingShipment(shipmentsData)); // 2025-12-19 11:41:00
       
       // 缓存运单列表
       OfflineService.cacheShipments(shipmentsData);
@@ -71,6 +88,7 @@ export default function Dashboard() {
         const cachedShipments = OfflineService.getCachedShipments();
         if (cachedShipments && cachedShipments.length > 0) {
           setShipments(cachedShipments);
+          setHasOngoingShipment(computeHasOngoingShipment(cachedShipments)); // 2025-12-19 11:41:00
           Toast.show({
             icon: 'fail',
             content: '网络连接失败，显示缓存数据',
@@ -216,7 +234,13 @@ export default function Dashboard() {
       </PullToRefresh>
       
       {/* 位置追踪组件 */}
-      <LocationTracker autoStart={true} showIndicator={true} interval={30000} distanceThreshold={50} />
+      <LocationTracker
+        autoStart={true}
+        showIndicator={true}
+        interval={30000}
+        distanceThreshold={50}
+        hasOngoingShipment={hasOngoingShipment}
+      />
     </div>
   );
 }

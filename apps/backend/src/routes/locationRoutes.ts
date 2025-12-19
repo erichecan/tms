@@ -177,6 +177,34 @@ router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
     `);
     
     const hasTripsTable = tripsTableExists[0]?.exists;
+
+    // 2025-12-19 11:45:00：优先返回 vehicles/drivers 的 current_location & last_location_update（若字段不存在则回退为 NULL）
+    const locationColumns = await dbService.query(`
+      SELECT
+        (SELECT EXISTS (
+          SELECT FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'vehicles' AND column_name = 'current_location'
+        )) AS vehicle_has_current_location,
+        (SELECT EXISTS (
+          SELECT FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'vehicles' AND column_name = 'last_location_update'
+        )) AS vehicle_has_last_location_update,
+        (SELECT EXISTS (
+          SELECT FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'drivers' AND column_name = 'current_location'
+        )) AS driver_has_current_location,
+        (SELECT EXISTS (
+          SELECT FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'drivers' AND column_name = 'last_location_update'
+        )) AS driver_has_last_location_update
+      ;
+    `);
+
+    const columns = locationColumns?.[0] || {};
+    const vehicleCurrentLocationSelect = columns.vehicle_has_current_location ? 'v.current_location' : 'NULL';
+    const vehicleLastUpdateSelect = columns.vehicle_has_last_location_update ? 'v.last_location_update' : 'NULL';
+    const driverCurrentLocationSelect = columns.driver_has_current_location ? 'd.current_location' : 'NULL';
+    const driverLastUpdateSelect = columns.driver_has_last_location_update ? 'd.last_location_update' : 'NULL';
     
     // 2025-11-29T21:35:00 修复：current_location 字段不存在，使用简化的查询返回基本信息
     let result;
@@ -187,14 +215,15 @@ router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
           v.id as vehicle_id,
           v.plate_number,
           v.type as vehicle_type,
-          NULL as current_location,
-          NULL as last_location_update,
+          ${vehicleCurrentLocationSelect} as current_location,
+          COALESCE(${driverLastUpdateSelect}, ${vehicleLastUpdateSelect}) as last_location_update,
           v.status as vehicle_status,
           d.id as driver_id,
           d.name as driver_name,
           d.phone as driver_phone,
           d.status as driver_status,
-          NULL as driver_location,
+          ${driverCurrentLocationSelect} as driver_location,
+          ${driverLastUpdateSelect} as driver_last_location_update,
           t.id as trip_id,
           t.trip_no,
           t.status as trip_status
@@ -217,14 +246,15 @@ router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
           v.id as vehicle_id,
           v.plate_number,
           v.type as vehicle_type,
-          NULL as current_location,
-          NULL as last_location_update,
+          ${vehicleCurrentLocationSelect} as current_location,
+          COALESCE(${driverLastUpdateSelect}, ${vehicleLastUpdateSelect}) as last_location_update,
           v.status as vehicle_status,
           d.id as driver_id,
           d.name as driver_name,
           d.phone as driver_phone,
           d.status as driver_status,
-          NULL as driver_location,
+          ${driverCurrentLocationSelect} as driver_location,
+          ${driverLastUpdateSelect} as driver_last_location_update,
           NULL as trip_id,
           NULL as trip_no,
           NULL as trip_status

@@ -349,6 +349,11 @@ import { ExpiryReminderJob } from './jobs/expiryReminderJob';
 const expiryReminderJob = new ExpiryReminderJob();
 expiryReminderJob.start();
 
+// 🚀 启动位置轨迹保留清理任务（保留 7 天） // 2025-12-19 11:46:30
+import { LocationRetentionJob } from './jobs/locationRetentionJob';
+const locationRetentionJob = new LocationRetentionJob();
+locationRetentionJob.start();
+
 // 启动服务器（测试环境下跳过监听） // 2025-11-11T15:57:10Z Added by Assistant: Avoid listen during Jest runs
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {

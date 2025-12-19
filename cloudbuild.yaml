@@ -37,6 +37,23 @@ steps:
     dir: '.'
     secretEnv: ['GOOGLE_MAPS_API_KEY']
 
+  # 构建移动端 Docker 镜像（司机 WebApp） // 2025-12-19 11:56:00
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
+        docker build \
+          -t gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA \
+          --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
+          --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
+          --build-arg BUILD_VERSION=$COMMIT_SHA \
+          --build-arg BUILD_TIME=$$BUILD_TIME \
+          -f docker/frontend-mobile/Dockerfile .
+    dir: '.'
+    secretEnv: ['GOOGLE_MAPS_API_KEY']
+
   # 推送后端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA']
@@ -44,6 +61,10 @@ steps:
   # 推送前端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA']
+
+  # 推送移动端镜像到 Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA']
 
   # 运行数据库迁移 - 暂时跳过，权限问题待解决
   # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -96,10 +117,30 @@ steps:
       - '--timeout=120' # 2025-11-24T15:45:10Z Added by Assistant: reduce idle timeout
       - '--ingress=all' # 2025-11-24T15:45:10Z Added by Assistant: restrict to public traffic
 
+  # 部署移动端到 Cloud Run（司机 WebApp） // 2025-12-19 11:56:00
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'tms-frontend-mobile'
+      - '--image=gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app'
+      - '--memory=256Mi'
+      - '--cpu=1'
+      - '--concurrency=150'
+      - '--min-instances=0'
+      - '--max-instances=2'
+      - '--timeout=120'
+      - '--ingress=all'
+
 # 镜像标签
 images:
   - 'gcr.io/$PROJECT_ID/tms-backend:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/tms-frontend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/tms-frontend-mobile:$COMMIT_SHA'
 
 # 构建选项
 options:

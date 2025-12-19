@@ -1,5 +1,6 @@
 // 2025-11-30T10:55:00Z Created by Assistant: 运单详情页面
 // 2025-11-30T21:25:00 添加货物信息显示和BOL下载功能
+// 2025-12-19 11:41:30 需求：POD 非强制；仅送达后可上传；上限 5 张
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { NavBar, Card, Tag, Button, Space, Skeleton, Toast, Divider, Modal } from 'antd-mobile';
@@ -546,8 +547,8 @@ export default function ShipmentDetail() {
           </Card>
         ) : null}
 
-        {/* POD上传 - 已送达或已完成状态时显示 */}
-        {(status === ShipmentStatus.DELIVERED || status === 'delivered' || status === 'completed') && (
+        {/* POD上传 - 仅送达后可上传（delivered/pod_pending_review/completed） */}
+        {(status === ShipmentStatus.DELIVERED || status === 'delivered' || status === 'pod_pending_review' || status === 'completed') && (
           <Card style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>签收凭证</div>
             <PODUploader
@@ -559,7 +560,7 @@ export default function ShipmentDetail() {
               onUploadError={(error) => {
                 console.error('POD上传失败:', error);
               }}
-              maxCount={3}
+              maxCount={5}
             />
           </Card>
         )}

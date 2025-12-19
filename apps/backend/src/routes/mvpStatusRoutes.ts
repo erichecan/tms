@@ -24,13 +24,7 @@ router.post('/:id/status', async (req, res) => {
       return res.status(409).json({ success: false, error: { code: 'INVALID_TRANSITION', message: `${shipment.status} -> ${targetStatus} not allowed` } });
     }
 
-    if (targetStatus === 'completed') {
-      const pods = await client.query('SELECT COUNT(*) FROM proof_of_delivery WHERE shipment_id=$1', [shipmentId]);
-      if (parseInt(pods.rows[0].count) < 1) {
-        await client.query('ROLLBACK');
-        return res.status(409).json({ success: false, error: { code: 'POD_REQUIRED', message: 'POD required before completion' } });
-      }
-    }
+    // 2025-12-19 11:43:30 需求变更：POD 非强制，允许无 POD 完结运单
 
     await client.query(
       `UPDATE shipments 

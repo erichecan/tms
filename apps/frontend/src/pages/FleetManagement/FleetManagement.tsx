@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'; // 2025-11-11T15:25:48Z Added by Assistant: useCallback for location polling // 2025-11-11 10:20:05 引入useMemo生成地图标记
+// 2025-12-19 11:48:00 需求：运营/调度查看司机实时位置 + 7天轨迹
 import { 
   Card, 
   Row, 
@@ -63,6 +64,15 @@ type RealTimeLocation = {
   tripStatus?: string | null;
 }; // 2025-11-11T15:25:48Z Added by Assistant: Real-time location data shape
 
+type LocationHistoryPoint = {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+  speed?: number | null;
+  direction?: number | null;
+  accuracy?: number | null;
+}; // 2025-12-19 11:48:00
+
 const FleetManagement: React.FC = () => {
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
   const { availableDrivers, reloadDrivers, availableVehicles, reloadVehicles } = useDataContext();
@@ -82,6 +92,15 @@ const FleetManagement: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [lastLocationSync, setLastLocationSync] = useState<Date | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null); // 2025-11-11 10:20:05 地图标记选中状态
+
+  // 2025-12-19 11:48:00 位置轨迹查看（默认24h，可选7天）
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyEntityType, setHistoryEntityType] = useState<'driver' | 'vehicle'>('driver');
+  const [historyEntityId, setHistoryEntityId] = useState<string>('');
+  const [historyRange, setHistoryRange] = useState<'24h' | '7d'>('24h');
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPoints, setHistoryPoints] = useState<LocationHistoryPoint[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const fetchRealTimeLocations = useCallback(async (feedback = false) => {
     try {
@@ -202,6 +221,109 @@ const FleetManagement: React.FC = () => {
       message.info(`${target.plateNumber || target.driverName || '车辆'}：${target.vehicleStatus || target.driverStatus || '状态未知'}`);
     }
   }, [realTimeLocations]);
+
+  const openHistoryModal = useCallback((prefillFromMarker = false) => {
+    setHistoryError(null);
+    setHistoryPoints([]);
+
+    if (prefillFromMarker && selectedMarkerId) {
+      const target = realTimeLocations.find((location) => location.key === selectedMarkerId);
+      if (target) {
+        if (target.driverId) {
+          setHistoryEntityType('driver');
+          setHistoryEntityId(target.driverId);
+        } else if (target.vehicleId) {
+          setHistoryEntityType('vehicle');
+          setHistoryEntityId(target.vehicleId);
+        }
+      }
+    }
+
+    setHistoryModalVisible(true);
+  }, [realTimeLocations, selectedMarkerId]);
+
+  const fetchHistory = useCallback(async (entityType: 'driver' | 'vehicle', entityId: string, range: '24h' | '7d') => {
+    if (!entityId) {
+      setHistoryError('请选择司机或车辆');
+      return;
+    }
+
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const now = new Date();
+      const endTime = now.toISOString();
+      const start = new Date(now.getTime() - (range === '7d' ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000));
+      const startTime = start.toISOString();
+
+      const resp = await locationApi.getLocationHistory(entityType, entityId, {
+        startTime,
+        endTime,
+        limit: range === '7d' ? 2000 : 500,
+      });
+
+      const rows = resp.data?.data ?? [];
+      const points: LocationHistoryPoint[] = rows
+        .map((r: any) => ({
+          latitude: Number(r.latitude),
+          longitude: Number(r.longitude),
+          timestamp: new Date(r.timestamp).toISOString(),
+          speed: r.speed ?? null,
+          direction: r.direction ?? null,
+          accuracy: r.accuracy ?? null,
+        }))
+        .filter((p: LocationHistoryPoint) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && Boolean(p.timestamp));
+
+      // API 默认按 timestamp DESC，地图绘制更适合 ASC
+      points.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      setHistoryPoints(points);
+    } catch (e: any) {
+      console.error('获取位置轨迹失败:', e);
+      setHistoryError(e?.response?.data?.error || '获取位置轨迹失败，请稍后重试');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const historyMapCenter = useMemo(() => {
+    if (historyPoints.length > 0) {
+      return { lat: historyPoints[historyPoints.length - 1].latitude, lng: historyPoints[historyPoints.length - 1].longitude };
+    }
+    return mapCenter;
+  }, [historyPoints, mapCenter]);
+
+  const historyRoutes = useMemo(() => {
+    if (historyPoints.length < 2) return [];
+    const segments = [];
+    for (let i = 0; i < historyPoints.length - 1; i++) {
+      segments.push({
+        from: { lat: historyPoints[i].latitude, lng: historyPoints[i].longitude },
+        to: { lat: historyPoints[i + 1].latitude, lng: historyPoints[i + 1].longitude },
+        color: '#1677ff',
+      });
+    }
+    return segments;
+  }, [historyPoints]);
+
+  const historyMarkers = useMemo(() => {
+    if (historyPoints.length === 0) return [];
+    const start = historyPoints[0];
+    const end = historyPoints[historyPoints.length - 1];
+    return [
+      {
+        id: 'history_start',
+        position: { lat: start.latitude, lng: start.longitude },
+        title: '起点',
+        info: `<div><strong>起点</strong><br/>时间：${formatDateTime(start.timestamp)}</div>`,
+      },
+      {
+        id: 'history_end',
+        position: { lat: end.latitude, lng: end.longitude },
+        title: '终点',
+        info: `<div><strong>终点</strong><br/>时间：${formatDateTime(end.timestamp)}</div>`,
+      },
+    ];
+  }, [historyPoints]);
 
   // 2025-11-30T10:30:00Z Updated by Assistant: 优化行程数据加载，支持多种状态
   const loadTripsData = async () => {
@@ -626,12 +748,142 @@ const FleetManagement: React.FC = () => {
                     type="link" 
                     icon={<HistoryOutlined />}
                     onClick={() => {
-                      console.log('查看历史记录');
+                      openHistoryModal(true); // 2025-12-19 11:48:00 默认使用当前选中标记预填
                     }}
                   >
                     查看历史记录
                   </Button>
                 </div>
+
+                {/* 位置轨迹查看弹窗 - 2025-12-19 11:48:00 */}
+                <Modal
+                  open={historyModalVisible}
+                  title="位置轨迹（保留7天）"
+                  onCancel={() => setHistoryModalVisible(false)}
+                  footer={null}
+                  width={1000}
+                >
+                  <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                    <Alert
+                      type="info"
+                      showIcon
+                      message="提示"
+                      description="轨迹数据保留 7 天。移动端浏览器定位在后台可能会被系统限制（尤其 iOS），建议前台/亮屏使用以获得更完整轨迹。"
+                    />
+
+                    <Row gutter={12}>
+                      <Col span={6}>
+                        <Text strong>实体类型</Text>
+                        <Select
+                          style={{ width: '100%', marginTop: 6 }}
+                          value={historyEntityType}
+                          onChange={(v) => {
+                            setHistoryEntityType(v);
+                            setHistoryEntityId('');
+                            setHistoryPoints([]);
+                            setHistoryError(null);
+                          }}
+                          options={[
+                            { value: 'driver', label: '司机' },
+                            { value: 'vehicle', label: '车辆' },
+                          ]}
+                        />
+                      </Col>
+                      <Col span={10}>
+                        <Text strong>选择对象</Text>
+                        <Select
+                          style={{ width: '100%', marginTop: 6 }}
+                          showSearch
+                          value={historyEntityId || undefined}
+                          placeholder="请选择司机/车辆"
+                          optionFilterProp="label"
+                          onChange={(v) => setHistoryEntityId(v)}
+                          options={realTimeLocations
+                            .map((loc) => {
+                              const value = historyEntityType === 'driver' ? loc.driverId : loc.vehicleId;
+                              if (!value) return null;
+                              const label = historyEntityType === 'driver'
+                                ? `${loc.driverName || '未知司机'} (${value})`
+                                : `${loc.plateNumber || '未知车辆'} (${value})`;
+                              return { value, label };
+                            })
+                            .filter(Boolean) as any}
+                        />
+                      </Col>
+                      <Col span={4}>
+                        <Text strong>时间范围</Text>
+                        <Select
+                          style={{ width: '100%', marginTop: 6 }}
+                          value={historyRange}
+                          onChange={(v) => setHistoryRange(v)}
+                          options={[
+                            { value: '24h', label: '最近24小时' },
+                            { value: '7d', label: '最近7天' },
+                          ]}
+                        />
+                      </Col>
+                      <Col span={4} style={{ display: 'flex', alignItems: 'end' }}>
+                        <Button
+                          type="primary"
+                          block
+                          loading={historyLoading}
+                          onClick={() => fetchHistory(historyEntityType, historyEntityId, historyRange)}
+                        >
+                          查询轨迹
+                        </Button>
+                      </Col>
+                    </Row>
+
+                    {historyError && (
+                      <Alert type="warning" showIcon message="无法获取轨迹" description={historyError} />
+                    )}
+
+                    <Row gutter={12}>
+                      <Col span={14}>
+                        <Card title="轨迹地图">
+                          {historyPoints.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
+                              暂无轨迹数据
+                            </div>
+                          ) : (
+                            <GoogleMap
+                              center={historyMapCenter}
+                              zoom={13}
+                              markers={historyMarkers}
+                              routes={historyRoutes}
+                              height="420px"
+                            />
+                          )}
+                        </Card>
+                      </Col>
+                      <Col span={10}>
+                        <Card title={`轨迹点（${historyPoints.length}）`}>
+                          <div style={{ maxHeight: 420, overflow: 'auto' }}>
+                            <List
+                              dataSource={[...historyPoints].reverse()}
+                              renderItem={(p: LocationHistoryPoint) => (
+                                <List.Item>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <div>
+                                      <div><Text strong>{formatDateTime(p.timestamp)}</Text></div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>
+                                        {p.latitude.toFixed(6)}, {p.longitude.toFixed(6)}
+                                      </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', fontSize: 12, color: '#666' }}>
+                                      {typeof p.speed === 'number' ? <div>速度: {p.speed}</div> : null}
+                                      {typeof p.accuracy === 'number' ? <div>精度: {p.accuracy}</div> : null}
+                                    </div>
+                                  </div>
+                                </List.Item>
+                              )}
+                            />
+                          </div>
+                        </Card>
+                      </Col>
+                    </Row>
+                  </Space>
+                </Modal>
               </div>
             )
           },

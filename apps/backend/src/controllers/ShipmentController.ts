@@ -346,22 +346,29 @@ export class ShipmentController {
           shipmentData.estimatedCost = pricingResult.amount;
           shipmentData.appliedRules = pricingResult.ruleId ? [pricingResult.ruleId] : [];
           
-          // 记录审计日志
-          await this.dbService.createAuditLog(tenantId, {
-            userId: req.user?.id || 'system',
-            action: 'PRICING_CALCULATED',
-            resourceType: 'shipment',
-            resourceId: shipmentData.shipmentNumber,
-            details: {
-              traceId,
-              pricingMode,
-              ruleId: pricingResult.ruleId,
-              ruleName: pricingResult.ruleName,
-              amount: pricingResult.amount,
-              currency: pricingResult.currency,
-              breakdown: pricingResult.breakdown,
-            },
-          });
+          // 记录审计日志（兼容 DatabaseService API） // 2025-12-19 11:50:00
+          try {
+            await this.dbService.recordAuditLog({
+              tenantId,
+              entityType: 'shipment',
+              entityId: shipmentData.shipmentNumber,
+              operation: 'PRICING_CALCULATED',
+              actorId: req.user?.id || 'system',
+              actorType: req.user ? 'user' : 'system',
+              extraData: {
+                traceId,
+                pricingMode,
+                ruleId: pricingResult.ruleId,
+                ruleName: pricingResult.ruleName,
+                amount: pricingResult.amount,
+                currency: pricingResult.currency,
+                breakdown: pricingResult.breakdown,
+              },
+            });
+          } catch (auditError) {
+            // 审计日志失败不应影响主流程 // 2025-12-19 11:50:00
+            logger.debug('Failed to record pricing audit log', auditError);
+          }
           
           logger.info(`[${traceId}] Pricing calculated for shipment`, {
             tenantId,
