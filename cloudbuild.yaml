@@ -29,7 +29,7 @@ steps:
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
           -t gcr.io/$PROJECT_ID/tms-frontend:${_TAG} \
-          --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
+          --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app/api \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
           --build-arg BUILD_VERSION=${_TAG} \
           --build-arg BUILD_TIME=$$BUILD_TIME \
@@ -46,7 +46,7 @@ steps:
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
           -t gcr.io/$PROJECT_ID/tms-frontend-mobile:${_TAG} \
-          --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
+          --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app/api \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
           --build-arg BUILD_VERSION=${_TAG} \
           --build-arg BUILD_TIME=$$BUILD_TIME \
@@ -108,7 +108,7 @@ steps:
       - '--image=gcr.io/$PROJECT_ID/tms-frontend:${_TAG}'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
-      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app' # 2025-11-24T16:35:00Z Updated by Assistant: use dynamic backend URL
+      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app/api' # 2025-12-19 13:40:00 修复：前端 API base 需要包含 /api
       - '--memory=256Mi'
       - '--cpu=1' # 2025-12-04 Fixed: CPU must be >= 1 when concurrency > 1
       - '--concurrency=150' # 2025-11-24T15:45:10Z Added by Assistant: leverage Cloud Run concurrency
@@ -127,7 +127,7 @@ steps:
       - '--image=gcr.io/$PROJECT_ID/tms-frontend-mobile:${_TAG}'
       - '--region=us-central1'
       - '--platform=managed'
-      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app'
+      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app/api' # 2025-12-19 13:40:00 修复：移动端 API base 需要包含 /api
       - '--memory=256Mi'
       - '--cpu=1'
       - '--concurrency=150'
