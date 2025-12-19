@@ -133,6 +133,27 @@ export class DatabaseService {
   }
 
   /**
+   * 标准化 email：trim + lowerCase；空字符串/空白视为 null
+   * 2025-12-19 12:00:00 修复：避免将空 email 以 '' 入库导致 UNIQUE(tenant_id, email) 冲突
+   */
+  private normalizeEmail(input: unknown): string | null {
+    if (typeof input !== 'string') return null;
+    const normalized = input.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  /**
+   * 创建一个带 statusCode 的错误，便于路由层返回正确的 HTTP 状态码
+   * 2025-12-19 12:00:00 新增：统一冲突错误（409）
+   */
+  private conflictError(message: string): Error {
+    const err: any = new Error(message);
+    err.statusCode = 409;
+    err.code = 'CONFLICT';
+    return err as Error;
+  }
+
+  /**
    * 获取数据库连接
    * @returns 数据库连接
    * 2025-10-01 14:50:10 调整为 public 以便服务内部复用（如计费保存事务）
@@ -901,14 +922,17 @@ export class DatabaseService {
       throw new Error(`客户名称 "${customer.name}" 在同一租户内已存在`);
     }
 
-    // 如果提供了 email，检查 email 是否已存在
-    if (customer.email) {
+    // 2025-12-19 12:00:00 修复：email 可能来自 contactInfo.email；空字符串必须视为 null
+    const normalizedEmail = this.normalizeEmail((customer as any)?.contactInfo?.email ?? (customer as any)?.email);
+
+    // 如果提供了 email（规范化后），检查 email 是否已存在
+    if (normalizedEmail) {
       const existingEmail = await this.query(
         'SELECT id FROM customers WHERE tenant_id = $1 AND email = $2',
-        [tenantId, customer.email]
+        [tenantId, normalizedEmail]
       );
       if (existingEmail.length > 0) {
-        throw new Error(`客户邮箱 "${customer.email}" 在同一租户内已存在`);
+        throw this.conflictError(`客户邮箱 "${normalizedEmail}" 在同一租户内已存在`);
       }
     }
 
@@ -923,17 +947,33 @@ export class DatabaseService {
       RETURNING *
     `;
     
-    // 从 contactInfo 中提取 email
-    const email = customer.contactInfo?.email || customer.email || '';
-    
-    const result = await this.query(query, [
-      tenantId,
-      customer.name,
-      customer.level,
-      email,
-      JSON.stringify(customer.contactInfo || {}),
-      customer.billingInfo ? JSON.stringify(customer.billingInfo) : null
-    ]);
+    // 从 contactInfo/email 中提取 email（规范化后）；空值入库为 NULL，避免触发 UNIQUE(tenant_id, email)
+    // 2025-12-19 12:00:00 修复：之前使用 '' 会导致同租户内第二个“无邮箱客户”直接数据库冲突 -> 500
+    const contactInfo = (customer as any)?.contactInfo ? { ...(customer as any).contactInfo } : {};
+    if (normalizedEmail) {
+      contactInfo.email = normalizedEmail;
+    } else {
+      // JSON.stringify 会自动丢弃 undefined；这里显式删除以避免存入空字符串
+      delete (contactInfo as any).email;
+    }
+
+    let result: any[];
+    try {
+      result = await this.query(query, [
+        tenantId,
+        customer.name,
+        customer.level,
+        normalizedEmail, // NULL when absent
+        JSON.stringify(contactInfo || {}),
+        customer.billingInfo ? JSON.stringify(customer.billingInfo) : null
+      ]);
+    } catch (error: any) {
+      // 2025-12-19 12:00:00 兜底：并发下仍可能触发唯一约束，转换为 409
+      if (error?.code === '23505') {
+        throw this.conflictError('客户信息已存在（名称或邮箱冲突）');
+      }
+      throw error;
+    }
     
     return this.mapCustomerFromDb(result[0]);
   }
@@ -1029,7 +1069,8 @@ export class DatabaseService {
         [tenantId, driver.phone]
       );
       if (existingPhone.length > 0) {
-        throw new Error(`司机电话 "${driver.phone}" 在同一租户内已存在`);
+        // 2025-12-19 12:00:00 统一冲突错误：返回 409，避免前端看到 500
+        throw this.conflictError(`司机电话 "${driver.phone}" 在同一租户内已存在`);
       }
     }
 
@@ -1040,7 +1081,8 @@ export class DatabaseService {
         [tenantId, driver.licenseNumber]
       );
       if (existingLicense.length > 0) {
-        throw new Error(`司机驾照号 "${driver.licenseNumber}" 在同一租户内已存在`);
+        // 2025-12-19 12:00:00 统一冲突错误：返回 409，避免前端看到 500
+        throw this.conflictError(`司机驾照号 "${driver.licenseNumber}" 在同一租户内已存在`);
       }
     }
 
@@ -1050,15 +1092,24 @@ export class DatabaseService {
       RETURNING *
     `;
     
-    const result = await this.query(query, [
-      tenantId,
-      driver.name,
-      driver.phone,
-      driver.licenseNumber,
-      JSON.stringify(driver.vehicleInfo),
-      driver.status,
-      JSON.stringify(driver.performance)
-    ]);
+    let result: any[];
+    try {
+      result = await this.query(query, [
+        tenantId,
+        driver.name,
+        driver.phone,
+        driver.licenseNumber,
+        JSON.stringify(driver.vehicleInfo),
+        driver.status,
+        JSON.stringify(driver.performance)
+      ]);
+    } catch (error: any) {
+      // 2025-12-19 12:00:00 兜底：并发下仍可能触发唯一约束，转换为 409
+      if (error?.code === '23505') {
+        throw this.conflictError('司机信息已存在（手机号或驾照号冲突）');
+      }
+      throw error;
+    }
     
     return this.mapDriverFromDb(result[0]);
   }
@@ -2379,7 +2430,8 @@ export class DatabaseService {
       [tenantId, vehicle.plateNumber]
     );
     if (existingVehicle.length > 0) {
-      throw new Error(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+      // 2025-12-19 12:00:00 统一冲突错误：返回 409，避免前端看到 500
+      throw this.conflictError(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
     }
 
     const query = `
@@ -2395,13 +2447,22 @@ export class DatabaseService {
         updated_at as "updatedAt"
     `;
     
-    const result = await this.query(query, [
-      tenantId, // 2025-10-31 10:15:00 添加租户ID
-      vehicle.plateNumber,
-      vehicle.vehicleType,
-      vehicle.capacity,
-      vehicle.status
-    ]);
+    let result: any[];
+    try {
+      result = await this.query(query, [
+        tenantId, // 2025-10-31 10:15:00 添加租户ID
+        vehicle.plateNumber,
+        vehicle.vehicleType,
+        vehicle.capacity,
+        vehicle.status
+      ]);
+    } catch (error: any) {
+      // 2025-12-19 12:00:00 兜底：并发下仍可能触发唯一约束，转换为 409
+      if (error?.code === '23505') {
+        throw this.conflictError('车辆信息已存在（车牌号冲突）');
+      }
+      throw error;
+    }
     
     return result[0];
   }
@@ -2512,34 +2573,54 @@ export class DatabaseService {
       }
     }
 
-    // 如果更新了 email，检查 email 是否已存在
-    const emailToCheck = updates.email || (updates.contactInfo?.email);
-    if (emailToCheck) {
+    // 2025-12-19 12:00:00 修复：更新时也要规范化 email，并使用正确的 DB 字段名（contact_info/billing_info）
+    const normalizedEmail = this.normalizeEmail(updates?.email ?? updates?.contactInfo?.email);
+
+    // 如果更新了 email（规范化后），检查 email 是否已存在
+    if (normalizedEmail) {
       const existingEmail = await this.query(
         'SELECT id FROM customers WHERE tenant_id = $1 AND email = $2 AND id != $3',
-        [tenantId, emailToCheck, customerId]
+        [tenantId, normalizedEmail, customerId]
       );
       if (existingEmail.length > 0) {
-        throw new Error(`客户邮箱 "${emailToCheck}" 在同一租户内已存在`);
+        throw this.conflictError(`客户邮箱 "${normalizedEmail}" 在同一租户内已存在`);
       }
     }
 
-    const fields = [];
-    const values = [];
+    // 将 API 层 updates（camelCase）映射到 DB 列（snake_case）
+    const dbUpdates: Record<string, any> = {};
+    if (updates?.name !== undefined) dbUpdates.name = updates.name;
+    if (updates?.level !== undefined) dbUpdates.level = updates.level;
+
+    if (updates?.contactInfo !== undefined) {
+      const contactInfo = { ...(updates.contactInfo || {}) };
+      if (normalizedEmail) contactInfo.email = normalizedEmail;
+      else delete (contactInfo as any).email;
+      dbUpdates.contact_info = JSON.stringify(contactInfo);
+    }
+    if (updates?.billingInfo !== undefined) {
+      dbUpdates.billing_info = JSON.stringify(updates.billingInfo || {});
+    }
+    if (updates?.defaultPickupAddress !== undefined) {
+      dbUpdates.default_pickup_address = updates.defaultPickupAddress ? JSON.stringify(updates.defaultPickupAddress) : null;
+    }
+    if (updates?.defaultDeliveryAddress !== undefined) {
+      dbUpdates.default_delivery_address = updates.defaultDeliveryAddress ? JSON.stringify(updates.defaultDeliveryAddress) : null;
+    }
+
+    // email 列始终与 contactInfo.email 保持一致（允许为 NULL）
+    if (updates?.contactInfo !== undefined || updates?.email !== undefined) {
+      dbUpdates.email = normalizedEmail;
+    }
+
+    const fields: string[] = [];
+    const values: any[] = [];
     let paramIndex = 1;
 
-    Object.keys(updates).forEach(key => {
-      if (updates[key] !== undefined) {
-        if (key === 'contactInfo' || key === 'billingInfo') {
-          fields.push(`${key} = $${paramIndex}`);
-          values.push(JSON.stringify(updates[key]));
-        } else {
-          fields.push(`${key} = $${paramIndex}`);
-          values.push(updates[key]);
-        }
-        paramIndex++;
-      }
-    });
+    for (const [col, val] of Object.entries(dbUpdates)) {
+      fields.push(`${col} = $${paramIndex++}`);
+      values.push(val);
+    }
 
     if (fields.length === 0) {
       return await this.getCustomer(tenantId, customerId);
@@ -2555,8 +2636,15 @@ export class DatabaseService {
       RETURNING *
     `;
 
-    const result = await this.query(query, values);
-    return result.length > 0 ? result[0] : null;
+    try {
+      const result = await this.query(query, values);
+      return result.length > 0 ? result[0] : null;
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        throw this.conflictError('客户信息已存在（名称或邮箱冲突）');
+      }
+      throw error;
+    }
   }
 
   /**

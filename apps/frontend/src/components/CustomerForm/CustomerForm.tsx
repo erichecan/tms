@@ -429,11 +429,13 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
  * 将表单数据转换为后端API期望的格式
  */
 export const transformCustomerFormData = (values: any) => {
+  // 2025-12-19 12:00:00 修复：不要把空邮箱作为 '' 发送给后端（后端会统一规范化为 NULL）
+  const normalizedEmail = typeof values?.email === 'string' ? values.email.trim() : '';
   return {
     name: values.name,
     level: values.level || 'standard',
     contactInfo: {
-      email: values.email || '',
+      email: normalizedEmail || undefined,
       phone: values.phone,
       address: {
         street: values.pickupAddressLine1 || '',

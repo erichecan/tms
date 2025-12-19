@@ -160,14 +160,17 @@ router.post('/',
       });
     } catch (error) {
       console.error('Create customer error:', error);
-      // 2025-11-30T10:20:00Z Added by Assistant: 返回详细错误信息以便调试
+      // 2025-12-19 12:00:00 修复：将唯一性冲突从 500 转为 409，并把可读错误信息返回给前端
+      const anyErr: any = error as any;
+      const statusCode = anyErr?.statusCode === 409 || anyErr?.code === '23505' ? 409 : 500;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({
+
+      res.status(statusCode).json({
         success: false,
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to create customer',
-          details: errorMessage
+        error: {
+          code: statusCode === 409 ? 'CONFLICT' : 'INTERNAL_ERROR',
+          message: statusCode === 409 ? errorMessage : 'Failed to create customer',
+          details: statusCode === 500 ? errorMessage : undefined
         },
         timestamp: new Date().toISOString(),
         requestId: req.headers['x-request-id'] as string || ''
