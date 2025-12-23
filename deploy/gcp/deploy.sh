@@ -82,9 +82,9 @@ create_secrets() {
     fi
 }
 
-# 构建和推送镜像
-build_and_push() {
-    echo -e "${YELLOW}🏗️  构建 Docker 镜像...${NC}"
+# 构建和推送后端镜像
+build_and_deploy_backend() {
+    echo -e "${YELLOW}🏗️  构建和部署后端...${NC}"
     
     # 配置 Docker 认证
     gcloud auth configure-docker
@@ -94,18 +94,8 @@ build_and_push() {
     docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/tms-backend:latest -f docker/backend/Dockerfile .
     docker push gcr.io/$PROJECT_ID/tms-backend:latest
     
-    # 构建前端镜像
-    echo -e "${YELLOW}📦 构建前端镜像...${NC}"
-    docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/tms-frontend:latest -f docker/frontend/Dockerfile .
-    docker push gcr.io/$PROJECT_ID/tms-frontend:latest
-}
-
-# 部署到 Cloud Run
-deploy_services() {
-    echo -e "${YELLOW}🚀 部署到 Cloud Run...${NC}"
-    
     # 部署后端
-    echo -e "${YELLOW}🔧 部署后端服务...${NC}"
+    echo -e "${YELLOW}🚀 部署后端服务到 Cloud Run...${NC}"
     gcloud run deploy $BACKEND_SERVICE \
         --image=gcr.io/$PROJECT_ID/tms-backend:latest \
         --region=$REGION \
@@ -114,23 +104,33 @@ deploy_services() {
         --set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest \
         --set-env-vars=NODE_ENV=production,CORS_ORIGIN=https://YOUR_FRONTEND_DOMAIN.com \
         --memory=512Mi \
-        # 2025-11-24T15:47:20Z Added by Assistant: reduce CPU for free tier
-        --cpu=0.25 \
-        # 2025-11-24T15:47:20Z Added by Assistant: increase concurrency per instance
+        --cpu=1 \
         --concurrency=80 \
         --min-instances=0 \
-        # 2025-11-24T15:47:20Z Added by Assistant: limit burst capacity
         --max-instances=2 \
-        # 2025-11-24T15:47:20Z Added by Assistant: lower timeout to reduce billed CPU
         --timeout=180 \
-        --ingress=all # 2025-11-24T15:47:20Z Added by Assistant: keep public ingress only
-    
+        --ingress=all
+        
     # 获取后端服务 URL
-    BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --region=$REGION --format="value(status.url)")
+    export BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --region=$REGION --format="value(status.url)")
     echo -e "${GREEN}✅ 后端服务已部署: $BACKEND_URL${NC}"
+}
+
+# 构建和部署前端
+build_and_deploy_frontend() {
+    echo -e "${YELLOW}🏗️  构建和部署前端...${NC}"
+    echo -e "${YELLOW}🔗 使用后端 API 地址: $BACKEND_URL${NC}"
+
+    # 构建前端镜像 (注入后端 URL)
+    echo -e "${YELLOW}📦 构建前端镜像...${NC}"
+    docker build --platform linux/amd64 \
+        --build-arg VITE_API_BASE_URL=$BACKEND_URL \
+        -t gcr.io/$PROJECT_ID/tms-frontend:latest \
+        -f docker/frontend/Dockerfile .
+    docker push gcr.io/$PROJECT_ID/tms-frontend:latest
     
     # 部署前端
-    echo -e "${YELLOW}🔧 部署前端服务...${NC}"
+    echo -e "${YELLOW}🚀 部署前端服务到 Cloud Run...${NC}"
     gcloud run deploy $FRONTEND_SERVICE \
         --image=gcr.io/$PROJECT_ID/tms-frontend:latest \
         --region=$REGION \
@@ -138,18 +138,15 @@ deploy_services() {
         --allow-unauthenticated \
         --set-env-vars=VITE_API_BASE_URL=$BACKEND_URL \
         --memory=256Mi \
-        # 2025-11-24T15:47:20Z Added by Assistant: shrink CPU for static frontend
-        --cpu=0.25 \
-        # 2025-11-24T15:47:20Z Added by Assistant: maximize free-tier throughput
+        --cpu=1 \
         --concurrency=150 \
         --min-instances=0 \
         --max-instances=2 \
-        # 2025-11-24T15:47:20Z Added by Assistant: smaller timeout to cut idle billing
         --timeout=120 \
-        --ingress=all # 2025-11-24T15:47:20Z Added by Assistant: public ingress only
+        --ingress=all
     
     # 获取前端服务 URL
-    FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region=$REGION --format="value(status.url)")
+    export FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region=$REGION --format="value(status.url)")
     echo -e "${GREEN}✅ 前端服务已部署: $FRONTEND_URL${NC}"
 }
 
@@ -171,8 +168,8 @@ main() {
     check_dependencies
     setup_project
     # create_secrets
-    build_and_push
-    deploy_services
+    build_and_deploy_backend
+    build_and_deploy_frontend
     show_results
 }
 

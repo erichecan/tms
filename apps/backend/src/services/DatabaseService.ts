@@ -37,7 +37,7 @@ export class DatabaseService {
     console.log('DatabaseService constructor - DB_HOST:', process.env.DB_HOST); // 调试信息
     console.log('DatabaseService constructor - DB_NAME:', process.env.DB_NAME); // 调试信息
     console.log('DatabaseService constructor - K_SERVICE:', process.env.K_SERVICE); // Cloud Run 环境检测
-    
+
     // 连接配置兼容性处理 // 2025-09-25 23:38:00
     // 2025-10-17T15:15:00 - 添加 Cloud SQL Unix socket 支持
     // 2025-11-24T17:10:00Z Updated by Assistant: 支持 Neon 数据库，统一使用标准 PostgreSQL 连接字符串
@@ -46,7 +46,7 @@ export class DatabaseService {
 
     // 检测是否在 Cloud Run 环境（通过 K_SERVICE 环境变量）
     const isCloudRun = process.env.K_SERVICE;
-    
+
     // 2025-11-30T19:15:00Z Fixed by Assistant: 强制优先使用 DATABASE_URL，完全忽略独立的 DB_USER 等配置
     if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('postgres')) {
       // 检查是否是 Cloud SQL Unix socket 连接（包含 /cloudsql/）
@@ -55,17 +55,17 @@ export class DatabaseService {
         // DATABASE_URL 格式: postgresql://user:password@/database?host=/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME
         const urlMatch = envUrl.match(/postgresql:\/\/([^:]+):([^@]+)@\/([^?]+)/);
         const hostMatch = envUrl.match(/host=([^&]+)/);
-        
+
         if (!urlMatch || !hostMatch) {
           logger.error('Malformed DATABASE_URL for Cloud Run environment. Expected format: postgresql://user:password@/database?host=/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME');
           throw new Error('Invalid DATABASE_URL format for Cloud Run. Could not parse connection string.');
         }
-        
+
         const user = urlMatch[1];
         const password = urlMatch[2];
         const database = urlMatch[3];
         const connectionName = hostMatch[1].replace(/^\/cloudsql\//, ''); // 移除 /cloudsql/ 前缀（如果有）
-        
+
         poolConfig = {
           host: `/cloudsql/${connectionName}`,
           database: database,
@@ -73,10 +73,10 @@ export class DatabaseService {
           password: password,
           // Cloud SQL 通过 Unix socket 连接不需要端口
         };
-        console.log('Using Cloud SQL Unix socket connection:', { 
-          host: `/cloudsql/${connectionName}`, 
-          database, 
-          user, 
+        console.log('Using Cloud SQL Unix socket connection:', {
+          host: `/cloudsql/${connectionName}`,
+          database,
+          user,
           password: '***',
           connectionName: connectionName
         });
@@ -97,8 +97,8 @@ export class DatabaseService {
           // 清理末尾的&或?
           connectionString = connectionString.replace(/[&?]$/, '');
         }
-        
-        poolConfig = { 
+
+        poolConfig = {
           connectionString: connectionString,
           // Neon 需要 SSL
           ssl: envUrl.includes('neon.tech') ? { rejectUnauthorized: false } : undefined
@@ -324,7 +324,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenant.name,
       tenant.domain,
@@ -332,7 +332,7 @@ export class DatabaseService {
       tenant.status,
       JSON.stringify(tenant.settings)
     ]);
-    
+
     return this.mapTenantFromDb(result[0]);
   }
 
@@ -344,7 +344,7 @@ export class DatabaseService {
   async getTenant(tenantId: string): Promise<Tenant | null> {
     const query = 'SELECT * FROM tenants WHERE id = $1';
     const result = await this.query(query, [tenantId]);
-    
+
     return result.length > 0 ? this.mapTenantFromDb(result[0]) : null;
   }
 
@@ -356,7 +356,7 @@ export class DatabaseService {
   async getTenantByDomain(domain: string): Promise<Tenant | null> {
     const query = 'SELECT * FROM tenants WHERE domain = $1';
     const result = await this.query(query, [domain]);
-    
+
     return result.length > 0 ? this.mapTenantFromDb(result[0]) : null;
   }
 
@@ -374,7 +374,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenantId,
       user.email,
@@ -383,7 +383,7 @@ export class DatabaseService {
       JSON.stringify(user.profile),
       user.status
     ]);
-    
+
     return this.mapUserFromDb(result[0]);
   }
 
@@ -396,7 +396,7 @@ export class DatabaseService {
   async getUser(tenantId: string, userId: string): Promise<User | null> {
     const query = 'SELECT * FROM users WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, userId]);
-    
+
     return result.length > 0 ? this.mapUserFromDb(result[0]) : null;
   }
 
@@ -409,7 +409,7 @@ export class DatabaseService {
   async getUserByEmail(tenantId: string, email: string): Promise<User | null> {
     // 2025-11-29T20:45:00 添加详细调试信息，检查数据库连接和查询
     logger.info(`getUserByEmail called: tenantId=${tenantId} (type: ${typeof tenantId}), email=${email}`);
-    
+
     // 首先测试数据库连接，查看实际连接的数据库
     try {
       const dbInfo = await this.query('SELECT current_database() as db, current_user as user');
@@ -417,14 +417,14 @@ export class DatabaseService {
     } catch (error) {
       logger.error(`Failed to get database info: ${error}`);
     }
-    
+
     // 确保 tenantId 是字符串格式的 UUID
     const tenantIdStr = String(tenantId);
-    
+
     // 先测试数据库中是否有任何用户
     const allUsersCount = await this.query('SELECT COUNT(*) as count FROM users');
     logger.info(`Total users in database: ${allUsersCount[0]?.count || 0}`);
-    
+
     // 方法1: 使用 tenant_id::text 进行文本比较
     let query = 'SELECT * FROM users WHERE tenant_id::text = $1 AND email = $2';
     let result = await this.query(query, [tenantIdStr, email]);
@@ -432,14 +432,14 @@ export class DatabaseService {
     if (result.length === 0) {
       logger.warn(`Query: ${query}, params: [${tenantIdStr}, ${email}]`);
     }
-    
+
     // 方法2: 如果方法1失败，尝试直接使用 UUID 比较
     if (result.length === 0) {
       query = 'SELECT * FROM users WHERE tenant_id = $1::uuid AND email = $2';
       result = await this.query(query, [tenantIdStr, email]);
       logger.info(`getUserByEmail query result (method 2 - UUID cast): ${result.length} rows found`);
     }
-    
+
     // 方法3: 如果方法2也失败，先只按邮箱查询
     if (result.length === 0) {
       const emailOnlyResult = await this.query('SELECT id, email, tenant_id::text as tenant_id FROM users WHERE email = $1', [email]);
@@ -460,7 +460,7 @@ export class DatabaseService {
         logger.warn(`No user found with email ${email}. Sample users in DB: ${JSON.stringify(allUsers)}`);
       }
     }
-    
+
     return result.length > 0 ? this.mapUserFromDb(result[0]) : null;
   }
 
@@ -484,49 +484,49 @@ export class DatabaseService {
     // 2025-12-02T18:55:00Z 添加用户列表查询方法，支持分页、搜索、角色筛选
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params || {};
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       whereClause += ` AND (email ILIKE $${paramIndex} OR profile->>'firstName' ILIKE $${paramIndex} OR profile->>'lastName' ILIKE $${paramIndex} OR profile->>'name' ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (filters?.role) {
       whereClause += ` AND role = $${paramIndex}`;
       queryParams.push(filters.role);
       paramIndex++;
     }
-    
+
     if (filters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(filters.status);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM users ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     const allowedSortFields = ['created_at', 'updated_at', 'email', 'role', 'status'];
     const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
     const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    
+
     const dataQuery = `
       SELECT * FROM users 
       ${whereClause}
       ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapUserFromDb(row)),
@@ -558,11 +558,11 @@ export class DatabaseService {
       status: 'status',
       lastLoginAt: 'last_login_at', // 转换为数据库列名
     };
-    
+
     const setClause: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
         const dbFieldName = fieldMapping[key] || key;
@@ -580,23 +580,23 @@ export class DatabaseService {
         paramIndex++;
       }
     });
-    
+
     setClause.push(`updated_at = CURRENT_TIMESTAMP`);
-    
+
     const query = `
       UPDATE users 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
       RETURNING *
     `;
-    
+
     queryParams.push(tenantId, userId);
     const result = await this.query(query, queryParams);
-    
+
     if (result.length === 0) {
       throw new Error('User not found');
     }
-    
+
     return this.mapUserFromDb(result[0]);
   }
 
@@ -614,7 +614,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenantId,
       rule.name,
@@ -625,7 +625,7 @@ export class DatabaseService {
       JSON.stringify(rule.actions),
       rule.status
     ]);
-    
+
     return this.mapRuleFromDb(result[0]);
   }
 
@@ -638,7 +638,7 @@ export class DatabaseService {
   async getRule(tenantId: string, ruleId: string): Promise<Rule | null> {
     const query = 'SELECT * FROM rules WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, ruleId]);
-    
+
     return result.length > 0 ? this.mapRuleFromDb(result[0]) : null;
   }
 
@@ -653,7 +653,7 @@ export class DatabaseService {
       WHERE tenant_id = $1 AND status = 'active' 
       ORDER BY priority ASC, created_at ASC
     `;
-    
+
     const result = await this.query(query, [tenantId]);
     return result.map(row => this.mapRuleFromDb(row));
   }
@@ -668,34 +668,34 @@ export class DatabaseService {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const typedFilters = filters as { type?: string; status?: string; };
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       whereClause += ` AND (name ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (typedFilters?.type) {
       whereClause += ` AND type = $${paramIndex}`;
       queryParams.push(typedFilters.type);
       paramIndex++;
     }
-    
+
     if (typedFilters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(typedFilters.status);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM rules ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     const dataQuery = `
       SELECT * FROM rules 
@@ -703,10 +703,10 @@ export class DatabaseService {
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapRuleFromDb(row)),
@@ -732,7 +732,7 @@ export class DatabaseService {
     const setClause: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
         if (key === 'conditions' || key === 'actions') {
@@ -745,23 +745,23 @@ export class DatabaseService {
         paramIndex++;
       }
     });
-    
+
     setClause.push(`updated_at = CURRENT_TIMESTAMP`);
-    
+
     const query = `
       UPDATE rules 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
       RETURNING *
     `;
-    
+
     queryParams.push(tenantId, ruleId);
     const result = await this.query(query, queryParams);
-    
+
     if (result.length === 0) {
       throw new Error('Rule not found');
     }
-    
+
     return this.mapRuleFromDb(result[0]);
   }
 
@@ -773,7 +773,7 @@ export class DatabaseService {
   async deleteRule(tenantId: string, ruleId: string): Promise<void> {
     const query = 'DELETE FROM rules WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, ruleId]);
-    
+
     if (result.length === 0) {
       throw new Error('Rule not found');
     }
@@ -792,7 +792,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       execution.tenantId,
       execution.ruleId,
@@ -800,7 +800,7 @@ export class DatabaseService {
       JSON.stringify(execution.result),
       execution.executionTime
     ]);
-    
+
     return this.mapRuleExecutionFromDb(result[0]);
   }
 
@@ -816,19 +816,19 @@ export class DatabaseService {
     let whereClause = 'WHERE tenant_id = $1 AND rule_id = $2';
     const queryParams: any[] = [tenantId, ruleId];
     let paramIndex = 3;
-    
+
     if (startDate) {
       whereClause += ` AND created_at >= $${paramIndex}`;
       queryParams.push(startDate);
       paramIndex++;
     }
-    
+
     if (endDate) {
       whereClause += ` AND created_at <= $${paramIndex}`;
       queryParams.push(endDate);
       paramIndex++;
     }
-    
+
     const query = `
       SELECT 
         COUNT(*) as total_executions,
@@ -840,7 +840,7 @@ export class DatabaseService {
       FROM rule_executions 
       ${whereClause}
     `;
-    
+
     const result = await this.query(query, queryParams);
     return result[0];
   }
@@ -914,12 +914,15 @@ export class DatabaseService {
    */
   async createCustomer(tenantId: string, customer: Omit<Customer, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
     // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内名称是否已存在
+    // 2025-12-23 Modified: 如果重名，自动添加时间戳后缀
+    let finalCustomerName = customer.name;
     const existingName = await this.query(
       'SELECT id FROM customers WHERE tenant_id = $1 AND name = $2',
-      [tenantId, customer.name]
+      [tenantId, finalCustomerName]
     );
+
     if (existingName.length > 0) {
-      throw new Error(`客户名称 "${customer.name}" 在同一租户内已存在`);
+      finalCustomerName = `${finalCustomerName}_${Date.now()}`;
     }
 
     // 2025-12-19 12:00:00 修复：email 可能来自 contactInfo.email；空字符串必须视为 null
@@ -946,7 +949,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
-    
+
     // 从 contactInfo/email 中提取 email（规范化后）；空值入库为 NULL，避免触发 UNIQUE(tenant_id, email)
     // 2025-12-19 12:00:00 修复：之前使用 '' 会导致同租户内第二个“无邮箱客户”直接数据库冲突 -> 500
     const contactInfo = (customer as any)?.contactInfo ? { ...(customer as any).contactInfo } : {};
@@ -961,8 +964,8 @@ export class DatabaseService {
     try {
       result = await this.query(query, [
         tenantId,
-        customer.name,
-        customer.level,
+        finalCustomerName, // Use the potentially renamed value
+        customer.level || 'standard', // 2025-12-19 修复：为level提供默认值，避免NOT NULL约束失败
         normalizedEmail, // NULL when absent
         JSON.stringify(contactInfo || {}),
         customer.billingInfo ? JSON.stringify(customer.billingInfo) : null
@@ -974,7 +977,7 @@ export class DatabaseService {
       }
       throw error;
     }
-    
+
     return this.mapCustomerFromDb(result[0]);
   }
 
@@ -987,7 +990,7 @@ export class DatabaseService {
   async getCustomer(tenantId: string, customerId: string): Promise<Customer | null> {
     const query = 'SELECT * FROM customers WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, customerId]);
-    
+
     return result.length > 0 ? this.mapCustomerFromDb(result[0]) : null;
   }
 
@@ -1000,45 +1003,45 @@ export class DatabaseService {
   async getCustomers(tenantId: string, params: QueryParams): Promise<PaginatedResponse<Customer>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       // 2025-11-30T12:55:00Z Fixed by Assistant: 修复搜索查询，同时搜索 name、email 字段和 contact_info JSONB 字段
       whereClause += ` AND (name ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR contact_info->>'email' ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (filters?.level) {
       whereClause += ` AND level = $${paramIndex}`;
       queryParams.push(filters.level);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM customers ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     // 2025-11-30T12:55:00Z Fixed by Assistant: 验证排序字段，防止SQL注入
     const allowedSortFields = ['created_at', 'updated_at', 'name', 'level'];
     const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
     const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    
+
     const dataQuery = `
       SELECT * FROM customers 
       ${whereClause}
       ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapCustomerFromDb(row)),
@@ -1091,7 +1094,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    
+
     let result: any[];
     try {
       result = await this.query(query, [
@@ -1110,7 +1113,7 @@ export class DatabaseService {
       }
       throw error;
     }
-    
+
     return this.mapDriverFromDb(result[0]);
   }
 
@@ -1187,7 +1190,7 @@ export class DatabaseService {
     `;
 
     const result = await this.query(query, values);
-    
+
     if (result.length === 0) {
       return null;
     }
@@ -1204,7 +1207,7 @@ export class DatabaseService {
   async getDriver(tenantId: string, driverId: string): Promise<Driver | null> {
     const query = 'SELECT * FROM drivers WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, driverId]);
-    
+
     return result.length > 0 ? this.mapDriverFromDb(result[0]) : null;
   }
 
@@ -1217,44 +1220,44 @@ export class DatabaseService {
   async getDrivers(tenantId: string, params: QueryParams): Promise<PaginatedResponse<Driver>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       whereClause += ` AND (name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (filters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(filters.status);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM drivers ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     // 2025-11-30T13:00:00Z Fixed by Assistant: 验证排序字段，防止SQL注入
     const allowedSortFields = ['created_at', 'updated_at', 'name', 'phone', 'status'];
     const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
     const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    
+
     const dataQuery = `
       SELECT * FROM drivers 
       ${whereClause}
       ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapDriverFromDb(row)),
@@ -1325,14 +1328,14 @@ export class DatabaseService {
     const pickupAddr = shipment.pickupAddress as any;
     const deliveryAddr = shipment.deliveryAddress as any;
     // shipmentAny 已在上面声明，无需重复声明
-    
+
     // 2025-12-10T19:00:00Z Added by Assistant: 处理计费模式和时间段字段
     const pricingMode = (shipment as any).pricingMode || null;
     const pickupAt = (shipment as any).pickupAt ? new Date((shipment as any).pickupAt) : null;
     const deliveryAt = (shipment as any).deliveryAt ? new Date((shipment as any).deliveryAt) : null;
     const pickupWindow = (shipment as any).pickupWindow ? JSON.stringify((shipment as any).pickupWindow) : null;
     const deliveryWindow = (shipment as any).deliveryWindow ? JSON.stringify((shipment as any).deliveryWindow) : null;
-    
+
     const query = `
       INSERT INTO shipments (
         tenant_id, shipment_number, customer_id, driver_id, 
@@ -1346,7 +1349,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenantId,
       shipment.shipmentNumber,
@@ -1384,7 +1387,7 @@ export class DatabaseService {
       pickupWindow,
       deliveryWindow,
     ]);
-    
+
     return this.mapShipmentFromDb(result[0]);
   }
 
@@ -1397,7 +1400,7 @@ export class DatabaseService {
   async getShipment(tenantId: string, shipmentId: string): Promise<Shipment | null> {
     const query = 'SELECT * FROM shipments WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, shipmentId]);
-    
+
     return result.length > 0 ? this.mapShipmentFromDb(result[0]) : null;
   }
 
@@ -1408,7 +1411,7 @@ export class DatabaseService {
   async getShipmentByDriver(shipmentId: string, driverId: string): Promise<Shipment | null> {
     const query = 'SELECT * FROM shipments WHERE id = $1 AND driver_id = $2';
     const result = await this.query(query, [shipmentId, driverId]);
-    
+
     return result.length > 0 ? this.mapShipmentFromDb(result[0]) : null;
   }
 
@@ -1421,17 +1424,17 @@ export class DatabaseService {
   async getShipments(tenantId: string, params: QueryParams): Promise<PaginatedResponse<Shipment>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       whereClause += ` AND (shipment_number ILIKE $${paramIndex} OR cargo_info->>'description' ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (filters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(filters.status);
@@ -1443,7 +1446,7 @@ export class DatabaseService {
       queryParams.push(`%${filters.shipmentNumber}%`);
       paramIndex++;
     }
-    
+
     if (filters?.customerId) {
       whereClause += ` AND customer_id = $${paramIndex}`;
       queryParams.push(filters.customerId);
@@ -1455,46 +1458,46 @@ export class DatabaseService {
       queryParams.push(filters.customerPhone);
       paramIndex++;
     }
-    
+
     if (filters?.driverId) {
       whereClause += ` AND driver_id = $${paramIndex}`;
       queryParams.push(filters.driverId);
       paramIndex++;
     }
-    
+
     if (filters?.startDate) {
       whereClause += ` AND created_at >= $${paramIndex}`;
       queryParams.push(filters.startDate);
       paramIndex++;
     }
-    
+
     if (filters?.endDate) {
       whereClause += ` AND created_at <= $${paramIndex}`;
       queryParams.push(filters.endDate);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM shipments ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     // 2025-11-30T13:00:00Z Fixed by Assistant: 验证排序字段，防止SQL注入
     const allowedSortFields = ['created_at', 'updated_at', 'shipment_number', 'status', 'estimated_pickup_date', 'estimated_delivery_date'];
     const safeSort = allowedSortFields.includes(sort) ? sort : 'created_at';
     const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    
+
     const dataQuery = `
       SELECT * FROM shipments 
       ${whereClause}
       ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapShipmentFromDb(row)),
@@ -1520,7 +1523,7 @@ export class DatabaseService {
     const setClause: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     // 字段名映射：TypeScript字段名 -> 数据库列名 // 2025-09-27 03:05:00
     const fieldMapping: Record<string, string> = {
       shipmentNumber: 'shipment_number',
@@ -1539,7 +1542,7 @@ export class DatabaseService {
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
         const dbFieldName = fieldMapping[key] || key;
-        
+
         if (['pickupAddress', 'deliveryAddress', 'cargoInfo', 'additionalFees', 'appliedRules', 'timeline'].includes(key)) {
           setClause.push(`${dbFieldName} = $${paramIndex}`);
           queryParams.push(JSON.stringify(value));
@@ -1550,23 +1553,23 @@ export class DatabaseService {
         paramIndex++;
       }
     });
-    
+
     setClause.push(`updated_at = CURRENT_TIMESTAMP`);
-    
+
     const query = `
       UPDATE shipments 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
       RETURNING *
     `;
-    
+
     queryParams.push(tenantId, shipmentId);
     const result = await this.query(query, queryParams);
-    
+
     if (result.length === 0) {
       throw new Error('Shipment not found');
     }
-    
+
     return this.mapShipmentFromDb(result[0]);
   }
 
@@ -1584,7 +1587,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenantId,
       record.type,
@@ -1596,7 +1599,7 @@ export class DatabaseService {
       record.paidAt,
       record.description
     ]);
-    
+
     return this.mapFinancialRecordFromDb(result[0]);
   }
 
@@ -1611,19 +1614,19 @@ export class DatabaseService {
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (startDate) {
       whereClause += ` AND created_at >= $${paramIndex}`;
       queryParams.push(startDate);
       paramIndex++;
     }
-    
+
     if (endDate) {
       whereClause += ` AND created_at <= $${paramIndex}`;
       queryParams.push(endDate);
       paramIndex++;
     }
-    
+
     const query = `
       SELECT 
         COUNT(*) as total,
@@ -1642,7 +1645,7 @@ export class DatabaseService {
       FROM shipments 
       ${whereClause}
     `;
-    
+
     const result = await this.query(query, queryParams);
     return result[0];
   }
@@ -1664,7 +1667,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenantId,
       statement.type,
@@ -1677,7 +1680,7 @@ export class DatabaseService {
       statement.generatedAt,
       statement.generatedBy
     ]);
-    
+
     return this.mapStatementFromDb(result[0]);
   }
 
@@ -1690,7 +1693,7 @@ export class DatabaseService {
   async getStatement(tenantId: string, statementId: string): Promise<Statement | null> {
     const query = 'SELECT * FROM statements WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, statementId]);
-    
+
     return result.length > 0 ? this.mapStatementFromDb(result[0]) : null;
   }
 
@@ -1703,40 +1706,40 @@ export class DatabaseService {
   async getStatements(tenantId: string, params: QueryParams): Promise<PaginatedResponse<Statement>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       whereClause += ` AND (reference_id ILIKE $${paramIndex} OR generated_by ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (filters?.type) {
       whereClause += ` AND type = $${paramIndex}`;
       queryParams.push(filters.type);
       paramIndex++;
     }
-    
+
     if (filters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(filters.status);
       paramIndex++;
     }
-    
+
     if (filters?.referenceId) {
       whereClause += ` AND reference_id = $${paramIndex}`;
       queryParams.push(filters.referenceId);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM statements ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     const dataQuery = `
       SELECT * FROM statements 
@@ -1744,10 +1747,10 @@ export class DatabaseService {
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapStatementFromDb(row)),
@@ -1773,7 +1776,7 @@ export class DatabaseService {
     const setClause: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
         if (key === 'items') {
@@ -1791,23 +1794,23 @@ export class DatabaseService {
         paramIndex++;
       }
     });
-    
+
     setClause.push(`updated_at = CURRENT_TIMESTAMP`);
-    
+
     const query = `
       UPDATE statements 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
       RETURNING *
     `;
-    
+
     queryParams.push(tenantId, statementId);
     const result = await this.query(query, queryParams);
-    
+
     if (result.length === 0) {
       throw new Error('Statement not found');
     }
-    
+
     return this.mapStatementFromDb(result[0]);
   }
 
@@ -1822,52 +1825,52 @@ export class DatabaseService {
   async getFinancialRecords(tenantId: string, params: QueryParams): Promise<PaginatedResponse<FinancialRecord>> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (search) {
       whereClause += ` AND (description ILIKE $${paramIndex} OR reference_id ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     if (filters?.type) {
       whereClause += ` AND type = $${paramIndex}`;
       queryParams.push(filters.type);
       paramIndex++;
     }
-    
+
     if (filters?.status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(filters.status);
       paramIndex++;
     }
-    
+
     if (filters?.referenceId) {
       whereClause += ` AND reference_id = $${paramIndex}`;
       queryParams.push(filters.referenceId);
       paramIndex++;
     }
-    
+
     if (filters?.startDate) {
       whereClause += ` AND created_at >= $${paramIndex}`;
       queryParams.push(filters.startDate);
       paramIndex++;
     }
-    
+
     if (filters?.endDate) {
       whereClause += ` AND created_at <= $${paramIndex}`;
       queryParams.push(filters.endDate);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM financial_records ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     const dataQuery = `
       SELECT * FROM financial_records 
@@ -1875,10 +1878,10 @@ export class DatabaseService {
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapFinancialRecordFromDb(row)),
@@ -1904,7 +1907,7 @@ export class DatabaseService {
     const setClause: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
         setClause.push(`${key} = $${paramIndex}`);
@@ -1912,23 +1915,23 @@ export class DatabaseService {
         paramIndex++;
       }
     });
-    
+
     setClause.push(`updated_at = CURRENT_TIMESTAMP`);
-    
+
     const query = `
       UPDATE financial_records 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
       RETURNING *
     `;
-    
+
     queryParams.push(tenantId, recordId);
     const result = await this.query(query, queryParams);
-    
+
     if (result.length === 0) {
       throw new Error('Financial record not found');
     }
-    
+
     return this.mapFinancialRecordFromDb(result[0]);
   }
 
@@ -1949,7 +1952,7 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [
       tenantId,
       trip.tripNo,
@@ -1962,7 +1965,7 @@ export class DatabaseService {
       trip.endTimePlanned,
       trip.routePath ? JSON.stringify(trip.routePath) : null
     ]);
-    
+
     return this.mapTripFromDb(result[0]);
   }
 
@@ -1975,7 +1978,7 @@ export class DatabaseService {
   async getTrip(tenantId: string, tripId: string): Promise<any | null> {
     const query = 'SELECT * FROM trips WHERE tenant_id = $1 AND id = $2';
     const result = await this.query(query, [tenantId, tripId]);
-    
+
     return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
   }
 
@@ -1988,18 +1991,18 @@ export class DatabaseService {
   async getTrips(tenantId: string, params: any): Promise<any> {
     const { page = 1, limit = 20, sort = 'created_at', order = 'desc', search, filters } = params;
     const offset = (page - 1) * limit;
-    
+
     // trips 表没有 tenant_id 字段，所以不使用租户过滤 // 2025-10-17T21:25:00
     let whereClause = '';
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     if (search) {
       whereClause += ` WHERE (status ILIKE $${paramIndex})`;
       queryParams.push(`%${search || ''}%`);
       paramIndex++;
     }
-    
+
     // 2025-11-30 02:35:00 修复：支持状态数组过滤（用于查询多个状态的行程）
     if (filters?.status) {
       if (Array.isArray(filters.status) && filters.status.length > 0) {
@@ -2015,24 +2018,24 @@ export class DatabaseService {
         paramIndex++;
       }
     }
-    
+
     if (filters?.driverId) {
       whereClause += whereClause ? ` AND driver_id = $${paramIndex}` : ` WHERE driver_id = $${paramIndex}`;
       queryParams.push(filters.driverId);
       paramIndex++;
     }
-    
+
     if (filters?.vehicleId) {
       whereClause += whereClause ? ` AND vehicle_id = $${paramIndex}` : ` WHERE vehicle_id = $${paramIndex}`;
       queryParams.push(filters.vehicleId);
       paramIndex++;
     }
-    
+
     // 获取总数
     const countQuery = `SELECT COUNT(*) FROM trips ${whereClause}`;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
-    
+
     // 获取数据
     const dataQuery = `
       SELECT * FROM trips 
@@ -2040,10 +2043,10 @@ export class DatabaseService {
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     const dataResult = await this.query(dataQuery, queryParams);
-    
+
     return {
       success: true,
       data: dataResult.map(row => this.mapTripFromDb(row)),
@@ -2129,14 +2132,14 @@ export class DatabaseService {
       // 获取当前行程
       const tripQuery = 'SELECT * FROM trips WHERE tenant_id = $1 AND id = $2';
       const tripResult = await client.query(tripQuery, [tenantId, tripId]);
-      
+
       if (tripResult.rows.length === 0) {
         throw new Error('Trip not found');
       }
 
       const currentTrip = tripResult.rows[0];
       const currentShipments = currentTrip.shipments || [];
-      
+
       // 合并运单ID
       const updatedShipments = [...new Set([...currentShipments, ...shipmentIds])];
 
@@ -2147,7 +2150,7 @@ export class DatabaseService {
         WHERE tenant_id = $1 AND id = $2
         RETURNING *
       `;
-      
+
       const updateResult = await client.query(updateQuery, [
         tenantId,
         tripId,
@@ -2178,7 +2181,7 @@ export class DatabaseService {
       WHERE tenant_id = $1 AND id = $2
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [tenantId, tripId, status]);
     return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
   }
@@ -2354,7 +2357,7 @@ export class DatabaseService {
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
     `;
-    
+
     const result = await this.query(query, [limit, offset]);
     return result;
   }
@@ -2366,22 +2369,22 @@ export class DatabaseService {
    * @returns 车辆列表
    */
   async getVehiclesByTenant(
-    tenantId: string, 
+    tenantId: string,
     params: { page?: number; limit?: number; status?: string }
   ): Promise<any[]> {
     const { page = 1, limit = 50, status } = params;
     const offset = (page - 1) * limit;
-    
+
     let whereClause = 'WHERE tenant_id = $1';
     const queryParams: any[] = [tenantId];
     let paramIndex = 2;
-    
+
     if (status) {
       whereClause += ` AND status = $${paramIndex}`;
       queryParams.push(status);
       paramIndex++;
     }
-    
+
     const query = `
       SELECT 
         id,
@@ -2396,7 +2399,7 @@ export class DatabaseService {
       ORDER BY created_at DESC 
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     queryParams.push(limit, offset);
     return await this.query(query, queryParams);
   }
@@ -2446,7 +2449,7 @@ export class DatabaseService {
         created_at as "createdAt",
         updated_at as "updatedAt"
     `;
-    
+
     let result: any[];
     try {
       result = await this.query(query, [
@@ -2463,7 +2466,7 @@ export class DatabaseService {
       }
       throw error;
     }
-    
+
     return result[0];
   }
 
@@ -2514,7 +2517,7 @@ export class DatabaseService {
         created_at as "createdAt",
         updated_at as "updatedAt"
     `;
-    
+
     const result = await this.query(query, [
       vehicle.plateNumber,
       vehicle.vehicleType,
@@ -2522,11 +2525,11 @@ export class DatabaseService {
       vehicle.status,
       id
     ]);
-    
+
     if (result.length === 0) {
       throw new Error('Vehicle not found');
     }
-    
+
     return result[0];
   }
 
@@ -2706,9 +2709,9 @@ export class DatabaseService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *
     `;
-    
+
     const id = `currency_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const result = await this.query(query, [
       id,
       tenantId,
@@ -2719,7 +2722,7 @@ export class DatabaseService {
       currency.isDefault,
       currency.isActive
     ]);
-    
+
     return result[0];
   }
 

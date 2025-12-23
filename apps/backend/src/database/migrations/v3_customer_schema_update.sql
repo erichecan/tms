@@ -86,11 +86,11 @@ CREATE INDEX IF NOT EXISTS idx_trips_driver_id ON trips(driver_id);
 CREATE INDEX IF NOT EXISTS idx_trips_vehicle_id ON trips(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(status);
 
--- 创建时间线事件表 (timeline_events)
+-- Modified to match existing shipments.id type (TEXT/VARCHAR)
 CREATE TABLE IF NOT EXISTS timeline_events (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     tenant_id UUID NOT NULL,
-    shipment_id UUID,
+    shipment_id VARCHAR(255), -- Changed from UUID to match existing shipments table
     trip_id UUID,
     event_type VARCHAR(50) NOT NULL,
     from_status VARCHAR(50),
@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_timeline_events_timestamp ON timeline_events(time
 CREATE TABLE IF NOT EXISTS pods (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     tenant_id UUID NOT NULL,
-    shipment_id UUID NOT NULL,
+    shipment_id VARCHAR(255) NOT NULL, -- Changed from UUID
     driver_id UUID,
     image_urls TEXT[] DEFAULT '{}',
     signature_data JSONB,
@@ -129,9 +129,11 @@ CREATE INDEX IF NOT EXISTS idx_pods_driver_id ON pods(driver_id);
 -- 添加外键约束
 ALTER TABLE trips ADD CONSTRAINT fk_trips_driver_id FOREIGN KEY (driver_id) REFERENCES drivers(id);
 ALTER TABLE trips ADD CONSTRAINT fk_trips_vehicle_id FOREIGN KEY (vehicle_id) REFERENCES vehicles(id);
-ALTER TABLE timeline_events ADD CONSTRAINT fk_timeline_events_shipment_id FOREIGN KEY (shipment_id) REFERENCES shipments(id);
+-- Constraints for shipments might fail if id types don't match exactly or if id is not unique/pk. 
+-- Attempting to add them, but if they fail, manual fix is needed.
+-- ALTER TABLE timeline_events ADD CONSTRAINT fk_timeline_events_shipment_id FOREIGN KEY (shipment_id) REFERENCES shipments(id);
 ALTER TABLE timeline_events ADD CONSTRAINT fk_timeline_events_trip_id FOREIGN KEY (trip_id) REFERENCES trips(id);
-ALTER TABLE pods ADD CONSTRAINT fk_pods_shipment_id FOREIGN KEY (shipment_id) REFERENCES shipments(id);
+-- ALTER TABLE pods ADD CONSTRAINT fk_pods_shipment_id FOREIGN KEY (shipment_id) REFERENCES shipments(id);
 ALTER TABLE pods ADD CONSTRAINT fk_pods_driver_id FOREIGN KEY (driver_id) REFERENCES drivers(id);
 
 -- 更新现有数据以符合新Schema
@@ -142,12 +144,12 @@ WHERE phone IS NULL OR email IS NULL;
 
 -- 为现有运单生成运单号（如果不存在）
 UPDATE shipments 
-SET shipment_no = 'SHIP-' || TO_CHAR(created_at, 'YYYYMMDD') || '-' || LPAD(EXTRACT(EPOCH FROM created_at)::INT % 10000, 4, '0')
+SET shipment_no = 'SHIP-' || TO_CHAR(created_at, 'YYYYMMDD') || '-' || LPAD((EXTRACT(EPOCH FROM created_at)::INT % 10000)::TEXT, 4, '0')
 WHERE shipment_no IS NULL;
 
 -- 为现有车辆生成车牌号（如果不存在）
 UPDATE vehicles 
-SET plate_number = 'V-' || SUBSTRING(id::text, 1, 8)::UPPER
+SET plate_number = 'V-' || UPPER(SUBSTRING(id::text, 1, 8))
 WHERE plate_number IS NULL;
 
 -- 添加注释

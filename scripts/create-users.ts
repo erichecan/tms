@@ -58,7 +58,7 @@ const usersToCreate = [
 
 async function createUsers() {
   const dbService = new DatabaseService();
-  
+
   try {
     console.log('正在连接数据库...\n');
 
@@ -69,8 +69,8 @@ async function createUsers() {
       tenant = await dbService.getTenantByDomain('default');
       if (!tenant) {
         // 获取所有租户中的第一个
-        const allTenants = await dbService.getTenantByDomain('demo.tms-platform.com') || 
-                          await dbService.getTenantByDomain('default');
+        const allTenants = await dbService.getTenantByDomain('demo.tms-platform.com') ||
+          await dbService.getTenantByDomain('default');
         if (!allTenants) {
           // 尝试通过直接查询获取
           const tenants = await (dbService as any).query('SELECT * FROM tenants LIMIT 1');
@@ -94,14 +94,17 @@ async function createUsers() {
       try {
         // 检查用户是否已存在
         const existingUser = await dbService.getUserByEmail(tenant.id, userData.email);
-        if (existingUser) {
-          console.log(`⚠️  用户 ${userData.email} 已存在，跳过创建`);
-          continue;
-        }
-
-        // 加密密码
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(userData.password, saltRounds);
+
+        if (existingUser) {
+          console.log(`⚠️  用户 ${userData.email} 已存在，更新密码...`);
+          await dbService.updateUser(tenant.id, existingUser.id, {
+            passwordHash: passwordHash
+          });
+          console.log(`✓ 密码更新成功: ${userData.email}`);
+          continue;
+        }
 
         // 创建用户
         const user = await dbService.createUser(tenant.id, {
