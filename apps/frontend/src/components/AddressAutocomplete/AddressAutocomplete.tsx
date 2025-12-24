@@ -9,7 +9,8 @@
 // ============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Input, message } from 'antd';
+import { Input } from 'antd';
+import type { InputRef } from 'antd';
 import { EnvironmentOutlined } from '@ant-design/icons';
 import mapsService from '../../services/mapsService';
 import { AddressInfo } from '../../types/maps';
@@ -29,8 +30,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   disabled = false,
   onAddressSelected,
 }) => {
-  // 2025-11-24T18:15:00Z Updated by Assistant: 修复类型，使用 HTMLInputElement 而不是 any
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<InputRef>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
@@ -38,21 +38,22 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       try {
         // 初始化地图服务
         await mapsService.initialize();
-        
+
         if (!inputRef.current?.input) {
-          console.warn('输入框未就绪');
           return;
         }
 
-        const maps = mapsService.getMaps();
-        console.log('Google Maps API loaded:', maps);
-        
+        if (!mapsService.isReady() || !window.google?.maps?.places) {
+          console.warn('⚠️ [AddressAutocomplete] Google Maps Places API 未就绪，自动完成功能将不可用');
+          return;
+        }
+
         // 创建自动完成实例
         const autocompleteInstance = new google.maps.places.Autocomplete(
           inputRef.current.input,
           {
             types: ['address'],
-            componentRestrictions: { country: 'ca' }, // 限制为加拿大
+            componentRestrictions: { country: 'ca' },
             fields: ['formatted_address', 'geometry', 'address_components', 'place_id'],
           }
         );
@@ -60,9 +61,9 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         // 监听地址选择事件
         autocompleteInstance.addListener('place_changed', async () => {
           const place = autocompleteInstance.getPlace();
-          
+
           if (!place.geometry || !place.geometry.location) {
-            message.warning('无法获取该地址的位置信息');
+            console.warn('无法获取该地址的位置信息');
             return;
           }
 
@@ -95,8 +96,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
         setAutocomplete(autocompleteInstance);
       } catch (error) {
-        console.error('初始化地址自动完成失败:', error);
-        message.error('地图服务初始化失败，请刷新页面重试');
+        console.warn('⚠️ [AddressAutocomplete] 初始化地址自动完成跳过:', error);
       }
     };
 
@@ -108,7 +108,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         google.maps.event.clearInstanceListeners(autocomplete);
       }
     };
-  }, [onChange, onAddressSelected]); // 2025-12-02T10:30:00Z Fixed by Assistant: 添加依赖项
+  }, []); // 2025-12-24 Fixed: Ensure initialization only runs once to prevent listener leaks and re-rendering loops.
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange?.(e.target.value);

@@ -14,6 +14,16 @@ import {
   PricingTemplateTestRequest,
   ShipmentContext
 } from '@tms/shared-types';
+import { v4 as uuidv4 } from 'uuid';
+
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  const id = (Array.isArray(requestId) ? requestId[0] : requestId) || uuidv4();
+  // 设置到请求对象上，方便后续透传
+  (req as any).requestId = id;
+  return id;
+};
 
 export class PricingEngineController {
   private pricingService: PricingEngineService;
@@ -33,19 +43,22 @@ export class PricingEngineController {
    */
   async getTemplates(req: Request, res: Response): Promise<void> {
     try {
-      logger.info('获取计费模板列表请求');
-      
+      const requestId = getRequestId(req);
+      logger.info(`[${requestId}] 获取计费模板列表请求`);
+
       const templates = await this.pricingService.getPricingTemplates();
-      
+
       res.status(200).json({
         success: true,
         data: templates,
         count: templates.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error('获取计费模板列表失败', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 获取计费模板列表失败`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -53,7 +66,8 @@ export class PricingEngineController {
           message: '获取计费模板列表失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }
@@ -64,30 +78,35 @@ export class PricingEngineController {
    */
   async getTemplateById(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const templateId = req.params.id;
-      
+
       if (!templateId) {
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
             message: '模板ID不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
 
-      logger.info(`获取计费模板详情请求: ${templateId}`);
-      
+      logger.info(`[${requestId}] 获取计费模板详情请求: ${templateId}`);
+
       const template = await this.pricingService.getPricingTemplateById(templateId);
-      
+
       if (!template) {
         res.status(404).json({
           success: false,
           error: {
             code: 'TEMPLATE_NOT_FOUND',
             message: `模板 ${templateId} 不存在`
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -95,11 +114,13 @@ export class PricingEngineController {
       res.status(200).json({
         success: true,
         data: template,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error(`获取计费模板失败: ${req.params.id}`, error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 获取计费模板失败: ${req.params.id}`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -107,7 +128,8 @@ export class PricingEngineController {
           message: '获取计费模板失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }
@@ -118,9 +140,10 @@ export class PricingEngineController {
    */
   async createTemplate(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const templateData: PricingTemplateCreateRequest = req.body;
-      
-      logger.info('创建计费模板请求', {
+
+      logger.info(`[${requestId}] 创建计费模板请求`, {
         name: templateData.name,
         type: templateData.type
       });
@@ -132,7 +155,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '模板名称和类型不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -159,11 +184,13 @@ export class PricingEngineController {
         success: true,
         data: newTemplate,
         message: '计费模板创建成功',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error('创建计费模板失败', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 创建计费模板失败`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -171,7 +198,8 @@ export class PricingEngineController {
           message: '创建计费模板失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }
@@ -182,10 +210,11 @@ export class PricingEngineController {
    */
   async updateTemplate(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const templateId = req.params.id;
       const updateData: PricingTemplateUpdateRequest = req.body;
-      
-      logger.info(`更新计费模板请求: ${templateId}`);
+
+      logger.info(`[${requestId}] 更新计费模板请求: ${templateId}`);
 
       if (!templateId) {
         res.status(400).json({
@@ -193,7 +222,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '模板ID不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -204,11 +235,13 @@ export class PricingEngineController {
         success: true,
         data: { id: templateId, ...updateData, updatedAt: new Date().toISOString() },
         message: '计费模板更新成功',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error(`更新计费模板失败: ${req.params.id}`, error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 更新计费模板失败: ${req.params.id}`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -216,7 +249,8 @@ export class PricingEngineController {
           message: '更新计费模板失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }
@@ -231,9 +265,10 @@ export class PricingEngineController {
    */
   async calculatePricing(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const calculationRequest: PricingCalculationRequest = req.body;
-      
-      logger.info('执行计费计算请求', {
+
+      logger.info(`[${requestId}] 执行计费计算请求`, {
         shipmentId: calculationRequest.shipmentContext.shipmentId,
         templateId: calculationRequest.templateId || 'auto-detect'
       });
@@ -245,7 +280,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '运单上下文信息不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -259,12 +296,14 @@ export class PricingEngineController {
       res.status(200).json({
         success: true,
         data: calculation,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error('计费计算失败', error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 计费计算失败`, error);
+
       // 2025-10-01 14:52:45 使用通用错误形状判断，避免依赖具体类
       if ((error as any)?.code) {
         res.status(400).json({
@@ -274,7 +313,8 @@ export class PricingEngineController {
             message: (error as Error).message,
             details: (error as any).details
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          requestId
         });
       } else {
         res.status(500).json({
@@ -284,7 +324,8 @@ export class PricingEngineController {
             message: '计费计算失败',
             details: error instanceof Error ? error.message : 'Unknown error'
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          requestId
         });
       }
     }
@@ -296,9 +337,10 @@ export class PricingEngineController {
    */
   async previewPricing(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const previewRequest: { shipmentContext: ShipmentContext } = req.body;
-      
-      logger.info('预览计费结果请求', {
+
+      logger.info(`[${requestId}] 预览计费结果请求`, {
         shipmentId: previewRequest.shipmentContext.shipmentId
       });
 
@@ -308,7 +350,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '运单上下文信息不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -321,12 +365,14 @@ export class PricingEngineController {
       res.status(200).json({
         success: true,
         data: preview,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error('预览计费结果失败', error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 预览计费结果失败`, error);
+
       if ((error as any)?.code) {
         res.status(400).json({
           success: false,
@@ -335,7 +381,8 @@ export class PricingEngineController {
             message: (error as Error).message,
             details: (error as any).details
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          requestId
         });
       } else {
         res.status(500).json({
@@ -345,7 +392,8 @@ export class PricingEngineController {
             message: '预览计费结果失败',
             details: error instanceof Error ? error.message : 'Unknown error'
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          requestId
         });
       }
     }
@@ -357,9 +405,10 @@ export class PricingEngineController {
    */
   async recalculateShipment(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const shipmentId = req.params.shipmentId;
-      
-      logger.info(`重新计算运单费用请求: ${shipmentId}`);
+
+      logger.info(`[${requestId}] 重新计算运单费用请求: ${shipmentId}`);
 
       if (!shipmentId) {
         res.status(400).json({
@@ -367,7 +416,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '运单ID不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -379,12 +430,14 @@ export class PricingEngineController {
         success: true,
         data: calculation,
         message: `运单 ${shipmentId} 费用重新计算完成`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error(`重新计算运单费用失败: ${req.params.shipmentId}`, error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 重新计算运单费用失败: ${req.params.shipmentId}`, error);
+
       if ((error as any)?.code) {
         res.status(400).json({
           success: false,
@@ -393,7 +446,8 @@ export class PricingEngineController {
             message: (error as Error).message,
             details: (error as any).details
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          requestId
         });
       } else {
         res.status(500).json({
@@ -403,7 +457,8 @@ export class PricingEngineController {
             message: '重新计算运单费用失败',
             details: error instanceof Error ? error.message : 'Unknown error'
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          requestId
         });
       }
     }
@@ -419,10 +474,11 @@ export class PricingEngineController {
    */
   async testTemplate(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const templateId = req.params.id;
       const testRequest: PricingTemplateTestRequest = req.body;
-      
-      logger.info(`测试计费模板请求: ${templateId}`);
+
+      logger.info(`[${requestId}] 测试计费模板请求: ${templateId}`);
 
       if (!templateId || !testRequest.testScenarios) {
         res.status(400).json({
@@ -430,7 +486,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '模板ID和测试场景不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -443,14 +501,16 @@ export class PricingEngineController {
           error: {
             code: 'TEMPLATE_NOT_FOUND',
             message: `模板 ${templateId} 不存在`
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
 
       // 执行测试
       const testResults = [];
-      
+
       for (const scenario of testRequest.testScenarios) {
         try {
           // 2025-10-01 14:53:30 修复类型：将 Partial<ShipmentContext> 合并为完整上下文（填充必需字段）
@@ -495,11 +555,13 @@ export class PricingEngineController {
             failed: testResults.filter(r => !r.success).length
           }
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error(`测试计费模板失败: ${req.params.id}`, error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 测试计费模板失败: ${req.params.id}`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -507,7 +569,8 @@ export class PricingEngineController {
           message: '测试计费模板失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }
@@ -522,9 +585,10 @@ export class PricingEngineController {
    */
   async getAnalysisReport(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const { dateFrom, dateTo, templateId } = req.query;
-      
-      logger.info('获取计费分析报告请求', { dateFrom, dateTo, templateId });
+
+      logger.info(`[${requestId}] 获取计费分析报告请求`, { dateFrom, dateTo, templateId });
 
       // 这里应该实现具体的分析报告逻辑
       // 暂时返回模拟数据
@@ -562,11 +626,13 @@ export class PricingEngineController {
       res.status(200).json({
         success: true,
         data: report,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error('获取计费分析报告失败', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 获取计费分析报告失败`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -574,7 +640,8 @@ export class PricingEngineController {
           message: '获取计费分析报告失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }
@@ -589,9 +656,10 @@ export class PricingEngineController {
    */
   async detectScenario(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const { shipmentContext } = req.body;
-      
-      logger.info('检测业务场景类型请求', {
+
+      logger.info(`[${requestId}] 检测业务场景类型请求`, {
         shipmentId: shipmentContext?.shipmentId
       });
 
@@ -601,7 +669,9 @@ export class PricingEngineController {
           error: {
             code: 'VALIDATION_ERROR',
             message: '运单上下文信息不能为空'
-          }
+          },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -630,7 +700,7 @@ export class PricingEngineController {
       ];
 
       // 2025-10-01 14:50:35 修复拼写错误：current-confidence 应为 current.confidence
-      const bestMatch = scenarios.reduce((prev, current) => 
+      const bestMatch = scenarios.reduce((prev, current) =>
         current.confidence > prev.confidence ? current : prev
       );
 
@@ -641,11 +711,13 @@ export class PricingEngineController {
           allScenarios: scenarios,
           recommendedTemplate: await this.pricingService.findBestTemplate(shipmentContext)
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
-      
+
     } catch (error) {
-      logger.error('检测业务场景失败', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] 检测业务场景失败`, error);
       res.status(500).json({
         success: false,
         error: {
@@ -653,7 +725,8 @@ export class PricingEngineController {
           message: '检测业务场景失败',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId
       });
     }
   }

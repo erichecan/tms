@@ -257,13 +257,15 @@ export class DatabaseService {
    * @returns 查询结果
    */
   // 2025-10-01 14:50:10 统一返回 rows，以避免上层误用 rowCount/length
-  public async query(query: string, params: any[] = []): Promise<any> {
-    const client = await this.getConnection();
+  public async query(query: string, params: any[] = [], client?: PoolClient): Promise<any> {
+    const activeClient = client || await this.getConnection();
     try {
-      const result = await client.query(query, params);
+      const result = await activeClient.query(query, params);
       return result.rows;
     } finally {
-      client.release();
+      if (!client) {
+        activeClient.release();
+      }
     }
   }
 
@@ -309,6 +311,23 @@ export class DatabaseService {
   private async rollbackTransaction(client: PoolClient): Promise<void> {
     await client.query('ROLLBACK');
     client.release();
+  }
+
+  /**
+   * 执行事务回调
+   * @param callback 事务内执行的逻辑
+   * @returns 回调结果
+   */
+  public async executeTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await this.beginTransaction();
+    try {
+      const result = await callback(client);
+      await this.commitTransaction(client);
+      return result;
+    } catch (error) {
+      await this.rollbackTransaction(client);
+      throw error;
+    }
   }
 
   // ==================== 租户管理 ====================
@@ -912,13 +931,14 @@ export class DatabaseService {
    * @param customer 客户数据
    * @returns 创建的客户
    */
-  async createCustomer(tenantId: string, customer: Omit<Customer, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
+  async createCustomer(tenantId: string, customer: Omit<Customer, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>, client?: PoolClient): Promise<Customer> {
     // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内名称是否已存在
     // 2025-12-23 Modified: 如果重名，自动添加时间戳后缀
     let finalCustomerName = customer.name;
     const existingName = await this.query(
       'SELECT id FROM customers WHERE tenant_id = $1 AND name = $2',
-      [tenantId, finalCustomerName]
+      [tenantId, finalCustomerName],
+      client
     );
 
     if (existingName.length > 0) {
@@ -932,31 +952,34 @@ export class DatabaseService {
     if (normalizedEmail) {
       const existingEmail = await this.query(
         'SELECT id FROM customers WHERE tenant_id = $1 AND email = $2',
-        [tenantId, normalizedEmail]
+        [tenantId, normalizedEmail],
+        client
       );
       if (existingEmail.length > 0) {
         throw this.conflictError(`客户邮箱 "${normalizedEmail}" 在同一租户内已存在`);
       }
     }
 
-    // 2025-11-30T10:15:00Z Fixed by Assistant: 修复数据库插入 - 根据实际表结构调整字段
-    // 注意：customers 表只有 contact_info 和 billing_info，没有 default_pickup_address 和 default_delivery_address
+    // 2025-12-23 Updated: 修复数据库插入 - 确保包含 level, billing_info 以及 top-level phone 和 addresses
     const query = `
       INSERT INTO customers (
-        tenant_id, name, level, email,
-        contact_info, billing_info
+        tenant_id, name, level, email, phone,
+        contact_info, billing_info,
+        default_pickup_address, default_delivery_address
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
 
-    // 从 contactInfo/email 中提取 email（规范化后）；空值入库为 NULL，避免触发 UNIQUE(tenant_id, email)
-    // 2025-12-19 12:00:00 修复：之前使用 '' 会导致同租户内第二个“无邮箱客户”直接数据库冲突 -> 500
+    // 从 contactInfo 中提取详细信息
     const contactInfo = (customer as any)?.contactInfo ? { ...(customer as any).contactInfo } : {};
+    const phone = contactInfo.phone || (customer as any).phone || null;
+    const defaultPickupAddress = (customer as any).defaultPickupAddress || contactInfo.address || null;
+    const defaultDeliveryAddress = (customer as any).defaultDeliveryAddress || null;
+
     if (normalizedEmail) {
       contactInfo.email = normalizedEmail;
     } else {
-      // JSON.stringify 会自动丢弃 undefined；这里显式删除以避免存入空字符串
       delete (contactInfo as any).email;
     }
 
@@ -964,12 +987,15 @@ export class DatabaseService {
     try {
       result = await this.query(query, [
         tenantId,
-        finalCustomerName, // Use the potentially renamed value
-        customer.level || 'standard', // 2025-12-19 修复：为level提供默认值，避免NOT NULL约束失败
-        normalizedEmail, // NULL when absent
+        finalCustomerName,
+        customer.level || 'standard',
+        normalizedEmail,
+        phone,
         JSON.stringify(contactInfo || {}),
-        customer.billingInfo ? JSON.stringify(customer.billingInfo) : null
-      ]);
+        customer.billingInfo ? JSON.stringify(customer.billingInfo) : null,
+        defaultPickupAddress ? JSON.stringify(defaultPickupAddress) : null,
+        defaultDeliveryAddress ? JSON.stringify(defaultDeliveryAddress) : null
+      ], client);
     } catch (error: any) {
       // 2025-12-19 12:00:00 兜底：并发下仍可能触发唯一约束，转换为 409
       if (error?.code === '23505') {
@@ -1101,10 +1127,15 @@ export class DatabaseService {
         tenantId,
         driver.name,
         driver.phone,
-        driver.licenseNumber,
-        JSON.stringify(driver.vehicleInfo),
-        driver.status,
-        JSON.stringify(driver.performance)
+        driver.licenseNumber || null,
+        driver.vehicleInfo ? JSON.stringify(driver.vehicleInfo) : null,
+        driver.status || 'available',
+        driver.performance ? JSON.stringify(driver.performance) : JSON.stringify({
+          rating: 5.0,
+          totalTrips: 0,
+          onTimeRate: 1.0,
+          acceptanceRate: 1.0
+        })
       ]);
     } catch (error: any) {
       // 2025-12-19 12:00:00 兜底：并发下仍可能触发唯一约束，转换为 409
@@ -1280,11 +1311,12 @@ export class DatabaseService {
    * @param shipment 运单数据
    * @returns 创建的运单
    */
-  async createShipment(tenantId: string, shipment: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Shipment> {
+  async createShipment(tenantId: string, shipment: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>, client?: PoolClient): Promise<Shipment> {
     // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内运单号是否已存在
     const existingShipment = await this.query(
       'SELECT id FROM shipments WHERE tenant_id = $1 AND shipment_number = $2',
-      [tenantId, shipment.shipmentNumber]
+      [tenantId, shipment.shipmentNumber],
+      client
     );
     if (existingShipment.length > 0) {
       throw new Error(`运单号 "${shipment.shipmentNumber}" 在同一租户内已存在`);
@@ -1294,7 +1326,8 @@ export class DatabaseService {
     if (shipment.customerId) {
       const customer = await this.query(
         'SELECT id FROM customers WHERE id = $1 AND tenant_id = $2',
-        [shipment.customerId, tenantId]
+        [shipment.customerId, tenantId],
+        client
       );
       if (customer.length === 0) {
         throw new Error(`客户 ID "${shipment.customerId}" 不存在或不属于当前租户`);
@@ -1304,7 +1337,8 @@ export class DatabaseService {
     if (shipment.driverId) {
       const driver = await this.query(
         'SELECT id FROM drivers WHERE id = $1 AND tenant_id = $2',
-        [shipment.driverId, tenantId]
+        [shipment.driverId, tenantId],
+        client
       );
       if (driver.length === 0) {
         throw new Error(`司机 ID "${shipment.driverId}" 不存在或不属于当前租户`);
@@ -1317,7 +1351,8 @@ export class DatabaseService {
     if (shipmentAny.vehicleId) {
       const vehicle = await this.query(
         'SELECT id FROM vehicles WHERE id = $1 AND tenant_id = $2',
-        [shipmentAny.vehicleId, tenantId]
+        [shipmentAny.vehicleId, tenantId],
+        client
       );
       if (vehicle.length === 0) {
         throw new Error(`车辆 ID "${shipmentAny.vehicleId}" 不存在或不属于当前租户`);
@@ -1386,7 +1421,7 @@ export class DatabaseService {
       deliveryAt,
       pickupWindow,
       deliveryWindow,
-    ]);
+    ], client);
 
     return this.mapShipmentFromDb(result[0]);
   }
@@ -2422,19 +2457,22 @@ export class DatabaseService {
    * @returns 创建的车辆
    */
   async createVehicle(tenantId: string, vehicle: {
-    plateNumber: string;
-    vehicleType: string;
-    capacity: number;
+    plateNumber?: string | null;
+    vehicleType?: string | null;
+    capacity?: number | null;
     status: string;
   }): Promise<any> {
     // 2025-11-24T17:25:00Z Added by Assistant: 唯一性检查 - 检查同一租户内车牌号是否已存在
-    const existingVehicle = await this.query(
-      'SELECT id FROM vehicles WHERE tenant_id = $1 AND plate_number = $2',
-      [tenantId, vehicle.plateNumber]
-    );
-    if (existingVehicle.length > 0) {
-      // 2025-12-19 12:00:00 统一冲突错误：返回 409，避免前端看到 500
-      throw this.conflictError(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+    // 2025-12-23: 如果 plateNumber 为空，跳过唯一性检查
+    if (vehicle.plateNumber) {
+      const existingVehicle = await this.query(
+        'SELECT id FROM vehicles WHERE tenant_id = $1 AND plate_number = $2',
+        [tenantId, vehicle.plateNumber]
+      );
+      if (existingVehicle.length > 0) {
+        // 2025-12-19 12:00:00 统一冲突错误：返回 409，避免前端看到 500
+        throw this.conflictError(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+      }
     }
 
     const query = `
@@ -2454,9 +2492,9 @@ export class DatabaseService {
     try {
       result = await this.query(query, [
         tenantId, // 2025-10-31 10:15:00 添加租户ID
-        vehicle.plateNumber,
-        vehicle.vehicleType,
-        vehicle.capacity,
+        vehicle.plateNumber || null,
+        vehicle.vehicleType || null,
+        vehicle.capacity !== undefined && !isNaN(Number(vehicle.capacity)) ? Number(vehicle.capacity) : null,
         vehicle.status
       ]);
     } catch (error: any) {
@@ -2477,9 +2515,9 @@ export class DatabaseService {
    * @returns 更新后的车辆
    */
   async updateVehicle(id: string, vehicle: {
-    plateNumber: string;
-    vehicleType: string;
-    capacity: number;
+    plateNumber?: string | null;
+    vehicleType?: string | null;
+    capacity?: number | null;
     status: string;
   }): Promise<any> {
     // 2025-11-30T13:30:00Z Added by Assistant: 唯一性检查 - 检查更新后的 plate_number 是否与其他记录冲突
@@ -2491,12 +2529,15 @@ export class DatabaseService {
     const tenantId = currentVehicle[0].tenant_id;
 
     // 检查车牌号是否已存在（排除当前车辆）
-    const existingVehicle = await this.query(
-      'SELECT id FROM vehicles WHERE tenant_id = $1 AND plate_number = $2 AND id != $3',
-      [tenantId, vehicle.plateNumber, id]
-    );
-    if (existingVehicle.length > 0) {
-      throw new Error(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+    // 2025-12-23: 如果 plateNumber 为空，跳过唯一性检查
+    if (vehicle.plateNumber) {
+      const existingVehicle = await this.query(
+        'SELECT id FROM vehicles WHERE tenant_id = $1 AND plate_number = $2 AND id != $3',
+        [tenantId, vehicle.plateNumber, id]
+      );
+      if (existingVehicle.length > 0) {
+        throw new Error(`车牌号 "${vehicle.plateNumber}" 在同一租户内已存在`);
+      }
     }
 
     const query = `
@@ -2519,9 +2560,9 @@ export class DatabaseService {
     `;
 
     const result = await this.query(query, [
-      vehicle.plateNumber,
-      vehicle.vehicleType,
-      vehicle.capacity,
+      vehicle.plateNumber || null,
+      vehicle.vehicleType || null,
+      vehicle.capacity !== undefined && !isNaN(Number(vehicle.capacity)) ? Number(vehicle.capacity) : null,
       vehicle.status,
       id
     ]);
@@ -2595,25 +2636,32 @@ export class DatabaseService {
     if (updates?.name !== undefined) dbUpdates.name = updates.name;
     if (updates?.level !== undefined) dbUpdates.level = updates.level;
 
+    let phone = updates?.phone;
+    let pickupAddr = updates?.defaultPickupAddress;
+
     if (updates?.contactInfo !== undefined) {
       const contactInfo = { ...(updates.contactInfo || {}) };
       if (normalizedEmail) contactInfo.email = normalizedEmail;
       else delete (contactInfo as any).email;
+
+      // 同步 phone 和 address 到顶层列
+      if (contactInfo.phone && phone === undefined) phone = contactInfo.phone;
+      if (contactInfo.address && pickupAddr === undefined) pickupAddr = contactInfo.address;
+
       dbUpdates.contact_info = JSON.stringify(contactInfo);
     }
+
+    if (phone !== undefined) dbUpdates.phone = phone;
+    if (updates?.email !== undefined || updates?.contactInfo !== undefined) dbUpdates.email = normalizedEmail;
+
     if (updates?.billingInfo !== undefined) {
       dbUpdates.billing_info = JSON.stringify(updates.billingInfo || {});
     }
-    if (updates?.defaultPickupAddress !== undefined) {
-      dbUpdates.default_pickup_address = updates.defaultPickupAddress ? JSON.stringify(updates.defaultPickupAddress) : null;
+    if (pickupAddr !== undefined) {
+      dbUpdates.default_pickup_address = pickupAddr ? JSON.stringify(pickupAddr) : null;
     }
     if (updates?.defaultDeliveryAddress !== undefined) {
       dbUpdates.default_delivery_address = updates.defaultDeliveryAddress ? JSON.stringify(updates.defaultDeliveryAddress) : null;
-    }
-
-    // email 列始终与 contactInfo.email 保持一致（允许为 NULL）
-    if (updates?.contactInfo !== undefined || updates?.email !== undefined) {
-      dbUpdates.email = normalizedEmail;
     }
 
     const fields: string[] = [];

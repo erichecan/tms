@@ -50,30 +50,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         setLoading(true);
         setError(null);
 
-        // 2025-12-05T13:50:00Z Added by Assistant: 添加组件级别的调试信息
-        console.log('🗺️ [GoogleMap Component] 开始初始化地图组件');
-        console.log('  - 组件挂载时间:', new Date().toISOString());
-        console.log('  - mapRef.current:', mapRef.current ? '已设置' : '未设置');
-        console.log('  - window.google:', window.google);
-        console.log('  - window.google.maps:', window.google?.maps);
-
-        // 2025-12-02T21:30:00Z Fixed by Assistant: 使用 mapsService 统一初始化，它会处理 API Key 检查
-        // mapsService 会从环境变量读取 VITE_GOOGLE_MAPS_API_KEY，如果未配置会抛出更友好的错误
-        console.log('📦 [GoogleMap Component] 动态导入 mapsService...');
         const mapsServiceInstance = (await import('../../services/mapsService')).default;
-        console.log('✅ [GoogleMap Component] mapsService 导入成功:', mapsServiceInstance);
-        
-        console.log('🔄 [GoogleMap Component] 调用 mapsService.initialize()...');
         await mapsServiceInstance.initialize();
-        console.log('✅ [GoogleMap Component] mapsService 初始化成功');
-        
-        // 直接使用全局google.maps对象
-        console.log('🗺️ [GoogleMap Component] 创建地图实例...');
-        console.log('  - mapRef.current:', mapRef.current);
-        console.log('  - window.google:', window.google);
-        console.log('  - window.google.maps:', window.google?.maps);
-        
-        if (mapRef.current && window.google && window.google.maps) {
+
+        if (mapsServiceInstance.isReady() && mapRef.current && window.google?.maps) {
           const mapInstance = new window.google.maps.Map(mapRef.current, {
             center,
             zoom,
@@ -88,25 +68,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           });
 
           setMap(mapInstance);
-          console.log('✅ [GoogleMap Component] 地图实例创建成功:', mapInstance);
+          console.log('✅ [GoogleMap Component] 地图实例创建成功');
         } else {
-          console.warn('⚠️ [GoogleMap Component] 无法创建地图实例:', {
-            hasMapRef: !!mapRef.current,
-            hasGoogle: !!window.google,
-            hasMaps: !!window.google?.maps,
-          });
+          console.warn('⚠️ [GoogleMap Component] 地图组件初始化跳过: API 未就绪或容器未找到');
+          setLoading(false);
         }
       } catch (err: any) {
-        console.error('❌ [GoogleMap Component] Google Maps加载失败:', err);
-        console.error('❌ [GoogleMap Component] 错误详情:', {
-          name: err?.name,
-          message: err?.message,
-          stack: err?.stack,
-        });
-        setError(err?.message || '地图加载失败，请检查API密钥配置');
+        console.warn('⚠️ [GoogleMap Component] Google Maps加载跳过:', err.message);
+        // 不再设置 setError，让它显示占位符
       } finally {
         setLoading(false);
-        console.log('🏁 [GoogleMap Component] 初始化流程完成');
       }
     };
 

@@ -2,12 +2,14 @@ import { Router } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
+import { validateRequest } from '../middleware/validationMiddleware'; // 2025-12-24 Added
+import { sendSuccess, handleApiError, sendError } from '../utils/apiUtils'; // 2025-12-24 Added
 
 const router = Router();
 const dbService = new DatabaseService();
 
 // GET /api/v1/vehicles - 获取车辆列表 // 2025-10-31 09:45:00 添加租户隔离
-router.get('/', 
+router.get('/',
   authMiddleware,
   tenantMiddleware,
   async (req, res) => {
@@ -18,76 +20,56 @@ router.get('/',
         limit: parseInt(req.query.limit as string) || 50,
         status: req.query.status as string,
       };
-      
+
       const vehicles = await dbService.getVehiclesByTenant(tenantId, params);
-      res.json({ success: true, data: vehicles });
+      return sendSuccess(res, vehicles);
     } catch (e: any) {
-      console.error('Get vehicles error:', e);
-      // 2025-11-30T13:00:00Z Fixed by Assistant: 返回详细错误信息以便调试
-      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      const errorStack = e instanceof Error ? e.stack : undefined;
-      console.error('Error details:', { errorMessage, errorStack });
-      res.status(500).json({ 
-        success: false, 
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to get vehicles',
-          details: errorMessage
-        },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, e, 'Failed to get vehicles');
     }
   }
 );
 
 // POST /api/v1/vehicles - 创建新车辆 // 2025-10-31 10:16:00 添加租户隔离
-router.post('/', 
+router.post('/',
   authMiddleware,
   tenantMiddleware,
   async (req, res) => {
     try {
       const tenantId = req.user!.tenantId;
-      const { plateNumber, vehicleType, capacity, status = 'available' } = req.body;
-      
-      // 验证必填字段
-      if (!plateNumber || !vehicleType || !capacity) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '车牌号、车辆类型和载重能力是必填字段' }
-        });
+      const {
+        plateNumber,
+        vehicleType,
+        type, // 兼容前端可能发送的 type
+        capacity,
+        capacityKg, // 兼容前端可能发送的 capacityKg
+        status = 'available'
+      } = req.body;
+
+      if (!plateNumber) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Plate number is required');
       }
+
+      // 统一字段名称
+      const finalVehicleType = vehicleType || type;
+      const finalCapacity = capacity || capacityKg;
 
       // 创建车辆
       const vehicle = await dbService.createVehicle(tenantId, {
         plateNumber,
-        vehicleType,
-        capacity: Number(capacity),
+        vehicleType: finalVehicleType,
+        capacity: finalCapacity !== undefined && finalCapacity !== null ? Number(finalCapacity) : undefined,
         status
       });
 
-      res.status(201).json({ success: true, data: vehicle });
+      return sendSuccess(res, vehicle, 'Vehicle created successfully', 201);
     } catch (e: any) {
-      console.error('Create vehicle error:', e);
-      // 2025-12-19 12:00:00 修复：将唯一性冲突从 500 转为 409，并把可读错误信息返回给前端
-      const statusCode = e?.statusCode === 409 || e?.code === '23505' ? 409 : 500;
-      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      res.status(statusCode).json({
-        success: false,
-        error: {
-          code: statusCode === 409 ? 'CONFLICT' : 'INTERNAL_ERROR',
-          message: statusCode === 409 ? errorMessage : 'Failed to create vehicle',
-          details: statusCode === 500 ? errorMessage : undefined
-        },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, e, 'Failed to create vehicle');
     }
   }
 );
 
 // GET /api/v1/vehicles/:id - 获取单个车辆 // 2025-10-31 10:16:00 添加租户隔离
-router.get('/:id', 
+router.get('/:id',
   authMiddleware,
   tenantMiddleware,
   async (req, res) => {
@@ -95,84 +77,61 @@ router.get('/:id',
       const tenantId = req.user!.tenantId;
       const { id } = req.params;
       const vehicle = await dbService.getVehicleById(id);
-      
+
       if (!vehicle) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: '车辆不存在' }
-        });
+        return sendError(res, 404, 'NOT_FOUND', 'Vehicle not found');
       }
 
       // 验证车辆属于当前租户
       if (vehicle.tenant_id !== tenantId) {
-        return res.status(403).json({
-          success: false,
-          error: { code: 'FORBIDDEN', message: '无权访问此车辆' }
-        });
+        return sendError(res, 403, 'FORBIDDEN', 'Access denied to this vehicle');
       }
 
-      res.json({ success: true, data: vehicle });
+      return sendSuccess(res, vehicle);
     } catch (e: any) {
-      console.error('Get vehicle error:', e);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      return handleApiError(res, e, 'Failed to get vehicle');
     }
   }
 );
 
 // PUT /api/v1/vehicles/:id - 更新车辆 // 2025-10-31 10:16:00 添加租户隔离
-router.put('/:id', 
+router.put('/:id',
   authMiddleware,
   tenantMiddleware,
   async (req, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const { id } = req.params;
-      const { plateNumber, vehicleType, capacity, status } = req.body;
-      
-      // 验证必填字段
-      if (!plateNumber || !vehicleType || !capacity) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: '车牌号、车辆类型和载重能力是必填字段' }
-        });
-      }
+      const {
+        plateNumber,
+        vehicleType,
+        type,
+        capacity,
+        capacityKg,
+        status
+      } = req.body;
 
-      // 检查车辆是否存在
-      const existingVehicle = await dbService.getVehicleById(id);
-      if (!existingVehicle) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: '车辆不存在' }
-        });
-      }
-
-      // 验证车辆属于当前租户
-      if (existingVehicle.tenant_id !== tenantId) {
-        return res.status(403).json({
-          success: false,
-          error: { code: 'FORBIDDEN', message: '无权访问此车辆' }
-        });
-      }
+      const finalVehicleType = vehicleType || type;
+      const finalCapacity = capacity || capacityKg;
 
       // 更新车辆
       const vehicle = await dbService.updateVehicle(id, {
         plateNumber,
-        vehicleType,
-        capacity: Number(capacity),
+        vehicleType: finalVehicleType,
+        capacity: finalCapacity !== undefined && finalCapacity !== null ? Number(finalCapacity) : undefined,
         status
       });
 
-      res.json({ success: true, data: vehicle });
+      return sendSuccess(res, vehicle);
     } catch (e: any) {
-      console.error('Update vehicle error:', e);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      return handleApiError(res, e, 'Failed to update vehicle');
     }
   }
 );
 
 
 // DELETE /api/v1/vehicles/:id - 删除车辆 // 2025-10-31 10:16:00 添加租户隔离
-router.delete('/:id', 
+router.delete('/:id',
   authMiddleware,
   tenantMiddleware,
   async (req, res) => {
@@ -183,27 +142,20 @@ router.delete('/:id',
       // 检查车辆是否存在
       const vehicle = await dbService.getVehicleById(id);
       if (!vehicle) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: '车辆不存在' }
-        });
+        return sendError(res, 404, 'NOT_FOUND', 'Vehicle not found');
       }
 
       // 验证车辆属于当前租户
       if (vehicle.tenant_id !== tenantId) {
-        return res.status(403).json({
-          success: false,
-          error: { code: 'FORBIDDEN', message: '无权访问此车辆' }
-        });
+        return sendError(res, 403, 'FORBIDDEN', 'Access denied to this vehicle');
       }
 
       // 删除车辆
       await dbService.deleteVehicle(tenantId, id);
 
-      res.json({ success: true, message: '车辆删除成功' });
+      return sendSuccess(res, null, 'Vehicle deleted successfully');
     } catch (e: any) {
-      console.error('Delete vehicle error:', e);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      return handleApiError(res, e, 'Failed to delete vehicle');
     }
   }
 );

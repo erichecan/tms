@@ -155,7 +155,7 @@ export interface Shipment {
   tenantId: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // BOL专用字段 - 2025-10-10 11:25:00
   customerOrderNumber?: string;          // 客户订单号
   purchaseOrderNumber?: string;          // 采购订单号
@@ -176,7 +176,7 @@ export interface Shipment {
   packageCount?: number;                 // 包裹数量
   palletCount?: number;                  // 托盘数量
   hazardousMaterial?: boolean;           // 危险品标识
-  
+
   // 兼容性字段 - 用于修复编译错误
   cargoWeight?: number;                   // 货物重量
   cargoLength?: number;                   // 货物长度
@@ -250,10 +250,15 @@ export interface Driver {
   name: string;
   phone: string;
   status: DriverStatus;
+  age?: number;                      // 年龄
+  licenseNumber?: string;            // 驾照号
+  licenseClass?: string;             // 驾照等级
+  englishLevel?: string;             // 英语水平
+  otherLanguages?: string[];         // 其他语言
   level?: string;                    // 司机等级(预留)
   homeCity?: string;                 // 家乡城市(预留)
   currentTripId?: string;            // 当前行程ID
-  currentLocation?: unknown;             // 当前位置
+  currentLocation?: unknown;         // 当前位置
   createdAt: string;
   updatedAt: string;
 }

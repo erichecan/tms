@@ -2,6 +2,17 @@ import { Request, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:45:05 引入状态枚举
 import dayjs from 'dayjs';
+import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../utils/logger';
+
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  const id = (Array.isArray(requestId) ? requestId[0] : requestId) || uuidv4();
+  // 设置到请求对象上，方便后续透传
+  (req as any).requestId = id;
+  return id;
+};
 
 
 export class MvpShipmentController {
@@ -18,11 +29,14 @@ export class MvpShipmentController {
 
   async createShipment(req: Request, res: Response) {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -71,20 +85,34 @@ export class MvpShipmentController {
         } // 2025-11-11 14:45:05 初始化时间线
       } as any);
 
-      res.status(201).json({ success: true, data: created });
+      res.status(201).json({
+        success: true,
+        data: created,
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     } catch (e: any) {
-      console.error('Error creating shipment:', e);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message, stack: e.stack } });
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Error creating shipment:`, e);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: e.message, stack: e.stack },
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     }
   }
 
   async listShipments(req: Request, res: Response) {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
@@ -95,49 +123,85 @@ export class MvpShipmentController {
         status: req.query.status as string
       };
       const result = await this.db.getShipments(tenantId, params);
-      res.json(result);
+      res.json({
+        ...result,
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     } catch (e: any) {
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Error listing shipments:`, e);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: e.message },
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     }
   }
 
   async getShipmentDetail(req: Request, res: Response) {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
 
       const shipment = await this.db.getShipment(tenantId, req.params.id!);
       if (!shipment) {
-        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Shipment not found' },
+          timestamp: new Date().toISOString(),
+          requestId
+        });
         return;
       }
       // 2025-11-30 00:15:00 修复：返回空的 timeline 和 pods，由前端分别调用专门的端点
-      res.json({ success: true, data: shipment, timeline: [], pods: [] });
+      res.json({
+        success: true,
+        data: shipment,
+        timeline: [],
+        pods: [],
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     } catch (e: any) {
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Error getting shipment detail:`, e);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: e.message },
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     }
   }
 
   // 2025-11-30 00:15:00 新增：获取运单时间线
   async getShipmentTimeline(req: Request, res: Response) {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
 
       const shipmentId = req.params.id;
-      
+
       // 2025-11-30T21:30:00 修复：改进运单验证，添加错误处理，即使运单不存在也尝试返回时间线
       let shipment = null;
       try {
@@ -147,12 +211,12 @@ export class MvpShipmentController {
         // 如果查询失败，继续尝试查询时间线（可能是权限问题，但时间线查询可能成功）
         shipment = null;
       }
-      
+
       if (!shipment) {
         // 2025-11-30T21:30:00 修复：即使运单不存在，也尝试返回时间线数据（可能运单被删除但时间线还在）
         console.warn(`Shipment not found for timeline query: shipmentId=${shipmentId}, tenantId=${tenantId}`);
       }
-      
+
       // 2025-11-30 06:30:00 修复：使用 DatabaseService 的正确方法查询时间线事件
       // 查询 timeline_events 表（通过 shipment_id 关联，间接保证租户隔离）
       let result: any[] = [];
@@ -207,34 +271,50 @@ export class MvpShipmentController {
           extra: row.extra || {},
           createdAt: row.created_at,
         })),
+        timestamp: new Date().toISOString(),
+        requestId
       });
     } catch (e: any) {
-      console.error('Error fetching shipment timeline:', e);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Error fetching shipment timeline:`, e);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: e.message },
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     }
   }
 
   // 2025-11-30 00:15:00 新增：获取运单POD列表
   async getShipmentPODs(req: Request, res: Response) {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
+          timestamp: new Date().toISOString(),
+          requestId
         });
         return;
       }
 
       const shipmentId = req.params.id;
-      
+
       // 验证运单属于当前租户
       const shipment = await this.db.getShipment(tenantId, shipmentId);
       if (!shipment) {
-        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Shipment not found' } });
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Shipment not found' },
+          timestamp: new Date().toISOString(),
+          requestId
+        });
         return;
       }
-      
+
       // 查询 proof_of_delivery 表（通过 shipment_id 关联，间接保证租户隔离）
       const result = await this.db.query(
         `SELECT 
@@ -261,10 +341,18 @@ export class MvpShipmentController {
           uploadedBy: row.uploaded_by,
           note: row.note,
         })),
+        timestamp: new Date().toISOString(),
+        requestId
       });
     } catch (e: any) {
-      console.error('Error fetching shipment PODs:', e);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Error fetching shipment PODs:`, e);
+      res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: e.message },
+        timestamp: new Date().toISOString(),
+        requestId
+      });
     }
   }
 }

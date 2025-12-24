@@ -33,8 +33,6 @@ import {
   CheckCircleOutlined,
   PlusOutlined,
   DeleteOutlined,
-  RightOutlined,
-  DownOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, customersApi, pricingApi } from '../../services/api'; // 2025-01-27 16:45:00 恢复customersApi用于客户管理功能
@@ -62,7 +60,7 @@ const ShipmentCreate: React.FC = () => {
   const { customers, customersLoading, reloadCustomers } = useDataContext();
   const [unitSystem, setUnitSystem] = useState<'cm' | 'inch'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
-  
+
   // 实时计费相关状态 - 2025-10-01 21:40:00
   const [realTimePricing, setRealTimePricing] = useState<{
     totalCost: number;
@@ -86,36 +84,35 @@ const ShipmentCreate: React.FC = () => {
     loading: false
   });
   // 移除商品明细动态管理（根据产品文档） // 2025-10-01 13:45:00
-  
+
   // 提交确认模式
   const [isConfirmMode, setIsConfirmMode] = useState(false);
-  const [submittedData, setSubmittedData] = useState<unknown>(null);
+  const [submittedData, setSubmittedData] = useState<any>(null);
   const [estimatedDistance, setEstimatedDistance] = useState<number>(0); // 估算距离(公里)
   const [isManualDistance, setIsManualDistance] = useState<boolean>(false); // 是否手动输入距离
 
   // 客户管理相关状态 - 2025-01-27 16:45:00 新增客户管理功能
   const [isAddCustomerModalVisible, setIsAddCustomerModalVisible] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<unknown>(null); // 2025-10-27 重新添加以修复未定义错误
   const [customerForm] = Form.useForm(); // 独立的客户表单实例 // 2025-10-01 21:55:00
-  
+
   // 2025-10-28 新增：安全合规部分展开状态
   const [safetySectionActiveKeys, setSafetySectionActiveKeys] = useState<string[]>([]);
-  
+
   // 2025-12-02 新增：货物信息展开状态，用于折叠/展开详细字段
   const [cargoExpanded, setCargoExpanded] = useState<Record<number, boolean>>({});
-  
-  // 2025-11-24T18:20:00Z Added by Assistant: 用于实时费用计算的防抖定时器
+
+  // 2025-11-24T18:20:00Z Added by Assistant: 用于实时费用计算和表单缓存的防抖定时器
   const pricingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const cacheTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // 2025-11-24T18:20:00Z Added by Assistant: 组件卸载时清理定时器
   useEffect(() => {
     return () => {
-      if (pricingTimeoutRef.current) {
-        clearTimeout(pricingTimeoutRef.current);
-      }
+      if (pricingTimeoutRef.current) clearTimeout(pricingTimeoutRef.current);
+      if (cacheTimeoutRef.current) clearTimeout(cacheTimeoutRef.current);
     };
   }, []);
-  
+
   // 2025-11-11T16:25:00Z 监听货物类型变化，用于自动展开/折叠安全合规部分
   const cargoType = Form.useWatch('cargoType', form);
   useEffect(() => {
@@ -126,16 +123,16 @@ const ShipmentCreate: React.FC = () => {
       setSafetySectionActiveKeys([]);
     }
   }, [cargoType]);
-  
+
   // 状态说明：已移除包裹与商品明细独立模块 // 2025-10-01 13:40:10
 
   // 相关增删改函数已删除 // 2025-10-01 13:45:00
 
   // 从localStorage恢复表单状态
   const CACHE_KEY = 'shipment_form_cache';
-  
+
   // 2025-12-02 移除：客户数据现在由 DataContext 统一管理，无需本地加载
-  
+
   // 城市间距离估算表 (单位: 公里)
   const cityDistanceEstimates: { [key: string]: number } = {
     // 安大略省内部
@@ -148,7 +145,7 @@ const ShipmentCreate: React.FC = () => {
     'Ottawa-London': 570,
     'Ottawa-Windsor': 760,
     'Ottawa-Kingston': 190,
-    
+
     // 跨省距离
     'Toronto-Montreal': 540,
     'Toronto-Quebec': 780,
@@ -157,7 +154,7 @@ const ShipmentCreate: React.FC = () => {
     'Toronto-Edmonton': 2750,
     'Ottawa-Montreal': 200,
     'Ottawa-Quebec': 440,
-    
+
     // 默认估算值
     'same_city': 25,
     'same_province': 150,
@@ -167,30 +164,30 @@ const ShipmentCreate: React.FC = () => {
   // 基于地址估算距离
   const estimateDistance = (pickupAddress: string, deliveryAddress: string): number => {
     if (!pickupAddress || !deliveryAddress) return 0;
-    
+
     // 提取城市信息 (简单实现)
     const pickupCity = extractCityFromAddress(pickupAddress);
     const deliveryCity = extractCityFromAddress(deliveryAddress);
-    
+
     if (pickupCity === deliveryCity) {
       return cityDistanceEstimates['same_city'];
     }
-    
+
     // 查找精确匹配
     const routeKey1 = `${pickupCity}-${deliveryCity}`;
     const routeKey2 = `${deliveryCity}-${pickupCity}`;
-    
+
     if (cityDistanceEstimates[routeKey1]) {
       return cityDistanceEstimates[routeKey1];
     }
     if (cityDistanceEstimates[routeKey2]) {
       return cityDistanceEstimates[routeKey2];
     }
-    
+
     // 基于省份估算
     const pickupProvince = extractProvinceFromAddress(pickupAddress);
     const deliveryProvince = extractProvinceFromAddress(deliveryAddress);
-    
+
     if (pickupProvince === deliveryProvince) {
       return cityDistanceEstimates['same_province'];
     } else {
@@ -202,13 +199,13 @@ const ShipmentCreate: React.FC = () => {
   const extractCityFromAddress = (address: string): string => {
     // 简单实现：查找常见城市名称
     const cities = ['Toronto', 'Ottawa', 'Montreal', 'Quebec', 'Vancouver', 'Calgary', 'Edmonton', 'Hamilton', 'London', 'Windsor', 'Kingston'];
-    
+
     for (const city of cities) {
       if (address.toLowerCase().includes(city.toLowerCase())) {
         return city;
       }
     }
-    
+
     // 如果没有找到，返回第一个词作为城市
     return address.split(',')[0].trim();
   };
@@ -216,13 +213,13 @@ const ShipmentCreate: React.FC = () => {
   // 从地址中提取省份信息
   const extractProvinceFromAddress = (address: string): string => {
     const provinces = ['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU'];
-    
+
     for (const province of provinces) {
       if (address.toUpperCase().includes(province)) {
         return province;
       }
     }
-    
+
     return 'Unknown';
   };
 
@@ -230,7 +227,7 @@ const ShipmentCreate: React.FC = () => {
   const handleAddressChange = () => {
     const pickupAddress = form.getFieldValue('shipperAddress1') || '';
     const deliveryAddress = form.getFieldValue('consigneeAddress1') || '';
-    
+
     if (pickupAddress && deliveryAddress && !isManualDistance) {
       const distance = estimateDistance(pickupAddress, deliveryAddress);
       setEstimatedDistance(distance);
@@ -242,8 +239,8 @@ const ShipmentCreate: React.FC = () => {
   const handleCustomerSelect = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
-      setSelectedCustomer(customer);
-      
+      // setSelectedCustomer(customer); // Removed unused state
+
       // 自动填充客户信息
       form.setFieldsValue({
         customerName: customer.name,
@@ -284,21 +281,21 @@ const ShipmentCreate: React.FC = () => {
   const handleAddCustomer = async () => {
     try {
       // 只验证客户表单字段，而不是整个运单表单 // 2025-10-01 21:55:00
-      const values = await customerForm.validateFields();
-      
+      const values: any = await customerForm.validateFields();
+
       // 2025-11-30T12:35:00Z Updated by Assistant: 使用统一的表单数据转换函数
       const customerData = transformCustomerFormData(values);
-      
+
       const response = await customersApi.createCustomer(customerData);
       const newCustomer = response.data;
-      
+
       // 2025-12-02 修改：刷新客户列表以确保下拉菜单显示最新数据
       await reloadCustomers();
-      
+
       // 自动选择新创建的客户
       form.setFieldsValue({ customerId: newCustomer.id });
       handleCustomerSelect(newCustomer.id);
-      
+
       setIsAddCustomerModalVisible(false);
       customerForm.resetFields(); // 重置客户表单而不是运单表单 // 2025-10-01 21:55:00
       message.success('客户添加成功');
@@ -308,7 +305,7 @@ const ShipmentCreate: React.FC = () => {
       message.error(errorMessage);
     }
   };
-  
+
   useEffect(() => {
     const cachedData = localStorage.getItem(CACHE_KEY);
     if (cachedData) {
@@ -318,7 +315,7 @@ const ShipmentCreate: React.FC = () => {
         if (typeof parsed === 'object' && parsed !== null && parsed.formData) { // Ensure parsed.formData exists
           // 处理日期字段，确保使用 dayjs 对象 // 2025-09-26 03:35:00
           const processedFormData = { ...parsed.formData };
-          
+
           // 转换日期字符串为 dayjs 对象
           if (processedFormData.pickupDate && typeof processedFormData.pickupDate === 'string') {
             processedFormData.pickupDate = dayjs(processedFormData.pickupDate);
@@ -326,19 +323,19 @@ const ShipmentCreate: React.FC = () => {
           if (processedFormData.deliveryDate && typeof processedFormData.deliveryDate === 'string') {
             processedFormData.deliveryDate = dayjs(processedFormData.deliveryDate);
           }
-          
+
           // 转换时间范围
           if (processedFormData.pickupTimeRange && Array.isArray(processedFormData.pickupTimeRange)) {
-            processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map((time: string | Dayjs) => 
+            processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map((time: string | Dayjs) =>
               typeof time === 'string' ? dayjs(time) : time
             );
           }
           if (processedFormData.deliveryTimeRange && Array.isArray(processedFormData.deliveryTimeRange)) {
-            processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map((time: string | Dayjs) => 
+            processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map((time: string | Dayjs) =>
               typeof time === 'string' ? dayjs(time) : time
             );
           }
-          
+
           form.setFieldsValue(processedFormData);
           setUnitSystem(parsed.unitSystem || 'cm');
           setWeightUnit(parsed.weightUnit || 'kg');
@@ -356,10 +353,10 @@ const ShipmentCreate: React.FC = () => {
   // 缓存表单数据
   const cacheFormData = () => {
     const formData = form.getFieldsValue();
-    
+
     // 处理日期对象，转换为字符串以便序列化 // 2025-09-26 03:35:00
     const processedFormData = { ...formData };
-    
+
     // 转换 dayjs 对象为字符串
     if (processedFormData.pickupDate && dayjs.isDayjs(processedFormData.pickupDate)) {
       processedFormData.pickupDate = processedFormData.pickupDate.format('YYYY-MM-DD');
@@ -367,19 +364,19 @@ const ShipmentCreate: React.FC = () => {
     if (processedFormData.deliveryDate && dayjs.isDayjs(processedFormData.deliveryDate)) {
       processedFormData.deliveryDate = processedFormData.deliveryDate.format('YYYY-MM-DD');
     }
-    
+
     // 转换时间范围
     if (processedFormData.pickupTimeRange && Array.isArray(processedFormData.pickupTimeRange)) {
-      processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map((time: string | Dayjs) => 
+      processedFormData.pickupTimeRange = processedFormData.pickupTimeRange.map((time: string | Dayjs) =>
         dayjs.isDayjs(time) ? time.format('HH:mm') : time
       );
     }
     if (processedFormData.deliveryTimeRange && Array.isArray(processedFormData.deliveryTimeRange)) {
-      processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map((time: string | Dayjs) => 
+      processedFormData.deliveryTimeRange = processedFormData.deliveryTimeRange.map((time: string | Dayjs) =>
         dayjs.isDayjs(time) ? time.format('HH:mm') : time
       );
     }
-    
+
     const cacheData = {
       formData: processedFormData,
       unitSystem,
@@ -389,15 +386,11 @@ const ShipmentCreate: React.FC = () => {
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
   };
 
-  // 监听表单变化，自动缓存
-  useEffect(() => {
-    // 这里我们使用定时器来定期缓存，避免频繁缓存
-    const interval = setInterval(cacheFormData, 2000);
-    
-    return () => {
-      clearInterval(interval);
-    };
-  }, [form, unitSystem, weightUnit]); // Dependencies for useEffect
+  // 2025-12-24 Optimized: Use debounced caching instead of interval polling for better performance.
+  const debouncedCacheFormData = useCallback(() => {
+    if (cacheTimeoutRef.current) clearTimeout(cacheTimeoutRef.current);
+    cacheTimeoutRef.current = setTimeout(cacheFormData, 1000);
+  }, [cacheFormData]);
 
   // 清除缓存
   const clearCache = () => {
@@ -435,10 +428,10 @@ const ShipmentCreate: React.FC = () => {
   // 处理单位转换
   const handleUnitChange = (newUnit: 'cm' | 'inch') => {
     const currentValues = form.getFieldsValue(['cargoLength', 'cargoWidth', 'cargoHeight']);
-    
+
     if (newUnit !== unitSystem) {
       // 转换现有值
-      const newValues: unknown = {};
+      const newValues: any = {};
       ['cargoLength', 'cargoWidth', 'cargoHeight'].forEach(field => {
         const value = currentValues[field];
         if (value) {
@@ -449,7 +442,7 @@ const ShipmentCreate: React.FC = () => {
           }
         }
       });
-      
+
       form.setFieldsValue(newValues);
       setUnitSystem(newUnit);
     }
@@ -482,18 +475,18 @@ const ShipmentCreate: React.FC = () => {
   // 提交到确认页面
   const handleSubmitToConfirm = async () => {
     try {
-      const values = await form.validateFields();
-      
+      const values: any = await form.validateFields();
+
       // 2025-10-28 新增：处理多行货物数据
       let finalLength = 0;
       let finalWidth = 0;
       let finalHeight = 0;
       let finalWeight = 0;
       let cargoQuantity = 0;
-      
+
       if (values.cargoItems && Array.isArray(values.cargoItems)) {
         // 使用Form.List的多行数据
-        values.cargoItems.forEach((item: unknown) => {
+        values.cargoItems.forEach((item: any) => {
           const cargoItem = item || {};
           if (unitSystem === 'inch') {
             finalLength += (cargoItem.length ? convertToCm(cargoItem.length) : 0);
@@ -504,13 +497,13 @@ const ShipmentCreate: React.FC = () => {
             finalWidth += (cargoItem.width || 0);
             finalHeight += (cargoItem.height || 0);
           }
-          
+
           if (weightUnit === 'lb') {
             finalWeight += (cargoItem.weight ? convertToKg(cargoItem.weight) : 0);
           } else {
             finalWeight += (cargoItem.weight || 0);
           }
-          
+
           cargoQuantity += (cargoItem.quantity || 0);
         });
       } else {
@@ -519,13 +512,13 @@ const ShipmentCreate: React.FC = () => {
         finalWidth = values.cargoWidth;
         finalHeight = values.cargoHeight;
         finalWeight = values.cargoWeight;
-        
+
         if (unitSystem === 'inch') {
           finalLength = convertToCm(values.cargoLength);
           finalWidth = convertToCm(values.cargoWidth);
           finalHeight = convertToCm(values.cargoHeight);
         }
-        
+
         if (weightUnit === 'lb') {
           finalWeight = convertToKg(values.cargoWeight);
         }
@@ -537,7 +530,7 @@ const ShipmentCreate: React.FC = () => {
       const pickupTime = (pickupDateStr && values.pickupTimeRange)
         ? `${pickupDateStr} ${values.pickupTimeRange[0].format('HH')}:00 - ${pickupDateStr} ${values.pickupTimeRange[1].format('HH')}:00`
         : (pickupDateStr ? `${pickupDateStr} 00:00 - ${pickupDateStr} 23:59` : undefined);
-      
+
       const deliveryTime = (deliveryDateStr && values.deliveryTimeRange)
         ? `${deliveryDateStr} ${values.deliveryTimeRange[0].format('HH')}:00 - ${deliveryDateStr} ${values.deliveryTimeRange[1].format('HH')}:00`
         : (deliveryDateStr ? `${deliveryDateStr} 00:00 - ${deliveryDateStr} 23:59` : undefined);
@@ -628,12 +621,12 @@ const ShipmentCreate: React.FC = () => {
   // 最终确认创建运单
   const handleFinalConfirm = async () => {
     if (!submittedData) return;
-    
+
     setLoading(true);
     try {
       const createRes = await shipmentsApi.createShipment(submittedData);
       const createdId = createRes?.data?.id || createRes?.data?.data?.id; // 兼容不同返回结构 // 2025-10-01 14:06:30
-      
+
       message.success('运单创建成功！');
       clearCache();
       // 跳转到运单管理，并请求自动打开指派窗口 // 2025-10-01 14:06:30
@@ -653,25 +646,25 @@ const ShipmentCreate: React.FC = () => {
   };
 
   // 计算预估费用（简化版）
-  const calculateEstimatedCost = (values: unknown): number => {
+  const calculateEstimatedCost = (values: any): number => {
     let baseCost = 100; // 基础费用
-    
+
     // 根据距离计算
     if (values.distance) {
       baseCost += values.distance * 2;
     }
-    
+
     // 根据重量计算
     if (values.cargoWeight) {
       baseCost += values.cargoWeight * 0.5;
     }
-    
+
     // 根据体积计算
     if (values.cargoLength && values.cargoWidth && values.cargoHeight) {
       const volume = values.cargoLength * values.cargoWidth * values.cargoHeight;
       baseCost += volume * 0.01;
     }
-    
+
     // 附加服务费用
     if (values.insurance) {
       baseCost += 20;
@@ -682,13 +675,13 @@ const ShipmentCreate: React.FC = () => {
     if (values.requiresAppointment) {
       baseCost += 15;
     }
-    
+
     return Math.round(baseCost);
   };
 
   // 实时计费计算函数 - 集成后端计费引擎 // 2025-10-08 14:30:00 修复API参数格式
   // 2025-11-24T18:25:00Z Updated by Assistant: 使用 useCallback 包装，优化性能
-  const calculateRealTimePricing = useCallback(async (values: unknown) => {
+  const calculateRealTimePricing = useCallback(async (values: any) => {
     // 检查是否有必要的字段（修复：使用正确的字段名）// 2025-10-08 17:10:00
     if (!values.shipperAddress1 || !values.receiverAddress1 || !values.cargoWeight) {
       // 静默返回，等待用户填写完所有必要字段 // 2025-10-08 17:10:00
@@ -703,7 +696,7 @@ const ShipmentCreate: React.FC = () => {
       let totalWeight = 0;
       let totalVolume = 0;
       let totalPallets = 0;
-      
+
       if (values.cargoItems && Array.isArray(values.cargoItems) && values.cargoItems.length > 0) {
         // 多行货物模式
         values.cargoItems.forEach((item: any) => {
@@ -712,7 +705,7 @@ const ShipmentCreate: React.FC = () => {
           const itemWidth = item.width || 0;
           const itemHeight = item.height || 0;
           const quantity = item.quantity || 1;
-          
+
           totalWeight += itemWeight * quantity;
           totalVolume += (itemLength * itemWidth * itemHeight / 1000000) * quantity; // 转换为立方米
           totalPallets += (item.pallets || 0) * quantity;
@@ -727,13 +720,13 @@ const ShipmentCreate: React.FC = () => {
         }
         totalPallets = values.cargoPalletCount || 1;
       }
-      
+
       const distance = values.distance || estimatedDistance || 25;
       if (distance <= 0) {
         // 如果距离无效，使用降级计算
         throw new Error('距离无效，无法调用费用计算引擎');
       }
-      
+
       // 构建符合后端 shipmentContextSchema 的数据结构
       const shipmentContext = {
         shipmentId: uuidv4(), // 临时 UUID 用于预览计算
@@ -764,27 +757,27 @@ const ShipmentCreate: React.FC = () => {
 
       // 调用后端计费引擎API - 修复：包装请求参数 // 2025-10-08
       const response = await pricingApi.calculateCost(requestPayload);
-      
+
       // 修复：后端返回 {success, data: {...}}，需要访问 response.data.data // 2025-10-10 17:40:00
       if (response.data?.success && response.data.data?.totalRevenue) {
         const pricingData = response.data.data;
-        
+
         // 调试日志 - 查看完整返回数据 // 2025-10-10 17:40:00
         if (process.env.NODE_ENV === 'development') {
           console.log('🔍 后端计费引擎返回完整数据:', JSON.stringify(pricingData, null, 2));
           console.log('🔍 revenueBreakdown:', pricingData.revenueBreakdown);
         }
-        
+
         // 解析费用明细 - 2025-10-10 17:40:00 优化解析逻辑
         const revenueBreakdown = pricingData.revenueBreakdown || [];
         const breakdown = {
-          baseFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'BASE_FEE' || r.componentCode === 'BASE_PRICE')?.amount || 0,
+          baseFee: revenueBreakdown.find((r: any) => r.componentCode === 'BASE_FEE' || r.componentCode === 'BASE_PRICE')?.amount || 0,
           distanceFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'DISTANCE_FEE')?.amount || 0,
           weightFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'WEIGHT_FEE')?.amount || 0,
           volumeFee: revenueBreakdown.find((r: unknown) => r.componentCode === 'VOLUME_FEE')?.amount || 0,
           additionalFees: revenueBreakdown
-            .filter((r: unknown) => !['BASE_FEE', 'BASE_PRICE', 'DISTANCE_FEE', 'WEIGHT_FEE', 'VOLUME_FEE'].includes(r.componentCode))
-            .reduce((sum: number, r: unknown) => sum + (r.amount || 0), 0)
+            .filter((r: any) => !['BASE_FEE', 'BASE_PRICE', 'DISTANCE_FEE', 'WEIGHT_FEE', 'VOLUME_FEE'].includes(r.componentCode))
+            .reduce((sum: number, r: any) => sum + (r.amount || 0), 0)
         };
 
         setRealTimePricing({
@@ -798,21 +791,21 @@ const ShipmentCreate: React.FC = () => {
           },
           loading: false
         });
-        
+
         // 开发环境显示计费详情 // 2025-10-10 17:40:00
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ 计费引擎成功 - 总费用:', pricingData.totalRevenue, '元', '| 明细:', breakdown);
         }
-        
+
         return; // 成功后直接返回，不执行降级逻辑
       }
-      
+
       // 如果响应格式不对，记录警告但继续降级 // 2025-10-10 17:40:00
       console.warn('⚠️ 计费引擎返回格式不符合预期，降级到本地计算', response.data);
 
     } catch (error: unknown) {
       console.error('⚠️ 实时计费计算失败，降级到本地计算:', error);
-      
+
       // 打印详细错误信息以便调试 - 2025-10-08 14:30:00
       if (error.response) {
         console.error('后端返回错误:', {
@@ -821,14 +814,14 @@ const ShipmentCreate: React.FC = () => {
           message: error.response.data?.error?.message || error.response.data?.message
         });
       }
-      
+
       // 降级到本地计算 - 使用实际表单数据动态计算
       const baseFee = 100;
       const distance = values.distance || 0; // 不设默认值，让用户看到真实计算
       const distanceFee = distance * 2;
       const weight = values.cargoWeight || 0;
       const weightFee = weight * 0.5;
-      
+
       let volumeFee = 0;
       if (values.cargoLength && values.cargoWidth && values.cargoHeight) {
         const volume = values.cargoLength * values.cargoWidth * values.cargoHeight;
@@ -853,7 +846,7 @@ const ShipmentCreate: React.FC = () => {
         },
         loading: false
       });
-      
+
       // 开发环境显示本地计算详情 // 2025-10-08 17:10:00
       if (process.env.NODE_ENV === 'development') {
         console.log('💡 降级到本地计算 - 总费用:', totalCost, '元');
@@ -864,7 +857,10 @@ const ShipmentCreate: React.FC = () => {
   // 表单字段变化处理 - 2025-10-08 11:25:00 修复字段名
   // 2025-11-24T17:50:00Z Updated by Assistant: 优化实时费用计算触发机制，使用防抖和更好的错误处理
   // 2025-11-24T18:20:00Z Fixed by Assistant: 修复 useCallback 使用，使用 useRef 存储 timeoutId
-  const handleFormChange = useCallback((changedValues: unknown, allValues: unknown) => {
+  const handleFormChange = useCallback((changedValues: any, _allValues: any) => {
+    // 2025-12-24 Added: Trigger caching on any change
+    debouncedCacheFormData();
+
     // 检查是否是需要触发计费的字段（修复：使用正确的字段名）
     const pricingFields = [
       'shipperAddress1', 'shipperCity', 'shipperProvince', 'shipperPostalCode',
@@ -874,7 +870,7 @@ const ShipmentCreate: React.FC = () => {
       'insurance', 'requiresTailgate', 'requiresAppointment'
     ];
 
-    const shouldTriggerPricing = Object.keys(changedValues).some(field => 
+    const shouldTriggerPricing = Object.keys(changedValues).some(field =>
       pricingFields.includes(field)
     );
 
@@ -883,7 +879,7 @@ const ShipmentCreate: React.FC = () => {
       if (pricingTimeoutRef.current) {
         clearTimeout(pricingTimeoutRef.current);
       }
-      
+
       // 使用防抖，避免频繁计算 - 2025-11-24T17:50:00Z
       pricingTimeoutRef.current = setTimeout(() => {
         calculateRealTimePricing(allValues).catch((error) => {
@@ -946,7 +942,7 @@ const ShipmentCreate: React.FC = () => {
   // 渲染订单元信息部分：仅保留销售渠道与销售备注 // 2025-10-01 10:22:30
   const renderOrderInfoSection = () => (
     <Card title="订单元信息" style={{ marginBottom: 12 }}>
-      
+
       <Row gutter={[0, 8]}>
         <Col span={24}>
           <Form.Item
@@ -968,8 +964,8 @@ const ShipmentCreate: React.FC = () => {
             label="销售备注 (Seller Notes)"
             style={{ marginBottom: 8 }}
           >
-            <TextArea 
-              rows={3} 
+            <TextArea
+              rows={3}
               placeholder="请输入销售备注信息"
               maxLength={500}
               showCount
@@ -981,13 +977,13 @@ const ShipmentCreate: React.FC = () => {
   );
 
   const renderBasicInfoSection = () => (
-    <Card 
+    <Card
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>基础信息</span>
-          <Button 
-            type="primary" 
-            size="small" 
+          <Button
+            type="primary"
+            size="small"
             icon={<PlusOutlined />}
             onClick={() => setIsAddCustomerModalVisible(true)}
           >
@@ -997,7 +993,7 @@ const ShipmentCreate: React.FC = () => {
       }
       style={{ marginBottom: 12 }}
     >
-      
+
       <Row gutter={[8, 8]}>
         <Col span={16}>
           <Form.Item
@@ -1013,7 +1009,7 @@ const ShipmentCreate: React.FC = () => {
               loading={customersLoading}
               onChange={handleCustomerSelect}
               filterOption={(input, option) => {
-                const customer = customers.find(c => c.id === option?.value);
+                const customer: any = customers.find(c => (c as any).id === option?.value);
                 return customer?.name.toLowerCase().includes(input.toLowerCase()) || false;
               }}
               notFoundContent={customersLoading ? "加载中..." : "暂无客户"}
@@ -1022,9 +1018,9 @@ const ShipmentCreate: React.FC = () => {
                 <div>
                   {menu}
                   <div style={{ padding: '8px 12px', borderTop: '1px solid #f0f0f0' }}>
-                    <Button 
-                      type="link" 
-                      size="small" 
+                    <Button
+                      type="link"
+                      size="small"
                       onClick={() => setIsAddCustomerModalVisible(true)}
                       style={{ width: '100%' }}
                     >
@@ -1034,7 +1030,7 @@ const ShipmentCreate: React.FC = () => {
                 </div>
               )}
             >
-              {customers.map((customer: unknown) => {
+              {customers.map((customer: any) => {
                 const details = [customer.phone, customer.email].filter(Boolean).join(' / '); // 2025-10-02 16:55:10 同行展示并按存在与否拼接
                 return (
                   <Option key={customer.id} value={customer.id}>
@@ -1079,9 +1075,9 @@ const ShipmentCreate: React.FC = () => {
             name="customerPhone"
             label="联系电话 (Phone)"
             rules={[
-              { 
-                pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/, 
-                message: '请输入有效的手机号码（支持北美和中国格式）' 
+              {
+                pattern: /^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$|^1[3-9]\d{9}$/,
+                message: '请输入有效的手机号码（支持北美和中国格式）'
               }
             ]}
             style={{ marginBottom: 8 }}
@@ -1107,12 +1103,12 @@ const ShipmentCreate: React.FC = () => {
 
   // 地址与时间模块 - 修改为左右布局，符合北美地址习惯，移除地图功能 // 2025-09-30 10:45:00
   const renderAddressTimeSection = () => (
-    <Card 
+    <Card
       title="地址与时间"
       style={{ marginBottom: 12 }}
     >
       <Row gutter={[16, 8]}>
-        
+
         <Col span={12}>
           <Card size="small" title={
             <span>
@@ -1120,7 +1116,7 @@ const ShipmentCreate: React.FC = () => {
             </span>
           } style={{ height: '100%' }}>
             <Row gutter={[8, 8]}>
-        <Col span={24}>
+              <Col span={24}>
                 <Form.Item
                   name="shipperName"
                   label="发货人姓名 (Shipper Name)"
@@ -1128,16 +1124,16 @@ const ShipmentCreate: React.FC = () => {
                 >
                   <Input placeholder="请输入发货人姓名" />
                 </Form.Item>
-        </Col>
-        <Col span={24}>
-          <Form.Item
+              </Col>
+              <Col span={24}>
+                <Form.Item
                   name="shipperCompany"
                   label="公司名称 (Company Name)"
                   style={{ marginBottom: 8 }}
-          >
+                >
                   <Input placeholder="请输入公司名称（可选）" />
-          </Form.Item>
-        </Col>
+                </Form.Item>
+              </Col>
               <Col span={24}>
                 <Form.Item
                   name="shipperAddress1"
@@ -1148,7 +1144,7 @@ const ShipmentCreate: React.FC = () => {
                   <AddressAutocomplete
                     placeholder="输入街道地址（支持自动完成）..."
                     onChange={(address, addressInfo) => {
-                      handleAddressChange({ target: { value: address } } as React.ChangeEvent<HTMLInputElement>);
+                      handleAddressChange();
                       // 2025-12-02T21:00:00Z Added by Assistant: 自动填充地址信息
                       if (addressInfo) {
                         form.setFieldsValue({
@@ -1159,8 +1155,8 @@ const ShipmentCreate: React.FC = () => {
                       }
                     }}
                   />
-          </Form.Item>
-        </Col>
+                </Form.Item>
+              </Col>
               <Col span={24}>
                 <Form.Item
                   name="shipperAddress2"
@@ -1168,8 +1164,8 @@ const ShipmentCreate: React.FC = () => {
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入公寓号、套房号等（可选）" />
-          </Form.Item>
-        </Col>
+                </Form.Item>
+              </Col>
               <Col span={12}>
                 <Form.Item
                   name="shipperCity"
@@ -1231,30 +1227,30 @@ const ShipmentCreate: React.FC = () => {
                 </Form.Item>
               </Col>
               <Col span={24}>
-          <Form.Item name="pickupDate" label="取货日期 (Pickup Date)">
-            <DatePicker 
-              format="YYYY-MM-DD"
-              style={{ width: '100%' }} 
-              placeholder="选择取货日期"
-              disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
-            />
-          </Form.Item>
-        </Col>
+                <Form.Item name="pickupDate" label="取货日期 (Pickup Date)">
+                  <DatePicker
+                    format="YYYY-MM-DD"
+                    style={{ width: '100%' }}
+                    placeholder="选择取货日期"
+                    disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
+                  />
+                </Form.Item>
+              </Col>
               <Col span={24}>
-          <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" style={{ marginBottom: 8 }}>
-            <TimePicker.RangePicker
-              style={{ width: '100%' }}
-              format="HH:mm"
-              minuteStep={30}
-              hourStep={1}
-            />
-          </Form.Item>
+                <Form.Item name="pickupTimeRange" label="取货时间段 (Pickup Time Range)" style={{ marginBottom: 8 }}>
+                  <TimePicker.RangePicker
+                    style={{ width: '100%' }}
+                    format="HH:mm"
+                    minuteStep={30}
+                    hourStep={1}
+                  />
+                </Form.Item>
               </Col>
             </Row>
           </Card>
         </Col>
-            
-        
+
+
         <Col span={12}>
           <Card size="small" title={
             <span>
@@ -1262,7 +1258,7 @@ const ShipmentCreate: React.FC = () => {
             </span>
           } style={{ height: '100%' }}>
             <Row gutter={[8, 8]}>
-        <Col span={24}>
+              <Col span={24}>
                 <Form.Item
                   name="receiverName"
                   label="收货人姓名 (Receiver Name)"
@@ -1270,16 +1266,16 @@ const ShipmentCreate: React.FC = () => {
                 >
                   <Input placeholder="请输入收货人姓名" />
                 </Form.Item>
-        </Col>
-        <Col span={24}>
-          <Form.Item
+              </Col>
+              <Col span={24}>
+                <Form.Item
                   name="receiverCompany"
                   label="公司名称 (Company Name)"
                   style={{ marginBottom: 8 }}
-          >
+                >
                   <Input placeholder="请输入公司名称（可选）" />
-          </Form.Item>
-        </Col>
+                </Form.Item>
+              </Col>
               <Col span={24}>
                 <Form.Item
                   name="receiverAddress1"
@@ -1290,7 +1286,7 @@ const ShipmentCreate: React.FC = () => {
                   <AddressAutocomplete
                     placeholder="输入街道地址（支持自动完成）..."
                     onChange={(address, addressInfo) => {
-                      handleAddressChange({ target: { value: address } } as React.ChangeEvent<HTMLInputElement>);
+                      handleAddressChange();
                       // 2025-12-02T21:00:00Z Added by Assistant: 自动填充收货地址信息
                       if (addressInfo) {
                         form.setFieldsValue({
@@ -1301,8 +1297,8 @@ const ShipmentCreate: React.FC = () => {
                       }
                     }}
                   />
-          </Form.Item>
-        </Col>
+                </Form.Item>
+              </Col>
               <Col span={24}>
                 <Form.Item
                   name="receiverAddress2"
@@ -1310,8 +1306,8 @@ const ShipmentCreate: React.FC = () => {
                   style={{ marginBottom: 8 }}
                 >
                   <Input placeholder="请输入公寓号、套房号等（可选）" />
-          </Form.Item>
-        </Col>
+                </Form.Item>
+              </Col>
               <Col span={12}>
                 <Form.Item
                   name="receiverCity"
@@ -1374,59 +1370,59 @@ const ShipmentCreate: React.FC = () => {
                 </Form.Item>
               </Col>
               <Col span={24}>
-          <Form.Item name="deliveryDate" label="送达日期 (Delivery Date)">
-            <DatePicker 
-              format="YYYY-MM-DD"
-              style={{ width: '100%' }} 
-              placeholder="选择送达日期"
-              disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
-            />
-          </Form.Item>
-        </Col>
+                <Form.Item name="deliveryDate" label="送达日期 (Delivery Date)">
+                  <DatePicker
+                    format="YYYY-MM-DD"
+                    style={{ width: '100%' }}
+                    placeholder="选择送达日期"
+                    disabledDate={(current) => current && current < dayjs().startOf('day')} // 禁用过去的日期 // 2025-09-26 03:30:00
+                  />
+                </Form.Item>
+              </Col>
               <Col span={24}>
-          <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)">
-            <TimePicker.RangePicker
-              style={{ width: '100%' }}
-              format="HH:mm"
-              minuteStep={30}
-              hourStep={1}
-            />
-          </Form.Item>
-        </Col>
+                <Form.Item name="deliveryTimeRange" label="送达时间段 (Delivery Time Range)">
+                  <TimePicker.RangePicker
+                    style={{ width: '100%' }}
+                    format="HH:mm"
+                    minuteStep={30}
+                    hourStep={1}
+                  />
+                </Form.Item>
+              </Col>
             </Row>
           </Card>
         </Col>
 
-        
+
         <Col span={24}>
           <Divider style={{ margin: '8px 0' }} />
           <Row gutter={[12, 8]}>
-        <Col span={12}>
-          <Form.Item name="addressType" label="地址类型 (Address Type)">
-            <Radio.Group>
-              <Radio.Button value="residential">
-                <HomeOutlined /> 住宅地址
-              </Radio.Button>
-              <Radio.Button value="commercial">
-                <ShopOutlined /> 商业地址
-              </Radio.Button>
-            </Radio.Group>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="distance" label="预估距离 (Estimated Distance - km)">
-            <InputNumber
-              style={{ width: '100%' }}
-              placeholder="系统自动估算"
-              min={0}
-              precision={1}
-              value={estimatedDistance}
-              onChange={(value) => {
-                setEstimatedDistance(value || 0);
-                setIsManualDistance(true);
-              }}
-            />
-          </Form.Item>
+            <Col span={12}>
+              <Form.Item name="addressType" label="地址类型 (Address Type)">
+                <Radio.Group>
+                  <Radio.Button value="residential">
+                    <HomeOutlined /> 住宅地址
+                  </Radio.Button>
+                  <Radio.Button value="commercial">
+                    <ShopOutlined /> 商业地址
+                  </Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="distance" label="预估距离 (Estimated Distance - km)">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  placeholder="系统自动估算"
+                  min={0}
+                  precision={1}
+                  value={estimatedDistance}
+                  onChange={(value) => {
+                    setEstimatedDistance(value || 0);
+                    setIsManualDistance(true);
+                  }}
+                />
+              </Form.Item>
             </Col>
           </Row>
         </Col>
@@ -1445,8 +1441,8 @@ const ShipmentCreate: React.FC = () => {
             </Title>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Text>单位:</Text>
-              <Radio.Group 
-                value={unitSystem} 
+              <Radio.Group
+                value={unitSystem}
                 onChange={(e) => handleUnitChange(e.target.value)}
                 size="small"
               >
@@ -1459,8 +1455,8 @@ const ShipmentCreate: React.FC = () => {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Text>重量单位:</Text>
-              <Radio.Group 
-                value={weightUnit} 
+              <Radio.Group
+                value={weightUnit}
                 onChange={(e) => handleWeightUnitChange(e.target.value)}
                 size="small"
               >
@@ -1473,16 +1469,16 @@ const ShipmentCreate: React.FC = () => {
             </div>
           </div>
         </Col>
-        
+
         {/* 2025-10-28 新增：支持多行货物信息 */}
         <Col span={24}>
           <Form.List name="cargoItems" initialValue={[{}]}>
             {(fields, { add, remove }) => (
               <>
                 {fields.map((field, index) => (
-                  <Card 
-                    key={field.key} 
-                    size="small" 
+                  <Card
+                    key={field.key}
+                    size="small"
                     style={{ marginBottom: 12 }}
                   >
                     {/* 2025-12-05T11:30:00Z Updated: 托盘和件数前置，长宽高重量价值默认隐藏，使用>>展开 */}
@@ -1494,9 +1490,9 @@ const ShipmentCreate: React.FC = () => {
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item 
-                          {...field} 
-                          name={[field.name, 'quantity']} 
+                        <Form.Item
+                          {...field}
+                          name={[field.name, 'quantity']}
                           label={<span style={{ fontSize: '12px' }}>件数</span>}
                           style={{ marginBottom: 0 }}
                         >
@@ -1510,8 +1506,8 @@ const ShipmentCreate: React.FC = () => {
                             type="text"
                             size="small"
                             onClick={() => setCargoExpanded({ ...cargoExpanded, [index]: !cargoExpanded[index] })}
-                            style={{ 
-                              fontSize: '14px', 
+                            style={{
+                              fontSize: '14px',
                               padding: '0 4px',
                               color: '#1890ff',
                               fontWeight: 'bold'
@@ -1525,9 +1521,9 @@ const ShipmentCreate: React.FC = () => {
                       <Col span={2}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '32px', paddingTop: '6px' }}>
                           {fields.length > 1 && (
-                            <Button 
-                              type="text" 
-                              danger 
+                            <Button
+                              type="text"
+                              danger
                               size="small"
                               icon={<DeleteOutlined />}
                               onClick={() => remove(field.name)}
@@ -1537,7 +1533,7 @@ const ShipmentCreate: React.FC = () => {
                         </div>
                       </Col>
                     </Row>
-                    
+
                     {/* 可折叠区域：长宽高、重量、价值 - 默认隐藏 */}
                     {cargoExpanded[index] && (
                       <Row gutter={[6, 8]} style={{ fontSize: '12px', marginTop: 8, paddingTop: 8, borderTop: '1px solid #f0f0f0' }}>
@@ -1621,12 +1617,12 @@ const ShipmentCreate: React.FC = () => {
   // 2025-11-11T16:25:00Z 修复：将 Hooks 移到组件主体，这里只负责渲染
   const renderSafetyComplianceSection = () => {
     return (
-      <Collapse 
+      <Collapse
         activeKey={safetySectionActiveKeys}
         onChange={(keys) => setSafetySectionActiveKeys(keys as string[])}
         style={{ marginBottom: 12 }}
       >
-        <Collapse.Panel 
+        <Collapse.Panel
           header={<><SafetyCertificateOutlined /> 安全合规 <Text type="secondary" style={{ fontSize: '12px', marginLeft: 8 }}>(可选)</Text></>}
           key="safety-compliance"
         >
@@ -1683,8 +1679,8 @@ const ShipmentCreate: React.FC = () => {
                 label="送货单备注 (Delivery Note)"
                 style={{ marginBottom: 8 }}
               >
-                <TextArea 
-                  rows={2} 
+                <TextArea
+                  rows={2}
                   placeholder="送货单特殊说明"
                   maxLength={200}
                 />
@@ -1728,7 +1724,7 @@ const ShipmentCreate: React.FC = () => {
             )}
           </Form.Item>
         </Col>
-        
+
         <Col span={24}>
           <Divider style={{ margin: '8px 0' }} />
           <Title level={5}>
@@ -1760,7 +1756,7 @@ const ShipmentCreate: React.FC = () => {
             <Input placeholder="特殊配送要求" />
           </Form.Item>
         </Col>
-        
+
         <Col span={24}>
           <Divider />
           <Title level={5}>
@@ -1977,94 +1973,94 @@ const ShipmentCreate: React.FC = () => {
 
       <Card>
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 8px' }}>
-            <Form
-              form={form}
-              layout="vertical"
-              requiredMark={false}
-              onValuesChange={handleFormChange}
-              initialValues={{
-                priority: 'vip1',
-                addressType: 'residential',
-                shipperCountry: 'CA',
-                receiverCountry: 'CA',
-                insurance: false,
-                requiresTailgate: false,
-                requiresAppointment: false,
-                cargoIsFragile: false,
-                cargoIsDangerous: false,
-                // 字段初始值（订单元信息精简后保留） // 2025-10-01 10:24:10
-                salesChannel: 'DIRECT',
-                cargoType: 'GENERAL',
-                requiresColdChain: false,
-                needSignature: false,
-              }}
-            >
-              
-              {renderBasicInfoSection()}
-              {renderAddressTimeSection()}
-              
-              {renderCargoSection()}
-              {renderSafetyComplianceSection()}
-              {renderServicesSection()}
+          <Form
+            form={form}
+            layout="vertical"
+            requiredMark={false}
+            onValuesChange={handleFormChange}
+            initialValues={{
+              priority: 'vip1',
+              addressType: 'residential',
+              shipperCountry: 'CA',
+              receiverCountry: 'CA',
+              insurance: false,
+              requiresTailgate: false,
+              requiresAppointment: false,
+              cargoIsFragile: false,
+              cargoIsDangerous: false,
+              // 字段初始值（订单元信息精简后保留） // 2025-10-01 10:24:10
+              salesChannel: 'DIRECT',
+              cargoType: 'GENERAL',
+              requiresColdChain: false,
+              needSignature: false,
+            }}
+          >
 
-              
-              {renderRealTimePricing()}
+            {renderBasicInfoSection()}
+            {renderAddressTimeSection()}
 
-              
-              
-              
-                  
-                  
-                  
-                  
-                  
-                  <Row gutter={16}>
-                    <Col span={24}>
-                      <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f5f5f5', borderRadius: '8px' }}>
-                        <Title level={5}>运输距离估算</Title>
-                        <Divider style={{ margin: '12px 0' }} />
-                        <Space direction="vertical" style={{ width: '100%' }} size="small">
-                          <div>
-                            <Text type="secondary">当前估算距离：</Text>
-                            <Text strong>{estimatedDistance} km</Text>
-                          </div>
-                          <div>
-                            <Text type="secondary">估算方式：</Text>
-                            <Text strong>基于城市间直线距离</Text>
-                          </div>
-                          <div>
-                            <Text type="secondary">说明：</Text>
-                            <Text strong>地图功能将在二期版本提供，当前使用简单距离估算</Text>
-                          </div>
-                        </Space>
-                      </div>
-                    </Col>
-                  </Row>
+            {renderCargoSection()}
+            {renderSafetyComplianceSection()}
+            {renderServicesSection()}
 
-              
-              {renderOrderInfoSection()}
 
-              
-              <div style={{ textAlign: 'center', marginTop: '24px' }}>
-                <Space size="large">
-                  <Button
-                    type="primary"
-                    onClick={handleSubmitToConfirm}
-                    size="large"
-                    icon={<CheckCircleOutlined />}
-                  >
-                    提交确认
-                  </Button>
-                  <Button onClick={() => navigate('/admin/shipments')} size="large">
-                    返回列表
-                  </Button>
-                </Space>
-              </div>
-            </Form>
-          </div>
-        </Card>
+            {renderRealTimePricing()}
 
-      
+
+
+
+
+
+
+
+
+            <Row gutter={16}>
+              <Col span={24}>
+                <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f5f5f5', borderRadius: '8px' }}>
+                  <Title level={5}>运输距离估算</Title>
+                  <Divider style={{ margin: '12px 0' }} />
+                  <Space direction="vertical" style={{ width: '100%' }} size="small">
+                    <div>
+                      <Text type="secondary">当前估算距离：</Text>
+                      <Text strong>{estimatedDistance} km</Text>
+                    </div>
+                    <div>
+                      <Text type="secondary">估算方式：</Text>
+                      <Text strong>基于城市间直线距离</Text>
+                    </div>
+                    <div>
+                      <Text type="secondary">说明：</Text>
+                      <Text strong>地图功能将在二期版本提供，当前使用简单距离估算</Text>
+                    </div>
+                  </Space>
+                </div>
+              </Col>
+            </Row>
+
+
+            {renderOrderInfoSection()}
+
+
+            <div style={{ textAlign: 'center', marginTop: '24px' }}>
+              <Space size="large">
+                <Button
+                  type="primary"
+                  onClick={handleSubmitToConfirm}
+                  size="large"
+                  icon={<CheckCircleOutlined />}
+                >
+                  提交确认
+                </Button>
+                <Button onClick={() => navigate('/admin/shipments')} size="large">
+                  返回列表
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        </div>
+      </Card>
+
+
       <Modal
         title="新增客户"
         open={isAddCustomerModalVisible}

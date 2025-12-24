@@ -9,7 +9,6 @@ import {
   Button,
   Modal,
   Form,
-  Input,
   InputNumber,
   DatePicker,
   Select,
@@ -19,22 +18,17 @@ import {
   Typography,
   Row,
   Col,
-  Popconfirm,
-  Statistic,
 } from 'antd';
 import {
-  PlusOutlined,
   EditOutlined,
-  DeleteOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
 import { Vehicle, VehicleStatus } from '../../types';
 import { vehiclesApi, costsApi } from '../../services/api';
 import { useDataContext } from '../../contexts/DataContext';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 const { MonthPicker } = DatePicker;
 
 interface VehicleCost {
@@ -151,7 +145,7 @@ const VehicleManagement: React.FC = () => {
   // 将费用列表转换为月度费用格式
   const groupCostsByMonth = (costs: VehicleCost[]): Record<string, MonthlyCost> => {
     const monthlyData: Record<string, MonthlyCost> = {};
-    
+
     costs.forEach(cost => {
       const month = dayjs(cost.costDate).format('YYYY-MM');
       if (!monthlyData[month]) {
@@ -163,7 +157,7 @@ const VehicleManagement: React.FC = () => {
           maintenance: 0,
         };
       }
-      
+
       switch (cost.costType) {
         case 'fuel':
           monthlyData[month].fuel += cost.costAmount;
@@ -186,7 +180,7 @@ const VehicleManagement: React.FC = () => {
           monthlyData[month].maintenance += cost.costAmount;
       }
     });
-    
+
     return monthlyData;
   };
 
@@ -194,7 +188,7 @@ const VehicleManagement: React.FC = () => {
   const getLastMonthLeaseAndInsurance = (costs: VehicleCost[]): { lease: number; insurance: number } => {
     const monthlyData = groupCostsByMonth(costs);
     const months = Object.keys(monthlyData).sort().reverse(); // 从最新月份开始查找
-    
+
     // 查找最近一个有 lease 或 insurance 费用的月份
     for (const month of months) {
       const monthlyCost = monthlyData[month];
@@ -205,7 +199,7 @@ const VehicleManagement: React.FC = () => {
         };
       }
     }
-    
+
     return { lease: 0, insurance: 0 };
   };
 
@@ -214,11 +208,11 @@ const VehicleManagement: React.FC = () => {
     setEditingCost(null);
     // 2025-12-02T20:50:00Z 修复：先重置表单，然后设置 dayjs 对象
     costForm.resetFields();
-    
+
     // 2025-01-27T00:00:00Z 自动继承功能：加载历史费用数据，查找最近一个月的 lease 和 insurance 费用
     let inheritedLease = undefined;
     let inheritedInsurance = undefined;
-    
+
     try {
       const costs = vehicleCosts[vehicle.id] || await loadVehicleCosts(vehicle.id);
       const lastMonthCosts = getLastMonthLeaseAndInsurance(costs);
@@ -232,7 +226,7 @@ const VehicleManagement: React.FC = () => {
       console.error('加载历史费用数据失败:', error);
       // 即使加载失败，也继续打开弹窗
     }
-    
+
     // 使用 setTimeout 确保在 Modal 渲染后设置值
     setTimeout(() => {
       costForm.setFieldsValue({
@@ -248,12 +242,12 @@ const VehicleManagement: React.FC = () => {
 
   const handleEditMonthlyCost = async (vehicle: Vehicle, month: string) => {
     setSelectedVehicle(vehicle);
-    
+
     // 加载该车辆的费用数据
     const costs = vehicleCosts[vehicle.id] || await loadVehicleCosts(vehicle.id);
     const monthlyData = groupCostsByMonth(costs);
     const monthlyCost = monthlyData[month];
-    
+
     if (monthlyCost) {
       setEditingCost(monthlyCost);
       // 2025-12-02T20:50:00Z 修复：确保 dayjs 对象有效
@@ -289,7 +283,7 @@ const VehicleManagement: React.FC = () => {
         message.error('请选择月份');
         return;
       }
-      
+
       // 如果已经是 dayjs 对象，直接使用；否则尝试解析
       const monthDayjs = dayjs.isDayjs(monthValue) ? monthValue : dayjs(monthValue);
       if (!monthDayjs.isValid()) {
@@ -299,7 +293,7 @@ const VehicleManagement: React.FC = () => {
 
       const month = monthDayjs.format('YYYY-MM');
       const firstDayOfMonth = monthDayjs.startOf('month').format('YYYY-MM-DD');
-      
+
       // 获取或创建成本分类（这里简化处理，使用默认分类）
       let costCategories: any[] = [];
       try {
@@ -322,7 +316,7 @@ const VehicleManagement: React.FC = () => {
         const costsToDelete = (vehicleCosts[selectedVehicle.id] || []).filter(
           cost => dayjs(cost.costDate).format('YYYY-MM') === month
         );
-        
+
         for (const cost of costsToDelete) {
           try {
             await costsApi.deleteVehicleCost(cost.id);
@@ -366,12 +360,12 @@ const VehicleManagement: React.FC = () => {
         costForm.resetFields();
         setSelectedVehicle(null);
         setEditingCost(null);
-        
+
         // 重新加载费用数据
         if (selectedVehicle) {
           await loadVehicleCosts(selectedVehicle.id);
         }
-        
+
         // 2025-01-27T00:00:00Z 重新加载本月费用总数统计
         await loadMonthlyTotals();
       }
@@ -415,6 +409,7 @@ const VehicleManagement: React.FC = () => {
       dataIndex: 'type',
       key: 'type',
       width: 120,
+      render: (type: string) => type || '—',
     },
     {
       title: '载重 (kg)',
@@ -594,8 +589,8 @@ const VehicleManagement: React.FC = () => {
         cancelText="取消"
         destroyOnClose={true} // 2025-12-02T20:50:00Z 修复：关闭时销毁表单，避免状态残留
       >
-        <Form 
-          form={costForm} 
+        <Form
+          form={costForm}
           layout="vertical"
           preserve={false} // 2025-12-02T20:52:00Z 修复：不保留字段值，避免状态残留
         >
@@ -618,7 +613,6 @@ const VehicleManagement: React.FC = () => {
               format="YYYY-MM"
               placeholder="选择月份"
               disabled={!!editingCost}
-              picker="month"
             />
           </Form.Item>
 

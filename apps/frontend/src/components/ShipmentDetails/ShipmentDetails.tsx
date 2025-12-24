@@ -2,33 +2,33 @@
 // 创建时间: 2025-01-27 15:30:00
 
 import React, { useRef, useState, useEffect } from 'react'; // 2025-10-02 15:32:10 引入 useRef/useEffect 支持签名画布
-import { 
-  Button, 
-  Card, 
-  Row, 
-  Col, 
-  Typography, 
-  Tag, 
-  Divider, 
-  Space, 
-  Tabs, 
-  Table, 
-  Upload, 
-  Modal, 
-  Form, 
-  Input, 
-  Select, 
+import {
+  Button,
+  Card,
+  Row,
+  Col,
+  Typography,
+  Tag,
+  Divider,
+  Space,
+  Tabs,
+  Table,
+  Upload,
+  Modal,
+  Form,
+  Input,
+  Select,
   Timeline,
   Badge,
   message,
   List,
   Avatar
 } from 'antd';
-import { 
-  PrinterOutlined, 
-  DownloadOutlined, 
-  TeamOutlined, 
-  TruckOutlined, 
+import {
+  PrinterOutlined,
+  DownloadOutlined,
+  TeamOutlined,
+  TruckOutlined,
   PlusOutlined,
   UploadOutlined,
   CheckCircleOutlined,
@@ -36,12 +36,12 @@ import {
   ExclamationCircleOutlined,
   EditOutlined
 } from '@ant-design/icons';
-import { 
-  Shipment, 
-  ShipmentStatus, 
-  Driver, 
-  Vehicle, 
-  Trip, 
+import {
+  Shipment,
+  ShipmentStatus,
+  Driver,
+  Vehicle,
+  Trip,
   TimelineEvent,
   EventType,
   POD,
@@ -73,8 +73,8 @@ interface ShipmentDetailsProps {
   onEdit?: () => void; // 2025-10-28 新增：编辑回调
 }
 
-const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({ 
-  shipment, 
+const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
+  shipment,
   onPrint,
   onDownloadPDF,
   onStatusUpdate,
@@ -91,7 +91,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null); // 2025-10-02 15:32:10 签名图片
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context - removes duplicate hook calls
   const { availableDrivers, allDrivers, availableVehicles, allVehicles, reloadDrivers } = useDataContext(); // 2025-11-30 06:30:00 修复：添加 reloadDrivers
-  
+
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(false); // 2025-11-24T19:40:00Z Added by Assistant: 行程加载状态
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
@@ -109,10 +109,10 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     const timelineSource = Array.isArray((shipment as any).timeline)
       ? (shipment.timeline as TimelineEvent[])
       : Array.isArray((shipment as any).timeline?.items)
-      ? (shipment as any).timeline.items
-      : Array.isArray((shipment as any).timeline?.events)
-      ? (shipment as any).timeline.events
-      : [];
+        ? (shipment as any).timeline.items
+        : Array.isArray((shipment as any).timeline?.events)
+          ? (shipment as any).timeline.events
+          : [];
     if (isMounted) {
       setTimelineEvents(timelineSource);
     }
@@ -151,20 +151,24 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     const delivery = anyS.deliveryAddress || anyS.receiverAddress || anyS.receiver?.address || {};
     return {
       ...anyS,
-      shipper: anyS.shipper || { name: anyS.customerName || anyS.customer?.name || '', address: {
-        addressLine1: pickup.addressLine1 || pickup.street || '',
-        city: pickup.city || '',
-        province: pickup.province || pickup.state || '',
-        postalCode: pickup.postalCode || '',
-        country: pickup.country || ''
-      }},
-      receiver: anyS.receiver || { name: anyS.receiverName || '', address: {
-        addressLine1: delivery.addressLine1 || delivery.street || '',
-        city: delivery.city || '',
-        province: delivery.province || delivery.state || '',
-        postalCode: delivery.postalCode || '',
-        country: delivery.country || ''
-      }},
+      shipper: anyS.shipper || {
+        name: anyS.customerName || anyS.customer?.name || '', address: {
+          addressLine1: pickup.addressLine1 || pickup.street || '',
+          city: pickup.city || '',
+          province: pickup.province || pickup.state || '',
+          postalCode: pickup.postalCode || '',
+          country: pickup.country || ''
+        }
+      },
+      receiver: anyS.receiver || {
+        name: anyS.receiverName || '', address: {
+          addressLine1: delivery.addressLine1 || delivery.street || '',
+          city: delivery.city || '',
+          province: delivery.province || delivery.state || '',
+          postalCode: delivery.postalCode || '',
+          country: delivery.country || ''
+        }
+      },
       shipperAddress: anyS.shipperAddress || {
         addressLine1: pickup.addressLine1 || pickup.street || '',
         city: pickup.city || '',
@@ -322,7 +326,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       printContainer.style.left = '-10000px';
       printContainer.style.top = '0';
       printContainer.style.width = '21cm';
-      
+
       // 创建一个临时的BOL组件
       const tempBolElement = document.createElement('div');
       tempBolElement.className = 'bol-document';
@@ -383,7 +387,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           </table>
         </div>
       `;
-      
+
       printContainer.appendChild(tempBolElement);
       document.body.appendChild(printContainer);
 
@@ -438,7 +442,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       pdfContainer.style.left = '-10000px';
       pdfContainer.style.top = '0';
       pdfContainer.style.width = '21cm';
-      
+
       // 创建一个临时的BOL组件
       const tempBolElement = document.createElement('div');
       tempBolElement.className = 'bol-document';
@@ -499,7 +503,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           </table>
         </div>
       `;
-      
+
       pdfContainer.appendChild(tempBolElement);
       document.body.appendChild(pdfContainer);
 
@@ -513,23 +517,23 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         windowWidth: 794, // 明确指定宽度（A4：210mm = 794px at 72dpi）
         windowHeight: 1123 // 明确指定高度（A4：297mm = 1123px at 72dpi）
       });
-      
+
       // 2025-10-28 优化：使用JPEG格式降低文件体积（从PNG改为JPEG，质量0.92）
       const imgData = canvas.toDataURL('image/jpeg', 0.92);
-      
+
       // 创建PDF文档
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-      
+
       let position = 0;
-      
+
       // 添加第一页
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-      
+
       // 如果内容超过一页，添加新页面
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
@@ -537,11 +541,11 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-      
+
       // 保存PDF
       const fileName = `BOL-${shipment.shipmentNo || shipment.id}-${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(fileName);
-      
+
       document.body.removeChild(pdfContainer);
       message.success('PDF 已下载');
     } catch (e) {
@@ -621,7 +625,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       label: '基本信息',
       children: (
         <div>
-          
+
           <Card title="运单信息" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
               <Col span={12}>
@@ -636,7 +640,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               </Col>
             </Row>
             <Divider />
-            
+
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>重量：</Text>
@@ -648,14 +652,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               </Col>
             </Row>
             <Divider />
-            
+
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Text strong>预估费用：</Text>
                 <Text>{formatCurrency(shipment.estimatedCost)}</Text>
-                <Button 
-                  type="link" 
-                  size="small" 
+                <Button
+                  type="link"
+                  size="small"
                   onClick={() => setIsCostDetailVisible(true)}
                   style={{ padding: 0, marginLeft: 4 }}
                 >
@@ -669,7 +673,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Row>
           </Card>
 
-          
+
           <Card title="地址信息" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
               <Col span={12}>
@@ -711,18 +715,18 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Row>
           </Card>
 
-          
+
           <Card title="货物信息">
             {/* 2025-11-30 00:30:00 修复：支持 cargoInfo 和 cargoItems 显示 */}
             {(() => {
               const cargoInfo = (shipment as any).cargoInfo || {};
               const cargoItems = cargoInfo.cargoItems || [];
-              
+
               // 多行货物模式
               if (cargoItems && Array.isArray(cargoItems) && cargoItems.length > 0) {
                 const totalWeight = cargoItems.reduce((sum: number, item: any) => sum + ((item.weight || 0) * (item.quantity || 1)), 0);
                 const totalQuantity = cargoItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-                
+
                 return (
                   <>
                     <Row gutter={[16, 16]}>
@@ -805,7 +809,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                   </>
                 );
               }
-              
+
               // 单行货物模式或兼容旧数据
               return (
                 <>
@@ -919,19 +923,19 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       children: (
         <div>
           {/* 2025-10-28 优化：合并指派操作和指派信息到一个Card */}
-          <Card 
+          <Card
             title="当前指派信息"
             extra={
               <Space>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
                   icon={<TeamOutlined />}
                   onClick={handleAssignDriver}
                 >
                   直接指派司机车辆
                 </Button>
-                <Button 
+                <Button
                   size="small"
                   icon={<TruckOutlined />}
                   onClick={handleMountTrip}
@@ -967,16 +971,16 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               {(() => {
                 const nextStatus = getNextStatus(shipment.status);
                 return nextStatus ? (
-                <Button 
-                  type="primary" 
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => handleStatusUpdate(nextStatus)}
-                >
-                  推进到 {getStatusTag(nextStatus).text}
-                </Button>
+                  <Button
+                    type="primary"
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => handleStatusUpdate(nextStatus)}
+                  >
+                    推进到 {getStatusTag(nextStatus).text}
+                  </Button>
                 ) : null;
               })()}
-              <Button 
+              <Button
                 icon={<ExclamationCircleOutlined />}
                 danger
               >
@@ -1046,21 +1050,21 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                       : JSON.stringify(event.extra)
                     : null;
                   return (
-                  <Timeline.Item
-                    key={event.id || `${event.eventType}-${index}`}
-                    color={timelineColorMap[event.eventType] || 'blue'}
-                  >
-                    <Text strong>{timelineTextMap[event.eventType] || event.eventType}</Text>
-                    <br />
-                    <Text type="secondary">
-                      {event.timestamp ? formatDateTime(event.timestamp) : '时间未知'}
-                    </Text>
-                    {extraContent && (
-                      <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                        {extraContent}
-                      </div>
-                    )}
-                  </Timeline.Item>
+                    <Timeline.Item
+                      key={event.id || `${event.eventType}-${index}`}
+                      color={timelineColorMap[event.eventType] || 'blue'}
+                    >
+                      <Text strong>{timelineTextMap[event.eventType] || event.eventType}</Text>
+                      <br />
+                      <Text type="secondary">
+                        {event.timestamp ? formatDateTime(event.timestamp) : '时间未知'}
+                      </Text>
+                      {extraContent && (
+                        <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                          {extraContent}
+                        </div>
+                      )}
+                    </Timeline.Item>
                   );
                 })
               )}
@@ -1073,28 +1077,28 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
   return (
     <div>
-      
+
       <div className="no-print" style={{ marginBottom: 16, textAlign: 'right' }}>
         <Space>
           {/* 2025-10-28 新增：编辑运单按钮（在打印运单左边） */}
           {onEdit && (
-            <Button 
-              type="primary" 
-              icon={<EditOutlined />} 
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
               onClick={onEdit}
             >
               编辑运单
             </Button>
           )}
-          <Button 
-            type="primary" 
-            icon={<PrinterOutlined />} 
+          <Button
+            type="primary"
+            icon={<PrinterOutlined />}
             onClick={handlePrint}
           >
             打印运单
           </Button>
-          <Button 
-            icon={<DownloadOutlined />} 
+          <Button
+            icon={<DownloadOutlined />}
             onClick={handleDownloadPDF}
           >
             下载 PDF
@@ -1105,14 +1109,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Space>
       </div>
 
-      
-      <Tabs 
-        activeKey={activeTab} 
+
+      <Tabs
+        activeKey={activeTab}
         onChange={setActiveTab}
         items={tabItems}
       />
 
-      
+
       <Modal
         title="指派司机车辆"
         open={isAssignModalVisible}
@@ -1120,13 +1124,13 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           try {
             const values = await form.validateFields();
             console.log('🔍 指派表单值:', values); // 2025-10-28 调试
-            
+
             // 2025-11-30 05:45:00 修复：确保driverId存在，vehicleId可以为空
             if (!values.driverId) {
               message.error('请选择司机');
               return;
             }
-            
+
             // 2025-10-28 修复：实现真正的指派逻辑
             if (onAssignDriver) {
               // 2025-11-30 05:45:00 修复：vehicleId可以为undefined或null
@@ -1175,7 +1179,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             rules={[{ required: true, message: '请选择司机' }]}
           >
             {/* 2025-11-30 02:30:00 修复：如果没有可用司机，显示所有司机（包括忙碌的），并标注状态 */}
-            <Select 
+            <Select
               placeholder={availableDrivers.length === 0 ? "暂无空闲司机，显示所有司机" : "请选择司机"}
               showSearch
               filterOption={(input, option) =>
@@ -1215,7 +1219,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               </div>
             )}
           </Form.Item>
-          
+
           <Form.Item
             name="vehicleId"
             label={(
@@ -1226,7 +1230,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             )}
             rules={[{ required: false, message: '请选择车辆' }]}
           >
-            <Select 
+            <Select
               placeholder="请选择车辆（可选）"
               allowClear
               showSearch
@@ -1248,7 +1252,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Form>
       </Modal>
 
-      
+
       <Modal
         title="添加司机"
         open={isQuickAddDriverVisible}
@@ -1285,7 +1289,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Card>
       </Modal>
 
-      
+
       <Modal
         title="添加车辆"
         open={isQuickAddVehicleVisible}
@@ -1325,7 +1329,10 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                 dataSource={availableVehicles}
                 renderItem={(vehicle) => (
                   <List.Item>
-                    <List.Item.Meta title={vehicle.plateNumber} description={`${vehicle.type} - ${vehicle.capacityKg || 0}kg`} />
+                    <List.Item.Meta
+                      title={vehicle.plateNumber || '未填写车牌'}
+                      description={`${vehicle.type || '未知车型'} - ${vehicle.capacityKg != null ? `${vehicle.capacityKg}kg` : '载重未知'}`}
+                    />
                     <Tag color="green">空闲</Tag>
                   </List.Item>
                 )}
@@ -1335,7 +1342,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Row>
       </Modal>
 
-      
+
       <Modal
         title="挂载到行程"
         open={isMountModalVisible}
@@ -1345,14 +1352,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           try {
             const values = await form.validateFields();
             const { tripId } = values;
-            
+
             // 2025-11-30 06:45:00 修复：先调用API
             await tripsApi.mountShipmentsToTrip(tripId, [shipment.id]);
-            
+
             // 2025-11-30 06:45:00 修复：关闭模态框
             setIsMountModalVisible(false);
             form.resetFields();
-            
+
             // 2025-11-30 06:45:00 修复：如果有 onMountTrip 回调，调用它（可能包含刷新逻辑，但不应该显示消息）
             if (onMountTrip) {
               try {
@@ -1362,7 +1369,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                 console.error('onMountTrip callback failed:', callbackError);
               }
             }
-            
+
             // 2025-11-30 06:45:00 修复：只在这里显示一次成功消息
             message.success('运单已成功挂载到行程');
           } catch (error: any) {
@@ -1382,7 +1389,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             label="选择行程"
             rules={[{ required: true, message: '请选择行程' }]}
           >
-            <Select 
+            <Select
               placeholder="请选择行程"
               loading={tripsLoading}
             >
@@ -1396,7 +1403,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         </Form>
       </Modal>
 
-      
+
       <Modal
         title="电子签名"
         open={isESignVisible}
@@ -1438,7 +1445,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         )}
       </Modal>
 
-      
+
       <Modal
         title="费用明细"
         open={isCostDetailVisible}

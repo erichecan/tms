@@ -47,7 +47,7 @@ const getDbService = () => {
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = extractToken(req);
-    
+
     if (!token) {
       res.status(401).json({
         success: false,
@@ -106,7 +106,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     next();
   } catch (error) {
     logger.error('Authentication error:', error);
-    
+
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
         success: false,
@@ -238,7 +238,7 @@ export const permissionMiddleware = (requiredPermissions: string[]) => {
 export const optionalAuthMiddleware = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = extractToken(req);
-    
+
     if (token) {
       const jwtSecret = process.env.JWT_SECRET; // 2025-11-11T15:14:25Z Added by Assistant: Optional auth secret reuse
       if (!jwtSecret) {
@@ -257,7 +257,7 @@ export const optionalAuthMiddleware = async (req: Request, _res: Response, next:
             }
           }
         }
-      
+
         if (user && user.status === 'active') {
           req.user = {
             id: user.id,
@@ -270,7 +270,7 @@ export const optionalAuthMiddleware = async (req: Request, _res: Response, next:
         }
       }
     }
-    
+
     next();
   } catch (error) {
     // 可选认证失败时不阻止请求继续
@@ -286,16 +286,16 @@ export const optionalAuthMiddleware = async (req: Request, _res: Response, next:
  */
 function extractToken(req: Request): string | null {
   const authHeader = req.headers.authorization;
-  
+
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
+
   // 也可以从cookie中获取token
   if (req.cookies && req.cookies.token) {
     return req.cookies.token;
   }
-  
+
   return null;
 }
 
@@ -307,9 +307,13 @@ function extractToken(req: Request): string | null {
  * @returns JWT token
  */
 export const generateToken = (userId: string, tenantId: string, role: string): string => {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET is not configured');
+  }
   return jwt.sign(
     { userId, tenantId, role },
-    process.env.JWT_SECRET || 'fallback-secret', // 2025-11-11T15:14:25Z Added by Assistant: Fallback for local tooling
+    jwtSecret,
     { expiresIn: '7d' } as any
   );
 };
@@ -321,9 +325,13 @@ export const generateToken = (userId: string, tenantId: string, role: string): s
  * @returns 刷新token
  */
 export const generateRefreshToken = (userId: string, tenantId: string): string => {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET is not configured');
+  }
   return jwt.sign(
     { userId, tenantId, type: 'refresh' },
-    process.env.JWT_SECRET || 'fallback-secret', // 2025-11-11T15:14:25Z Added by Assistant: Fallback for local tooling
+    jwtSecret,
     { expiresIn: '30d' } as any
   );
 };

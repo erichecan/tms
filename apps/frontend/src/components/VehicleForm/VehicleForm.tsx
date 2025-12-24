@@ -4,7 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { Form, Input, Select, Space } from 'antd';
-import { CarOutlined, AppstoreOutlined, WeightOutlined } from '@ant-design/icons';
+import { CarOutlined } from '@ant-design/icons';
 import { Vehicle } from '../../types';
 
 const { Option } = Select;
@@ -38,11 +38,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
   }, [initialValues, mode, form]);
 
   return (
-    <Form 
-      form={form} 
-      layout="vertical" 
+    <Form
+      form={form}
+      layout="vertical"
       requiredMark={false}
-      style={{ 
+      style={{
         maxWidth: '100%',
       }}
     >
@@ -51,25 +51,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
           <CarOutlined />
           <span>车辆信息</span>
         </Space>
-        
+
         <Form.Item
           name="plateNumber"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>车牌号</span>}
           style={{ marginBottom: 16 }}
         >
-          <Input 
-            placeholder="例如：ABC-1234（可选）" 
+          <Input
+            placeholder="例如：ABC-1234（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
         </Form.Item>
-        
+
         <Form.Item
           name="type"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>车型</span>}
           style={{ marginBottom: 16 }}
         >
-          <Select 
+          <Select
             placeholder="选择车型（可选）"
             size="large"
             style={{ borderRadius: 6 }}
@@ -81,7 +81,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
             ))}
           </Select>
         </Form.Item>
-        
+
         <Form.Item
           name="capacityKg"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>载重 (kg)</span>}
@@ -90,9 +90,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
           ]}
           style={{ marginBottom: 0 }}
         >
-          <Input 
-            type="number" 
-            placeholder="请输入载重，例如：3000（可选）" 
+          <Input
+            type="number"
+            placeholder="请输入载重，例如：3000（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
@@ -107,9 +107,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ form, initialValues, mode = '
  */
 export const transformVehicleFormData = (values: any) => {
   return {
-    plateNumber: values.plateNumber,
-    type: values.type,
-    capacityKg: Number(values.capacityKg || 0),
+    plateNumber: values.plateNumber || null,
+    type: values.type || null,
+    capacityKg: values.capacityKg !== undefined && values.capacityKg !== '' ? Number(values.capacityKg) : null,
     status: 'available'
   };
 };

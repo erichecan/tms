@@ -4,13 +4,12 @@
 
 import React, { useEffect } from 'react';
 import { Form, Input, Select, Row, Col, Divider, Space } from 'antd';
-import { 
-  UserOutlined, 
-  MailOutlined, 
-  PhoneOutlined, 
-  HomeOutlined, 
+import {
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
   BankOutlined,
-  EnvironmentOutlined 
+  EnvironmentOutlined
 } from '@ant-design/icons';
 import { Customer } from '../../types';
 import {
@@ -64,7 +63,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
       const address = contactInfo.address || {};
       const billingInfo = (initialValues as any).billingInfo || {};
       const billingAddress = billingInfo.billingAddress || {};
-      
+
       form.setFieldsValue({
         name: initialValues.name,
         email: contactInfo.email || '',
@@ -91,11 +90,11 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
   }, [initialValues, mode, form]);
 
   return (
-    <Form 
-      form={form} 
-      layout="vertical" 
+    <Form
+      form={form}
+      layout="vertical"
       requiredMark={false}
-      style={{ 
+      style={{
         maxWidth: '100%',
       }}
     >
@@ -105,19 +104,20 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           <UserOutlined />
           <span>基本信息</span>
         </Space>
-        
+
         <Form.Item
           name="name"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>客户姓名</span>}
+          rules={[{ required: true, message: '请输入客户姓名' }]}
           style={{ marginBottom: 16 }}
         >
-          <Input 
-            placeholder="请输入客户姓名（可选）" 
+          <Input
+            placeholder="请输入客户姓名"
             size="large"
             style={{ borderRadius: 6 }}
           />
         </Form.Item>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -126,9 +126,9 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               rules={emailOptionalValidationRule}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="example@email.com（可选）" 
+              <Input
+                prefix={<MailOutlined style={{ color: '#bfbfbf' }} aria-hidden="true" />}
+                placeholder="example@email.com（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
@@ -141,23 +141,23 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               rules={[phoneValidationRule]}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="416-123-4567（可选）" 
+              <Input
+                prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} aria-hidden="true" />}
+                placeholder="416-123-4567（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Form.Item
           name="level"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>客户等级</span>}
           initialValue="standard"
           style={{ marginBottom: 0 }}
         >
-          <Select 
+          <Select
             size="large"
             style={{ borderRadius: 6 }}
           >
@@ -169,14 +169,14 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
           </Select>
         </Form.Item>
       </div>
-      
+
       <Divider style={{ margin: '24px 0' }}>
         <Space>
           <EnvironmentOutlined style={{ color: '#8c8c8c' }} />
           <span style={{ fontSize: 13, color: '#8c8c8c', fontWeight: 500 }}>默认地址设置（可选）</span>
         </Space>
       </Divider>
-      
+
       <div style={{ marginBottom: 24 }}>
         <Row gutter={16}>
           <Col span={12}>
@@ -186,7 +186,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               initialValue="Canada"
               style={{ marginBottom: 16 }}
             >
-              <Select 
+              <Select
                 placeholder="选择国家（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
@@ -221,7 +221,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -229,8 +229,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>城市</span>}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                placeholder="例如：Toronto, Vancouver（可选）" 
+              <Input
+                placeholder="例如：Toronto, Vancouver（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
@@ -243,8 +243,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               rules={[postalCodeValidationRule]}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                placeholder="A1A 1A1（可选）" 
+              <Input
+                placeholder="A1A 1A1（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
                 onChange={(e) => {
@@ -257,39 +257,39 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Form.Item
           name="pickupAddressLine1"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>地址行1</span>}
           style={{ marginBottom: 16 }}
         >
-          <Input 
-            placeholder="例如：123 Main Street（可选）" 
+          <Input
+            placeholder="例如：123 Main Street（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
         </Form.Item>
-        
+
         <Form.Item
           name="pickupAddressLine2"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>地址行2</span>}
           style={{ marginBottom: 0 }}
         >
-          <Input 
-            placeholder="例如：Suite 100, Unit 5（可选）" 
+          <Input
+            placeholder="例如：Suite 100, Unit 5（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
         </Form.Item>
       </div>
-      
+
       <Divider style={{ margin: '24px 0' }}>
         <Space>
           <BankOutlined style={{ color: '#8c8c8c' }} />
           <span style={{ fontSize: 13, color: '#8c8c8c', fontWeight: 500 }}>账单信息（可选）</span>
         </Space>
       </Divider>
-      
+
       <div>
         <Row gutter={16}>
           <Col span={12}>
@@ -298,8 +298,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>公司名称</span>}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                placeholder="公司名称（可选）" 
+              <Input
+                placeholder="公司名称（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
@@ -311,15 +311,15 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>税号</span>}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                placeholder="税号（可选）" 
+              <Input
+                placeholder="税号（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -348,15 +348,15 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>账单地址-城市</span>}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                placeholder="城市（可选）" 
+              <Input
+                placeholder="城市（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -365,7 +365,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               rules={[postalCodeValidationRule]}
               style={{ marginBottom: 16 }}
             >
-              <Input 
+              <Input
                 placeholder="A1A 1A1（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
@@ -385,7 +385,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
               initialValue="Canada"
               style={{ marginBottom: 16 }}
             >
-              <Select 
+              <Select
                 size="large"
                 style={{ borderRadius: 6 }}
               >
@@ -395,27 +395,27 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ form, initialValues, mode =
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Form.Item
           name="billingStreet"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>账单地址-街道</span>}
           style={{ marginBottom: 16 }}
         >
-          <Input 
-            placeholder="街道地址（可选）" 
+          <Input
+            placeholder="街道地址（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
         </Form.Item>
-        
+
         <Form.Item
           name="paymentTerms"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>付款条款</span>}
           initialValue="Net 30"
           style={{ marginBottom: 0 }}
         >
-          <Input 
-            placeholder="例如：Net 30（可选）" 
+          <Input
+            placeholder="例如：Net 30（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
@@ -451,8 +451,8 @@ export const transformCustomerFormData = (values: any) => {
       companyName: values.companyName || values.name,
       taxId: values.taxId || 'N/A',
       billingAddress: {
-        street: (values.billingStreet || values.pickupAddressLine1 || '') + 
-                (values.pickupAddressLine2 ? `, ${values.pickupAddressLine2}` : ''),
+        street: (values.billingStreet || values.pickupAddressLine1 || '') +
+          (values.pickupAddressLine2 ? `, ${values.pickupAddressLine2}` : ''),
         city: values.billingCity || values.pickupCity || '',
         state: values.billingProvince || values.pickupProvince || '',
         postalCode: values.billingPostalCode || values.pickupPostalCode || '',

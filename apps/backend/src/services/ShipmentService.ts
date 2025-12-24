@@ -4,10 +4,10 @@
 import { DatabaseService } from './DatabaseService';
 import { RuleEngineService } from './RuleEngineService';
 import { logger } from '../utils/logger';
-import { 
-  Shipment, 
-  Driver, 
-  ShipmentStatus, 
+import {
+  Shipment,
+  Driver,
+  ShipmentStatus,
   QueryParams,
   PaginatedResponse,
   AdditionalFee,
@@ -88,7 +88,7 @@ export class ShipmentService {
   async createShipment(
     tenantId: string,
     shipmentData: Omit<Shipment, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>,
-    options?: { initialStatus?: ShipmentStatus }
+    options?: { initialStatus?: ShipmentStatus; client?: any }
   ): Promise<Shipment> {
     try {
       const shipmentNumber = await this.generateShipmentNumber(tenantId); // 2025-11-11 14:25:10 生成运单号
@@ -111,8 +111,8 @@ export class ShipmentService {
         timeline: timelineSnapshot
       }; // 2025-11-11 14:25:10
 
-      const shipment = await this.dbService.createShipment(tenantId, newShipment);
-      
+      const shipment = await this.dbService.createShipment(tenantId, newShipment, options?.client);
+
       logger.info(`Shipment created: ${shipment.id} (${shipmentNumber})`);
       return shipment;
     } catch (error) {
@@ -159,8 +159,8 @@ export class ShipmentService {
    * @returns 更新后的运单
    */
   async updateShipment(
-    tenantId: string, 
-    shipmentId: string, 
+    tenantId: string,
+    shipmentId: string,
     updates: ShipmentUpdate
   ): Promise<Shipment> {
     try {
@@ -174,7 +174,7 @@ export class ShipmentService {
       }
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
-      
+
       logger.info(`Shipment updated: ${shipmentId} - Status: ${updates.status || shipment.status}`);
       return updatedShipment;
     } catch (error) {
@@ -221,7 +221,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, assignment.shipmentId, updates);
-      
+
       logger.info(`Driver assigned to shipment: ${assignment.shipmentId} -> ${assignment.driverId}`);
       return updatedShipment;
     } catch (error) {
@@ -253,7 +253,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
-      
+
       logger.info(`Shipment confirmed: ${shipmentId}`);
       return updatedShipment;
     } catch (error) {
@@ -291,7 +291,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
-      
+
       logger.info(`Pickup started for shipment: ${shipmentId}`);
       return updatedShipment;
     } catch (error) {
@@ -328,7 +328,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
-      
+
       logger.info(`Transit started for shipment: ${shipmentId}`);
       return updatedShipment;
     } catch (error) {
@@ -346,9 +346,9 @@ export class ShipmentService {
    * @returns 更新后的运单
    */
   async completeDelivery(
-    tenantId: string, 
-    shipmentId: string, 
-    driverId: string, 
+    tenantId: string,
+    shipmentId: string,
+    driverId: string,
     deliveryNotes?: string
   ): Promise<Shipment> {
     try {
@@ -372,7 +372,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates as any);
-      
+
       logger.info(`Delivery completed for shipment: ${shipmentId}`);
       return updatedShipment;
     } catch (error) {
@@ -410,7 +410,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
-      
+
       logger.info(`Shipment completed: ${shipmentId}`);
       return updatedShipment;
     } catch (error) {
@@ -444,7 +444,7 @@ export class ShipmentService {
       };
 
       const updatedShipment = await this.dbService.updateShipment(tenantId, shipmentId, updates);
-      
+
       logger.info(`Shipment cancelled: ${shipmentId} - Reason: ${reason}`);
       return updatedShipment;
     } catch (error) {
@@ -485,7 +485,7 @@ export class ShipmentService {
 
       // 执行薪酬规则
       const ruleResult = await this.ruleEngineService.executeRules(tenantId, facts);
-      
+
       // 计算薪酬
       let commission = 0;
       if (facts.finalCost) {
@@ -689,18 +689,18 @@ export class ShipmentService {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    
+
     // 获取当日运单数量
     const todayStart = new Date(year, date.getMonth(), date.getDate());
     const todayEnd = new Date(year, date.getMonth(), date.getDate() + 1);
-    
+
     const shipments = await this.dbService.getShipments(tenantId, {
       filters: { startDate: todayStart, endDate: todayEnd }
     });
-    
+
     const sequence = (shipments.data?.length || 0) + 1;
     const sequenceStr = String(sequence).padStart(4, '0');
-    
+
     return `TMS${year}${month}${day}${sequenceStr}`;
   }
 
@@ -712,8 +712,8 @@ export class ShipmentService {
    * @returns 运单统计
    */
   async getShipmentStats(
-    tenantId: string, 
-    startDate?: Date, 
+    tenantId: string,
+    startDate?: Date,
     endDate?: Date
   ): Promise<ShipmentStats> {
     try {
@@ -732,8 +732,8 @@ export class ShipmentService {
    * @returns 运单列表
    */
   async getDriverShipments(
-    tenantId: string, 
-    driverId: string, 
+    tenantId: string,
+    driverId: string,
     status?: ShipmentStatus
   ): Promise<Shipment[]> {
     try {
@@ -742,7 +742,7 @@ export class ShipmentService {
         order: 'desc',
         filters: { driverId, status }
       };
-      
+
       const result = await this.dbService.getShipments(tenantId, params);
       return result.data || [];
     } catch (error) {

@@ -5,6 +5,7 @@ import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { validateRequest, driverCreateSchema, driverUpdateSchema } from '../middleware/validationMiddleware';
 import { RuleEngineService } from '../services/RuleEngineService'; // 2025-11-11 14:56:20 驾驶员确认依赖
 import { ShipmentService } from '../services/ShipmentService'; // 2025-11-11 14:56:20 驾驶员确认依赖
+import { sendSuccess, handleApiError, sendError } from '../utils/apiUtils'; // 2025-12-24 Added
 
 const router = Router();
 const dbService = new DatabaseService();
@@ -29,27 +30,9 @@ router.get('/',
       };
 
       const result = await dbService.getDrivers(req.user!.tenantId, params);
-
-      res.json({
-        ...result,
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return sendSuccess(res, result);
     } catch (error) {
-      console.error('Get drivers error:', error);
-      // 2025-11-30T13:00:00Z Fixed by Assistant: 返回详细错误信息以便调试
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      console.error('Error details:', { errorMessage, errorStack });
-      res.status(500).json({
-        success: false,
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to get drivers',
-          details: errorMessage
-        },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, error, 'Failed to get drivers');
     }
   }
 );
@@ -61,38 +44,17 @@ router.get('/:id',
   async (req, res) => {
     try {
       if (!req.user?.tenantId) {
-        return res.status(401).json({
-          success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
-        });
+        return sendError(res, 401, 'UNAUTHORIZED', 'Tenant not found');
       }
       const driver = await dbService.getDriver(req.user!.tenantId, req.params.id!);
-      
+
       if (!driver) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'Driver not found' },
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
-        });
+        return sendError(res, 404, 'NOT_FOUND', 'Driver not found');
       }
 
-      res.json({
-        success: true,
-        data: driver,
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return sendSuccess(res, driver);
     } catch (error) {
-      console.error('Get driver error:', error);
-      res.status(500).json({
-        success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to get driver' },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, error, 'Failed to get driver');
     }
   }
 );
@@ -105,38 +67,13 @@ router.post('/',
   async (req, res) => {
     try {
       if (!req.user?.tenantId) {
-        return res.status(401).json({
-          success: false,
-          error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
-        });
+        return sendError(res, 401, 'UNAUTHORIZED', 'Tenant not found');
       }
       const driver = await dbService.createDriver(req.user!.tenantId, req.body);
 
-      res.status(201).json({
-        success: true,
-        data: driver,
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return sendSuccess(res, driver, 'Driver created successfully', 201);
     } catch (error) {
-      console.error('Create driver error:', error);
-      // 2025-12-19 12:00:00 修复：将唯一性冲突从 500 转为 409，并把可读错误信息返回给前端
-      const anyErr: any = error as any;
-      const statusCode = anyErr?.statusCode === 409 || anyErr?.code === '23505' ? 409 : 500;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      res.status(statusCode).json({
-        success: false,
-        error: {
-          code: statusCode === 409 ? 'CONFLICT' : 'INTERNAL_ERROR',
-          message: statusCode === 409 ? errorMessage : 'Failed to create driver',
-          details: statusCode === 500 ? errorMessage : undefined
-        },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, error, 'Failed to create driver');
     }
   }
 );
@@ -151,28 +88,12 @@ router.put('/:id',
       const driver = await dbService.updateDriver(req.user!.tenantId, req.params.id, req.body);
 
       if (!driver) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'Driver not found' },
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
-        });
+        return sendError(res, 404, 'NOT_FOUND', 'Driver not found');
       }
 
-      res.json({
-        success: true,
-        data: driver,
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return sendSuccess(res, driver);
     } catch (error) {
-      console.error('Update driver error:', error);
-      res.status(500).json({
-        success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to update driver' },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, error, 'Failed to update driver');
     }
   }
 );
@@ -186,28 +107,12 @@ router.delete('/:id',
       const success = await dbService.deleteDriver(req.user!.tenantId, req.params.id);
 
       if (!success) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'Driver not found' },
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
-        });
+        return sendError(res, 404, 'NOT_FOUND', 'Driver not found');
       }
 
-      res.json({
-        success: true,
-        message: 'Driver deleted successfully',
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return sendSuccess(res, null, 'Driver deleted successfully');
     } catch (error) {
-      console.error('Delete driver error:', error);
-      res.status(500).json({
-        success: false,
-        error: { code: 'INTERNAL_ERROR', message: 'Failed to delete driver' },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
-      });
+      return handleApiError(res, error, 'Failed to delete driver');
     }
   }
 );

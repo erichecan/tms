@@ -87,20 +87,20 @@ export const validateRequest = (schema: ValidationSchema) => {
     if (bodySchema) {
       // 2025-11-29T22:52:00 修复：预处理 null 值，删除 customerId 如果它是 null 或空字符串
       const processedBody = { ...req.body };
-      
+
       // 2025-11-29T22:55:00 修复：特殊处理 customerId，无条件删除（因为后端会自动创建默认客户）
       // 如果 customerId 是 null、空字符串或未定义，完全删除该字段，避免验证错误
       if ('customerId' in processedBody && (processedBody.customerId === null || processedBody.customerId === '' || processedBody.customerId === undefined)) {
         delete processedBody.customerId;
         logger.debug('Removed invalid customerId from request body before validation');
       }
-      
+
       // 2025-11-29T23:01:00 修复：特殊处理 vehicleId，如果是 null 或空字符串，删除该字段
       if ('vehicleId' in processedBody && (processedBody.vehicleId === null || processedBody.vehicleId === '' || processedBody.vehicleId === undefined)) {
         delete processedBody.vehicleId;
         logger.debug('Removed null/empty vehicleId from request body before validation');
       }
-      
+
       // 2025-11-29T23:01:00 修复：特殊处理所有可能为 null 的字符串字段，在验证前删除 null 值
       // 这包括但不限于：vehicleId, driverId（如果可选）等
       for (const key of Object.keys(processedBody)) {
@@ -109,10 +109,10 @@ export const validateRequest = (schema: ValidationSchema) => {
           delete processedBody[key];
         }
       }
-      
+
       // 2025-11-29T22:52:00 修复：使用宽松的验证选项
-      const result = bodySchema.validate(processedBody, { 
-        abortEarly: false, 
+      const result = bodySchema.validate(processedBody, {
+        abortEarly: false,
         stripUnknown: false,
         allowUnknown: true
       });
@@ -159,7 +159,7 @@ export const validateRequest = (schema: ValidationSchema) => {
 
     if (errors.length > 0) {
       logger.warn('Validation failed:', { errors, url: req.url, method: req.method });
-      
+
       res.status(400).json({
         success: false,
         error: {
@@ -497,21 +497,22 @@ export const customerUpdateSchema = Joi.object({
 export const driverCreateSchema = Joi.object({
   name: Joi.string().min(1).max(255).required(),
   // 2025-11-30 06:15:00 修复：加拿大手机号格式验证（10位数字，第一位和第四位不能是0或1）
-  phone: Joi.string().pattern(/^[2-9]\d{2}[2-9]\d{2}\d{4}$/).required().messages({
-    'string.pattern.base': '手机号必须是有效的加拿大手机号格式（10位数字，格式：XXX-XXX-XXXX）'
+  // 允许 10-15 位数字，或者符合之前的格式
+  phone: Joi.string().pattern(/^[0-9+()-\s]{10,20}$/).required().messages({
+    'string.pattern.base': '请输入有效的手机号'
   }),
-  licenseNumber: Joi.string().max(50).required(),
+  licenseNumber: Joi.string().max(50).optional(), // 2025-12-23 修复：改为可选，匹配前端表单
   vehicleInfo: Joi.object({
-    type: Joi.string().valid('van', 'truck', 'trailer', 'refrigerated').required(),
-    licensePlate: Joi.string().max(20).required(),
-    capacity: Joi.number().min(0).required(),
+    type: Joi.string().valid('van', 'truck', 'trailer', 'refrigerated', 'pickup', 'suv').optional(),
+    licensePlate: Joi.string().max(20).optional(),
+    capacity: Joi.number().min(0).optional(),
     dimensions: Joi.object({
-      length: Joi.number().min(0).required(),
-      width: Joi.number().min(0).required(),
-      height: Joi.number().min(0).required()
-    }).required(),
+      length: Joi.number().min(0).optional(),
+      width: Joi.number().min(0).optional(),
+      height: Joi.number().min(0).optional()
+    }).optional(),
     features: Joi.array().items(Joi.string()).optional()
-  }).required()
+  }).optional() // 2025-12-23 修复：全部改为可选，支持灵活创建
 });
 
 /**
@@ -520,8 +521,8 @@ export const driverCreateSchema = Joi.object({
 export const driverUpdateSchema = Joi.object({
   name: Joi.string().min(1).max(255).optional(),
   // 2025-11-30 06:15:00 修复：加拿大手机号格式验证
-  phone: Joi.string().pattern(/^[2-9]\d{2}[2-9]\d{2}\d{4}$/).optional().messages({
-    'string.pattern.base': '手机号必须是有效的加拿大手机号格式（10位数字，格式：XXX-XXX-XXXX）'
+  phone: Joi.string().pattern(/^(1)?[2-9]\d{2}[2-9]\d{2}\d{4}$/).optional().messages({
+    'string.pattern.base': '手机号必须是有效的加拿大/美国手机号格式（10位数字或11位以1开头）'
   }),
   licenseNumber: Joi.string().max(50).optional(),
   vehicleInfo: Joi.object({

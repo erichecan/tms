@@ -49,17 +49,17 @@ app.get('/health', (_req, res) => {
 });
 
 // 注册路由 - 2025-01-27 16:45:00 注册所有API路由
-app.use('/api/auth', authRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/drivers', driverRoutes);
-app.use('/api/vehicles', vehicleRoutes);
-app.use('/api/shipments', shipmentRoutes);
-app.use('/api/trips', tripRoutes);
-app.use('/api/finance', financeRoutes);
-app.use('/api/rules', ruleRoutes);
-app.use('/api/db', dbRoutes); // 注册DB路由 // 2025-10-02 02:41:10
-app.use('/api/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
-app.use('/api/location', locationRoutes); // 注册位置跟踪路由 // 2025-10-17 23:20:00
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/drivers', driverRoutes);
+app.use('/api/v1/vehicles', vehicleRoutes);
+app.use('/api/v1/shipments', shipmentRoutes);
+app.use('/api/v1/trips', tripRoutes);
+app.use('/api/v1/finance', financeRoutes);
+app.use('/api/v1/rules', ruleRoutes);
+app.use('/api/v1/db', dbRoutes); // 注册DB路由 // 2025-10-02 02:41:10
+app.use('/api/v1/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
+app.use('/api/v1/location', locationRoutes); // 注册位置跟踪路由 // 2025-10-17 23:20:00
 
 // 2025-10-02 18:45:00 - 确保财务路由可用
 console.log('财务路由已注册:', '/api/finance');

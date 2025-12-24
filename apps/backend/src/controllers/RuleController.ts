@@ -6,11 +6,15 @@ import { RuleEngineService } from '../services/RuleEngineService';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
 import { QueryParams } from '@tms/shared-types';
+import { v4 as uuidv4 } from 'uuid';
 
 // Helper to get request ID safely
 const getRequestId = (req: Request): string => {
   const requestId = req.headers['x-request-id'];
-  return (Array.isArray(requestId) ? requestId[0] : requestId) || '';
+  const id = (Array.isArray(requestId) ? requestId[0] : requestId) || uuidv4();
+  // 设置到请求对象上，方便后续透传
+  (req as any).requestId = id;
+  return id;
 };
 
 export class RuleController {
@@ -29,13 +33,14 @@ export class RuleController {
    */
   async getRules(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
@@ -53,18 +58,19 @@ export class RuleController {
       };
 
       const result = await this.dbService.getRules(tenantId, params);
-      
+
       res.json({
         ...result,
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to get rules:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to get rules:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get rules' },
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     }
   }
@@ -76,6 +82,7 @@ export class RuleController {
    */
   async getRule(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       const ruleId = req.params.id;
 
@@ -84,19 +91,19 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant or Rule ID not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
 
       const rule = await this.dbService.getRule(tenantId, ruleId);
-      
+
       if (!rule) {
         res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Rule not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
@@ -105,15 +112,16 @@ export class RuleController {
         success: true,
         data: rule,
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to get rule:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to get rule:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get rule' },
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     }
   }
@@ -125,29 +133,30 @@ export class RuleController {
    */
   async createRule(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
 
       const ruleData = req.body;
-      
+
       // 验证必需字段
       if (!ruleData.name || !ruleData.type || !ruleData.conditions || !ruleData.actions) {
         res.status(400).json({
           success: false,
-          error: { 
-            code: 'VALIDATION_ERROR', 
-            message: 'Missing required fields: name, type, conditions, actions' 
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Missing required fields: name, type, conditions, actions'
           },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
@@ -157,30 +166,31 @@ export class RuleController {
         entityId: rule.id,
         newValue: JSON.stringify(rule)
       }; // 2025-11-11T15:18:05Z Added by Assistant: Capture creation audit
-      
+
       res.status(201).json({
         success: true,
         data: rule,
         message: 'Rule created successfully',
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to create rule:', error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to create rule:`, error);
+
       if (error.message.includes('conflicts detected')) {
         res.status(409).json({
           success: false,
           error: { code: 'RULE_CONFLICT', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to create rule' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       }
     }
@@ -193,6 +203,7 @@ export class RuleController {
    */
   async updateRule(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       const ruleId = req.params.id;
 
@@ -201,7 +212,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant or Rule ID not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
@@ -214,37 +225,38 @@ export class RuleController {
         oldValue: previousRule ? JSON.stringify(previousRule) : null,
         newValue: JSON.stringify(rule)
       }; // 2025-11-11T15:18:05Z Added by Assistant: Capture update audit
-      
+
       res.json({
         success: true,
         data: rule,
         message: 'Rule updated successfully',
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to update rule:', error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to update rule:`, error);
+
       if (error.message.includes('not found')) {
         res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Rule not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       } else if (error.message.includes('conflicts detected')) {
         res.status(409).json({
           success: false,
           error: { code: 'RULE_CONFLICT', message: error.message },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to update rule' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       }
     }
@@ -257,6 +269,7 @@ export class RuleController {
    */
   async deleteRule(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       const ruleId = req.params.id;
 
@@ -265,7 +278,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
@@ -276,29 +289,30 @@ export class RuleController {
         entityId: ruleId,
         oldValue: existingRule ? JSON.stringify(existingRule) : null
       }; // 2025-11-11T15:18:05Z Added by Assistant: Capture delete audit
-      
+
       res.json({
         success: true,
         message: 'Rule deleted successfully',
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to delete rule:', error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to delete rule:`, error);
+
       if (error.message.includes('not found')) {
         res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Rule not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Failed to delete rule' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
       }
     }
@@ -311,20 +325,21 @@ export class RuleController {
    */
   async validateRule(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
 
       const ruleData = req.body;
-      
-      
+
+
       // 这里可以添加更详细的验证逻辑
       const validationResult = {
         isValid: true,
@@ -363,15 +378,16 @@ export class RuleController {
         success: true,
         data: validationResult,
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to validate rule:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to validate rule:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to validate rule' },
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     }
   }
@@ -383,44 +399,46 @@ export class RuleController {
    */
   async testRule(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       if (!tenantId) {
         res.status(401).json({
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
 
       const { facts } = req.body;
-      
+
       if (!facts) {
         res.status(400).json({
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Facts are required for testing' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
 
       const result = await this.ruleEngineService.executeRules(tenantId, facts);
-      
+
       res.json({
         success: true,
         data: result,
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to test rule:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to test rule:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to test rule' },
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     }
   }
@@ -432,6 +450,7 @@ export class RuleController {
    */
   async getRuleStats(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       const ruleId = req.params.id;
 
@@ -440,7 +459,7 @@ export class RuleController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'Tenant not found' },
           timestamp: new Date().toISOString(),
-          requestId: getRequestId(req)
+          requestId
         });
         return;
       }
@@ -449,20 +468,21 @@ export class RuleController {
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
       const stats = await this.ruleEngineService.getRuleExecutionStats(tenantId, ruleId!, startDate, endDate);
-      
+
       res.json({
         success: true,
         data: stats,
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     } catch (error) {
-      logger.error('Failed to get rule stats:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Failed to get rule stats:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get rule stats' },
         timestamp: new Date().toISOString(),
-        requestId: getRequestId(req)
+        requestId
       });
     }
   }

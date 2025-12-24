@@ -7,19 +7,19 @@
 // ============================================================================
 
 import { Loader } from '@googlemaps/js-api-loader';
-import { 
-  AddressInfo, 
+import {
+  AddressInfo,
   LogisticsRoute,
-  MapsConfig 
+  MapsConfig
 } from '@/types/maps';
 
 class MapsService {
   private static loaderInstance: Loader | null = null;
   private static initPromise: Promise<void> | null = null;
-  private maps: unknown = null;
+  private maps: any = null; // 2025-12-24 Updated: use any to avoid namespace access errors
   private isInitialized = false;
 
-  constructor(private config: MapsConfig) {}
+  constructor(private config: MapsConfig) { }
 
   async initialize(): Promise<void> {
     // 如果已初始化，直接返回
@@ -35,7 +35,7 @@ class MapsService {
 
     // 创建初始化Promise
     MapsService.initPromise = this.doInitialize();
-    
+
     try {
       await MapsService.initPromise;
     } finally {
@@ -51,76 +51,35 @@ class MapsService {
       console.log('📦 环境变量检查:');
       console.log('  - import.meta.env:', import.meta.env);
       console.log('  - import.meta.env.VITE_GOOGLE_MAPS_API_KEY:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
-      console.log('  - API Key 类型:', typeof import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
-      console.log('  - API Key 长度:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.length || 0);
-      console.log('  - API Key 前8位:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.substring(0, 8) || '(未设置)');
-      console.log('📋 配置信息:');
-      console.log('  - config.apiKey:', this.config.apiKey ? `${this.config.apiKey.substring(0, 8)}...` : '(空)');
-      console.log('  - config.apiKey.trim():', this.config.apiKey?.trim() || '(空)');
-      console.log('  - isInitialized:', this.isInitialized);
       console.groupEnd();
 
-      // 2025-11-24T18:00:00Z Updated by Assistant: 改进错误处理和 API 密钥验证
-      // 2025-12-05T13:50:00Z Added by Assistant: 增强错误信息
+      // 2025-12-24 Updated: Graceful degradation if API Key is missing
       if (!this.config.apiKey || this.config.apiKey.trim() === '') {
-        const error = new Error('缺少 VITE_GOOGLE_MAPS_API_KEY 配置');
-        console.error('❌ [Google Maps] 配置错误:', {
-          message: error.message,
-          envValue: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-          configValue: this.config.apiKey,
-          envKeys: Object.keys(import.meta.env).filter(key => key.includes('GOOGLE') || key.includes('MAPS')),
-        });
-        throw error;
+        console.warn('⚠️ [Google Maps] 缺少 VITE_GOOGLE_MAPS_API_KEY 配置，地图功能将不可用');
+        this.isInitialized = false;
+        return;
       }
 
       // 2025-10-10 17:35:00 使用单例Loader，统一libraries顺序
       if (!MapsService.loaderInstance) {
         MapsService.loaderInstance = new Loader({
           apiKey: this.config.apiKey,
-          version: 'weekly', // 使用稳定版本
-          libraries: ['places', 'geometry'], // 统一顺序
+          version: 'weekly',
+          libraries: ['places', 'geometry'],
           language: this.config.language,
           region: this.config.region,
         });
       }
 
       console.log('🚀 [Google Maps] 开始加载 Google Maps API...');
-      console.log('  - API Key 前8位:', this.config.apiKey.substring(0, 8));
-      console.log('  - Libraries:', this.config.libraries);
-      
       this.maps = await MapsService.loaderInstance.load();
       this.isInitialized = true;
       console.log('✅ [Google Maps] Google Maps API initialized successfully');
-      console.log('  - Maps object:', this.maps);
-      console.log('  - window.google:', window.google);
-      console.log('  - window.google.maps:', window.google?.maps);
     } catch (error: any) {
-      console.error('❌ [Google Maps] Failed to initialize Google Maps API:', error);
-      console.error('❌ [Google Maps] 错误详情:', {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
-        errorType: error?.constructor?.name,
-      });
-      
-      // 2025-11-24T18:00:00Z Added by Assistant: 提供更详细的错误信息
-      // 2025-12-05T13:50:00Z Added by Assistant: 增强错误提示
-      if (error.message?.includes('ApiNotActivatedMapError')) {
-        console.error('💡 提示: Google Maps API 未启用。请在 Google Cloud Console 中启用 Maps JavaScript API。');
-      } else if (error.message?.includes('RefererNotAllowedMapError')) {
-        console.error('💡 提示: 当前域名未在 API 密钥限制中允许。请在 Google Cloud Console 中配置 API 密钥限制。');
-        console.error('   当前域名:', window.location.origin);
-      } else if (error.message?.includes('InvalidKeyMapError')) {
-        console.error('💡 提示: API 密钥无效。请检查 VITE_GOOGLE_MAPS_API_KEY 环境变量是否正确。');
-        console.error('   使用的 API Key 前8位:', this.config.apiKey?.substring(0, 8) || '(未设置)');
-      } else if (error.message?.includes('缺少') || error.message?.includes('未配置')) {
-        console.error('💡 提示: API Key 未配置。');
-        console.error('   构建时环境变量:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '(未设置)');
-        console.error('   检查方法: 在浏览器控制台运行 console.log(import.meta.env.VITE_GOOGLE_MAPS_API_KEY)');
-      }
-      
-      MapsService.initPromise = null; // 失败时清除Promise，允许重试
-      throw error;
+      // 2025-12-24 Updated: Log warning instead of crashing for non-critical failures
+      console.warn('⚠️ [Google Maps] Failed to initialize Google Maps API:', error.message);
+      this.isInitialized = false;
+      MapsService.initPromise = null;
     }
   }
 
@@ -129,7 +88,7 @@ class MapsService {
     if (!this.maps) throw new Error('Maps service not initialized');
 
     const geocoder = new google.maps.Geocoder(); // 2025-10-17T15:20:00 修复 Geocoder 构造函数调用
-    
+
     return new Promise((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
@@ -167,7 +126,7 @@ class MapsService {
     if (!this.maps) throw new Error('Maps service not initialized');
 
     const geocoder = new google.maps.Geocoder(); // 2025-10-17T15:20:00 修复 Geocoder 构造函数调用
-    
+
     return new Promise((resolve, reject) => {
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
@@ -189,14 +148,14 @@ class MapsService {
 
   // 计算单一路径
   async calculateRoute(
-    origin: AddressInfo, 
+    origin: AddressInfo,
     destination: AddressInfo,
     waypoints: AddressInfo[] = []
   ): Promise<LogisticsRoute> {
     if (!this.maps) throw new Error('Maps service not initialized');
 
     const directionsService = new this.maps.DirectionsService();
-    
+
     return new Promise((resolve, reject) => {
       const request = {
         origin: { lat: origin.latitude, lng: origin.longitude },
@@ -213,7 +172,7 @@ class MapsService {
         optimizeWaypoints: waypoints.length > 0,
       };
 
-      directionsService.route(request, (result, status) => {
+      directionsService.route(request, (result: any, status: any) => {
         if (status === 'OK' && result) {
           const route = this.parseDirectionsResponse(result, origin, destination);
           resolve(route);
@@ -226,22 +185,22 @@ class MapsService {
 
   // 批量距离矩阵计算（用于调度优化）
   async calculateDistanceMatrix(
-    origins: AddressInfo[], 
+    origins: AddressInfo[],
     destinations: AddressInfo[]
   ): Promise<number[][]> {
     if (!this.maps) throw new Error('Maps service not initialized');
 
     const distanceMatrixService = new this.maps.DistanceMatrixService();
-    
+
     return new Promise((resolve, reject) => {
       const request = {
-        origins: origins.map(origin => ({ 
-          lat: origin.latitude, 
-          lng: origin.longitude 
+        origins: origins.map(origin => ({
+          lat: origin.latitude,
+          lng: origin.longitude
         })),
-        destinations: destinations.map(dest => ({ 
-          lat: dest.latitude, 
-          lng: dest.longitude 
+        destinations: destinations.map(dest => ({
+          lat: dest.latitude,
+          lng: dest.longitude
         })),
         travelMode: this.maps!.TravelMode.DRIVING,
         drivingOptions: {
@@ -251,10 +210,10 @@ class MapsService {
         unitSystem: this.maps!.UnitSystem.METRIC,
       };
 
-      distanceMatrixService.getDistanceMatrix(request, (response, status) => {
+      distanceMatrixService.getDistanceMatrix(request, (response: any, status: any) => {
         if (status === 'OK' && response) {
-          const matrix = response.rows.map(row =>
-            row.elements.map(element => 
+          const matrix = response.rows.map((row: any) =>
+            row.elements.map((element: any) =>
               element.status === 'OK' ? element.distance.value : Infinity
             )
           );

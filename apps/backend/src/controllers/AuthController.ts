@@ -7,6 +7,16 @@ import jwt from 'jsonwebtoken';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
 import { generateToken, generateRefreshToken } from '../middleware/authMiddleware';
+import { v4 as uuidv4 } from 'uuid';
+
+// Helper to get request ID safely
+const getRequestId = (req: Request): string => {
+  const requestId = req.headers['x-request-id'];
+  const id = (Array.isArray(requestId) ? requestId[0] : requestId) || uuidv4();
+  // 设置到请求对象上，方便后续透传
+  (req as any).requestId = id;
+  return id;
+};
 
 export class AuthController {
   private dbService: DatabaseService;
@@ -22,14 +32,15 @@ export class AuthController {
    */
   async login(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const { email, password, tenantDomain } = req.body;
-      
+
       if (!email || !password) {
         res.status(400).json({
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Email and password are required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -43,7 +54,7 @@ export class AuthController {
             success: false,
             error: { code: 'TENANT_NOT_FOUND', message: 'Tenant not found' },
             timestamp: new Date().toISOString(),
-            requestId: req.headers['x-request-id'] as string || ''
+            requestId
           });
           return;
         }
@@ -51,7 +62,7 @@ export class AuthController {
         // 从邮箱域名推断租户
         const emailDomain = email.split('@')[1];
         tenant = await this.dbService.getTenantByDomain(emailDomain);
-        
+
         // 2025-12-02T17:10:00Z Fixed by Assistant: 如果找不到租户，尝试使用默认租户
         if (!tenant) {
           // 尝试获取默认租户（demo.tms-platform.com）
@@ -63,14 +74,14 @@ export class AuthController {
               tenant = await this.dbService.getTenant(tenants[0].id);
             }
           }
-          
+
           // 如果还是找不到租户，返回错误
           if (!tenant) {
             res.status(404).json({
               success: false,
               error: { code: 'TENANT_NOT_FOUND', message: 'Tenant not found for email domain' },
               timestamp: new Date().toISOString(),
-              requestId: req.headers['x-request-id'] as string || ''
+              requestId
             });
             return;
           }
@@ -80,26 +91,26 @@ export class AuthController {
       // 获取用户信息
       const user = await this.dbService.getUserByEmail(tenant.id, email);
       if (!user) {
-        logger.warn(`Login failed: User not found - tenant: ${tenant.id}, email: ${email}`);
+        logger.warn(`[${requestId}] Login failed: User not found - tenant: ${tenant.id}, email: ${email}`);
         res.status(401).json({
           success: false,
           error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
 
       // 验证密码 // 2025-11-29T18:25:00 添加调试日志
-      logger.info(`Login attempt: ${email}, tenant: ${tenant.id}, user found: ${!!user}`);
+      logger.info(`[${requestId}] Login attempt: ${email}, tenant: ${tenant.id}, user found: ${!!user}`);
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-      logger.info(`Password validation result: ${isPasswordValid}`);
+      logger.info(`[${requestId}] Password validation result: ${isPasswordValid}`);
       if (!isPasswordValid) {
         res.status(401).json({
           success: false,
           error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -110,7 +121,7 @@ export class AuthController {
           success: false,
           error: { code: 'ACCOUNT_INACTIVE', message: 'Account is not active' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -124,7 +135,7 @@ export class AuthController {
         lastLoginAt: new Date()
       });
 
-      logger.info(`User logged in: ${email} (${tenant.name})`);
+      logger.info(`[${requestId}] User logged in: ${email} (${tenant.name})`);
 
       res.json({
         success: true,
@@ -147,15 +158,16 @@ export class AuthController {
         },
         message: 'Login successful',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     } catch (error) {
-      logger.error('Login failed:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Login failed:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Login failed' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     }
   }
@@ -167,14 +179,15 @@ export class AuthController {
    */
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const { refreshToken } = req.body;
-      
+
       if (!refreshToken) {
         res.status(400).json({
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Refresh token is required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -185,20 +198,20 @@ export class AuthController {
           success: false,
           error: { code: 'CONFIG_ERROR', message: 'Authentication secret is not configured' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
 
       // 验证刷新token
       const decoded = jwt.verify(refreshToken, jwtSecret) as any; // 2025-11-11T15:21:37Z Added by Assistant: Use configured secret
-      
+
       if (decoded.type !== 'refresh') {
         res.status(401).json({
           success: false,
           error: { code: 'INVALID_TOKEN', message: 'Invalid refresh token' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -210,7 +223,7 @@ export class AuthController {
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found or inactive' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -222,7 +235,7 @@ export class AuthController {
           success: false,
           error: { code: 'TENANT_NOT_FOUND', message: 'Tenant not found or inactive' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -238,24 +251,25 @@ export class AuthController {
         },
         message: 'Token refreshed successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     } catch (error) {
-      logger.error('Token refresh failed:', error);
-      
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Token refresh failed:`, error);
+
       if (error.name === 'TokenExpiredError') {
         res.status(401).json({
           success: false,
           error: { code: 'TOKEN_EXPIRED', message: 'Refresh token has expired' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
       } else {
         res.status(500).json({
           success: false,
           error: { code: 'INTERNAL_ERROR', message: 'Token refresh failed' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
       }
     }
@@ -268,24 +282,26 @@ export class AuthController {
    */
   async logout(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       // 在实际应用中，这里可以将token加入黑名单
       // 或者更新用户的最后活动时间
-      
-      logger.info(`User logged out: ${req.user?.email}`);
-      
+
+      logger.info(`[${requestId}] User logged out: ${req.user?.email}`);
+
       res.json({
         success: true,
         message: 'Logout successful',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     } catch (error) {
-      logger.error('Logout failed:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Logout failed:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Logout failed' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     }
   }
@@ -297,6 +313,7 @@ export class AuthController {
    */
   async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.user?.tenantId;
       const userId = req.user?.id;
 
@@ -305,7 +322,7 @@ export class AuthController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -316,7 +333,7 @@ export class AuthController {
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -339,15 +356,16 @@ export class AuthController {
           }
         },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     } catch (error) {
-      logger.error('Get current user failed:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Get current user failed:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to get current user' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     }
   }
@@ -359,6 +377,7 @@ export class AuthController {
    */
   async changePassword(req: Request, res: Response): Promise<void> {
     try {
+      const requestId = getRequestId(req);
       const tenantId = req.tenant?.id;
       const userId = req.user?.id;
       const { currentPassword, newPassword } = req.body;
@@ -368,7 +387,7 @@ export class AuthController {
           success: false,
           error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -378,7 +397,7 @@ export class AuthController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'Current password and new password are required' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -388,7 +407,7 @@ export class AuthController {
           success: false,
           error: { code: 'VALIDATION_ERROR', message: 'New password must be at least 8 characters long' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -400,7 +419,7 @@ export class AuthController {
           success: false,
           error: { code: 'USER_NOT_FOUND', message: 'User not found' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -412,7 +431,7 @@ export class AuthController {
           success: false,
           error: { code: 'INVALID_PASSWORD', message: 'Current password is incorrect' },
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] as string || ''
+          requestId
         });
         return;
       }
@@ -426,21 +445,22 @@ export class AuthController {
         passwordHash: newPasswordHash
       });
 
-      logger.info(`Password changed for user: ${user.email}`);
+      logger.info(`[${requestId}] Password changed for user: ${user.email}`);
 
       res.json({
         success: true,
         message: 'Password changed successfully',
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     } catch (error) {
-      logger.error('Change password failed:', error);
+      const requestId = getRequestId(req);
+      logger.error(`[${requestId}] Change password failed:`, error);
       res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Failed to change password' },
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || ''
+        requestId
       });
     }
   }

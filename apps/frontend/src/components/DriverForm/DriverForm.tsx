@@ -71,11 +71,11 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
   const isQuickMode = mode === 'quick';
 
   return (
-    <Form 
-      form={form} 
-      layout="vertical" 
+    <Form
+      form={form}
+      layout="vertical"
       requiredMark={false}
-      style={{ 
+      style={{
         maxWidth: '100%',
       }}
     >
@@ -85,43 +85,44 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
           <UserOutlined />
           <span>基本信息</span>
         </Space>
-        
+
         <Form.Item
           name="name"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>姓名</span>}
+          rules={[{ required: true, message: '请输入司机姓名' }]}
           style={{ marginBottom: 16 }}
         >
-          <Input 
-            placeholder="请输入司机姓名" 
+          <Input
+            placeholder="请输入司机姓名"
             size="large"
             style={{ borderRadius: 6 }}
           />
         </Form.Item>
-        
+
         {!isQuickMode && (
           <Form.Item
             name="age"
             label={<span style={{ fontSize: 13, fontWeight: 500 }}>年龄</span>}
             style={{ marginBottom: 16 }}
           >
-            <Input 
-              type="number" 
-              placeholder="请输入年龄（可选）" 
+            <Input
+              type="number"
+              placeholder="请输入年龄（可选）"
               size="large"
               style={{ borderRadius: 6 }}
             />
           </Form.Item>
         )}
-        
+
         <Form.Item
           name="phone"
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>手机号</span>}
-          rules={[phoneValidationRule]}
+          rules={[{ required: true, message: '请输入手机号' }, phoneValidationRule]}
           style={{ marginBottom: 16 }}
         >
-          <Input 
+          <Input
             prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />}
-            placeholder="416-555-1234 或 (416) 555-1234" 
+            placeholder="416-555-1234 或 (416) 555-1234"
             size="large"
             style={{ borderRadius: 6 }}
           />
@@ -131,32 +132,32 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
       {!isQuickMode && (
         <>
           <Divider style={{ margin: '24px 0' }} />
-          
+
           {/* 驾照信息区域 */}
           <div style={{ marginBottom: 24 }}>
             <Space style={{ marginBottom: 16, fontSize: 14, color: '#8c8c8c', fontWeight: 500 }}>
               <IdcardOutlined />
               <span>驾照信息</span>
             </Space>
-            
+
             <Form.Item
               name="licenseNumber"
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>驾照号</span>}
               style={{ marginBottom: 16 }}
             >
-              <Input 
-                placeholder="请输入驾照号（可选）" 
+              <Input
+                placeholder="请输入驾照号（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
               />
             </Form.Item>
-            
+
             <Form.Item
               name="licenseClass"
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>驾照等级（加拿大）</span>}
               style={{ marginBottom: 16 }}
             >
-              <Select 
+              <Select
                 placeholder="选择驾照等级（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
@@ -171,20 +172,20 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
           </div>
 
           <Divider style={{ margin: '24px 0' }} />
-          
+
           {/* 语言能力区域 */}
           <div>
             <Space style={{ marginBottom: 16, fontSize: 14, color: '#8c8c8c', fontWeight: 500 }}>
               <GlobalOutlined />
               <span>语言能力</span>
             </Space>
-            
+
             <Form.Item
               name="englishLevel"
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>英语水平</span>}
               style={{ marginBottom: 16 }}
             >
-              <Select 
+              <Select
                 placeholder="选择英语水平（可选）"
                 size="large"
                 style={{ borderRadius: 6 }}
@@ -196,7 +197,7 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
                 ))}
               </Select>
             </Form.Item>
-            
+
             <Form.Item
               name="otherLanguages"
               label={<span style={{ fontSize: 13, fontWeight: 500 }}>其他语言</span>}
@@ -225,8 +226,8 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
           label={<span style={{ fontSize: 13, fontWeight: 500 }}>驾照号</span>}
           style={{ marginBottom: 0 }}
         >
-          <Input 
-            placeholder="请输入驾照号（可选）" 
+          <Input
+            placeholder="请输入驾照号（可选）"
             size="large"
             style={{ borderRadius: 6 }}
           />
@@ -241,41 +242,41 @@ const DriverForm: React.FC<DriverFormProps> = ({ form, initialValues, mode = 'cr
  */
 export const transformDriverFormData = (values: any, mode: 'create' | 'edit' | 'quick' = 'create') => {
   const phoneDigitsOnly = extractPhoneDigits(values.phone);
-  
+
   const baseData: any = {
     name: values.name,
     phone: phoneDigitsOnly, // 只发送数字
     status: 'available',
   };
-  
+
   if (values.age) {
     baseData.age = values.age;
   }
-  
+
   if (values.licenseNumber) {
     baseData.licenseNumber = values.licenseNumber;
   } else if (mode === 'quick') {
     // 快速模式：如果没有填写驾照号，生成一个临时驾照号
     baseData.licenseNumber = `LIC${Date.now()}`;
   }
-  
+
   if (values.englishLevel) {
     baseData.englishLevel = values.englishLevel;
   }
-  
+
   if (values.otherLanguages && values.otherLanguages.length > 0) {
     baseData.otherLanguages = values.otherLanguages;
   }
-  
+
   if (values.licenseClass) {
     baseData.licenseClass = values.licenseClass;
   }
-  
-  // 快速模式：后端API要求vehicleInfo，但我们在前端不显示给用户，使用默认值
-  if (mode === 'quick') {
-    baseData.vehicleInfo = {
+
+  // 为创建模式提供默认 vehicleInfo，确保后端验证通过（即使后端已改为可选，提供默认值也更稳健）
+  if (mode === 'quick' || mode === 'create') {
+    baseData.vehicleInfo = values.vehicleInfo || {
       type: 'van',
-      licensePlate: `TEMP${Date.now()}`, // 临时车牌号，后端会自动处理
+      licensePlate: `TEMP${Date.now()}`, // 临时车牌号
       capacity: 1000, // 默认载重
       dimensions: {
         length: 300, // 默认长度
@@ -284,7 +285,7 @@ export const transformDriverFormData = (values: any, mode: 'create' | 'edit' | '
       }
     };
   }
-  
+
   return baseData;
 };
 

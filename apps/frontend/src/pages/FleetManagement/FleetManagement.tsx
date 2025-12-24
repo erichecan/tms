@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'; // 2025-11-11T15:25:48Z Added by Assistant: useCallback for location polling // 2025-11-11 10:20:05 引入useMemo生成地图标记
 // 2025-12-19 11:48:00 需求：运营/调度查看司机实时位置 + 7天轨迹
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Typography, 
-  Table, 
-  Tag, 
-  Button, 
-  Badge, 
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Table,
+  Tag,
+  Button,
+  Badge,
   List,
   Avatar,
   Divider,
@@ -21,9 +21,9 @@ import {
   Alert,
   Space
 } from 'antd';
-import { 
-  TeamOutlined, 
-  TruckOutlined, 
+import {
+  TeamOutlined,
+  TruckOutlined,
   HistoryOutlined,
   EnvironmentOutlined,
   DollarOutlined,
@@ -76,7 +76,7 @@ type LocationHistoryPoint = {
 const FleetManagement: React.FC = () => {
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
   const { availableDrivers, reloadDrivers, availableVehicles, reloadVehicles } = useDataContext();
-  
+
   const [loading, setLoading] = useState(false);
   const [inTransitTrips, setInTransitTrips] = useState<Trip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -332,11 +332,11 @@ const FleetManagement: React.FC = () => {
       const tripsResult = await tripsApi.getTrips();
       const allTrips = tripsResult.data?.data || [];
       // 2025-11-30T10:30:00Z 支持多种状态：ongoing, planned（已计划但未开始也算在途）
-      const ongoingTrips = allTrips.filter((trip: Trip) => 
+      const ongoingTrips = allTrips.filter((trip: Trip) =>
         trip.status === TripStatus.ONGOING || trip.status === TripStatus.PLANNED
       );
       setInTransitTrips(ongoingTrips);
-      
+
       // 如果没有在途行程，显示提示信息
       if (ongoingTrips.length === 0 && allTrips.length > 0) {
         console.log('当前没有在途行程，但有其他状态的行程:', allTrips.map((t: Trip) => ({ tripNo: t.tripNo, status: t.status })));
@@ -473,8 +473,8 @@ const FleetManagement: React.FC = () => {
               </div>
             </div>
             {needsAssignment(record) && (
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation(); // 阻止行点击事件
@@ -576,8 +576,8 @@ const FleetManagement: React.FC = () => {
         </Text>
       </div>
 
-      <Tabs 
-        defaultActiveKey="fleet" 
+      <Tabs
+        defaultActiveKey="fleet"
         size="large"
         items={[
           {
@@ -593,12 +593,12 @@ const FleetManagement: React.FC = () => {
                 <Row gutter={[24, 24]}>
                   {/* 左侧：在途行程和空闲资源 */}
                   <Col span={14}>
-                    <Card 
+                    <Card
                       title={
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>在途行程</span>
-                          <Button 
-                            type="link" 
+                          <Button
+                            type="link"
                             size="small"
                             onClick={loadFleetData}
                             loading={loading}
@@ -633,7 +633,7 @@ const FleetManagement: React.FC = () => {
                         />
                       )}
                     </Card>
-                    
+
                     <Card title="空闲资源">
                       <Row gutter={[16, 16]}>
                         <Col span={12}>
@@ -685,17 +685,17 @@ const FleetManagement: React.FC = () => {
                       </Row>
                     </Card>
                   </Col>
-                  
+
                   {/* 右侧：实时位置地图 */}
                   <Col span={10}>
-                    <Card 
+                    <Card
                       title={
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>
                             <EnvironmentOutlined /> 实时位置
                           </span>
-                          <Button 
-                            type="link" 
+                          <Button
+                            type="link"
                             size="small"
                             onClick={handleManualLocationRefresh}
                             loading={locationLoading}
@@ -715,7 +715,7 @@ const FleetManagement: React.FC = () => {
                           style={{ marginBottom: 16 }}
                         />
                       )}
-                      
+
                       {realTimeLocations.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
                           <EnvironmentOutlined style={{ fontSize: 48, marginBottom: 16, color: '#d9d9d9' }} />
@@ -744,8 +744,8 @@ const FleetManagement: React.FC = () => {
                 </Row>
 
                 <div style={{ marginTop: 24, textAlign: 'center' }}>
-                  <Button 
-                    type="link" 
+                  <Button
+                    type="link"
                     icon={<HistoryOutlined />}
                     onClick={() => {
                       openHistoryModal(true); // 2025-12-19 11:48:00 默认使用当前选中标记预填
@@ -994,7 +994,7 @@ const FleetManagement: React.FC = () => {
               </Card>
             </Col>
           </Row>
-          
+
           <Divider>挂载运单</Divider>
           <div style={{ textAlign: 'center' }}>
             <Badge count={selectedTrip.shipments.length} showZero>
@@ -1089,7 +1089,15 @@ const FleetManagement: React.FC = () => {
           try {
             const values = await driverForm.validateFields();
             // 2025-11-30T12:45:00Z Updated by Assistant: 使用统一的表单数据转换函数
+            // 注意：transformDriverFormData 会从 phone 中提取数字
             const driverData = transformDriverFormData(values, 'create');
+
+            // 确保必须要填写的字段存在（即使 validateFields 过了）
+            if (!driverData.name || !driverData.phone) {
+              message.error('姓名和手机号是必填项');
+              return;
+            }
+
             await driversApi.createDriver(driverData);
             message.success('司机已添加');
             setIsAddDriverVisible(false);
@@ -1137,9 +1145,9 @@ const FleetManagement: React.FC = () => {
           try {
             const values = await vehicleForm.validateFields();
             await vehiclesApi.createVehicle({
-              plateNumber: values.plateNumber,
-              type: values.type,
-              capacityKg: Number(values.capacityKg) || 0,
+              plateNumber: values.plateNumber || null,
+              vehicleType: values.type || null, // 后端期望 vehicleType
+              capacity: values.capacityKg !== undefined && values.capacityKg !== '' ? Number(values.capacityKg) : null, // 后端期望 capacity
               status: 'available'
             });
             message.success('车辆已添加');
@@ -1159,14 +1167,22 @@ const FleetManagement: React.FC = () => {
           <Col span={12}>
             <Card size="small" title="车辆信息">
               <Form form={vehicleForm} layout="vertical">
-                <Form.Item label="车牌号" name="plateNumber" rules={[{ required: true, message: '请输入车牌号' }]}>
-                  <Input placeholder="京A12345" />
+                <Form.Item label="车牌号" name="plateNumber" rules={[{ required: false }]}>
+                  <Input placeholder="京A12345 (可选)" />
                 </Form.Item>
-                <Form.Item label="车型" name="type" rules={[{ required: true, message: '请选择车型' }]}>
-                  <Select options={[{ label: '厢式货车', value: '厢式货车' }, { label: '平板车', value: '平板车' }, { label: '冷链车', value: '冷链车' }]} />
+                <Form.Item label="车型" name="type" rules={[{ required: false }]}>
+                  <Select
+                    placeholder="请选择车型 (可选)"
+                    allowClear
+                    options={[
+                      { label: '厢式货车', value: '厢式货车' },
+                      { label: '平板车', value: '平板车' },
+                      { label: '冷链车', value: '冷链车' }
+                    ]}
+                  />
                 </Form.Item>
-                <Form.Item label="载重(kg)" name="capacityKg" rules={[{ required: true, message: '请输入载重' }]}>
-                  <Input type="number" placeholder="3000" />
+                <Form.Item label="载重(kg)" name="capacityKg" rules={[{ required: false }]}>
+                  <Input type="number" placeholder="请输入载重 (可选)" />
                 </Form.Item>
               </Form>
             </Card>
@@ -1178,7 +1194,10 @@ const FleetManagement: React.FC = () => {
                 dataSource={availableVehicles}
                 renderItem={(vehicle) => (
                   <List.Item>
-                    <List.Item.Meta title={vehicle.plateNumber} description={`${vehicle.type} - ${vehicle.capacityKg}kg`} />
+                    <List.Item.Meta
+                      title={vehicle.plateNumber || '未填写车牌'}
+                      description={`${vehicle.type || '未知车型'} - ${vehicle.capacityKg != null ? `${vehicle.capacityKg}kg` : '载重未知'}`}
+                    />
                     <Tag color="green">空闲</Tag>
                   </List.Item>
                 )}
