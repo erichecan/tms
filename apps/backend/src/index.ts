@@ -52,7 +52,7 @@ dotenv.config({ path: envPath, override: true });
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   const envLines = envContent.split('\n');
-  
+
   let loadedCount = 0;
   for (const line of envLines) {
     if (line.trim() && !line.startsWith('#')) {
@@ -146,12 +146,15 @@ const dbService = new DatabaseService();
 })();
 
 // 中间件配置
+import { requestIdMiddleware } from './middleware/requestIdMiddleware';
+app.use(requestIdMiddleware);
+
 // 2025-10-17T15:00:00 - 修复 CORS 配置，使用环境变量
 // 2025-11-30T14:00:00Z Fixed by Assistant: 修复 CORS 配置，确保移动端可以访问
 // 2025-11-30T22:45:00Z Fixed by Assistant: 修复 CORS 配置，支持通配符和 Cloud Run 前端域名
 const corsOrigin = process.env.CORS_ORIGIN || '*';
 const isWildcard = corsOrigin === '*';
-const allowedOriginsList: string[] = isWildcard 
+const allowedOriginsList: string[] = isWildcard
   ? [] // 通配符时不使用列表
   : corsOrigin.split(',').map(origin => origin.trim());
 
@@ -178,25 +181,25 @@ app.use(cors({
       console.log('CORS: Allowing all origins (wildcard)');
       return callback(null, true);
     }
-    
+
     // 允许没有 origin 的请求（如移动应用或 Postman）
     if (!origin) {
       console.log('CORS: Allowing request without origin');
       return callback(null, true);
     }
-    
+
     // 检查 origin 是否在允许列表中（不区分大小写）
     const normalizedOrigin = origin.trim().toLowerCase();
     const normalizedAllowed = allowedOriginsList.map(o => o.trim().toLowerCase());
-    
+
     // 检查是否匹配允许的来源
     const isAllowed = normalizedAllowed.includes(normalizedOrigin) || allowedOriginsList.includes(origin);
-    
+
     // 也检查默认的本地开发环境
-    const isLocal = defaultLocalOrigins.some(local => 
+    const isLocal = defaultLocalOrigins.some(local =>
       normalizedOrigin.includes(local.toLowerCase()) || origin.includes(local)
     );
-    
+
     if (isAllowed || isLocal) {
       console.log('CORS: Allowing origin:', origin);
       callback(null, true);
@@ -223,7 +226,6 @@ app.use(helmet({
 app.use(compression()); // 响应压缩
 
 // 请求日志
-app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 app.use(requestLogger);
 app.use(metricsMiddleware); // 2025-11-11T15:28:33Z Added by Assistant: Collect HTTP metrics
 
@@ -300,7 +302,7 @@ app.use(errorLogger);
 // 全局错误处理
 app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
-  
+
   res.status(500).json({
     success: false,
     error: {
@@ -315,27 +317,27 @@ app.use((error: Error, req: express.Request, res: express.Response, _next: expre
 // 优雅关闭处理
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  
+
   try {
     await dbService.close();
     logger.info('Database connections closed');
   } catch (error) {
     logger.error('Error closing database connections:', error);
   }
-  
+
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
-  
+
   try {
     await dbService.close();
     logger.info('Database connections closed');
   } catch (error) {
     logger.error('Error closing database connections:', error);
   }
-  
+
   process.exit(0);
 });
 

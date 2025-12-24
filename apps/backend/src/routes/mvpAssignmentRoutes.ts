@@ -1,12 +1,20 @@
 import { Router } from 'express';
 import { Pool } from 'pg';
 import { StatusService } from '../services/StatusService';
-import { ShipmentStatus } from '@tms/shared-types'; // 2025-11-11 14:44:10 同步状态枚举
+import { ShipmentStatus } from '@tms/shared-types';
+import { authMiddleware } from '../middleware/authMiddleware';
+import { tenantMiddleware } from '../middleware/tenantMiddleware';
+import { logger } from '../utils/logger';
 
 const router = Router();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL }); // 2025-09-23 10:30:00
 
-// POST /api/shipments/:id/assign-driver { driverId } // 2025-09-23 10:30:00
+// 应用中间件
+router.use(authMiddleware);
+router.use(tenantMiddleware);
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// POST /api/shipments/:id/assign-driver { driverId }
 router.post('/:id/assign-driver', async (req, res) => {
   const shipmentId = req.params.id;
   const { driverId } = req.body;
@@ -42,6 +50,7 @@ router.post('/:id/assign-driver', async (req, res) => {
     res.json({ success: true });
   } catch (e: any) {
     await client.query('ROLLBACK');
+    logger.error('Error assigning driver:', e);
     if (e.message.includes('not found')) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: e.message } });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e.message } });
   } finally {
@@ -50,5 +59,3 @@ router.post('/:id/assign-driver', async (req, res) => {
 });
 
 export default router;
-
-

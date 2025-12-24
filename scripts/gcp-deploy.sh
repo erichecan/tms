@@ -81,18 +81,21 @@ if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
     fi
 fi
 
-# 6. 构建后端镜像
-echo -e "${YELLOW}[6/10] 构建后端 Docker 镜像...${NC}"
-docker build --platform linux/amd64 \
-    -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest \
-    -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$(date +%Y%m%d-%H%M%S) \
-    -f docker/backend/Dockerfile .
-echo -e "${GREEN}✅ 后端镜像构建完成${NC}"
+# 6. 构建并推送后端镜像 (使用 Cloud Build)
+echo -e "${YELLOW}[6/10] 使用 Cloud Build 构建并推送后端镜像...${NC}"
+cat <<EOF > cloudbuild.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest', '-f', 'docker/backend/Dockerfile', '.']
+images:
+- 'gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest'
+EOF
+gcloud builds submit --config cloudbuild.yaml --project=$PROJECT_ID .
+rm cloudbuild.yaml
+echo -e "${GREEN}✅ 后端镜像构建并推送完成${NC}"
 
-# 7. 推送后端镜像
-echo -e "${YELLOW}[7/10] 推送后端镜像到 Container Registry...${NC}"
-docker push gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest
-echo -e "${GREEN}✅ 后端镜像推送完成${NC}"
+# 7. (步骤已合并到 6)
+echo -e "${GREEN}✅ 跳过推送步骤 (Cloud Build 已自动推送)${NC}"
 
 # 8. 部署后端服务
 echo -e "${YELLOW}[8/10] 部署后端服务到 Cloud Run...${NC}"
@@ -120,22 +123,31 @@ BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE \
 echo -e "${GREEN}✅ 后端部署完成${NC}"
 echo -e "${BLUE}   后端 URL: $BACKEND_URL${NC}"
 
-# 9. 构建前端镜像
-echo -e "${YELLOW}[9/10] 构建前端 Docker 镜像...${NC}"
-# 从 Secret Manager 获取 Google Maps API Key 用于前端构建 (Vite 需要构建时注入)
+# 9. 构建并推送前端镜像 (使用 Cloud Build)
+echo -e "${YELLOW}[9/10] 使用 Cloud Build 构建并推送前端镜像...${NC}"
 MAPS_API_KEY=$(gcloud secrets versions access latest --secret="google-maps-api-key" --project=$PROJECT_ID)
 
-docker build --platform linux/amd64 \
-    -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest \
-    -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$(date +%Y%m%d-%H%M%S) \
-    --build-arg VITE_API_BASE_URL=$BACKEND_URL \
-    --build-arg VITE_GOOGLE_MAPS_API_KEY=$MAPS_API_KEY \
-    -f docker/frontend/Dockerfile .
-echo -e "${GREEN}✅ 前端镜像构建完成${NC}"
+cat <<EOF > cloudbuild.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build', 
+    '-t', 'gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest', 
+    '-f', 'docker/frontend/Dockerfile', 
+    '--build-arg', 'VITE_API_BASE_URL=$BACKEND_URL',
+    '--build-arg', 'VITE_GOOGLE_MAPS_API_KEY=$MAPS_API_KEY',
+    '.'
+  ]
+images:
+- 'gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest'
+EOF
+gcloud builds submit --config cloudbuild.yaml --project=$PROJECT_ID .
+rm cloudbuild.yaml
+echo -e "${GREEN}✅ 前端镜像构建并推送完成${NC}"
 
-# 10. 推送并部署前端服务
-echo -e "${YELLOW}[10/10] 推送并部署前端服务...${NC}"
-docker push gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest
+# 10. 部署前端服务
+echo -e "${YELLOW}[10/10] 部署前端服务...${NC}"
+# 推送步骤已由 Cloud Build 完成
 
 gcloud run deploy $FRONTEND_SERVICE \
     --image=gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest \

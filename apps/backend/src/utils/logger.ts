@@ -1,8 +1,6 @@
-// 日志工具
-// 创建时间: 2025-01-27 15:30:45
-
 import winston from 'winston';
 import path from 'path';
+import { RequestContext } from './RequestContext';
 
 // 创建日志目录
 const logDir = path.join(process.cwd(), 'logs');
@@ -13,8 +11,13 @@ const logFormat = winston.format.combine(
     format: 'YYYY-MM-DD HH:mm:ss'
   }),
   winston.format.errors({ stack: true }),
-  winston.format.json(),
-  winston.format.prettyPrint()
+  winston.format.printf(({ level, message, timestamp, stack, ...meta }) => {
+    const requestId = RequestContext.getRequestId();
+    const requestIdStr = requestId ? `[${requestId}] ` : '';
+    const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+    const stackStr = stack ? `\n${stack}` : '';
+    return `${timestamp} ${level}: ${requestIdStr}${message}${metaStr}${stackStr}`;
+  })
 );
 
 // 创建logger实例
@@ -30,7 +33,7 @@ export const logger = winston.createLogger({
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
-    
+
     // 所有日志文件
     new winston.transports.File({
       filename: path.join(logDir, 'combined.log'),
@@ -53,7 +56,7 @@ if (process.env.NODE_ENV !== 'production') {
 // 创建请求日志中间件
 export const requestLogger = (req: any, res: any, next: any) => {
   const start = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     const logData = {
@@ -66,14 +69,14 @@ export const requestLogger = (req: any, res: any, next: any) => {
       userId: req.user?.id,
       tenantId: req.tenant?.id
     };
-    
+
     if (res.statusCode >= 400) {
       logger.error('HTTP Request Error', logData);
     } else {
       logger.info('HTTP Request', logData);
     }
   });
-  
+
   next();
 };
 
@@ -87,7 +90,7 @@ export const errorLogger = (error: Error, req: any, _res: any, next: any) => {
     userId: req.user?.id,
     tenantId: req.tenant?.id
   });
-  
+
   next(error);
 };
 
