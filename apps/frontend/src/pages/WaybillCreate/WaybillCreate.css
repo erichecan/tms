@@ -1,0 +1,441 @@
+/* WaybillCreate.css */
+
+/* =========================================================================
+   1. SCREEN VIEW (The "Editor")
+   Matches the TMS Website Style (Ant Design)
+   ========================================================================= */
+
+.wb-workspace {
+    background-color: #f0f2f5;
+    padding: 24px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.wb-toolbar {
+    width: 210mm;
+    max-width: 100%;
+    margin-bottom: 24px;
+    background: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* The Document "Paper" Container */
+.wb-paper {
+    background-color: white;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 40px;
+    /* Generous whitespace */
+    border-radius: 8px;
+    /* Soft corners for screen */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    /* Consistent vertical rhythm between sections */
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: #1f1f1f;
+}
+
+/* Paste / Image Upload Area */
+.wb-image-paste-zone {
+    width: 100%;
+    height: 100%;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d9d9d9;
+    border-radius: 4px;
+    background-color: #fafafa;
+    cursor: pointer;
+    transition: all 0.3s;
+    overflow: hidden;
+    position: relative;
+    color: #999;
+    font-size: 12px;
+}
+
+.wb-image-paste-zone:hover {
+    border-color: #1890ff;
+    background-color: #f0f7ff;
+    color: #1890ff;
+}
+
+.wb-image-paste-zone img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.wb-image-paste-zone .wb-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+
+/* Styles for the "Real Document" Look on Screen (WYSIWYG-ish) */
+/* Title/Header Area */
+.wb-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 16px;
+}
+
+/* Address Grids */
+.wb-address-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px 1fr;
+    gap: 16px 12px;
+    align-items: center;
+}
+
+.wb-label {
+    font-weight: 500;
+    color: #000000d9;
+    text-align: right;
+    padding-right: 8px;
+}
+
+/* Table Styles (Screen) */
+.wb-table-wrapper {
+    margin-top: 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.wb-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.wb-table th {
+    background: #fafafa;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    font-weight: 600;
+    color: #000000d9;
+    text-align: left;
+}
+
+
+.wb-table td {
+    padding: 3px 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.wb-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Prevent action buttons from breaking lines */
+.wb-table td {
+    white-space: nowrap;
+    /* Prevent wrapping in all cells by default for cleaner tables */
+}
+
+.wb-table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Inputs on Screen */
+.wb-input-transparent .ant-input,
+.wb-input-transparent .ant-input-number-input,
+.wb-input-transparent .ant-picker,
+.wb-input-transparent .ant-select-selector {
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+}
+
+.wb-input-transparent .ant-input:hover,
+.wb-input-transparent .ant-input-number-input:hover,
+.wb-input-transparent .ant-picker:hover,
+.wb-input-transparent .ant-select-selector:hover {
+    border-color: #d9d9d9 !important;
+    /* Show border on hover */
+    background-color: white !important;
+}
+
+.wb-input-transparent .ant-input:focus,
+.wb-input-transparent .ant-input-number-input:focus,
+.wb-input-transparent .ant-picker-focused,
+.wb-input-transparent .ant-select-selector:focus {
+    border-color: #1890ff !important;
+    background-color: white !important;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Read-only inputs that look plain */
+.wb-input-readonly .ant-input {
+    background: transparent !important;
+    border: none !important;
+    color: #000 !important;
+    cursor: default;
+    box-shadow: none !important;
+}
+
+
+/* =========================================================================
+   2. PRINT VIEW (The "Document")
+   Strict Black & White, High Contrast, Borders
+   ========================================================================= */
+
+@media print {
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    body,
+    .wb-workspace {
+        background: white;
+        padding: 0;
+        margin: 0;
+        display: block;
+    }
+
+    .wb-toolbar,
+    .no-print,
+    .ant-btn,
+    .ant-steps {
+        display: none !important;
+    }
+
+    .wb-paper {
+        width: 100%;
+        height: 100%;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 10mm;
+        /* Standard print margin */
+        gap: 0;
+        /* Reset screen gaps */
+        display: block;
+        /* Use block flow */
+    }
+
+    .wb-section {
+        border: none;
+        padding: 0;
+        margin-bottom: 10px;
+        background: transparent !important;
+    }
+
+    .wb-image-paste-zone {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .wb-image-paste-zone .wb-placeholder {
+        display: none;
+    }
+
+    /* Force Table Borders */
+    .wb-table th,
+    .wb-table td {
+        border: 1px solid #000 !important;
+        padding: 4px 8px !important;
+    }
+
+    .wb-table-wrapper {
+        border: none;
+    }
+
+    /* Force Bordered Box Style for Amazon Template */
+    .wb-bordered-box {
+        border: 2px solid #000;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wb-row-border {
+        border-bottom: 1px solid #000;
+        display: flex;
+    }
+
+    .wb-col-border {
+        border-right: 1px solid #000;
+    }
+
+    /* Inputs: Hide placeholders, borders, backgrounds */
+    .ant-input,
+    .ant-input-number-input,
+    .ant-picker,
+    .ant-select {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-size: 12px;
+        color: #000 !important;
+    }
+
+    textarea {
+        resize: none;
+    }
+
+    .wb-doc-title {
+        font-size: 18px;
+        font-weight: bold;
+    }
+}
+
+/* =========================================================================
+   3. PDF GENERATION STYLES (For html2canvas)
+   Exact copy of print styles but scoped to .wb-pdf-capture class
+   ========================================================================= */
+.wb-pdf-capture {
+    background: white !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1000;
+}
+
+.wb-pdf-capture .no-print,
+.wb-pdf-capture .ant-btn {
+    display: none !important;
+}
+
+.wb-pdf-capture .wb-section {
+    background: transparent !important;
+    padding: 0;
+    margin-bottom: 10px;
+    border: none;
+}
+
+.wb-pdf-capture .wb-image-paste-zone {
+    border: none !important;
+    background: transparent !important;
+}
+
+.wb-pdf-capture .wb-image-paste-zone .wb-placeholder {
+    display: none;
+}
+
+.wb-pdf-capture .wb-table th,
+.wb-pdf-capture .wb-table td {
+    border: 1px solid #000 !important;
+    padding: 4px 8px !important;
+}
+
+.wb-pdf-capture .wb-table-wrapper {
+    border: none !important;
+}
+
+.wb-pdf-capture .wb-bordered-box {
+    border: 2px solid #000 !important;
+    height: 100%;
+}
+
+.wb-pdf-capture .wb-row-border {
+    border-bottom: 1px solid #000 !important;
+}
+
+.wb-pdf-capture .wb-col-border {
+    border-right: 1px solid #000 !important;
+}
+
+/* Global reset for PDF capture to remove "button" looks */
+.wb-pdf-capture * {
+    border-radius: 0 !important;
+}
+
+.wb-pdf-capture .ant-input,
+.wb-pdf-capture .ant-input-number,
+.wb-pdf-capture .ant-input-number-input,
+.wb-pdf-capture .ant-picker,
+.wb-pdf-capture .ant-select-selector {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    color: #000 !important;
+    resize: none;
+}
+
+/* Hide InputNumber wrapper borders specifically */
+.wb-pdf-capture .ant-input-number {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.wb-pdf-capture .ant-input-number-handler-wrap {
+    display: none !important;
+}
+
+.wb-pdf-capture textarea {
+    resize: none !important;
+}
+
+/* Default Template Address Grid Borders for PDF */
+.wb-pdf-capture .wb-address-grid {
+    display: grid !important;
+    grid-template-columns: 100px 1fr 100px 1fr !important;
+    gap: 0 !important;
+    border-top: 1px solid #000;
+    border-left: 1px solid #000;
+    border-right: none;
+    border-bottom: none;
+}
+
+.wb-pdf-capture .wb-address-grid>div {
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    font-size: 12px;
+}
+
+/* Remove gray background to avoid "button" look, make it clean text */
+.wb-pdf-capture .wb-label {
+    background: transparent !important;
+    font-weight: 600;
+    justify-content: center;
+    color: #000;
+}
+
+/* Fix col-span-3 items to actually span in the capture grid */
+.wb-pdf-capture .col-span-3 {
+    grid-column: span 3;
+}
+
+/* Ensure inputs are full height/width and transparent */
+.wb-pdf-capture .wb-address-grid .ant-form-item {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.wb-pdf-capture .wb-address-grid input,
+.wb-pdf-capture .wb-address-grid textarea {
+    padding: 0 !important;
+    line-height: 1.5;
+}

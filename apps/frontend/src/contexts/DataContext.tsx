@@ -13,24 +13,24 @@ interface DataContextValue {
   allDrivers: Driver[];
   driversLoading: boolean;
   reloadDrivers: () => Promise<void>;
-  
+
   // Vehicles
   vehicles: Vehicle[];
   availableVehicles: Vehicle[];
   allVehicles: Vehicle[];
   vehiclesLoading: boolean;
   reloadVehicles: () => Promise<void>;
-  
+
   // Customers
   customers: Customer[];
   customersLoading: boolean;
   reloadCustomers: () => Promise<void>;
-  
+
   // Shipments
   shipments: Shipment[];
   shipmentsLoading: boolean;
   reloadShipments: () => Promise<void>;
-  
+
   // Global refresh
   refreshAll: () => Promise<void>;
 }
@@ -56,22 +56,22 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Drivers state
   const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
   const [driversLoading, setDriversLoading] = useState(false);
-  
+
   // Vehicles state
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
-  
+
   // Customers state
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
-  
+
   // Shipments state
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [shipmentsLoading, setShipmentsLoading] = useState(false);
 
   // Computed: Available drivers and vehicles
-  const availableDrivers = allDrivers.filter(d => d.status === DriverStatus.AVAILABLE);
-  const availableVehicles = allVehicles.filter(v => v.status === VehicleStatus.AVAILABLE);
+  const availableDrivers = Array.isArray(allDrivers) ? allDrivers.filter(d => d.status === DriverStatus.AVAILABLE) : [];
+  const availableVehicles = Array.isArray(allVehicles) ? allVehicles.filter(v => v.status === VehicleStatus.AVAILABLE) : [];
 
   // 2025-11-29T19:30:00 优雅处理 401 错误
   const handleApiError = (error: unknown, resourceName: string) => {
@@ -94,7 +94,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!isAuthenticated) {
       return;
     }
-    
+
     try {
       setDriversLoading(true);
       const response = await driversApi.getDrivers();
@@ -113,7 +113,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!isAuthenticated) {
       return;
     }
-    
+
     try {
       setVehiclesLoading(true);
       const response = await vehiclesApi.getVehicles();
@@ -132,7 +132,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!isAuthenticated) {
       return;
     }
-    
+
     try {
       setCustomersLoading(true);
       const response = await customersApi.getCustomers();
@@ -151,7 +151,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!isAuthenticated) {
       return;
     }
-    
+
     try {
       setShipmentsLoading(true);
       const response = await shipmentsApi.getShipments();
@@ -170,7 +170,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!isAuthenticated) {
       return;
     }
-    
+
     await Promise.all([
       reloadDrivers(),
       reloadVehicles(),
@@ -185,7 +185,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (authLoading) {
       return;
     }
-    
+
     // 只在认证成功后加载数据
     if (isAuthenticated) {
       void reloadDrivers();
@@ -209,24 +209,24 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     allDrivers,
     driversLoading,
     reloadDrivers,
-    
+
     // Vehicles
     vehicles: allVehicles,
     availableVehicles,
     allVehicles,
     vehiclesLoading,
     reloadVehicles,
-    
+
     // Customers
     customers,
     customersLoading,
     reloadCustomers,
-    
+
     // Shipments
     shipments,
     shipmentsLoading,
     reloadShipments,
-    
+
     // Global refresh
     refreshAll,
   };
