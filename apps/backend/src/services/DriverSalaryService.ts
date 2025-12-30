@@ -5,13 +5,14 @@
 import { DatabaseService } from './DatabaseService';
 import { RuleEngineService } from './RuleEngineService';
 import { logger } from '../utils/logger';
-import { Shipment, Driver } from '@tms/shared-types';
+import { Shipment, Driver, Trip } from '@tms/shared-types';
 
 /**
  * 工资计算策略类型
  */
 export type SalaryCalculationStrategyType =
     | 'rule-engine'
+    | 'trip-override'
     | 'driver-fee-override'
     | 'manual-adjustment';
 
@@ -39,6 +40,7 @@ export interface SalaryCalculationResult {
  */
 export interface SalaryCalculationContext {
     shipment: Shipment;
+    trip?: Trip;
     driver?: Driver;
     finalCost: number;
     distance: number;
@@ -229,6 +231,59 @@ export class ManualAdjustmentStrategy implements SalaryCalculationStrategy {
 }
 
 /**
+ * 行程费用覆盖策略
+ * 优先级: 1 (最高，通过行程的一口价覆盖单个运单费用)
+ */
+export class TripOverrideStrategy implements SalaryCalculationStrategy {
+    readonly name: SalaryCalculationStrategyType = 'trip-override';
+
+    canApply(context: SalaryCalculationContext): boolean {
+        // 只有当运单属于某个行程，且该行程设置了有效的 Trip Fee (一口价) 时适用
+        // 且行程必须包含至少一个运单（用于分摊）
+        return !!(context.trip &&
+            context.trip.tripFee !== undefined &&
+            context.trip.tripFee !== null &&
+            context.trip.tripFee > 0 &&
+            context.trip.shipments &&
+            context.trip.shipments.length > 0);
+    }
+
+    async calculate(context: SalaryCalculationContext): Promise<SalaryCalculationResult> {
+        const { shipment, trip } = context;
+
+        if (!trip || !trip.tripFee) {
+            throw new Error('Trip context invalid for TripOverrideStrategy');
+        }
+
+        // 简单均摊逻辑：行程总费用 / 运单数量
+        // Simple Proration: Trip Fee / Shipment Count
+        const count = trip.shipments.length;
+        const commission = Number((trip.tripFee / count).toFixed(2));
+
+        logger.info(`Trip fee override applied for shipment ${shipment.shipmentNumber}`, {
+            shipmentId: shipment.id,
+            tripId: trip.id,
+            tripFee: trip.tripFee,
+            shipmentCount: count,
+            proratedCommission: commission
+        });
+
+        return {
+            shipmentId: shipment.id,
+            shipmentNumber: shipment.shipmentNumber,
+            commission,
+            strategy: this.name,
+            details: {
+                baseAmount: trip.tripFee,
+                overrideReason: `Prorated from Trip Fee (${trip.tripFee}) over ${count} shipments. Trip: ${trip.tripNo || trip.id}`,
+                finalCost: context.finalCost
+            },
+            calculatedAt: new Date()
+        };
+    }
+}
+
+/**
  * 司机工资计算服务
  */
 export class DriverSalaryService {
@@ -241,16 +296,17 @@ export class DriverSalaryService {
     ) {
         // 按优先级顺序初始化策略
         this.strategies = [
-            new RuleEngineStrategy(ruleEngineService, tenantId),
-            new DriverFeeOverrideStrategy(),
-            new ManualAdjustmentStrategy()
+            new TripOverrideStrategy(),           // Priority 1: Trip Fee Override (Highest)
+            new RuleEngineStrategy(ruleEngineService, tenantId), // Priority 2: Rule Engine
+            new DriverFeeOverrideStrategy(),      // Priority 3: Explicit Shipment Driver Fee
+            new ManualAdjustmentStrategy()        // Priority 4: Manual Fallback
         ];
     }
 
     /**
      * 构建工资计算上下文
      */
-    private buildContext(shipment: Shipment, driver?: Driver): SalaryCalculationContext {
+    private buildContext(shipment: Shipment, driver?: Driver, trip?: Trip): SalaryCalculationContext {
         const finalCost = shipment.actualCost || shipment.estimatedCost;
         const distance = shipment.transportDistance || 0;
         const weight = shipment.cargoInfo.weight;
@@ -264,6 +320,7 @@ export class DriverSalaryService {
 
         return {
             shipment,
+            trip, // Add trip to context
             driver,
             finalCost,
             distance,
@@ -278,9 +335,10 @@ export class DriverSalaryService {
      * 计算单个运单的司机佣金
      * @param shipment 运单信息
      * @param driver 司机信息（可选）
+     * @param trip 行程信息（可选，用于覆盖策略）
      * @returns 工资计算结果
      */
-    async calculateCommission(shipment: Shipment, driver?: Driver): Promise<SalaryCalculationResult> {
+    async calculateCommission(shipment: Shipment, driver?: Driver, trip?: Trip): Promise<SalaryCalculationResult> {
         logger.debug(`Calculating commission for shipment ${shipment.shipmentNumber}`, {
             shipmentId: shipment.id,
             driverId: shipment.driverId,
@@ -289,7 +347,7 @@ export class DriverSalaryService {
             estimatedCost: shipment.estimatedCost
         });
 
-        const context = this.buildContext(shipment, driver);
+        const context = this.buildContext(shipment, driver, trip);
 
         // 按优先级尝试每个策略
         for (const strategy of this.strategies) {
@@ -337,9 +395,46 @@ export class DriverSalaryService {
 
         const results: SalaryCalculationResult[] = [];
 
+        // 1. 收集所有相关的 tripId
+        const tripIds = new Set(shipments.map(s => s.tripId).filter(Boolean) as string[]);
+        const tripMap = new Map<string, Trip>();
+
+        // 2. 批量获取行程信息 (如果存在)
+        if (tripIds.size > 0) {
+            try {
+                // 直接查询数据库获取 trip 信息
+                // Note: Manually mapping camelCase response if needed, assuming standard snake_case column names
+                const query = `
+                    SELECT id, trip_no as "tripNo", trip_fee as "tripFee", shipments 
+                    FROM trips 
+                    WHERE id = ANY($1) AND tenant_id = $2
+                `;
+                const queryResult = await this.dbService.query(query, [[...tripIds], this.tenantId]);
+
+                queryResult.forEach((row: any) => {
+                    // 构建最小化的 Trip 对象用于计算
+                    const trip = {
+                        id: row.id,
+                        tripNo: row.tripNo,
+                        tripFee: row.tripFee ? parseFloat(row.tripFee) : undefined,
+                        shipments: row.shipments || [] // Assuming uuid[] array
+                    } as Trip;
+                    tripMap.set(trip.id!, trip);
+                });
+
+                logger.debug(`Fetched ${tripMap.size} trips for batch salary calculation`);
+            } catch (error) {
+                logger.error('Failed to fetch trips for salary calculation', error);
+                // Continue without trip info (will fallback to other strategies)
+            }
+        }
+
         for (const shipment of shipments) {
             try {
-                const result = await this.calculateCommission(shipment, driver);
+                // 3. 获取该运单对应的 Trip (如果有)
+                const trip = shipment.tripId ? tripMap.get(shipment.tripId) : undefined;
+
+                const result = await this.calculateCommission(shipment, driver, trip);
                 results.push(result);
             } catch (error) {
                 logger.error(`Failed to calculate commission for shipment ${shipment.shipmentNumber}`, {

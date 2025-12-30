@@ -64,6 +64,7 @@ const WaybillCreate: React.FC<WaybillCreateProps> = ({ readOnly = false, initial
 
             const shipmentPayload = {
                 shipmentNumber: values.waybillNumber,
+                distanceKm: values.distanceKm, // Pass manual distance for pricing engine
                 customerName: receiverLocation.companyName || shipperLocation.companyName || 'Unknown Customer',
 
                 shipper: {
@@ -383,6 +384,12 @@ const AmazonTemplateForm: React.FC<{ form: any, deliveryDate: any, readOnly?: bo
                         <Input className="wb-input-transparent font-mono text-center w-full" placeholder="REF-CODE" />
                     </Form.Item>
                 </InfoRow>
+
+                <InfoRow label="Distance (km)">
+                    <Form.Item name="distanceKm" noStyle>
+                        <InputNumber className="wb-input-transparent font-mono text-center w-full" placeholder="0.0" precision={1} />
+                    </Form.Item>
+                </InfoRow>
             </div>
 
             {/* Goods Table */}
@@ -596,6 +603,12 @@ const DefaultTemplateForm: React.FC<{ form: any, readOnly?: boolean }> = ({ form
                         <Text strong className="w-32">Delivery Date: </Text>
                         <Form.Item name="deliveryDate" noStyle>
                             <DatePicker showTime format="YYYY-MM-DD HH:mm" className="wb-input-transparent flex-1" suffixIcon={null} placeholder="Select Date & Time" />
+                        </Form.Item>
+                    </div>
+                    <div className="flex items-center border-b border-gray-200 pb-2">
+                        <Text strong className="w-32">Distance (km): </Text>
+                        <Form.Item name="distanceKm" noStyle>
+                            <InputNumber className="wb-input-transparent flex-1" placeholder="0.0" precision={1} />
                         </Form.Item>
                     </div>
                 </Col>

@@ -65,6 +65,9 @@ export interface WaybillData {
 
     // Signatures / Footers
     note?: string;
+
+    // Metrics for Pricing
+    distanceKm?: number;
 }
 
 export const INITIAL_AMAZON_TEMPLATE: Partial<WaybillData> = {
