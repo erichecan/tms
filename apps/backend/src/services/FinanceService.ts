@@ -280,88 +280,63 @@ export class FinanceService {
       }
 
       // 计算每单的薪酬
-      // 2025-01-27 16:50:00 Update: Support Trip Fee and Driver Fee priority
-      // 1. Trip Fee (if part of a trip and fee is set)
-      // 2. Driver Fee (explicit override on shipment)
-      // 3. Rule Engine (dynamic calculation)
+      // 2025-12-29 22:35:00 Update: Refactored driver salary calculation priority
+      // Priority Order:
+      // 1. Rule Engine (dynamic calculation based on business rules)
+      // 2. Driver Fee (explicit override on shipment for special cases)
+      // 3. No default fallback - use bonus field in payroll summary for manual adjustments
+      // 
+      // Note: Trip Fee is for customer pricing, not driver salary calculation
 
       const items: StatementItem[] = [];
       let totalCommission = 0;
 
-      // Fetch related trips for efficiency
-      const tripIds = [...new Set(shipments.data.map(s => s.tripId).filter(id => !!id))];
-      const tripsMap = new Map<string, any>();
-      if (tripIds.length > 0) {
-        const tripRes = await this.dbService.query('SELECT * FROM trips WHERE id = ANY($1)', [tripIds]);
-        tripRes.forEach(r => tripsMap.set(r.id, r));
-      }
-
-      const processedTripIds = new Set<string>();
-
       for (const shipment of shipments.data) {
-        // Check for Trip Fee
-        if (shipment.tripId && tripsMap.has(shipment.tripId)) {
-          const trip = tripsMap.get(shipment.tripId);
-          const tripFee = trip.trip_fee ? parseFloat(trip.trip_fee) : 0;
-
-          if (tripFee > 0) {
-            if (processedTripIds.has(shipment.tripId)) {
-              continue; // Trip fee already added for this trip group
-            }
-
-            items.push({
-              id: trip.id,
-              description: `Trip ${trip.trip_no} (Flat Rate)`,
-              amount: tripFee,
-              date: new Date(trip.updated_at || Date.now()),
-              reference: trip.trip_no
-            });
-            totalCommission += tripFee;
-            processedTripIds.add(shipment.tripId);
-            continue; // Skip individual shipment processing
-          }
-        }
-
-        // Logic for individual shipment
         let commission = 0;
+        let calculationMethod = 'none';
 
-        // Check for Driver Fee Override
-        if (shipment.driverFee && shipment.driverFee > 0) {
-          commission = shipment.driverFee;
-        } else {
-          // Fallback to Rule Engine
-          // 使用规则引擎计算薪酬
-          const facts = {
-            shipmentId: shipment.id,
-            driverId: shipment.driverId,
-            finalCost: shipment.actualCost || shipment.estimatedCost,
-            distance: shipment.transportDistance || 0,
-            weight: shipment.cargoInfo.weight,
-            volume: shipment.cargoInfo.volume,
-            deliveryTime: (shipment.timeline?.delivered && shipment.timeline?.pickupInProgress)
-              ? (new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickupInProgress).getTime())
-              : 0,
-            customerLevel: shipment.customer?.level || 'standard'
-          };
+        // Priority 1: Rule Engine
+        const facts = {
+          shipmentId: shipment.id,
+          driverId: shipment.driverId,
+          finalCost: shipment.actualCost || shipment.estimatedCost,
+          distance: shipment.transportDistance || 0,
+          weight: shipment.cargoInfo.weight,
+          volume: shipment.cargoInfo.volume,
+          deliveryTime: (shipment.timeline?.delivered && shipment.timeline?.pickupInProgress)
+            ? (new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickupInProgress).getTime())
+            : 0,
+          customerLevel: shipment.customer?.level || 'standard'
+        };
 
-          const ruleResult = await this.ruleEngineService.executeRules(tenantId, facts);
+        const ruleResult = await this.ruleEngineService.executeRules(tenantId, facts);
 
-          for (const event of ruleResult.events) {
-            if (event.type === 'rule-executed') {
-              const actions = event.params?.actions || [];
-              for (const action of actions) {
-                if (action.type === 'setDriverCommission') {
-                  commission = facts.finalCost * (action.params.percentage / 100);
-                  break;
-                }
+        for (const event of ruleResult.events) {
+          if (event.type === 'rule-executed') {
+            const actions = event.params?.actions || [];
+            for (const action of actions) {
+              if (action.type === 'setDriverCommission') {
+                commission = facts.finalCost * (action.params.percentage / 100);
+                calculationMethod = 'rule-engine';
+                break;
               }
             }
           }
+        }
 
-          // 如果没有规则计算薪酬，使用默认比例
-          if (commission === 0) {
-            commission = facts.finalCost * 0.3; // 默认30%
-          }
+        // Priority 2: Driver Fee Override (only if rule engine didn't calculate)
+        if (commission === 0 && shipment.driverFee && shipment.driverFee > 0) {
+          commission = shipment.driverFee;
+          calculationMethod = 'driver-fee-override';
+        }
+
+        // Log warning if no calculation method was available
+        if (commission === 0) {
+          logger.warn(`No driver salary calculation method available for shipment ${shipment.shipmentNumber}. Use bonus field for manual adjustment.`, {
+            shipmentId: shipment.id,
+            shipmentNumber: shipment.shipmentNumber,
+            driverId: shipment.driverId
+          });
         }
 
         const completedDate = shipment.timeline?.completed
@@ -370,7 +345,7 @@ export class FinanceService {
 
         items.push({
           id: shipment.id,
-          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''}`,
+          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''} [${calculationMethod}]`,
           amount: commission,
           date: completedDate instanceof Date ? completedDate : new Date(completedDate),
           reference: shipment.shipmentNumber
