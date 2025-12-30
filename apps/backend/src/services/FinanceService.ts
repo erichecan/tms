@@ -1,9 +1,11 @@
 // 财务服务
 // 创建时间: 2025-01-27 15:30:45
+// 更新时间: 2025-12-29 22:42:00 - 集成 DriverSalaryService
 
 import { DatabaseService } from './DatabaseService';
 import { RuleEngineService } from './RuleEngineService';
 import { CurrencyService } from './CurrencyService';
+import { DriverSalaryService } from './DriverSalaryService';
 import { logger } from '../utils/logger';
 import { DEFAULT_CURRENCY } from '@tms/shared-types';
 import {
@@ -65,11 +67,18 @@ export class FinanceService {
   private dbService: DatabaseService;
   private ruleEngineService: RuleEngineService;
   private currencyService: CurrencyService;
+  private driverSalaryService: DriverSalaryService;
 
-  constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService, currencyService: CurrencyService) {
+  constructor(
+    dbService: DatabaseService,
+    ruleEngineService: RuleEngineService,
+    currencyService: CurrencyService,
+    driverSalaryService: DriverSalaryService
+  ) {
     this.dbService = dbService;
     this.ruleEngineService = ruleEngineService;
     this.currencyService = currencyService;
+    this.driverSalaryService = driverSalaryService;
   }
 
   /**
@@ -280,63 +289,24 @@ export class FinanceService {
       }
 
       // 计算每单的薪酬
-      // 2025-12-29 22:35:00 Update: Refactored driver salary calculation priority
-      // Priority Order:
+      // 2025-12-29 22:42:00 Update: Refactored to use DriverSalaryService
+      // The DriverSalaryService handles all salary calculation logic using strategy pattern
+      // Priority Order (handled by DriverSalaryService):
       // 1. Rule Engine (dynamic calculation based on business rules)
       // 2. Driver Fee (explicit override on shipment for special cases)
-      // 3. No default fallback - use bonus field in payroll summary for manual adjustments
-      // 
-      // Note: Trip Fee is for customer pricing, not driver salary calculation
+      // 3. Manual Adjustment (returns 0, use bonus field in payroll summary)
 
       const items: StatementItem[] = [];
       let totalCommission = 0;
 
-      for (const shipment of shipments.data) {
-        let commission = 0;
-        let calculationMethod = 'none';
+      // Use DriverSalaryService for batch calculation
+      const salaryResults = await this.driverSalaryService.calculateBatchCommissions(shipments.data, driver);
 
-        // Priority 1: Rule Engine
-        const facts = {
-          shipmentId: shipment.id,
-          driverId: shipment.driverId,
-          finalCost: shipment.actualCost || shipment.estimatedCost,
-          distance: shipment.transportDistance || 0,
-          weight: shipment.cargoInfo.weight,
-          volume: shipment.cargoInfo.volume,
-          deliveryTime: (shipment.timeline?.delivered && shipment.timeline?.pickupInProgress)
-            ? (new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickupInProgress).getTime())
-            : 0,
-          customerLevel: shipment.customer?.level || 'standard'
-        };
-
-        const ruleResult = await this.ruleEngineService.executeRules(tenantId, facts);
-
-        for (const event of ruleResult.events) {
-          if (event.type === 'rule-executed') {
-            const actions = event.params?.actions || [];
-            for (const action of actions) {
-              if (action.type === 'setDriverCommission') {
-                commission = facts.finalCost * (action.params.percentage / 100);
-                calculationMethod = 'rule-engine';
-                break;
-              }
-            }
-          }
-        }
-
-        // Priority 2: Driver Fee Override (only if rule engine didn't calculate)
-        if (commission === 0 && shipment.driverFee && shipment.driverFee > 0) {
-          commission = shipment.driverFee;
-          calculationMethod = 'driver-fee-override';
-        }
-
-        // Log warning if no calculation method was available
-        if (commission === 0) {
-          logger.warn(`No driver salary calculation method available for shipment ${shipment.shipmentNumber}. Use bonus field for manual adjustment.`, {
-            shipmentId: shipment.id,
-            shipmentNumber: shipment.shipmentNumber,
-            driverId: shipment.driverId
-          });
+      for (const result of salaryResults) {
+        const shipment = shipments.data.find(s => s.id === result.shipmentId);
+        if (!shipment) {
+          logger.warn(`Shipment not found for salary result: ${result.shipmentId}`);
+          continue;
         }
 
         const completedDate = shipment.timeline?.completed
@@ -345,14 +315,21 @@ export class FinanceService {
 
         items.push({
           id: shipment.id,
-          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''} [${calculationMethod}]`,
-          amount: commission,
+          description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''} [${result.strategy}]`,
+          amount: result.commission,
           date: completedDate instanceof Date ? completedDate : new Date(completedDate),
           reference: shipment.shipmentNumber
         });
 
-        totalCommission += commission;
+        totalCommission += result.commission;
       }
+
+      logger.info(`Driver statement calculation completed for ${driver.name}`, {
+        driverId,
+        shipmentCount: shipments.data.length,
+        totalCommission,
+        strategiesUsed: [...new Set(salaryResults.map(r => r.strategy))]
+      });
 
       // 创建结算单
       const statement: Omit<Statement, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'> = {

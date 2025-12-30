@@ -297,6 +297,40 @@ export interface StatementItem {
 
 export type StatementStatus = 'draft' | 'sent' | 'paid' | 'overdue';
 
+// 工资计算相关类型 (2025-12-29 Added for driver salary calculation refactoring)
+export interface SalaryCalculationResult {
+  shipmentId: string;
+  shipmentNumber: string;
+  commission: number;
+  strategy: SalaryCalculationStrategyType;
+  details: {
+    baseAmount?: number;
+    percentage?: number;
+    ruleId?: string;
+    ruleName?: string;
+    overrideReason?: string;
+    finalCost?: number;
+  };
+  calculatedAt: Date;
+}
+
+export type SalaryCalculationStrategyType =
+  | 'rule-engine'
+  | 'driver-fee-override'
+  | 'manual-adjustment';
+
+export interface SalaryCalculationContext {
+  shipment: Shipment;
+  driver?: Driver;
+  finalCost: number;
+  distance: number;
+  weight: number;
+  volume: number;
+  deliveryTime: number;
+  customerLevel: CustomerLevel;
+}
+
+
 // API响应类型
 export interface ApiResponse<T = any> {
   success: boolean;

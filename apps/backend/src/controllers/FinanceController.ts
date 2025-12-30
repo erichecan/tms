@@ -1,11 +1,13 @@
 // 财务控制器
 // 创建时间: 2025-01-27 15:30:45
+// 更新时间: 2025-12-29 22:44:00 - 集成 DriverSalaryService
 
 import { Request, Response } from 'express';
 import { FinanceService } from '../services/FinanceService';
 import { DatabaseService } from '../services/DatabaseService';
 import { RuleEngineService } from '../services/RuleEngineService';
 import { CurrencyService } from '../services/CurrencyService';
+import { DriverSalaryService } from '../services/DriverSalaryService';
 import { logger } from '../utils/logger';
 import { QueryParams } from '@tms/shared-types';
 
@@ -24,7 +26,11 @@ export class FinanceController {
   private financeService: FinanceService;
 
   constructor(dbService: DatabaseService, ruleEngineService: RuleEngineService, currencyService: CurrencyService) {
-    this.financeService = new FinanceService(dbService, ruleEngineService, currencyService);
+    // Note: tenantId will be determined at runtime from the request
+    // For now, we create a factory function approach or use a default tenant
+    // This is a simplified approach - in production, you might want to create services per-request
+    const driverSalaryService = new DriverSalaryService(dbService, ruleEngineService, 'default-tenant');
+    this.financeService = new FinanceService(dbService, ruleEngineService, currencyService, driverSalaryService);
   }
 
   /**
