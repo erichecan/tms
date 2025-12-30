@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card, Button, Typography, Row, Col, Divider, Space, Dropdown, Avatar } from 'antd';
-import { 
-  TruckOutlined, 
-  PlusOutlined, 
-  TeamOutlined, 
+import {
+  TruckOutlined,
+  PlusOutlined,
+  TeamOutlined,
   DollarOutlined,
   UserOutlined,
   SettingOutlined,
@@ -60,27 +60,27 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
-      
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <TruckOutlined style={{ color: '#1890ff', fontSize: '24px', marginRight: '12px' }} />
           <Title level={4} style={{ margin: 0 }}>TMS v3.0-PC</Title>
         </div>
-        
+
         <Space>
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<DashboardOutlined />}
             onClick={() => navigate('/admin')}
           >
             管理后台
           </Button>
-          
-          <Dropdown 
-            menu={{ 
-              items: userMenuItems, 
-              onClick: handleUserMenuClick 
-            }} 
+
+          <Dropdown
+            menu={{
+              items: userMenuItems,
+              onClick: handleUserMenuClick
+            }}
             placement="bottomRight"
           >
             <Button type="text" style={{ padding: '4px 8px' }}>
@@ -109,7 +109,7 @@ const Home: React.FC = () => {
         </Space> {/* 2025-11-11 10:15:05 新增：客户自助入口导航 */}
       </div>
 
-      
+
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} sm={12} md={8}>
           <Card
@@ -128,7 +128,7 @@ const Home: React.FC = () => {
               type="primary"
               size="large"
               icon={<PlusOutlined />}
-              onClick={() => navigate('/create-shipment')}
+              onClick={() => navigate('/admin/waybill/create')}
               block
             >
               开始创建运单
@@ -185,7 +185,7 @@ const Home: React.FC = () => {
         </Col>
       </Row>
 
-      
+
       <Divider style={{ margin: '40px 0' }} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={6}>

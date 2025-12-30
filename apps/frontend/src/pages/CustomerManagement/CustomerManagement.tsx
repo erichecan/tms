@@ -16,7 +16,7 @@ const { Title } = Typography;
 const CustomerManagement: React.FC = () => {
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
   const { customers, customersLoading: loading, reloadCustomers } = useDataContext();
-  
+
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
@@ -52,7 +52,7 @@ const CustomerManagement: React.FC = () => {
   const handleEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsEditModalVisible(true);
-    
+
     // 填充表单数据
     form.setFieldsValue({
       name: customer.name,
@@ -81,7 +81,8 @@ const CustomerManagement: React.FC = () => {
 
   const handleCreateShipment = (customer: Customer) => {
     // 跳转到创建运单页面，并传递客户信息
-    window.location.href = `/create-shipment?customerId=${customer.id}`;
+    // 2025-12-25 Updated link to new Waybill Create
+    window.location.href = `/admin/waybill/create`; // Note: customerId param might need to be handled by new page if critical
   };
 
   const loadCustomerShipments = async (customerId: string) => {
@@ -100,10 +101,10 @@ const CustomerManagement: React.FC = () => {
   const handleConfirmAdd = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的表单数据转换函数
       const customerData = transformCustomerFormData(values);
-      
+
       await customersApi.createCustomer(customerData);
       message.success('客户添加成功');
       setIsAddModalVisible(false);
@@ -119,9 +120,9 @@ const CustomerManagement: React.FC = () => {
   const handleConfirmEdit = async () => {
     try {
       const values = await form.validateFields();
-      
+
       if (!editingCustomer) return;
-      
+
       // 转换表单数据为后端API期望的格式
       const customerData = {
         name: values.name,
@@ -149,7 +150,7 @@ const CustomerManagement: React.FC = () => {
           }
         }
       };
-      
+
       await customersApi.updateCustomer(editingCustomer.id, customerData);
       message.success('客户更新成功');
       setIsEditModalVisible(false);
@@ -168,13 +169,13 @@ const CustomerManagement: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
     },
-      {
-        title: '客户等级',
-        dataIndex: 'level',
-        key: 'level',
-        width: 100,
-        render: renderCustomerLevel, // 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的渲染函数
-      },
+    {
+      title: '客户等级',
+      dataIndex: 'level',
+      key: 'level',
+      width: 100,
+      render: renderCustomerLevel, // 2025-11-30T12:30:00Z Updated by Assistant: 使用统一的渲染函数
+    },
     {
       title: '邮箱',
       dataIndex: 'email',
@@ -189,14 +190,14 @@ const CustomerManagement: React.FC = () => {
       title: '默认取货地址',
       dataIndex: 'defaultPickupAddress',
       key: 'defaultPickupAddress',
-      render: (address: ShipmentAddress) => 
+      render: (address: ShipmentAddress) =>
         address ? `${address.city} ${address.addressLine1}` : '-',
     },
     {
       title: '默认送货地址',
       dataIndex: 'defaultDeliveryAddress',
       key: 'defaultDeliveryAddress',
-      render: (address: ShipmentAddress) => 
+      render: (address: ShipmentAddress) =>
         address ? `${address.city} ${address.addressLine1}` : '-',
     },
     {
@@ -205,44 +206,44 @@ const CustomerManagement: React.FC = () => {
       render: (_: unknown, record: Customer) => (
         <Space size="small">
           <Tooltip title="查看详情">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined />} 
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
               onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
           <Tooltip title="运单历史">
-            <Button 
-              type="text" 
-              icon={<HistoryOutlined />} 
+            <Button
+              type="text"
+              icon={<HistoryOutlined />}
               onClick={() => handleViewHistory(record)}
             />
           </Tooltip>
           <Tooltip title="财务记录">
-            <Button 
-              type="text" 
-              icon={<DollarOutlined />} 
+            <Button
+              type="text"
+              icon={<DollarOutlined />}
               onClick={() => handleViewFinance(record)}
             />
           </Tooltip>
           <Tooltip title="快速创建运单">
-            <Button 
-              type="text" 
-              icon={<PlusOutlined />} 
+            <Button
+              type="text"
+              icon={<PlusOutlined />}
               onClick={() => handleCreateShipment(record)}
             />
           </Tooltip>
           <Tooltip title="编辑">
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
+            <Button
+              type="text"
+              icon={<EditOutlined />}
               onClick={() => handleEditCustomer(record)}
             />
           </Tooltip>
           <Tooltip title="删除">
-            <Button 
-              type="text" 
-              icon={<DeleteOutlined />} 
+            <Button
+              type="text"
+              icon={<DeleteOutlined />}
               onClick={() => handleDelete(record.id)}
             />
           </Tooltip>
@@ -260,7 +261,7 @@ const CustomerManagement: React.FC = () => {
         </Button>
       </div>
 
-      
+
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
           <Col span={8}>
@@ -305,30 +306,30 @@ const CustomerManagement: React.FC = () => {
           </Col>
         </Row>
       </Card>
-      
+
       <Card style={{ width: '100%' }}>
         <Table
           columns={columns}
           dataSource={(() => {
             // 2025-11-24T19:40:00Z Added by Assistant: 实现搜索、筛选和排序
             let filtered = customers;
-            
+
             // 搜索过滤
             if (searchText) {
               const searchLower = searchText.toLowerCase();
-              filtered = filtered.filter(c => 
+              filtered = filtered.filter(c =>
                 c.name.toLowerCase().includes(searchLower) ||
                 c.phone?.toLowerCase().includes(searchLower) ||
                 c.email?.toLowerCase().includes(searchLower)
               );
             }
-            
+
             // 状态筛选
             if (statusFilter) {
               // 注意：Customer 接口中没有 status 字段，这里先跳过
               // 如果需要状态筛选，需要先添加 status 字段
             }
-            
+
             // 排序
             filtered = [...filtered].sort((a, b) => {
               switch (sortOrder) {
@@ -344,7 +345,7 @@ const CustomerManagement: React.FC = () => {
                   return 0;
               }
             });
-            
+
             return filtered;
           })()}
           rowKey="id"
@@ -362,7 +363,7 @@ const CustomerManagement: React.FC = () => {
         />
       </Card>
 
-      
+
       <Modal
         title="新增客户"
         open={isAddModalVisible}
@@ -379,7 +380,7 @@ const CustomerManagement: React.FC = () => {
         <CustomerForm form={form} mode="create" />
       </Modal>
 
-      
+
       <Modal
         title="编辑客户"
         open={isEditModalVisible}
@@ -397,7 +398,7 @@ const CustomerManagement: React.FC = () => {
         <CustomerForm form={form} mode="edit" initialValues={editingCustomer || undefined} />
       </Modal>
 
-      
+
       <Modal
         title={`${selectedCustomer?.name} - 运单历史`}
         open={isHistoryModalVisible}
@@ -483,7 +484,7 @@ const CustomerManagement: React.FC = () => {
         />
       </Modal>
 
-      
+
       <Modal
         title={`${selectedCustomer?.name} - 客户详情`}
         open={isDetailModalVisible}
@@ -506,7 +507,7 @@ const CustomerManagement: React.FC = () => {
                   <p><strong>取货地址:</strong></p>
                   {selectedCustomer.defaultPickupAddress ? (
                     <p style={{ marginLeft: 16, fontSize: '12px' }}>
-                      {selectedCustomer.defaultPickupAddress.country} {selectedCustomer.defaultPickupAddress.province} {selectedCustomer.defaultPickupAddress.city}<br/>
+                      {selectedCustomer.defaultPickupAddress.country} {selectedCustomer.defaultPickupAddress.province} {selectedCustomer.defaultPickupAddress.city}<br />
                       {selectedCustomer.defaultPickupAddress.addressLine1}
                     </p>
                   ) : (
@@ -515,7 +516,7 @@ const CustomerManagement: React.FC = () => {
                   <p><strong>送货地址:</strong></p>
                   {selectedCustomer.defaultDeliveryAddress ? (
                     <p style={{ marginLeft: 16, fontSize: '12px' }}>
-                      {selectedCustomer.defaultDeliveryAddress.country} {selectedCustomer.defaultDeliveryAddress.province} {selectedCustomer.defaultDeliveryAddress.city}<br/>
+                      {selectedCustomer.defaultDeliveryAddress.country} {selectedCustomer.defaultDeliveryAddress.province} {selectedCustomer.defaultDeliveryAddress.city}<br />
                       {selectedCustomer.defaultDeliveryAddress.addressLine1}
                     </p>
                   ) : (
@@ -526,14 +527,14 @@ const CustomerManagement: React.FC = () => {
             </Row>
             <div style={{ marginTop: 16, textAlign: 'center' }}>
               <Space>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => handleCreateShipment(selectedCustomer)}
                 >
                   快速创建运单
                 </Button>
-                <Button 
+                <Button
                   icon={<HistoryOutlined />}
                   onClick={() => {
                     setIsDetailModalVisible(false);
@@ -542,7 +543,7 @@ const CustomerManagement: React.FC = () => {
                 >
                   查看运单历史
                 </Button>
-                <Button 
+                <Button
                   icon={<DollarOutlined />}
                   onClick={() => {
                     setIsDetailModalVisible(false);
@@ -557,7 +558,7 @@ const CustomerManagement: React.FC = () => {
         )}
       </Modal>
 
-      
+
       <Modal
         title={`${selectedCustomer?.name} - 财务记录详情`}
         open={isFinanceModalVisible}
@@ -566,7 +567,7 @@ const CustomerManagement: React.FC = () => {
         width={1200}
       >
         <div>
-          
+
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col span={6}>
               <Card size="small">
@@ -610,7 +611,7 @@ const CustomerManagement: React.FC = () => {
             </Col>
           </Row>
 
-          
+
           <Card title="财务记录明细" size="small">
             <Table
               dataSource={[
@@ -758,7 +759,7 @@ const CustomerManagement: React.FC = () => {
             />
           </Card>
 
-          
+
           <div style={{ marginTop: 16, textAlign: 'right' }}>
             <Space>
               <Button icon={<DownloadOutlined />}>

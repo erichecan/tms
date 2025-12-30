@@ -6,11 +6,11 @@ import { RuleEngineService } from './RuleEngineService';
 import { CurrencyService } from './CurrencyService';
 import { logger } from '../utils/logger';
 import { DEFAULT_CURRENCY } from '@tms/shared-types';
-import { 
-  FinancialRecord, 
-  Statement, 
-  StatementItem, 
-  StatementType, 
+import {
+  FinancialRecord,
+  Statement,
+  StatementItem,
+  StatementType,
   StatementStatus,
   FinancialType,
   FinancialStatus,
@@ -174,10 +174,10 @@ export class FinanceService {
    * @returns 生成的对账单
    */
   async generateCustomerStatement(
-    tenantId: string, 
-    customerId: string, 
-    startDate: Date, 
-    endDate: Date, 
+    tenantId: string,
+    customerId: string,
+    startDate: Date,
+    endDate: Date,
     generatedBy: string
   ): Promise<Statement> {
     try {
@@ -198,10 +198,10 @@ export class FinanceService {
 
       // 构建对账单项目
       const items: StatementItem[] = shipments.data.map(shipment => {
-        const completedDate = shipment.timeline?.completed 
+        const completedDate = shipment.timeline?.completed
           ? (typeof shipment.timeline.completed === 'string' ? new Date(shipment.timeline.completed) : shipment.timeline.completed)
           : (typeof shipment.createdAt === 'string' ? new Date(shipment.createdAt) : shipment.createdAt);
-        
+
         return {
           id: shipment.id,
           description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''}`,
@@ -257,10 +257,10 @@ export class FinanceService {
    * @returns 生成的结算单
    */
   async generateDriverStatement(
-    tenantId: string, 
-    driverId: string, 
-    startDate: Date, 
-    endDate: Date, 
+    tenantId: string,
+    driverId: string,
+    startDate: Date,
+    endDate: Date,
     generatedBy: string
   ): Promise<Statement> {
     try {
@@ -280,49 +280,94 @@ export class FinanceService {
       }
 
       // 计算每单的薪酬
+      // 2025-01-27 16:50:00 Update: Support Trip Fee and Driver Fee priority
+      // 1. Trip Fee (if part of a trip and fee is set)
+      // 2. Driver Fee (explicit override on shipment)
+      // 3. Rule Engine (dynamic calculation)
+
       const items: StatementItem[] = [];
       let totalCommission = 0;
 
-      for (const shipment of shipments.data) {
-        // 使用规则引擎计算薪酬
-        const facts = {
-          shipmentId: shipment.id,
-          driverId: shipment.driverId,
-          finalCost: shipment.actualCost || shipment.estimatedCost,
-          distance: shipment.transportDistance || 0,
-          weight: shipment.cargoInfo.weight,
-          volume: shipment.cargoInfo.volume,
-          deliveryTime: (shipment.timeline?.delivered && shipment.timeline?.pickupInProgress) 
-            ? (new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickupInProgress).getTime())
-            : 0,
-          customerLevel: shipment.customer?.level || 'standard'
-        };
+      // Fetch related trips for efficiency
+      const tripIds = [...new Set(shipments.data.map(s => s.tripId).filter(id => !!id))];
+      const tripsMap = new Map<string, any>();
+      if (tripIds.length > 0) {
+        const tripRes = await this.dbService.query('SELECT * FROM trips WHERE id = ANY($1)', [tripIds]);
+        tripRes.forEach(r => tripsMap.set(r.id, r));
+      }
 
-        const ruleResult = await this.ruleEngineService.executeRules(tenantId, facts);
-        
-        // 计算薪酬
-        let commission = 0;
-        for (const event of ruleResult.events) {
-          if (event.type === 'rule-executed') {
-            const actions = event.params?.actions || [];
-            for (const action of actions) {
-              if (action.type === 'setDriverCommission') {
-                commission = facts.finalCost * (action.params.percentage / 100);
-                break;
-              }
+      const processedTripIds = new Set<string>();
+
+      for (const shipment of shipments.data) {
+        // Check for Trip Fee
+        if (shipment.tripId && tripsMap.has(shipment.tripId)) {
+          const trip = tripsMap.get(shipment.tripId);
+          const tripFee = trip.trip_fee ? parseFloat(trip.trip_fee) : 0;
+
+          if (tripFee > 0) {
+            if (processedTripIds.has(shipment.tripId)) {
+              continue; // Trip fee already added for this trip group
             }
+
+            items.push({
+              id: trip.id,
+              description: `Trip ${trip.trip_no} (Flat Rate)`,
+              amount: tripFee,
+              date: new Date(trip.updated_at || Date.now()),
+              reference: trip.trip_no
+            });
+            totalCommission += tripFee;
+            processedTripIds.add(shipment.tripId);
+            continue; // Skip individual shipment processing
           }
         }
 
-        // 如果没有规则计算薪酬，使用默认比例
-        if (commission === 0) {
-          commission = facts.finalCost * 0.3; // 默认30%
+        // Logic for individual shipment
+        let commission = 0;
+
+        // Check for Driver Fee Override
+        if (shipment.driverFee && shipment.driverFee > 0) {
+          commission = shipment.driverFee;
+        } else {
+          // Fallback to Rule Engine
+          // 使用规则引擎计算薪酬
+          const facts = {
+            shipmentId: shipment.id,
+            driverId: shipment.driverId,
+            finalCost: shipment.actualCost || shipment.estimatedCost,
+            distance: shipment.transportDistance || 0,
+            weight: shipment.cargoInfo.weight,
+            volume: shipment.cargoInfo.volume,
+            deliveryTime: (shipment.timeline?.delivered && shipment.timeline?.pickupInProgress)
+              ? (new Date(shipment.timeline.delivered).getTime() - new Date(shipment.timeline.pickupInProgress).getTime())
+              : 0,
+            customerLevel: shipment.customer?.level || 'standard'
+          };
+
+          const ruleResult = await this.ruleEngineService.executeRules(tenantId, facts);
+
+          for (const event of ruleResult.events) {
+            if (event.type === 'rule-executed') {
+              const actions = event.params?.actions || [];
+              for (const action of actions) {
+                if (action.type === 'setDriverCommission') {
+                  commission = facts.finalCost * (action.params.percentage / 100);
+                  break;
+                }
+              }
+            }
+          }
+
+          // 如果没有规则计算薪酬，使用默认比例
+          if (commission === 0) {
+            commission = facts.finalCost * 0.3; // 默认30%
+          }
         }
 
-        const completedDate = shipment.timeline?.completed 
+        const completedDate = shipment.timeline?.completed
           ? (typeof shipment.timeline.completed === 'string' ? new Date(shipment.timeline.completed) : shipment.timeline.completed)
           : (typeof shipment.createdAt === 'string' ? new Date(shipment.createdAt) : shipment.createdAt);
-        
+
         items.push({
           id: shipment.id,
           description: `运单 ${shipment.shipmentNumber} - ${shipment.cargoInfo.description || ''}`,
@@ -402,9 +447,9 @@ export class FinanceService {
    * @returns 更新后的对账单
    */
   async markStatementAsPaid(
-    tenantId: string, 
-    statementId: string, 
-    paidAmount: number, 
+    tenantId: string,
+    statementId: string,
+    paidAmount: number,
     paymentDate: Date = new Date()
   ): Promise<Statement> {
     try {
@@ -634,10 +679,10 @@ export class FinanceService {
       const grouped: Map<string, any> = new Map();
 
       for (const shipment of shipments) {
-        const completedDate = shipment.timeline?.completed 
-          ? new Date(shipment.timeline.completed) 
+        const completedDate = shipment.timeline?.completed
+          ? new Date(shipment.timeline.completed)
           : new Date(shipment.updated_at);
-        
+
         let periodKey: string;
         if (periodType === 'biweekly') {
           // 双周：每两周一个周期，从每月1号开始
@@ -654,7 +699,7 @@ export class FinanceService {
         }
 
         const key = `${periodKey}_${shipment.driver_id}`;
-        
+
         if (!grouped.has(key)) {
           grouped.set(key, {
             period: periodKey,
@@ -676,7 +721,7 @@ export class FinanceService {
 
         const group = grouped.get(key);
         group.shipmentsCompleted += 1;
-        
+
         // 计算薪酬（使用应付金额或默认30%）
         const amount = shipment.payable_amount || (shipment.actual_cost || shipment.estimated_cost || 0) * 0.3;
         group.totalEarnings += amount;
@@ -695,14 +740,14 @@ export class FinanceService {
             AND t.status IN ('completed', 'ongoing')
         `;
         const trips = await this.dbService.query(tripsQuery, [tenantId, group.driverId]);
-        
+
         for (const trip of trips) {
           const tripShipments = trip.shipments || [];
-          const relevantShipments = shipments.filter((s: any) => 
-            tripShipments.includes(s.shipment_id) && 
+          const relevantShipments = shipments.filter((s: any) =>
+            tripShipments.includes(s.shipment_id) &&
             s.driver_id === group.driverId
           );
-          
+
           if (relevantShipments.length > 0) {
             group.trips.push({
               tripId: trip.id,

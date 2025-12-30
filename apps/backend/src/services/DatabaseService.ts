@@ -1372,18 +1372,19 @@ export class DatabaseService {
     const deliveryWindow = (shipment as any).deliveryWindow ? JSON.stringify((shipment as any).deliveryWindow) : null;
 
     const query = `
-      INSERT INTO shipments (
-        tenant_id, shipment_number, customer_id, driver_id, 
-        pickup_address, delivery_address, cargo_info, 
-        estimated_cost, actual_cost, additional_fees, 
-        applied_rules, status, timeline,
-        shipper_name, shipper_phone, shipper_addr_line1, shipper_city, shipper_province, shipper_postal_code, shipper_country,
-        receiver_name, receiver_phone, receiver_addr_line1, receiver_city, receiver_province, receiver_postal_code, receiver_country,
-        pricing_mode, pickup_at, delivery_at, pickup_window, delivery_window
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
-      RETURNING *
-    `;
+      INSERT INTO shipments(
+      tenant_id, shipment_number, customer_id, driver_id,
+      pickup_address, delivery_address, cargo_info,
+      estimated_cost, actual_cost, additional_fees,
+      applied_rules, status, timeline,
+      shipper_name, shipper_phone, shipper_addr_line1, shipper_city, shipper_province, shipper_postal_code, shipper_country,
+      receiver_name, receiver_phone, receiver_addr_line1, receiver_city, receiver_province, receiver_postal_code, receiver_country,
+      pricing_mode, pickup_at, delivery_at, pickup_window, delivery_window,
+      driver_fee, trip_id
+    )
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
+    RETURNING *
+      `;
 
     const result = await this.query(query, [
       tenantId,
@@ -1398,30 +1399,33 @@ export class DatabaseService {
       JSON.stringify(shipment.additionalFees || []),
       JSON.stringify(shipment.appliedRules || []),
       shipment.status,
-      JSON.stringify(shipment.timeline || {}),
+      shipment.timeline ? JSON.stringify(shipment.timeline) : '{}',
       // 发货人信息
-      shipmentAny.shipperName || shipmentAny.shipper?.name || null,
-      shipmentAny.shipperPhone || shipmentAny.shipper?.phone || null,
-      pickupAddr?.addressLine1 || pickupAddr?.street || null,
-      pickupAddr?.city || null,
-      pickupAddr?.province || pickupAddr?.state || null,
-      pickupAddr?.postalCode || null,
-      pickupAddr?.country || null,
+      shipment.shipperName || shipment.shipper?.name || null,
+      shipment.shipperPhone || shipment.shipper?.phone || null,
+      shipment.pickupAddress?.street || null,
+      shipment.pickupAddress?.city || null,
+      shipment.pickupAddress?.state || null,
+      shipment.pickupAddress?.postalCode || null,
+      shipment.pickupAddress?.country || null,
       // 收货人信息
-      shipmentAny.receiverName || shipmentAny.receiver?.name || null,
-      shipmentAny.receiverPhone || shipmentAny.receiver?.phone || null,
-      deliveryAddr?.addressLine1 || deliveryAddr?.street || null,
-      deliveryAddr?.city || null,
-      deliveryAddr?.province || deliveryAddr?.state || null,
-      deliveryAddr?.postalCode || null,
-      deliveryAddr?.country || null,
+      shipment.receiverName || shipment.receiver?.name || null,
+      shipment.receiverPhone || shipment.receiver?.phone || null,
+      shipment.deliveryAddress?.street || null,
+      shipment.deliveryAddress?.city || null,
+      shipment.deliveryAddress?.state || null,
+      shipment.deliveryAddress?.postalCode || null,
+      shipment.deliveryAddress?.country || null,
       // 2025-12-10T19:00:00Z Added by Assistant: 计费模式和时间段
-      pricingMode,
-      pickupAt,
-      deliveryAt,
-      pickupWindow,
-      deliveryWindow,
-    ], client);
+      shipment.pricingMode || 'distance-based',
+      shipment.pickupAt || null,
+      shipment.deliveryAt || null,
+      shipment.pickupWindow ? JSON.stringify(shipment.pickupWindow) : null,
+      shipment.deliveryWindow ? JSON.stringify(shipment.deliveryWindow) : null,
+      // 2025-12-25 Added: Driver Fee and Trip ID
+      shipment.driverFee || null,
+      shipment.tripId || null
+    ]);
 
     return this.mapShipmentFromDb(result[0]);
   }
@@ -1465,55 +1469,55 @@ export class DatabaseService {
     let paramIndex = 2;
 
     if (search) {
-      whereClause += ` AND (shipment_number ILIKE $${paramIndex} OR cargo_info->>'description' ILIKE $${paramIndex})`;
-      queryParams.push(`%${search || ''}%`);
+      whereClause += ` AND(shipment_number ILIKE $${paramIndex} OR cargo_info ->> 'description' ILIKE $${paramIndex})`;
+      queryParams.push(`% ${search || ''}% `);
       paramIndex++;
     }
 
     if (filters?.status) {
-      whereClause += ` AND status = $${paramIndex}`;
+      whereClause += ` AND status = $${paramIndex} `;
       queryParams.push(filters.status);
       paramIndex++;
     }
 
     if (filters?.shipmentNumber) {
-      whereClause += ` AND shipment_number ILIKE $${paramIndex}`;
-      queryParams.push(`%${filters.shipmentNumber}%`);
+      whereClause += ` AND shipment_number ILIKE $${paramIndex} `;
+      queryParams.push(`% ${filters.shipmentNumber}% `);
       paramIndex++;
     }
 
     if (filters?.customerId) {
-      whereClause += ` AND customer_id = $${paramIndex}`;
+      whereClause += ` AND customer_id = $${paramIndex} `;
       queryParams.push(filters.customerId);
       paramIndex++;
     }
 
     if (filters?.customerPhone) {
-      whereClause += ` AND shipper_phone = $${paramIndex}`;
+      whereClause += ` AND shipper_phone = $${paramIndex} `;
       queryParams.push(filters.customerPhone);
       paramIndex++;
     }
 
     if (filters?.driverId) {
-      whereClause += ` AND driver_id = $${paramIndex}`;
+      whereClause += ` AND driver_id = $${paramIndex} `;
       queryParams.push(filters.driverId);
       paramIndex++;
     }
 
     if (filters?.startDate) {
-      whereClause += ` AND created_at >= $${paramIndex}`;
+      whereClause += ` AND created_at >= $${paramIndex} `;
       queryParams.push(filters.startDate);
       paramIndex++;
     }
 
     if (filters?.endDate) {
-      whereClause += ` AND created_at <= $${paramIndex}`;
+      whereClause += ` AND created_at <= $${paramIndex} `;
       queryParams.push(filters.endDate);
       paramIndex++;
     }
 
     // 获取总数
-    const countQuery = `SELECT COUNT(*) FROM shipments ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM shipments ${whereClause} `;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
 
@@ -1524,7 +1528,7 @@ export class DatabaseService {
     const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     const dataQuery = `
-      SELECT * FROM shipments 
+    SELECT * FROM shipments 
       ${whereClause}
       ORDER BY ${safeSort} ${safeOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -1571,7 +1575,9 @@ export class DatabaseService {
       estimatedCost: 'estimated_cost',
       actualCost: 'actual_cost',
       additionalFees: 'additional_fees',
-      appliedRules: 'applied_rules'
+      appliedRules: 'applied_rules',
+      driverFee: 'driver_fee',
+      tripId: 'trip_id'
     };
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -1579,10 +1585,10 @@ export class DatabaseService {
         const dbFieldName = fieldMapping[key] || key;
 
         if (['pickupAddress', 'deliveryAddress', 'cargoInfo', 'additionalFees', 'appliedRules', 'timeline'].includes(key)) {
-          setClause.push(`${dbFieldName} = $${paramIndex}`);
+          setClause.push(`${dbFieldName} = $${paramIndex} `);
           queryParams.push(JSON.stringify(value));
         } else {
-          setClause.push(`${dbFieldName} = $${paramIndex}`);
+          setClause.push(`${dbFieldName} = $${paramIndex} `);
           queryParams.push(value);
         }
         paramIndex++;
@@ -1595,8 +1601,8 @@ export class DatabaseService {
       UPDATE shipments 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     queryParams.push(tenantId, shipmentId);
     const result = await this.query(query, queryParams);
@@ -1618,10 +1624,10 @@ export class DatabaseService {
    */
   async createFinancialRecord(tenantId: string, record: Omit<FinancialRecord, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<FinancialRecord> {
     const query = `
-      INSERT INTO financial_records (tenant_id, type, reference_id, amount, currency, status, due_date, paid_at, description)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
+      INSERT INTO financial_records(tenant_id, type, reference_id, amount, currency, status, due_date, paid_at, description)
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
+      `;
 
     const result = await this.query(query, [
       tenantId,
@@ -1651,32 +1657,32 @@ export class DatabaseService {
     let paramIndex = 2;
 
     if (startDate) {
-      whereClause += ` AND created_at >= $${paramIndex}`;
+      whereClause += ` AND created_at >= $${paramIndex} `;
       queryParams.push(startDate);
       paramIndex++;
     }
 
     if (endDate) {
-      whereClause += ` AND created_at <= $${paramIndex}`;
+      whereClause += ` AND created_at <= $${paramIndex} `;
       queryParams.push(endDate);
       paramIndex++;
     }
 
     const query = `
-      SELECT 
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE status = 'draft') as draft,
-        COUNT(*) FILTER (WHERE status = 'pending_confirmation') as pending_confirmation,
-        COUNT(*) FILTER (WHERE status = 'confirmed') as confirmed,
-        COUNT(*) FILTER (WHERE status = 'scheduled') as scheduled,
-        COUNT(*) FILTER (WHERE status = 'pickup_in_progress') as pickup_in_progress,
-        COUNT(*) FILTER (WHERE status = 'in_transit') as in_transit,
-        COUNT(*) FILTER (WHERE status = 'delivered') as delivered,
-        COUNT(*) FILTER (WHERE status = 'pod_pending_review') as pod_pending_review,
-        COUNT(*) FILTER (WHERE status = 'completed') as completed,
-        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
-        SUM(actual_cost) as total_revenue,
-        AVG(EXTRACT(EPOCH FROM (timeline->>'completed')::timestamp - (coalesce(timeline->>'draft', timeline->>'created'))::timestamp)/3600) as avg_delivery_time_hours
+    SELECT
+    COUNT(*) as total,
+      COUNT(*) FILTER(WHERE status = 'draft') as draft,
+        COUNT(*) FILTER(WHERE status = 'pending_confirmation') as pending_confirmation,
+          COUNT(*) FILTER(WHERE status = 'confirmed') as confirmed,
+            COUNT(*) FILTER(WHERE status = 'scheduled') as scheduled,
+              COUNT(*) FILTER(WHERE status = 'pickup_in_progress') as pickup_in_progress,
+                COUNT(*) FILTER(WHERE status = 'in_transit') as in_transit,
+                  COUNT(*) FILTER(WHERE status = 'delivered') as delivered,
+                    COUNT(*) FILTER(WHERE status = 'pod_pending_review') as pod_pending_review,
+                      COUNT(*) FILTER(WHERE status = 'completed') as completed,
+                        COUNT(*) FILTER(WHERE status = 'cancelled') as cancelled,
+                          SUM(actual_cost) as total_revenue,
+                          AVG(EXTRACT(EPOCH FROM(timeline ->> 'completed'):: timestamp - (coalesce(timeline ->> 'draft', timeline ->> 'created')):: timestamp) / 3600) as avg_delivery_time_hours
       FROM shipments 
       ${whereClause}
     `;
@@ -1695,13 +1701,13 @@ export class DatabaseService {
    */
   async createStatement(tenantId: string, statement: Omit<Statement, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>): Promise<Statement> {
     const query = `
-      INSERT INTO statements (
-        tenant_id, type, reference_id, period_start, period_end, 
-        items, total_amount, status, generated_at, generated_by
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `;
+      INSERT INTO statements(
+      tenant_id, type, reference_id, period_start, period_end,
+      items, total_amount, status, generated_at, generated_by
+    )
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    RETURNING *
+      `;
 
     const result = await this.query(query, [
       tenantId,
@@ -1747,37 +1753,37 @@ export class DatabaseService {
     let paramIndex = 2;
 
     if (search) {
-      whereClause += ` AND (reference_id ILIKE $${paramIndex} OR generated_by ILIKE $${paramIndex})`;
-      queryParams.push(`%${search || ''}%`);
+      whereClause += ` AND(reference_id ILIKE $${paramIndex} OR generated_by ILIKE $${paramIndex})`;
+      queryParams.push(`% ${search || ''}% `);
       paramIndex++;
     }
 
     if (filters?.type) {
-      whereClause += ` AND type = $${paramIndex}`;
+      whereClause += ` AND type = $${paramIndex} `;
       queryParams.push(filters.type);
       paramIndex++;
     }
 
     if (filters?.status) {
-      whereClause += ` AND status = $${paramIndex}`;
+      whereClause += ` AND status = $${paramIndex} `;
       queryParams.push(filters.status);
       paramIndex++;
     }
 
     if (filters?.referenceId) {
-      whereClause += ` AND reference_id = $${paramIndex}`;
+      whereClause += ` AND reference_id = $${paramIndex} `;
       queryParams.push(filters.referenceId);
       paramIndex++;
     }
 
     // 获取总数
-    const countQuery = `SELECT COUNT(*) FROM statements ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM statements ${whereClause} `;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
 
     // 获取数据
     const dataQuery = `
-      SELECT * FROM statements 
+    SELECT * FROM statements 
       ${whereClause}
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -1815,15 +1821,15 @@ export class DatabaseService {
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
         if (key === 'items') {
-          setClause.push(`${key} = $${paramIndex}`);
+          setClause.push(`${key} = $${paramIndex} `);
           queryParams.push(JSON.stringify(value));
         } else if (key === 'period') {
           const periodValue = value as any;
-          setClause.push(`period_start = $${paramIndex}`, `period_end = $${paramIndex + 1}`);
+          setClause.push(`period_start = $${paramIndex} `, `period_end = $${paramIndex + 1} `);
           queryParams.push(periodValue.start, periodValue.end);
           paramIndex++;
         } else {
-          setClause.push(`${key} = $${paramIndex}`);
+          setClause.push(`${key} = $${paramIndex} `);
           queryParams.push(value);
         }
         paramIndex++;
@@ -1836,8 +1842,8 @@ export class DatabaseService {
       UPDATE statements 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     queryParams.push(tenantId, statementId);
     const result = await this.query(query, queryParams);
@@ -1866,49 +1872,49 @@ export class DatabaseService {
     let paramIndex = 2;
 
     if (search) {
-      whereClause += ` AND (description ILIKE $${paramIndex} OR reference_id ILIKE $${paramIndex})`;
-      queryParams.push(`%${search || ''}%`);
+      whereClause += ` AND(description ILIKE $${paramIndex} OR reference_id ILIKE $${paramIndex})`;
+      queryParams.push(`% ${search || ''}% `);
       paramIndex++;
     }
 
     if (filters?.type) {
-      whereClause += ` AND type = $${paramIndex}`;
+      whereClause += ` AND type = $${paramIndex} `;
       queryParams.push(filters.type);
       paramIndex++;
     }
 
     if (filters?.status) {
-      whereClause += ` AND status = $${paramIndex}`;
+      whereClause += ` AND status = $${paramIndex} `;
       queryParams.push(filters.status);
       paramIndex++;
     }
 
     if (filters?.referenceId) {
-      whereClause += ` AND reference_id = $${paramIndex}`;
+      whereClause += ` AND reference_id = $${paramIndex} `;
       queryParams.push(filters.referenceId);
       paramIndex++;
     }
 
     if (filters?.startDate) {
-      whereClause += ` AND created_at >= $${paramIndex}`;
+      whereClause += ` AND created_at >= $${paramIndex} `;
       queryParams.push(filters.startDate);
       paramIndex++;
     }
 
     if (filters?.endDate) {
-      whereClause += ` AND created_at <= $${paramIndex}`;
+      whereClause += ` AND created_at <= $${paramIndex} `;
       queryParams.push(filters.endDate);
       paramIndex++;
     }
 
     // 获取总数
-    const countQuery = `SELECT COUNT(*) FROM financial_records ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM financial_records ${whereClause} `;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
 
     // 获取数据
     const dataQuery = `
-      SELECT * FROM financial_records 
+    SELECT * FROM financial_records 
       ${whereClause}
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -1945,7 +1951,7 @@ export class DatabaseService {
 
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined) {
-        setClause.push(`${key} = $${paramIndex}`);
+        setClause.push(`${key} = $${paramIndex} `);
         queryParams.push(value);
         paramIndex++;
       }
@@ -1957,8 +1963,8 @@ export class DatabaseService {
       UPDATE financial_records 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     queryParams.push(tenantId, recordId);
     const result = await this.query(query, queryParams);
@@ -1980,28 +1986,42 @@ export class DatabaseService {
    */
   async createTrip(tenantId: string, trip: any): Promise<any> {
     const query = `
-      INSERT INTO trips (
+      INSERT INTO trips(
         tenant_id, trip_no, status, driver_id, vehicle_id,
-        legs, shipments, start_time_planned, end_time_planned, route_path
+        legs, shipments, start_time_planned, end_time_planned, route_path,
+        trip_fee
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `;
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    RETURNING *
+      `;
 
     const result = await this.query(query, [
       tenantId,
       trip.tripNo,
-      trip.status || 'planning',
+      trip.status,
       trip.driverId,
       trip.vehicleId,
       JSON.stringify(trip.legs || []),
-      JSON.stringify(trip.shipments || []),
+      JSON.stringify(trip.shipments || []), // This stores IDs in JSON
       trip.startTimePlanned,
       trip.endTimePlanned,
-      trip.routePath ? JSON.stringify(trip.routePath) : null
+      JSON.stringify(trip.routePath || []),
+      trip.tripFee // Added tripFee
     ]);
 
-    return this.mapTripFromDb(result[0]);
+    const newTrip = this.mapTripFromDb(result[0]);
+
+    // 2025-12-25: Link shipments to this trip
+    if (trip.shipments && Array.isArray(trip.shipments) && trip.shipments.length > 0) {
+      // IDs are strings
+      await this.query(`
+            UPDATE shipments 
+            SET trip_id = $1 
+            WHERE tenant_id = $2 AND id = ANY($3::uuid[])
+        `, [newTrip.id, tenantId, trip.shipments]);
+    }
+
+    return newTrip;
   }
 
   /**
@@ -2033,8 +2053,8 @@ export class DatabaseService {
     let paramIndex = 1;
 
     if (search) {
-      whereClause += ` WHERE (status ILIKE $${paramIndex})`;
-      queryParams.push(`%${search || ''}%`);
+      whereClause += ` WHERE(status ILIKE $${paramIndex})`;
+      queryParams.push(`% ${search || ''}% `);
       paramIndex++;
     }
 
@@ -2042,38 +2062,38 @@ export class DatabaseService {
     if (filters?.status) {
       if (Array.isArray(filters.status) && filters.status.length > 0) {
         // 状态数组：使用 IN 查询
-        const statusPlaceholders = filters.status.map((_: any, idx: number) => `$${paramIndex + idx}`).join(', ');
-        whereClause += whereClause ? ` AND status IN (${statusPlaceholders})` : ` WHERE status IN (${statusPlaceholders})`;
+        const statusPlaceholders = filters.status.map((_: any, idx: number) => `$${paramIndex + idx} `).join(', ');
+        whereClause += whereClause ? ` AND status IN(${statusPlaceholders})` : ` WHERE status IN(${statusPlaceholders})`;
         queryParams.push(...filters.status);
         paramIndex += filters.status.length;
       } else if (typeof filters.status === 'string') {
         // 单个状态值
-        whereClause += whereClause ? ` AND status = $${paramIndex}` : ` WHERE status = $${paramIndex}`;
+        whereClause += whereClause ? ` AND status = $${paramIndex} ` : ` WHERE status = $${paramIndex} `;
         queryParams.push(filters.status);
         paramIndex++;
       }
     }
 
     if (filters?.driverId) {
-      whereClause += whereClause ? ` AND driver_id = $${paramIndex}` : ` WHERE driver_id = $${paramIndex}`;
+      whereClause += whereClause ? ` AND driver_id = $${paramIndex} ` : ` WHERE driver_id = $${paramIndex} `;
       queryParams.push(filters.driverId);
       paramIndex++;
     }
 
     if (filters?.vehicleId) {
-      whereClause += whereClause ? ` AND vehicle_id = $${paramIndex}` : ` WHERE vehicle_id = $${paramIndex}`;
+      whereClause += whereClause ? ` AND vehicle_id = $${paramIndex} ` : ` WHERE vehicle_id = $${paramIndex} `;
       queryParams.push(filters.vehicleId);
       paramIndex++;
     }
 
     // 获取总数
-    const countQuery = `SELECT COUNT(*) FROM trips ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM trips ${whereClause} `;
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult[0].count);
 
     // 获取数据
     const dataQuery = `
-      SELECT * FROM trips 
+    SELECT * FROM trips 
       ${whereClause}
       ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -2111,11 +2131,11 @@ export class DatabaseService {
     Object.keys(updates).forEach(key => {
       if (updates[key] !== undefined) {
         if (['legs', 'shipments', 'routePath'].includes(key)) {
-          setClause.push(`${key.replace(/([A-Z])/g, '_$1').toLowerCase()} = $${paramIndex}`);
+          setClause.push(`${key.replace(/([A-Z])/g, '_$1').toLowerCase()} = $${paramIndex} `);
           values.push(JSON.stringify(updates[key]));
         } else {
           const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-          setClause.push(`${dbKey} = $${paramIndex}`);
+          setClause.push(`${dbKey} = $${paramIndex} `);
           values.push(updates[key]);
         }
         paramIndex++;
@@ -2133,8 +2153,8 @@ export class DatabaseService {
       UPDATE trips 
       SET ${setClause.join(', ')}
       WHERE tenant_id = $${paramIndex} AND id = $${paramIndex + 1}
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     const result = await this.query(query, values);
     return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
@@ -2183,7 +2203,7 @@ export class DatabaseService {
         UPDATE trips 
         SET shipments = $3, updated_at = CURRENT_TIMESTAMP
         WHERE tenant_id = $1 AND id = $2
-        RETURNING *
+    RETURNING *
       `;
 
       const updateResult = await client.query(updateQuery, [
@@ -2214,8 +2234,8 @@ export class DatabaseService {
       UPDATE trips 
       SET status = $3, updated_at = CURRENT_TIMESTAMP
       WHERE tenant_id = $1 AND id = $2
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     const result = await this.query(query, [tenantId, tripId, status]);
     return result.length > 0 ? this.mapTripFromDb(result[0]) : null;
@@ -2265,6 +2285,7 @@ export class DatabaseService {
       id: row.id,
       tenantId: row.tenant_id, // 2025-10-31 修复：trips表有tenant_id字段
       tripNo: row.trip_no, // 2025-10-31 修复：trips表有trip_no字段
+      tripFee: row.trip_fee ? parseFloat(row.trip_fee) : undefined,
       status: row.status,
       driverId: row.driver_id,
       vehicleId: row.vehicle_id,
@@ -2307,6 +2328,8 @@ export class DatabaseService {
       deliveryAt: row.delivery_at || null,
       pickupWindow: row.pickup_window || null,
       deliveryWindow: row.delivery_window || null,
+      driverFee: row.driver_fee ? parseFloat(row.driver_fee) : undefined,
+      tripId: row.trip_id || undefined,
       // 发货人信息（优先使用独立字段，如果没有则从JSON字段中提取）
       shipperName: row.shipper_name || (row.pickup_address as any)?.name || null,
       shipperPhone: row.shipper_phone || (row.pickup_address as any)?.phone || null,
@@ -2380,14 +2403,14 @@ export class DatabaseService {
    */
   async getVehicles(limit: number = 50, offset: number = 0): Promise<any[]> {
     const query = `
-      SELECT 
-        id,
-        plate_number as "plateNumber",
-        type as "vehicleType", 
-        capacity_kg as "capacity",
-        status,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
+    SELECT
+    id,
+      plate_number as "plateNumber",
+      type as "vehicleType",
+      capacity_kg as "capacity",
+      status,
+      created_at as "createdAt",
+      updated_at as "updatedAt"
       FROM vehicles 
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
@@ -2415,20 +2438,20 @@ export class DatabaseService {
     let paramIndex = 2;
 
     if (status) {
-      whereClause += ` AND status = $${paramIndex}`;
+      whereClause += ` AND status = $${paramIndex} `;
       queryParams.push(status);
       paramIndex++;
     }
 
     const query = `
-      SELECT 
-        id,
-        plate_number as "plateNumber",
-        type as "vehicleType", 
-        capacity_kg as "capacity",
-        status,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
+    SELECT
+    id,
+      plate_number as "plateNumber",
+      type as "vehicleType",
+      capacity_kg as "capacity",
+      status,
+      created_at as "createdAt",
+      updated_at as "updatedAt"
       FROM vehicles 
       ${whereClause}
       ORDER BY created_at DESC 
@@ -2476,16 +2499,16 @@ export class DatabaseService {
     }
 
     const query = `
-      INSERT INTO vehicles (tenant_id, plate_number, type, capacity_kg, status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      RETURNING 
-        id,
-        plate_number as "plateNumber",
-        type as "vehicleType",
-        capacity_kg as "capacity", 
-        status,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
+      INSERT INTO vehicles(tenant_id, plate_number, type, capacity_kg, status, created_at, updated_at)
+    VALUES($1, $2, $3, $4, $5, NOW(), NOW())
+    RETURNING
+    id,
+      plate_number as "plateNumber",
+      type as "vehicleType",
+      capacity_kg as "capacity",
+      status,
+      created_at as "createdAt",
+      updated_at as "updatedAt"
     `;
 
     let result: any[];
@@ -2541,22 +2564,22 @@ export class DatabaseService {
     }
 
     const query = `
-      UPDATE vehicles 
-      SET 
-        plate_number = $1,
-        type = $2,
-        capacity_kg = $3,
-        status = $4,
-        updated_at = NOW()
+      UPDATE vehicles
+    SET
+    plate_number = $1,
+      type = $2,
+      capacity_kg = $3,
+      status = $4,
+      updated_at = NOW()
       WHERE id = $5
-      RETURNING 
-        id,
-        plate_number as "plateNumber",
-        type as "vehicleType",
-        capacity_kg as "capacity", 
-        status,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
+    RETURNING
+    id,
+      plate_number as "plateNumber",
+      type as "vehicleType",
+      capacity_kg as "capacity",
+      status,
+      created_at as "createdAt",
+      updated_at as "updatedAt"
     `;
 
     const result = await this.query(query, [
@@ -2669,7 +2692,7 @@ export class DatabaseService {
     let paramIndex = 1;
 
     for (const [col, val] of Object.entries(dbUpdates)) {
-      fields.push(`${col} = $${paramIndex++}`);
+      fields.push(`${col} = $${paramIndex++} `);
       values.push(val);
     }
 
@@ -2684,8 +2707,8 @@ export class DatabaseService {
       UPDATE customers 
       SET ${fields.join(', ')} 
       WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     try {
       const result = await this.query(query, values);
@@ -2718,10 +2741,10 @@ export class DatabaseService {
    */
   async getCurrencies(tenantId: string): Promise<any[]> {
     const query = `
-      SELECT * FROM currencies 
+    SELECT * FROM currencies 
       WHERE tenant_id = $1 
       ORDER BY is_default DESC, created_at ASC
-    `;
+      `;
     const result = await this.query(query, [tenantId]);
     return result;
   }
@@ -2753,12 +2776,12 @@ export class DatabaseService {
     isActive: boolean;
   }): Promise<any> {
     const query = `
-      INSERT INTO currencies (id, tenant_id, code, name, symbol, exchange_rate, is_default, is_active, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-      RETURNING *
-    `;
+      INSERT INTO currencies(id, tenant_id, code, name, symbol, exchange_rate, is_default, is_active, created_at, updated_at)
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+    RETURNING *
+      `;
 
-    const id = `currency_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id = `currency_${Date.now()}_${Math.random().toString(36).substr(2, 9)} `;
 
     const result = await this.query(query, [
       id,
@@ -2788,7 +2811,7 @@ export class DatabaseService {
 
     Object.keys(updates).forEach(key => {
       if (updates[key] !== undefined) {
-        fields.push(`${key} = $${paramIndex}`);
+        fields.push(`${key} = $${paramIndex} `);
         values.push(updates[key]);
         paramIndex++;
       }
@@ -2805,8 +2828,8 @@ export class DatabaseService {
       UPDATE currencies 
       SET ${fields.join(', ')} 
       WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
-      RETURNING *
-    `;
+    RETURNING *
+      `;
 
     const result = await this.query(query, values);
     return result.length > 0 ? result[0] : null;

@@ -146,6 +146,9 @@ export interface Shipment {
     insuranceAmount?: number;
   };
   estimatedCost?: number;                // 预估费用
+  driverFee?: number;                    // 司机费用
+  tripId?: string;                       // 行程ID
+  vehicleId?: string;
   pricingComponents: unknown[];              // 价格组件(预留)
   pricingRuleTrace: unknown[];               // 规则追踪(预留)
   finalCost?: number;                    // 最终费用
@@ -282,6 +285,7 @@ export interface Trip {
   id: string;
   tenantId: string;
   tripNo: string;                    // 行程号
+  tripFee?: number;                  // 行程费用
   status: TripStatus;
   driverId: string;                  // 司机ID
   vehicleId: string;                 // 车辆ID

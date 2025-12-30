@@ -38,7 +38,7 @@ const Home: React.FC = () => {
               type="primary"
               size="large"
               icon={<PlusOutlined />}
-              onClick={() => navigate('/create-shipment')}
+              onClick={() => navigate('/admin/waybill/create')}
               block
             >
               开始创建运单

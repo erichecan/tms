@@ -283,6 +283,7 @@ app.use('/api/shipments', shipmentCompletionRoutes); // 运单完成和财务生
 app.use('/api/maps', mapsRoutes); // 注册Maps API路由 // 2025-10-03 10:00:00
 app.use('/api/location', locationRoutes); // 注册位置跟踪路由 // 2025-11-29T21:05:00
 
+
 // 404处理
 app.use('*', (req, res) => {
   res.status(404).json({

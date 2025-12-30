@@ -274,7 +274,10 @@ export class ShipmentController {
           timeline: {} as any
         };
 
+
         if (body.driverId) shipmentData.driverId = body.driverId;
+        if (body.driverFee) shipmentData.driverFee = body.driverFee;
+        if (body.tripId) shipmentData.tripId = body.tripId;
 
         // 计费分析
         try {

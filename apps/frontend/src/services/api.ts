@@ -106,6 +106,8 @@ api.interceptors.response.use(
       const isProfileEndpoint = originalRequest.url?.includes('/auth/profile');
 
       // 2025-11-29T19:30:00 开发环境下的特殊处理
+      // 2025-11-29T19:30:00 开发环境下的特殊处理 - 2025-12-25 Removed to enable refresh in DEV
+      /*
       if (import.meta.env.DEV) {
         // 对于 /auth/profile 的 401，这是 token 验证失败，需要特殊处理
         if (isProfileEndpoint) {
@@ -119,11 +121,8 @@ api.interceptors.response.use(
           console.warn('[DEV MODE] 401 error on auth endpoint:', originalRequest.url);
           return Promise.reject(error);
         }
-
-        // 对于其他 API 的 401，在开发环境下暂时不处理（可能是后端配置问题）
-        console.warn('[DEV MODE] 401 error, token may be invalid:', originalRequest.url);
-        return Promise.reject(error);
       }
+      */
 
       // 生产环境：尝试刷新 token - 2025-10-10 18:15:00
       if (isRefreshing) {
@@ -201,7 +200,7 @@ export const shipmentsApi = {
   updateShipmentStatus: (shipmentId: string, status: string) => api.post(`/shipments/${shipmentId}/status`, { targetStatus: status }), // 2025-10-27 修复：改用POST方法并使用targetStatus参数
   // 运单状态流转API
   // 2025-10-29 10:25:30 扩展：支持同时指派车辆
-  assignDriver: (shipmentId: string, driverId: string, vehicleId?: string, notes?: string) => 
+  assignDriver: (shipmentId: string, driverId: string, vehicleId?: string, notes?: string) =>
     api.post(`/shipments/${shipmentId}/assign`, { driverId, vehicleId, notes }),
   // 2025-11-11 10:15:05 增加上传POD接口，支持表单数据上传
   uploadShipmentPOD: (shipmentId: string, file: File, payload?: { note?: string }) => {
@@ -219,20 +218,20 @@ export const shipmentsApi = {
   // 2025-11-11 10:15:05 新增获取运单POD列表接口
   getShipmentPODs: (shipmentId: string) => api.get(`/shipments/${shipmentId}/pods`),
   confirmShipment: (shipmentId: string) => api.post(`/shipments/${shipmentId}/confirm`),
-  startPickup: (shipmentId: string, driverId?: string) => 
+  startPickup: (shipmentId: string, driverId?: string) =>
     api.post(`/shipments/${shipmentId}/pickup`, { driverId }),
-  startTransit: (shipmentId: string, driverId?: string) => 
+  startTransit: (shipmentId: string, driverId?: string) =>
     api.post(`/shipments/${shipmentId}/transit`, { driverId }),
-  completeDelivery: (shipmentId: string, driverId?: string, deliveryNotes?: string) => 
+  completeDelivery: (shipmentId: string, driverId?: string, deliveryNotes?: string) =>
     api.post(`/shipments/${shipmentId}/delivery`, { driverId, deliveryNotes }),
-  completeShipment: (shipmentId: string, finalCost?: number) => 
+  completeShipment: (shipmentId: string, finalCost?: number) =>
     api.post(`/shipments/${shipmentId}/complete`, { finalCost }),
-  cancelShipment: (shipmentId: string, reason: string) => 
+  cancelShipment: (shipmentId: string, reason: string) =>
     api.post(`/shipments/${shipmentId}/cancel`, { reason }),
   // 获取运单统计
   getShipmentStats: (params?: unknown) => api.get('/shipments/stats', { params }),
   // 获取司机运单列表
-  getDriverShipments: (driverId: string, params?: unknown) => 
+  getDriverShipments: (driverId: string, params?: unknown) =>
     api.get(`/shipments/driver/${driverId}`, { params }),
 };
 
@@ -247,15 +246,15 @@ export const pricingApi = {
 export const financeApi = {
   getFinancialRecords: (params?: unknown) => api.get('/finance/records', { params }),
   // 2025-10、02 18:45:00 - 修复结算单生成API参数格式
-  generateCustomerStatement: (customerId: string, period: { start: string, end: string }) => 
+  generateCustomerStatement: (customerId: string, period: { start: string, end: string }) =>
     api.post('/finance/statements/customer', { customerId, startDate: period.start, endDate: period.end }),
-  generateDriverPayrollStatement: (driverId: string, period: { start: string, end: string }) => 
+  generateDriverPayrollStatement: (driverId: string, period: { start: string, end: string }) =>
     api.post('/finance/statements/driver', { driverId, startDate: period.start, endDate: period.end }),
   getStatements: (params?: unknown) => api.get('/finance/statements', { params }),
   getStatementDetails: (statementId: string) => api.get(`/finance/statements/${statementId}`),
   downloadStatement: (statementId: string) => api.get(`/finance/statements/${statementId}/download`),
   // 2025-11-29T11:25:04Z 标记对账单为已支付
-  markAsPaid: (statementId: string, paidAmount: number, paymentDate?: string) => 
+  markAsPaid: (statementId: string, paidAmount: number, paymentDate?: string) =>
     api.put(`/finance/statements/${statementId}/pay`, { paidAmount, paymentDate }),
   // 2025-11-30T10:50:00Z Added by Assistant: 获取司机薪酬汇总
   getDriverPayrollSummary: (params?: { periodType?: 'biweekly' | 'monthly', startDate?: string, endDate?: string, driverId?: string }) =>
@@ -269,9 +268,9 @@ export const tripsApi = {
   createTrip: (data: unknown) => api.post('/trips', data),
   updateTrip: (id: string, data: unknown) => api.put(`/trips/${id}`, data),
   deleteTrip: (id: string) => api.delete(`/trips/${id}`),
-  mountShipmentsToTrip: (id: string, shipmentIds: string[]) => 
+  mountShipmentsToTrip: (id: string, shipmentIds: string[]) =>
     api.post(`/trips/${id}/shipments`, { shipmentIds }),
-  updateTripStatus: (id: string, status: string) => 
+  updateTripStatus: (id: string, status: string) =>
     api.patch(`/trips/${id}/status`, { status }),
 };
 
@@ -628,7 +627,7 @@ export const healthApi = {
 export const locationApi = {
   // 获取实时位置列表
   getRealTimeLocations: () => api.get('/location/realtime'),
-  
+
   // 更新车辆位置
   updateVehicleLocation: (vehicleId: string, location: {
     latitude: number;
@@ -637,7 +636,7 @@ export const locationApi = {
     direction?: number;
     accuracy?: number;
   }) => api.post(`/location/vehicles/${vehicleId}`, location),
-  
+
   // 更新司机位置
   updateDriverLocation: (driverId: string, location: {
     latitude: number;
@@ -646,14 +645,14 @@ export const locationApi = {
     direction?: number;
     accuracy?: number;
   }) => api.post(`/location/drivers/${driverId}`, location),
-  
+
   // 获取位置历史轨迹
   getLocationHistory: (entityType: string, entityId: string, params?: {
     startTime?: string;
     endTime?: string;
     limit?: number;
   }) => api.get(`/location/history/${entityType}/${entityId}`, { params }),
-  
+
   // 批量更新位置（用于模拟器）
   bulkUpdateLocations: (updates: Array<{
     entityType: string;
@@ -665,5 +664,7 @@ export const locationApi = {
     accuracy?: number;
   }>) => api.post('/location/bulk-update', { updates })
 };
+
+
 
 export default api;

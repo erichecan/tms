@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Space, Typography, message, Tag, Tooltip, Card, Table, Modal, Divider, Badge, Radio, Form, Input, InputNumber, Select, Row, Col, Tabs, Spin } from 'antd'; // 2025-10-02 02:55:10 增加 Badge 用于费用标签 // 2025-10-02 15:12:30 引入 Radio 用于选择行程 // 2025-10-10 17:45:00 添加Form组件用于编辑 // 2025-10-10 11:15:00 添加Tabs组件用于BOL切换 // 2025-11-11 10:15:05 引入Spin用于详情加载态
-import { 
-  EyeOutlined, 
-  EditOutlined, 
+import {
+  EyeOutlined,
+  EditOutlined,
   DeleteOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-  PlusOutlined
-  // 2025-11-30 01:00:00 移除：UserAddOutlined 不再需要（已移除人形图标按钮）
+  PlusOutlined,
+  UserAddOutlined // Re-added for Dispatch Results
 } from '@ant-design/icons';
 import { shipmentsApi, tripsApi } from '../../services/api';
 import { useDataContext } from '../../contexts/DataContext'; // 2025-11-11T16:00:00Z Added by Assistant: Use global data context
@@ -20,6 +20,9 @@ import { smartDispatchOptimized } from '../../algorithms/dispatchOptimized'; // 
 import BOLDocument from '../../components/BOLDocument/BOLDocument'; // 2025-10-10 11:15:00 引入BOL文档组件
 // 2025-11-30T13:00:00Z Added by Assistant: 使用统一的表格列定义工具
 import { renderShipmentStatus } from '../../utils/tableColumns';
+import WaybillCreate from '../WaybillCreate/WaybillCreate'; // Import WaybillCreate
+import { WaybillData } from '../../types/waybill'; // Import WaybillData Type
+import dayjs from 'dayjs';
 
 
 const { Title, Text } = Typography;
@@ -27,7 +30,7 @@ const { Title, Text } = Typography;
 const ShipmentManagement: React.FC = () => {
   // 2025-11-11T16:00:00Z Added by Assistant: Use global data context for cross-page synchronization
   const { shipments, shipmentsLoading, reloadShipments, allDrivers: drivers, customers, reloadDrivers, reloadVehicles } = useDataContext();
-  
+
   const [detailLoading, setDetailLoading] = useState(false); // 2025-11-11 10:15:05 新增：详情加载态
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
@@ -35,11 +38,11 @@ const ShipmentManagement: React.FC = () => {
   const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
   const [availableTrips, setAvailableTrips] = useState<any[]>([]); // 2025-10-02 15:12:30 可挂载行程列表
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null); // 2025-10-02 15:12:30 已选择的行程
-  
+
   // 编辑相关状态 - 2025-10-10 17:45:00
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForm] = Form.useForm();
-  
+
   // 智能调度相关状态 - 2025-10-10 17:50:00
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isDispatchModalVisible, setIsDispatchModalVisible] = useState(false);
@@ -51,7 +54,7 @@ const ShipmentManagement: React.FC = () => {
 
   // 页面进入后，如果来自创建页且携带 autoAssignShipmentId，则自动打开指派弹窗 // 2025-10-01 14:07:30
   useEffect(() => {
-    const state: unknown = location.state;
+    const state = location.state as { autoAssignShipmentId?: string } | null;
     if (state?.autoAssignShipmentId && shipments.length > 0) {
       const target = shipments.find(s => s.id === state.autoAssignShipmentId);
       if (target) {
@@ -72,14 +75,14 @@ const ShipmentManagement: React.FC = () => {
 
   // 转换后端数据格式到前端期望格式 - 2025-10-08 18:40:00
   const transformShipmentData = (backendShipment: unknown): Shipment => {
-    const anyS = backendShipment || {};
-    
+    const anyS = (backendShipment || {}) as any;
+
     return {
       id: anyS.id,
       shipmentNo: anyS.shipmentNumber || anyS.shipment_no || anyS.id, // 兼容不同字段名
       customerId: anyS.customerId || anyS.customer_id,
       status: anyS.status,
-      
+
       // 地址信息转换
       shipperAddress: anyS.shipperAddress || anyS.pickupAddress || {
         country: anyS.pickup_address?.country || '',
@@ -97,18 +100,18 @@ const ShipmentManagement: React.FC = () => {
         addressLine1: anyS.delivery_address?.addressLine1 || anyS.delivery_address?.street || '',
         isResidential: anyS.delivery_address?.isResidential || false
       },
-      
+
       // 货物信息转换
       weightKg: anyS.weightKg || anyS.weight_kg || anyS.cargoInfo?.weight || anyS.cargo_info?.weight || 0,
       lengthCm: anyS.lengthCm || anyS.length_cm || anyS.cargoInfo?.dimensions?.length || anyS.cargo_info?.dimensions?.length || 0,
       widthCm: anyS.widthCm || anyS.width_cm || anyS.cargoInfo?.dimensions?.width || anyS.cargo_info?.dimensions?.width || 0,
       heightCm: anyS.heightCm || anyS.height_cm || anyS.cargoInfo?.dimensions?.height || anyS.cargo_info?.dimensions?.height || 0,
       description: anyS.description || anyS.cargoInfo?.description || anyS.cargo_info?.description || '',
-      
+
       // 费用信息
       estimatedCost: anyS.estimatedCost || anyS.estimated_cost || anyS.previewCost || 0,
       finalCost: anyS.finalCost || anyS.actual_cost || anyS.actualCost || 0,
-      
+
       // 其他字段
       tags: anyS.tags || [],
       services: anyS.services || {},
@@ -120,7 +123,7 @@ const ShipmentManagement: React.FC = () => {
       tenantId: anyS.tenantId || anyS.tenant_id,
       createdAt: anyS.createdAt || anyS.created_at,
       updatedAt: anyS.updatedAt || anyS.updated_at,
-      
+
       // 兼容字段
       shipmentNumber: anyS.shipmentNumber || anyS.shipment_no || anyS.id,
       pickupAddress: anyS.pickupAddress || anyS.pickup_address,
@@ -148,17 +151,74 @@ const ShipmentManagement: React.FC = () => {
       timeline: Array.isArray(anyS.timeline)
         ? anyS.timeline
         : Array.isArray(anyS.timeline?.items)
-        ? anyS.timeline.items
-        : Array.isArray(anyS.timeline?.events)
-        ? anyS.timeline.events
-        : [],
+          ? anyS.timeline.items
+          : Array.isArray(anyS.timeline?.events)
+            ? anyS.timeline.events
+            : [],
       pods: Array.isArray(anyS.pods)
         ? anyS.pods
         : Array.isArray(anyS.podList)
-        ? anyS.podList
-        : Array.isArray(anyS.pod_list)
-        ? anyS.pod_list
-        : []
+          ? anyS.podList
+          : Array.isArray(anyS.pod_list)
+            ? anyS.pod_list
+            : []
+    };
+  };
+
+  // Helper to convert Shipment to WaybillData for the View
+  const transformToWaybillData = (shipment: Shipment): WaybillData => {
+    const isAmazon = shipment.notes?.includes('AMAZON') || false;
+
+    // Parse Cargo Items
+    const goods = shipment.cargoItems?.map((item: any) => ({
+      name: item.description,
+      pallets: item.quantity,
+      items: item.quantity, // Assumption
+      weight: item.weight,
+      description: item.description
+    })) || [{
+      name: shipment.description,
+      pallets: shipment.packageCount || 1,
+      items: shipment.packageCount || 1,
+      weight: shipment.weightKg,
+      description: shipment.description
+    }];
+
+    const deliveryDateVal = shipment.deliveryAt || shipment.createdAt;
+
+    return {
+      id: shipment.id,
+      templateType: isAmazon ? 'AMAZON' : 'DEFAULT',
+      waybillNumber: shipment.shipmentNo || shipment.id,
+      customerName: (shipment as any).customerName,
+      deliveryDate: deliveryDateVal ? dayjs(deliveryDateVal) : undefined, // 2025-12-26 Fix: Convert to dayjs
+      note: shipment.notes,
+      locations: [
+        {
+          type: 'PICKUP',
+          companyName: (shipment as any).shipper?.name || 'Unknown',
+          addressLine: (shipment as any).shipper?.address?.addressLine1 || shipment.shipperAddress?.addressLine1,
+          city: (shipment as any).shipper?.address?.city || shipment.shipperAddress?.city,
+          province: (shipment as any).shipper?.address?.province || shipment.shipperAddress?.province,
+          postalCode: (shipment as any).shipper?.address?.postalCode || shipment.shipperAddress?.postalCode,
+          contactPerson: '',
+          phone: (shipment as any).shipperPhone || (shipment as any).shipper?.phone,
+          id: 'loc_1'
+        },
+        {
+          type: isAmazon ? 'FULFILLMENT' : 'DROP',
+          companyName: (shipment as any).receiver?.name || 'Unknown',
+          addressLine: (shipment as any).receiver?.address?.addressLine1 || shipment.receiverAddress?.addressLine1,
+          city: (shipment as any).receiver?.address?.city || shipment.receiverAddress?.city,
+          province: (shipment as any).receiver?.address?.province || shipment.receiverAddress?.province,
+          postalCode: (shipment as any).receiver?.address?.postalCode || shipment.receiverAddress?.postalCode,
+          contactPerson: '',
+          phone: (shipment as any).receiverPhone || (shipment as any).receiver?.phone,
+          id: 'loc_2'
+        }
+      ],
+      goods: goods,
+      totalPallets: goods.reduce((sum: number, g: any) => sum + (g.pallets || 0), 0)
     };
   };
 
@@ -230,33 +290,33 @@ const ShipmentManagement: React.FC = () => {
       console.log('🔍 运单完整数据:', viewingShipment);
       console.log('🔍 pickupAddress类型:', typeof viewingShipment.pickupAddress);
       console.log('🔍 deliveryAddress类型:', typeof viewingShipment.deliveryAddress);
-      
+
       // 将运单数据填充到编辑表单 - 修复字段映射问题
       editForm.setFieldsValue({
         // 发货人信息 - 2025-10-28 修复：从地址对象中提取信息
         shipperName: viewingShipment.shipperName || '',
         shipperPhone: viewingShipment.shipperPhone || '',
         shipperCompany: viewingShipment.shipperCompany || '',
-        shipperAddress: viewingShipment.shipperAddress?.addressLine1 || viewingShipment.pickupAddress?.street || '',
-        
+        shipperAddress: viewingShipment.shipperAddress?.addressLine1 || (viewingShipment.pickupAddress as any)?.street || '',
+
         // 收货人信息
         receiverName: viewingShipment.receiverName || '',
         receiverPhone: viewingShipment.receiverPhone || '',
         receiverCompany: viewingShipment.receiverCompany || '',
-        receiverAddress: viewingShipment.receiverAddress?.addressLine1 || viewingShipment.deliveryAddress?.street || '',
-        
+        receiverAddress: viewingShipment.receiverAddress?.addressLine1 || (viewingShipment.deliveryAddress as any)?.street || '',
+
         // 货物信息 - 2025-10-28 修复：使用正确的字段路径
         cargoWeight: viewingShipment.weightKg || 0,
         cargoLength: viewingShipment.lengthCm || 0,
         cargoWidth: viewingShipment.widthCm || 0,
         cargoHeight: viewingShipment.heightCm || 0,
         cargoDescription: viewingShipment.cargoDescription || viewingShipment.description || '',
-        
+
         // 配送信息
         deliveryInstructions: viewingShipment.deliveryInstructions || '',
         estimatedCost: typeof viewingShipment.estimatedCost === 'string' && viewingShipment.estimatedCost !== 'NaN' ? parseFloat(viewingShipment.estimatedCost) : (viewingShipment.estimatedCost || 0)
       });
-      
+
       console.log('✅ 编辑表单数据已填充');
       setIsEditMode(true);
     }
@@ -278,14 +338,14 @@ const ShipmentManagement: React.FC = () => {
   const handleSaveEdit = async () => {
     try {
       const values = await editForm.validateFields();
-      
+
       // 1. 更新运单基本信息
       await shipmentsApi.updateShipment(viewingShipment!.id, values);
-      
+
       // 2. 检查是否需要重新计费
       if (shouldRecalculatePrice(values, viewingShipment!)) {
         console.log('🔄 检测到关键字段变更，重新计算费用...');
-        
+
         try {
           // 调用计费引擎重新计算
           const pricingResult = await shipmentsApi.calculatePricing({
@@ -298,13 +358,13 @@ const ShipmentManagement: React.FC = () => {
             pickupAddress: values.shipperAddress || (viewingShipment!.shipperAddress?.addressLine1 || ''),
             deliveryAddress: values.receiverAddress || (viewingShipment!.receiverAddress?.addressLine1 || '')
           });
-          
+
           // 更新费用信息
           await shipmentsApi.updateShipment(viewingShipment!.id, {
             estimatedCost: pricingResult.totalCost,
             pricingDetails: pricingResult.breakdown
           });
-          
+
           console.log('✅ 费用重新计算完成:', pricingResult);
           message.success('运单更新成功，费用已重新计算');
         } catch (pricingError) {
@@ -314,10 +374,10 @@ const ShipmentManagement: React.FC = () => {
       } else {
         message.success('运单更新成功');
       }
-      
+
       setIsEditMode(false);
       reloadShipments();
-      
+
       // 更新查看的运单数据
       const updatedShipment = { ...viewingShipment, ...values };
       setViewingShipment(updatedShipment as Shipment);
@@ -385,9 +445,9 @@ const ShipmentManagement: React.FC = () => {
     try {
       // 使用优化的智能调度算法 - 2025-10-17 23:55:00
       const selectedShipments = shipments.filter(s => selectedRowKeys.includes(s.id));
-      
+
       console.log('🚀 开始智能调度...');
-      
+
       // 调用优化的智能调度算法（集成Google Maps Distance Matrix API）
       const dispatchResult = await smartDispatchOptimized({
         shipments: selectedShipments,
@@ -397,13 +457,13 @@ const ShipmentManagement: React.FC = () => {
           maxDriverWorkload: 5 // 每个司机最多5个运单
         }
       });
-      
+
       setDispatchResults(dispatchResult.assignments);
-      
+
       // 显示调度结果（包含Google Maps使用状态）
       const algorithmName = dispatchResult.algorithm === 'optimized-greedy' ? '优化贪心算法' : '贪心算法';
       const mapsStatus = dispatchResult.usedGoogleMaps ? '🗺️ Google Maps API' : '📏 直线距离估算';
-      
+
       message.success(
         `🤖 智能调度完成！使用${algorithmName} (${mapsStatus}) ` +
         `为 ${dispatchResult.assignments.length} 个运单找到最优方案\n` +
@@ -411,8 +471,8 @@ const ShipmentManagement: React.FC = () => {
         `预计时间: ${dispatchResult.totalTime.toFixed(0)} min | ` +
         `节省: $${dispatchResult.totalSaving.toFixed(2)} | ` +
         `耗时: ${dispatchResult.executionTime}ms`
-      , 10);
-      
+        , 10);
+
       console.log('📊 智能调度结果:', {
         algorithm: dispatchResult.algorithm,
         usedGoogleMaps: dispatchResult.usedGoogleMaps,
@@ -437,7 +497,7 @@ const ShipmentManagement: React.FC = () => {
     let successCount = 0;
     let failCount = 0;
     const errors: string[] = [];
-    
+
     try {
       // 批量分配运单到司机
       for (const result of dispatchResults) {
@@ -445,8 +505,8 @@ const ShipmentManagement: React.FC = () => {
           // 修复API调用格式 - 2025-10-10 18:27:00
           // assignDriver(shipmentId, driverId, notes)
           await shipmentsApi.assignDriver(
-            result.shipmentId, 
-            result.driverId, 
+            result.shipmentId,
+            result.driverId,
             '智能调度自动分配'
           );
           successCount++;
@@ -456,19 +516,19 @@ const ShipmentManagement: React.FC = () => {
           console.error(`分配运单${result.shipmentNumber}失败:`, err);
         }
       }
-      
+
       // 显示结果统计
       if (successCount > 0) {
         message.success(`调度方案已应用！成功: ${successCount}个, 失败: ${failCount}个`);
       } else {
         message.error(`调度方案应用失败！所有${failCount}个运单都未能分配`);
       }
-      
+
       // 如果有错误，显示详情
       if (errors.length > 0 && errors.length <= 3) {
         errors.forEach(err => message.warning(err, 5));
       }
-      
+
       setIsDispatchModalVisible(false);
       setSelectedRowKeys([]);
       // 2025-11-11T16:00:00Z Added by Assistant: Refresh all related data after assignment
@@ -515,7 +575,7 @@ const ShipmentManagement: React.FC = () => {
     if (!assigningShipment) {
       return message.warning('请选择运单');
     }
-    
+
     try {
       // 更新运单状态为待指派，稍后处理 // 2025-10-08 17:15:00
       await shipmentsApi.updateShipmentStatus(assigningShipment.id, 'pending');
@@ -579,24 +639,24 @@ const ShipmentManagement: React.FC = () => {
         const vehicleText = (record as any).vehiclePlate || (record as any).vehicleName || '未分配';
         const assigned = Boolean(record.driverId);
         return (
-    <div>
-          <div style={{ maxWidth: 160, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {assigned ? (
-                <CheckCircleOutlined style={{ marginRight: 4, color: '#52c41a', fontSize: '12px' }} />
-              ) : (
-                <ClockCircleOutlined style={{ marginRight: 4, color: '#ff4d4f', fontSize: '12px' }} />
-              )}
-              <Text style={{ fontSize: '12px' }} ellipsis>
-                {driverText}
-              </Text>
+          <div>
+            <div style={{ maxWidth: 160, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {assigned ? (
+                  <CheckCircleOutlined style={{ marginRight: 4, color: '#52c41a', fontSize: '12px' }} />
+                ) : (
+                  <ClockCircleOutlined style={{ marginRight: 4, color: '#ff4d4f', fontSize: '12px' }} />
+                )}
+                <Text style={{ fontSize: '12px' }} ellipsis>
+                  {driverText}
+                </Text>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
+                <Text type={vehicleText === '未分配' ? 'secondary' : undefined} style={{ fontSize: '12px' }} ellipsis>
+                  {vehicleText}
+                </Text>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
-              <Text type={vehicleText === '未分配' ? 'secondary' : undefined} style={{ fontSize: '12px' }} ellipsis>
-                {vehicleText}
-              </Text>
-            </div>
-          </div>
           </div>
         );
       },
@@ -643,11 +703,11 @@ const ShipmentManagement: React.FC = () => {
           </Tooltip>
           {/* 2025-11-30 01:00:00 移除：人形图标按钮（用户要求移除） */}
           <Tooltip title="删除">
-            <Button 
-              type="text" 
+            <Button
+              type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />} 
+              icon={<DeleteOutlined />}
               onClick={() => handleDelete(record)}
             />
           </Tooltip>
@@ -673,20 +733,20 @@ const ShipmentManagement: React.FC = () => {
         <Title level={3}>运单管理</Title>
         <Space>
           {selectedRowKeys.length > 0 && (
-            <Button 
-              type="dashed" 
-              icon={<ClockCircleOutlined />} 
+            <Button
+              type="dashed"
+              icon={<ClockCircleOutlined />}
               onClick={handleSmartDispatch}
             >
               🤖 智能调度 ({selectedRowKeys.length}个运单)
             </Button>
           )}
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/shipments/create')}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/admin/waybill/create')}>
             创建运单
           </Button>
         </Space>
       </div>
-      
+
       <Card>
         <Table
           columns={columns}
@@ -704,7 +764,7 @@ const ShipmentManagement: React.FC = () => {
         />
       </Card>
 
-      
+
       <Modal
         title={isEditMode ? '编辑运单' : '运单详情'}
         open={isViewModalVisible}
@@ -723,9 +783,9 @@ const ShipmentManagement: React.FC = () => {
             <Space>
               <Button onClick={() => setIsViewModalVisible(false)}>关闭</Button>
               {viewingShipment && (
-                <Button 
-                  type="primary" 
-                  icon={<EditOutlined />} 
+                <Button
+                  type="primary"
+                  icon={<EditOutlined />}
                   onClick={handleEdit}
                 >
                   编辑运单
@@ -738,28 +798,45 @@ const ShipmentManagement: React.FC = () => {
       >
         <Spin spinning={detailLoading}>
           {viewingShipment && !isEditMode && (
-            <Tabs 
-              defaultActiveKey="details" 
+            <Tabs
+              defaultActiveKey="details"
               items={[
                 {
                   key: 'details',
-                  label: '运单详情',
+                  label: 'Waybill View',
                   children: (
-                    <ShipmentDetails 
+                    <div style={{ transform: 'scale(0.85)', transformOrigin: 'top center', height: '800px', overflow: 'auto' }}>
+                      <WaybillCreate readOnly={true} initialData={transformToWaybillData(viewingShipment)} />
+                    </div>
+                  )
+                },
+                {
+                  key: 'edit_details',
+                  label: 'Shipment Data',
+                  children: (
+                    <ShipmentDetails
                       shipment={viewingShipment}
                       onPrint={() => {
                         window.print();
                       }}
                       onEdit={handleEdit}
                       onStatusUpdate={handleStatusUpdate}
+                      onMountTrip={async (tripId: string) => {
+                        // 2025-11-30: Refresh data after mounting to trip
+                        await Promise.all([reloadShipments(), reloadDrivers(), reloadVehicles()]);
+                        if (viewingShipment) {
+                          await refreshShipmentDetails(viewingShipment.id, { silent: true });
+                        }
+                        // Success message is already shown in ShipmentDetails
+                      }}
                       onAssignDriver={async (driverId: string, vehicleId: string) => {
                         // 2025-10-28 实现：指派司机车辆并刷新
                         if (!viewingShipment) return;
-                        
+
                         try {
                           console.log('🔍 指派运单ID:', viewingShipment.id); // 2025-10-28 调试
                           console.log('🔍 指派司机ID:', driverId); // 2025-10-28 调试
-                          
+
                           // 2025-10-28 修复：传递有效的notes参数，避免空字符串导致验证失败
                           await shipmentsApi.assignDriver(viewingShipment.id, driverId, vehicleId, '手动指派');
                           // 2025-11-11T16:00:00Z Added by Assistant: Refresh all related data after assignment
@@ -775,12 +852,12 @@ const ShipmentManagement: React.FC = () => {
                             console.error('🔍 API响应:', axiosError.response);
                             console.error('🔍 状态码:', axiosError.response?.status);
                             console.error('🔍 响应数据:', axiosError.response?.data);
-                            
+
                             // 2025-10-28 新增：展开error对象查看具体原因
                             const errorData = axiosError.response?.data as { error?: { message?: string, code?: string } };
                             console.error('🔍 错误消息:', errorData?.error?.message);
                             console.error('🔍 错误代码:', errorData?.error?.code);
-                            
+
                             // 使用具体的错误消息
                             if (errorData?.error?.message) {
                               message.error(errorData.error.message);
@@ -800,139 +877,139 @@ const ShipmentManagement: React.FC = () => {
               ]}
             />
           )}
-          
+
           {viewingShipment && isEditMode && (
             <Form form={editForm} layout="vertical">
-            <Divider>发货人信息</Divider>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item
-                  name="shipperName"
-                  label="发货人姓名"
-                  rules={[{ required: true, message: '请输入发货人姓名' }]}
-                >
-                  <Input placeholder="请输入发货人姓名" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="shipperPhone"
-                  label="联系电话"
-                  rules={[{ required: true, message: '请输入联系电话' }]}
-                >
-                  <Input placeholder="请输入联系电话" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="shipperCompany"
-                  label="公司名称"
-                >
-                  <Input placeholder="请输入公司名称（可选）" />
-                </Form.Item>
-              </Col>
-            </Row>
-            
-            <Divider>收货人信息</Divider>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item
-                  name="receiverName"
-                  label="收货人姓名"
-                  rules={[{ required: true, message: '请输入收货人姓名' }]}
-                >
-                  <Input placeholder="请输入收货人姓名" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="receiverPhone"
-                  label="联系电话"
-                  rules={[{ required: true, message: '请输入联系电话' }]}
-                >
-                  <Input placeholder="请输入联系电话" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="receiverCompany"
-                  label="公司名称"
-                >
-                  <Input placeholder="请输入公司名称（可选）" />
-                </Form.Item>
-              </Col>
-            </Row>
-            
-            <Divider>货物信息</Divider>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item
-                  name="cargoWeight"
-                  label="货物重量 (kg)"
-                  rules={[{ required: true, message: '请输入货物重量' }]}
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入重量" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="cargoLength"
-                  label="长度 (cm)"
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="长度" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="cargoWidth"
-                  label="宽度 (cm)"
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="宽度" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="cargoHeight"
-                  label="高度 (cm)"
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="高度" />
-                </Form.Item>
-              </Col>
-              <Col span={16}>
-                <Form.Item
-                  name="cargoDescription"
-                  label="货物描述"
-                >
-                  <Input.TextArea rows={2} placeholder="请输入货物描述" />
-                </Form.Item>
-              </Col>
-            </Row>
-            
-            <Divider>配送信息</Divider>
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item
-                  name="deliveryInstructions"
-                  label="配送说明"
-                >
-                  <Input.TextArea rows={3} placeholder="请输入配送说明" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="estimatedCost"
-                  label="预估费用 ($)"
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="预估费用" />
-                </Form.Item>
-              </Col>
-            </Row>
+              <Divider>发货人信息</Divider>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    name="shipperName"
+                    label="发货人姓名"
+                    rules={[{ required: true, message: '请输入发货人姓名' }]}
+                  >
+                    <Input placeholder="请输入发货人姓名" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="shipperPhone"
+                    label="联系电话"
+                    rules={[{ required: true, message: '请输入联系电话' }]}
+                  >
+                    <Input placeholder="请输入联系电话" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="shipperCompany"
+                    label="公司名称"
+                  >
+                    <Input placeholder="请输入公司名称（可选）" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider>收货人信息</Divider>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    name="receiverName"
+                    label="收货人姓名"
+                    rules={[{ required: true, message: '请输入收货人姓名' }]}
+                  >
+                    <Input placeholder="请输入收货人姓名" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="receiverPhone"
+                    label="联系电话"
+                    rules={[{ required: true, message: '请输入联系电话' }]}
+                  >
+                    <Input placeholder="请输入联系电话" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="receiverCompany"
+                    label="公司名称"
+                  >
+                    <Input placeholder="请输入公司名称（可选）" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider>货物信息</Divider>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    name="cargoWeight"
+                    label="货物重量 (kg)"
+                    rules={[{ required: true, message: '请输入货物重量' }]}
+                  >
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入重量" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="cargoLength"
+                    label="长度 (cm)"
+                  >
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="长度" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="cargoWidth"
+                    label="宽度 (cm)"
+                  >
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="宽度" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    name="cargoHeight"
+                    label="高度 (cm)"
+                  >
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="高度" />
+                  </Form.Item>
+                </Col>
+                <Col span={16}>
+                  <Form.Item
+                    name="cargoDescription"
+                    label="货物描述"
+                  >
+                    <Input.TextArea rows={2} placeholder="请输入货物描述" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider>配送信息</Divider>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="deliveryInstructions"
+                    label="配送说明"
+                  >
+                    <Input.TextArea rows={3} placeholder="请输入配送说明" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="estimatedCost"
+                    label="预估费用 ($)"
+                  >
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="预估费用" />
+                  </Form.Item>
+                </Col>
+              </Row>
             </Form>
           )}
         </Spin>
       </Modal>
 
-      
+
       <Modal
         title="指派车辆/行程"
         open={isAssignModalVisible}
@@ -945,24 +1022,39 @@ const ShipmentManagement: React.FC = () => {
         okText="挂载到行程"
         width={640}
         footer={[
-          <Button key="cancel" onClick={() => {
-            setIsAssignModalVisible(false);
-            setAssigningShipment(null);
-            setSelectedTripId(null);
-          }}>
+          <Button
+            key="cancel"
+            onClick={() => {
+              setIsAssignModalVisible(false);
+              setAssigningShipment(null);
+              setSelectedTripId(null);
+            }}
+          >
             取消
           </Button>,
-          <Button 
-            key="later" 
-            type="default" 
+          <Button
+            key="create-trip"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              // 2025-12-26: Jump to Trip Creation with this shipment pre-selected
+              if (assigningShipment) {
+                navigate('/admin/waybill/trip', { state: { selectedShipmentIds: [assigningShipment.id] } });
+              }
+            }}
+          >
+            Create New Trip
+          </Button>,
+          <Button
+            key="later"
+            type="default"
             onClick={handleAssignLater}
             style={{ marginRight: 8 }}
           >
             稍后挂载
           </Button>,
-          <Button 
-            key="assign" 
-            type="primary" 
+          <Button
+            key="assign"
+            type="primary"
             onClick={handleConfirmMountToTrip}
             disabled={!selectedTripId}
           >
@@ -985,7 +1077,7 @@ const ShipmentManagement: React.FC = () => {
                 style={{ width: '100%' }}
               >
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  {availableTrips.map((trip: unknown) => (
+                  {availableTrips.map((trip: any) => (
                     <Card key={trip.id} size="small">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
@@ -1015,7 +1107,7 @@ const ShipmentManagement: React.FC = () => {
         )}
       </Modal>
 
-      
+
       <Modal
         title="🤖 智能调度推荐方案"
         open={isDispatchModalVisible}
@@ -1027,9 +1119,9 @@ const ShipmentManagement: React.FC = () => {
           <Button key="cancel" onClick={() => setIsDispatchModalVisible(false)}>
             取消
           </Button>,
-          <Button 
-            key="apply" 
-            type="primary" 
+          <Button
+            key="apply"
+            type="primary"
             onClick={handleApplyDispatch}
             loading={dispatchLoading}
           >

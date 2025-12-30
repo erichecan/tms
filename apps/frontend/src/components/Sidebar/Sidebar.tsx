@@ -56,9 +56,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       '/admin/customers',  // 客户管理
       '/admin/currencies', // 货币管理
     ];
-    
+
     const isTopLevelPath = topLevelAdminPaths.some(path => location.pathname.startsWith(path));
-    
+
     if (isTopLevelPath) {
       setOpenKeys([]);
       return;
@@ -148,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         label: '首页',
       },
       {
-        key: '/create-shipment',
+        key: '/admin/waybill/create',
         icon: <PlusOutlined />,
         label: '创建运单',
         requiredPermissions: [Permission.SHIPMENT_CREATE],
@@ -163,6 +163,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         key: '/admin/fleet',
         icon: <TruckOutlined />,
         label: '车队管理',
+        requiredPermissions: [Permission.TRIP_READ],
+      },
+      {
+        key: '/admin/waybill/trip',
+        icon: <BranchesOutlined />, // Using BranchesOutlined for trips/routes
+        label: 'Trip Management', // Or '行程管理' if preferred, keeping English as per file context or user request context? User asked for "Trip Sheet Management".
         requiredPermissions: [Permission.TRIP_READ],
       },
       {
@@ -225,7 +231,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
       '/admin/customers',  // 客户管理
       '/admin/currencies', // 货币管理
     ];
-    
+
     if (topLevelAdminPaths.includes(key)) {
       setOpenKeys([]);
     }
@@ -254,7 +260,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         zIndex: 1000,
       }}
     >
-      
+
       <div
         style={{
           height: '64px',
@@ -277,7 +283,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         )}
       </div>
 
-      
+
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
@@ -292,7 +298,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onCollapse }) => {
         }}
       />
 
-      
+
       <div
         style={{
           position: 'absolute',

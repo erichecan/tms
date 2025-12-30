@@ -60,7 +60,7 @@ export interface RuleCondition {
   value: any;
 }
 
-export type RuleOperator = 
+export type RuleOperator =
   | 'equal' | 'notEqual'
   | 'greaterThan' | 'lessThan' | 'greaterThanInclusive' | 'lessThanInclusive'
   | 'contains' | 'doesNotContain'
@@ -73,7 +73,7 @@ export interface RuleAction {
   params: Record<string, any>;
 }
 
-export type RuleActionType = 
+export type RuleActionType =
   | 'applyDiscount' | 'addFee' | 'setBaseRate' | 'setDriverCommission'
   | 'setCustomerLevel' | 'sendNotification' | 'logEvent';
 
@@ -164,6 +164,8 @@ export interface Shipment extends BaseEntity {
   deliveryAddress: Address;
   cargoInfo: CargoInfo;
   estimatedCost: number;
+  driverFee?: number; // 2025-12-25 Added: Driver fee for salary calculation
+  tripId?: string;    // 2025-12-25 Added: Link to Trip entity
   actualCost?: number;
   currency?: string; // 货币类型 // 2025-09-26 22:30:00
   additionalFees: AdditionalFee[];
@@ -176,6 +178,10 @@ export interface Shipment extends BaseEntity {
   deliveryAt?: Date | string; // 送货时间点（当不使用时间段时）
   pickupWindow?: TimeWindow; // 取货时间段（当使用时间段时）
   deliveryWindow?: TimeWindow; // 送货时间段（当使用时间段时）
+  shipperName?: string;
+  shipperPhone?: string;
+  receiverName?: string;
+  receiverPhone?: string;
 }
 
 // 2025-12-10T19:00:00Z Added by Assistant: 计费模式枚举
@@ -324,6 +330,9 @@ export interface QueryParams {
   order?: 'asc' | 'desc';
   search?: string;
   filters?: Record<string, any>;
+  driverFee?: number;
+  tripId?: string;
+  vehicleId?: string;
 }
 
 // 规则编辑器相关类型
@@ -377,3 +386,23 @@ export type NotificationType = 'info' | 'warning' | 'error' | 'success';
 export * from './enums';
 export * from './constants';
 export * from './pricing-engine';
+
+export interface Trip extends BaseEntity {
+  tenantId: string;
+  tripNo: string;
+  tripFee?: number;
+  status: TripStatus;
+  driverId: string;
+  vehicleId: string;
+  legs: any[];
+  shipments: string[];
+  startTimePlanned?: Date | string;
+  endTimePlanned?: Date | string;
+  startTimeActual?: Date | string;
+  endTimeActual?: Date | string;
+  startMileage?: number;
+  endMileage?: number;
+  routePath?: any;
+}
+
+export type TripStatus = 'planning' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';

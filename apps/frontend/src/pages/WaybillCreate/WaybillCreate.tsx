@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Radio, DatePicker, Select, InputNumber, Space, Typography, ConfigProvider, Tooltip, Row, Col, message } from 'antd';
+import { Form, Input, Button, Radio, DatePicker, InputNumber, Space, Typography, ConfigProvider, Tooltip, Row, Col, message } from 'antd';
 import { PrinterOutlined, SaveOutlined, ReloadOutlined, PlusOutlined, DeleteOutlined, FileImageOutlined } from '@ant-design/icons';
-import { INITIAL_AMAZON_TEMPLATE, INITIAL_DEFAULT_TEMPLATE } from '../../types/waybill';
+import { shipmentsApi } from '../../services/api';
+import { INITIAL_AMAZON_TEMPLATE, INITIAL_DEFAULT_TEMPLATE, WaybillData } from '../../types/waybill';
 import dayjs from 'dayjs';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -9,13 +10,113 @@ import './WaybillCreate.css';
 
 const { Title, Text } = Typography;
 
-const WaybillCreate: React.FC = () => {
+interface WaybillCreateProps {
+    readOnly?: boolean;
+    initialData?: WaybillData;
+}
+
+const WaybillCreate: React.FC<WaybillCreateProps> = ({ readOnly = false, initialData }) => {
     const [form] = Form.useForm();
     const [templateType, setTemplateType] = useState<'AMAZON' | 'DEFAULT'>('AMAZON');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        form.setFieldsValue(INITIAL_AMAZON_TEMPLATE);
-    }, [form]);
+        if (initialData) {
+            form.setFieldsValue(initialData);
+            setTemplateType(initialData.templateType);
+        } else {
+            form.setFieldsValue(INITIAL_AMAZON_TEMPLATE);
+        }
+    }, [form, initialData]);
+
+    const handleReset = () => {
+        if (templateType === 'AMAZON') {
+            form.setFieldsValue({ ...INITIAL_AMAZON_TEMPLATE });
+        } else {
+            form.setFieldsValue({ ...INITIAL_DEFAULT_TEMPLATE });
+        }
+        message.info('Form reset to default');
+    };
+
+    const handleSave = async () => {
+        try {
+            const values: WaybillData = await form.validateFields();
+            setSaving(true);
+
+            console.log('Form Values:', values);
+
+            // Transform WaybillData to Shipment format for backend
+
+            let shipperLocation = values.locations?.find(l => l.type === 'PICKUP') || values.locations?.[0];
+            let receiverLocation = values.locations?.find(l => l.type === 'DROP' || l.type === 'FULFILLMENT') || values.locations?.[1] || values.locations?.[0];
+
+            // If Amazon template with only 1 location (Fulfillment/Drop), we need a shipper.
+            if (templateType === 'AMAZON' && values.locations?.length === 1) {
+                if (!shipperLocation) shipperLocation = values.locations[0];
+            }
+
+            // Fallbacks
+            if (!shipperLocation) shipperLocation = { companyName: 'Unknown Shipper', addressLine: 'N/A', city: 'N/A', province: 'N/A', postalCode: 'N/A', type: 'PICKUP', phone: '', id: 'dummy_s', contactPerson: '' };
+            if (!receiverLocation) receiverLocation = { companyName: 'Unknown Receiver', addressLine: 'N/A', city: 'N/A', province: 'N/A', postalCode: 'N/A', type: 'DROP', phone: '', id: 'dummy_r', contactPerson: '' };
+
+            const pickupDate = values.deliveryDate ? dayjs(values.deliveryDate).subtract(4, 'hour').toISOString() : dayjs().toISOString();
+            const deliveryDate = values.deliveryDate ? dayjs(values.deliveryDate).toISOString() : dayjs().add(4, 'hour').toISOString();
+
+            const shipmentPayload = {
+                shipmentNumber: values.waybillNumber,
+                customerName: receiverLocation.companyName || shipperLocation.companyName || 'Unknown Customer',
+
+                shipper: {
+                    name: shipperLocation.companyName || 'Unknown Sender',
+                    phone: shipperLocation.phone || '000-000-0000',
+                    address: {
+                        addressLine1: shipperLocation.addressLine || 'N/A',
+                        city: shipperLocation.city || 'N/A',
+                        province: shipperLocation.province || 'N/A',
+                        postalCode: shipperLocation.postalCode || 'N/A',
+                        country: 'Canada'
+                    }
+                },
+                receiver: {
+                    name: receiverLocation.companyName || 'Unknown Receiver',
+                    phone: receiverLocation.phone || '000-000-0000',
+                    address: {
+                        addressLine1: receiverLocation.addressLine || 'N/A',
+                        city: receiverLocation.city || 'N/A',
+                        province: receiverLocation.province || 'N/A',
+                        postalCode: receiverLocation.postalCode || 'N/A',
+                        country: 'Canada'
+                    }
+                },
+                cargoItems: values.goods?.map(g => ({
+                    description: g.name || g.description || 'General Cargo',
+                    quantity: parseInt(String(g.items || g.pallets || 1), 10),
+                    weight: parseFloat((g.weight || '0').replace(/[^0-9.]/g, '')),
+                    dimensions: { length: 0, width: 0, height: 0 },
+                    value: 0
+                })) || [],
+
+                pickupAt: pickupDate,
+                deliveryAt: deliveryDate,
+
+                saveAsDraft: true,
+                initialStatus: 'draft',
+
+                notes: `Template: ${templateType}. \n${values.note || ''}`
+            };
+
+            console.log('Sending Payload:', shipmentPayload);
+
+            await shipmentsApi.createShipment(shipmentPayload);
+            message.success('Waybill saved to Shipments successfully!');
+        } catch (error: any) {
+            console.error('Save Error:', error);
+            const errorMsg = error.response?.data?.error?.message || error.message || 'Failed to save shipment.';
+            message.error(`Failed to save: ${errorMsg}`);
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const handleTemplateChange = (e: any) => {
         const newType = e.target.value;
@@ -77,10 +178,7 @@ const WaybillCreate: React.FC = () => {
         }
     };
 
-    // Reset current form to defaults
-    const handleReset = () => {
-        form.setFieldsValue(templateType === 'AMAZON' ? INITIAL_AMAZON_TEMPLATE : INITIAL_DEFAULT_TEMPLATE);
-    };
+
 
     // Watch delivery date to sync with "Time In"
     const deliveryDate = Form.useWatch('deliveryDate', form);
@@ -109,22 +207,24 @@ const WaybillCreate: React.FC = () => {
                     </div>
                     <Space>
                         <Tooltip title="Reset Form"><Button icon={<ReloadOutlined />} onClick={handleReset} /></Tooltip>
-                        <Button type="primary" icon={<PrinterOutlined />} onClick={handleDownloadPDF}>Print / PDF</Button>
+                        <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving}>Save Waybill</Button>
+                        {readOnly && <Button icon={<PrinterOutlined />} onClick={handleDownloadPDF}>Print / PDF</Button>}
                     </Space>
                 </div>
 
+
                 {/* The Form Content - Looks like a document but editable */}
-                <Form form={form} component={false} layout="vertical">
+                <Form form={form} component={false} layout="vertical" disabled={readOnly}>
                     <div className="wb-paper">
                         {templateType === 'AMAZON' ? (
-                            <AmazonTemplateForm form={form} deliveryDate={deliveryDate} />
+                            <AmazonTemplateForm form={form} deliveryDate={deliveryDate} readOnly={readOnly} />
                         ) : (
-                            <DefaultTemplateForm form={form} />
+                            <DefaultTemplateForm form={form} readOnly={readOnly} />
                         )}
                     </div>
                 </Form>
             </div>
-        </ConfigProvider>
+        </ConfigProvider >
     );
 };
 
@@ -204,7 +304,7 @@ const ImagePasteZone: React.FC<{
 /* ====================================================================================
    TEMPLATE A: AMAZON WAREHOUSE
    ==================================================================================== */
-const AmazonTemplateForm: React.FC<{ form: any, deliveryDate: any }> = ({ form, deliveryDate }) => {
+const AmazonTemplateForm: React.FC<{ form: any, deliveryDate: any, readOnly?: boolean }> = ({ deliveryDate, readOnly }) => {
     return (
         <div className="flex flex-col h-full wb-bordered-box">
             {/* Header */}
@@ -309,19 +409,21 @@ const AmazonTemplateForm: React.FC<{ form: any, deliveryDate: any }> = ({ form, 
                                                 <td><Form.Item name={[field.name, 'proNumber']} noStyle><Input className="wb-input-transparent text-center" /></Form.Item></td>
                                                 <td><Form.Item name={[field.name, 'poList']} noStyle><Input className="wb-input-transparent text-center" /></Form.Item></td>
                                                 <td className="no-print text-center p-0">
-                                                    <DeleteOutlined className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors" onClick={() => remove(field.name)} />
+                                                    {!readOnly && <DeleteOutlined className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors" onClick={() => remove(field.name)} />}
                                                 </td>
                                             </tr>
                                         ))}
-                                        <tr className="no-print hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => add()}>
-                                            <td colSpan={5} className="text-center py-2 text-blue-500 text-xs font-bold dashed-border"><PlusOutlined /> Add Goods Line</td>
-                                        </tr>
+                                        {!readOnly && (
+                                            <tr className="no-print hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => add()}>
+                                                <td colSpan={5} className="text-center py-2 text-blue-500 text-xs font-bold dashed-border"><PlusOutlined /> Add Goods Line</td>
+                                            </tr>
+                                        )}
                                     </>
                                 )}
                             </Form.List>
                             <tr className="bg-gray-100 font-bold border-t">
                                 <td className="pl-4">Total</td>
-                                <td><Form.Item name="totalPallets" noStyle><InputNumber className="wb-input-transparent w-full text-center font-bold" readOnly bordered={false} /></Form.Item></td>
+                                <td><Form.Item name="totalPallets" noStyle><InputNumber className="wb-input-transparent w-full text-center font-bold" readOnly variant="borderless" /></Form.Item></td>
                                 <td colSpan={3}></td>
                             </tr>
                         </tbody>
@@ -398,7 +500,7 @@ const InfoRow: React.FC<{ label: string, children: React.ReactNode }> = ({ label
 /* ====================================================================================
    TEMPLATE B: DEFAULT COMPANY BoL
    ==================================================================================== */
-const DefaultTemplateForm: React.FC<{ form: any }> = ({ form }) => (
+const DefaultTemplateForm: React.FC<{ form: any, readOnly?: boolean }> = ({ form, readOnly }) => (
     <div className="flex flex-col h-full relative">
         {/* Header */}
         <div className="wb-header-row px-0">
@@ -464,19 +566,21 @@ const DefaultTemplateForm: React.FC<{ form: any }> = ({ form }) => (
                                             <td><Form.Item name={[f.name, 'weight']} noStyle><Input className="wb-input-transparent text-center" /></Form.Item></td>
                                             <td><Form.Item name={[f.name, 'description']} noStyle><Input className="wb-input-transparent" placeholder="Description" /></Form.Item></td>
                                             <td className="no-print text-center p-0">
-                                                <DeleteOutlined className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors" onClick={() => remove(f.name)} />
+                                                {!readOnly && <DeleteOutlined className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors" onClick={() => remove(f.name)} />}
                                             </td>
                                         </tr>
                                     ))}
-                                    <tr className="no-print hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => add()}>
-                                        <td colSpan={6} className="text-center py-2 text-blue-500 text-xs font-bold dashed-border"><PlusOutlined /> Add Item</td>
-                                    </tr>
+                                    {!readOnly && (
+                                        <tr className="no-print hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => add()}>
+                                            <td colSpan={6} className="text-center py-2 text-blue-500 text-xs font-bold dashed-border"><PlusOutlined /> Add Item</td>
+                                        </tr>
+                                    )}
                                 </>
                             )}
                         </Form.List>
                         <tr className="bg-gray-100 font-bold border-t">
                             <td className="pl-4 py-3">Totals:</td>
-                            <td><Form.Item name="totalPallets" noStyle><InputNumber className="wb-input-transparent w-full text-center font-bold" readOnly /></Form.Item></td>
+                            <td><Form.Item name="totalPallets" noStyle><InputNumber className="wb-input-transparent w-full text-center font-bold" readOnly variant="borderless" /></Form.Item></td>
                             <td colSpan={4}></td>
                         </tr>
                     </tbody>
