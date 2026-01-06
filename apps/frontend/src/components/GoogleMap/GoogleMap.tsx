@@ -44,8 +44,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   const markersRef = useRef<google.maps.Marker[]>([]);
   const routesRef = useRef<google.maps.Polyline[]>([]);
 
+  // 1. Resource Loading Effect
   useEffect(() => {
-    const initMap = async () => {
+    const loadMapScript = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -53,36 +54,49 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         const mapsServiceInstance = (await import('../../services/mapsService')).default;
         await mapsServiceInstance.initialize();
 
-        if (mapsServiceInstance.isReady() && mapRef.current && window.google?.maps) {
-          const mapInstance = new window.google.maps.Map(mapRef.current, {
-            center,
-            zoom,
-            mapTypeId: 'roadmap',
-            styles: [
-              {
-                featureType: 'poi',
-                elementType: 'labels',
-                stylers: [{ visibility: 'off' }],
-              },
-            ],
-          });
-
-          setMap(mapInstance);
-          console.log('✅ [GoogleMap Component] 地图实例创建成功');
-        } else {
-          console.warn('⚠️ [GoogleMap Component] 地图组件初始化跳过: API 未就绪或容器未找到');
-          setLoading(false);
-        }
-      } catch (err: any) {
-        console.warn('⚠️ [GoogleMap Component] Google Maps加载跳过:', err.message);
-        // 不再设置 setError，让它显示占位符
-      } finally {
+        // Only stop loading. Do NOT try to init map here.
+        // The re-render will create the div, populating mapRef.
         setLoading(false);
+      } catch (err: any) {
+        console.warn('⚠️ [GoogleMap Component] Google Maps加载失败:', err.message);
+        setLoading(false); // Stop loading even on error so we don't get stuck
       }
     };
 
-    initMap();
+    loadMapScript();
   }, []);
+
+  // 2. Map Instance Initialization Effect
+  useEffect(() => {
+    // Wait until loading is done (div is rendered) and map doesn't exist yet
+    if (loading || map || !mapRef.current || !window.google?.maps) {
+      if (!loading && !window.google?.maps) {
+        console.warn('⚠️ [GoogleMap Component] Loading finished but API not ready');
+      }
+      return;
+    }
+
+    try {
+      console.log('🚀 [GoogleMap Component] 开始初始化地图实例...');
+      const mapInstance = new window.google.maps.Map(mapRef.current, {
+        center,
+        zoom,
+        mapTypeId: 'roadmap',
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }],
+          },
+        ],
+      });
+
+      setMap(mapInstance);
+      console.log('✅ [GoogleMap Component] 地图实例创建成功');
+    } catch (err) {
+      console.error('❌ [GoogleMap Component] 地图实例创建失败:', err);
+    }
+  }, [loading, map, center, zoom]);
 
   // 更新标记 - 2025-10-10 17:36:00 使用window.google.maps
   useEffect(() => {
