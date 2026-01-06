@@ -22,7 +22,8 @@ import {
   Badge,
   message,
   List,
-  Avatar
+  Avatar,
+  Steps
 } from 'antd';
 import {
   PrinterOutlined,
@@ -191,6 +192,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
   const getStatusTag = (status: ShipmentStatus) => {
     const statusMap: Record<ShipmentStatus, { color: string; text: string }> = {
+      [ShipmentStatus.DRAFT]: { color: 'default', text: '草稿' }, // 2025-01-06 Added
       [ShipmentStatus.PENDING]: { color: 'orange', text: '待处理' }, // 2025-11-11 10:15:05 补充状态映射
       [ShipmentStatus.QUOTED]: { color: 'blue', text: '已报价' }, // 2025-11-11 10:15:05 补充状态映射
       [ShipmentStatus.CONFIRMED]: { color: 'cyan', text: '已确认' }, // 2025-11-11 10:15:05 补充状态映射
@@ -235,6 +237,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
   const getNextStatus = (currentStatus: ShipmentStatus): ShipmentStatus | null => {
     const statusFlow: Record<ShipmentStatus, ShipmentStatus | null> = {
+      [ShipmentStatus.DRAFT]: ShipmentStatus.PENDING, // 2025-01-06 Added
       [ShipmentStatus.PENDING]: ShipmentStatus.CONFIRMED, // 2025-11-11 10:15:05 调整状态推进
       [ShipmentStatus.QUOTED]: ShipmentStatus.CONFIRMED, // 2025-11-11 10:15:05 调整状态推进
       [ShipmentStatus.CREATED]: ShipmentStatus.CONFIRMED, // 2025-11-11 10:15:05 调整状态推进
@@ -641,16 +644,24 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </Row>
             <Divider />
 
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Text strong>重量：</Text>
-                <Text>{shipment.weightKg} kg</Text>
-              </Col>
-              <Col span={12}>
-                <Text strong>尺寸：</Text>
-                <Text>{shipment.lengthCm}×{shipment.widthCm}×{shipment.heightCm} cm</Text>
-              </Col>
-            </Row>
+            <div style={{ padding: '0 24px 24px 24px' }}>
+              <Steps
+                current={[
+                  ShipmentStatus.PENDING, ShipmentStatus.CONFIRMED, ShipmentStatus.ASSIGNED,
+                  ShipmentStatus.PICKED_UP, ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELIVERED, ShipmentStatus.COMPLETED
+                ].indexOf(shipment.status as ShipmentStatus)}
+                size="small"
+              >
+                <Steps.Step title="待处理" />
+                <Steps.Step title="已确认" />
+                <Steps.Step title="已分配" />
+                <Steps.Step title="已取货" />
+                <Steps.Step title="运输中" />
+                <Steps.Step title="已送达" />
+                <Steps.Step title="已完成" />
+              </Steps>
+            </div> // Added Steps Component
+
             <Divider />
 
             <Row gutter={[16, 16]}>

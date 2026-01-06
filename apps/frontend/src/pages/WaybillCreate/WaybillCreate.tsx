@@ -90,7 +90,7 @@ const WaybillCreate: React.FC<WaybillCreateProps> = ({ readOnly = false, initial
                     }
                 },
                 cargoItems: values.goods?.map(g => ({
-                    description: g.name || g.description || 'General Cargo',
+                    description: [g.name, g.description].filter(Boolean).join(' - ') || 'General Cargo',
                     quantity: parseInt(String(g.items || g.pallets || 1), 10),
                     weight: parseFloat((g.weight || '0').replace(/[^0-9.]/g, '')),
                     dimensions: { length: 0, width: 0, height: 0 },
@@ -100,8 +100,8 @@ const WaybillCreate: React.FC<WaybillCreateProps> = ({ readOnly = false, initial
                 pickupAt: pickupDate,
                 deliveryAt: deliveryDate,
 
-                saveAsDraft: true,
-                initialStatus: 'draft',
+                saveAsDraft: false,
+                initialStatus: 'pending',
 
                 notes: `Template: ${templateType}. \n${values.note || ''}`
             };

@@ -207,7 +207,8 @@ export class ShipmentService {
       const assignableStatuses: ShipmentStatus[] = [
         ShipmentStatus.PENDING_CONFIRMATION,
         ShipmentStatus.CONFIRMED,
-        ShipmentStatus.SCHEDULED
+        ShipmentStatus.SCHEDULED,
+        ShipmentStatus.DRAFT
       ]; // 2025-11-11 14:28:40 可指派状态
       if (!assignableStatuses.includes(shipment.status as ShipmentStatus)) {
         throw new Error(`Shipment cannot be assigned in current status: ${shipment.status}`);

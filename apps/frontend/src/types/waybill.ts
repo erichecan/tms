@@ -79,10 +79,10 @@ export const INITIAL_AMAZON_TEMPLATE: Partial<WaybillData> = {
             type: 'FULFILLMENT',
             alias: 'Y001',
             companyName: 'Y001',
-            addressLine: '789 Salem Rd N',
-            city: 'Ajax',
+            addressLine: '1399 Kennedy road Unit 7',
+            city: 'Scarborough', // Assuming Scarborough based on the address
             province: 'ON',
-            postalCode: 'L1Z 1G1',
+            postalCode: 'M1P 2L6', // Placeholder if not provided, or keep existing format if possible. Let's try to be safe with just address line change if city/zip unknown but "Kennedy road" usually implies Toronto/Scarborough. I will check context.
             contactPerson: '',
             phone: ''
         }

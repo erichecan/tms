@@ -99,6 +99,7 @@ export interface Rule {
 // 运单状态枚举 - 符合PRD v3.0-PC状态机设计
 export enum ShipmentStatus {
   CREATED = 'created',           // 运单已创建 = 已确认
+  DRAFT = 'draft',               // 草稿
   PENDING = 'pending',           // 待处理
   QUOTED = 'quoted',             // 已报价
   CONFIRMED = 'confirmed',       // 已确认
@@ -176,9 +177,8 @@ export interface Shipment {
   deliveryDate?: string;                 // 配送日期
   shipperSignature?: string;             // 发货人签名
   driverSignature?: string;              // 司机签名
-  packageCount?: number;                 // 包裹数量
-  palletCount?: number;                  // 托盘数量
   hazardousMaterial?: boolean;           // 危险品标识
+  cargoItems?: any[];                    // 货物明细列表
 
   // 兼容性字段 - 用于修复编译错误
   cargoWeight?: number;                   // 货物重量

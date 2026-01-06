@@ -223,6 +223,7 @@ const ShipmentManagement: React.FC = () => {
   };
 
   const statusLabelMap: Record<ShipmentStatus, string> = {
+    [ShipmentStatus.DRAFT]: '草稿',
     [ShipmentStatus.PENDING]: '待处理',
     [ShipmentStatus.QUOTED]: '已报价',
     [ShipmentStatus.CONFIRMED]: '已确认',
@@ -799,17 +800,8 @@ const ShipmentManagement: React.FC = () => {
         <Spin spinning={detailLoading}>
           {viewingShipment && !isEditMode && (
             <Tabs
-              defaultActiveKey="details"
+              defaultActiveKey="edit_details"
               items={[
-                {
-                  key: 'details',
-                  label: 'Waybill View',
-                  children: (
-                    <div style={{ transform: 'scale(0.85)', transformOrigin: 'top center', height: '800px', overflow: 'auto' }}>
-                      <WaybillCreate readOnly={true} initialData={transformToWaybillData(viewingShipment)} />
-                    </div>
-                  )
-                },
                 {
                   key: 'edit_details',
                   label: 'Shipment Data',
@@ -871,7 +863,7 @@ const ShipmentManagement: React.FC = () => {
                 },
                 {
                   key: 'bol',
-                  label: 'BOL单据',
+                  label: 'BOL Document',
                   children: <BOLDocument shipment={viewingShipment} />
                 }
               ]}
