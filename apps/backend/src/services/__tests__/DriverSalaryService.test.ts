@@ -87,7 +87,7 @@ describe('DriverSalaryService', () => {
     });
 
     beforeEach(() => {
-        mockDbService = new DatabaseService({} as any) as jest.Mocked<DatabaseService>;
+        mockDbService = new DatabaseService() as jest.Mocked<DatabaseService>;
         mockRuleEngineService = new RuleEngineService(mockDbService) as jest.Mocked<RuleEngineService>;
         driverSalaryService = new DriverSalaryService(mockDbService, mockRuleEngineService, tenantId);
     });
