@@ -1,0 +1,1 @@
+{"name": "tms-2.0-monorepo", "private": true, "workspaces": ["apps/*"]}
