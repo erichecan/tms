@@ -1,8 +1,8 @@
 
-import express from 'express';
-import cors from 'cors';
-import { db } from './db.js';
-import { TripStatus, WaybillStatus } from './types.js';
+import * as express from 'express';
+import * as cors from 'cors';
+import { pool, query } from './db-postgres';
+import { TripStatus, WaybillStatus } from './types';
 
 const app = express();
 const port = process.env.PORT || 3001; // Frontend usually 5173
@@ -16,138 +16,216 @@ app.get('/api/health', (req, res) => {
 
 // --- Dashboard APIs ---
 
-app.get('/api/dashboard/metrics', (req, res) => {
-  const totalWaybills = db.waybills.length;
-  const activeTrips = db.trips.filter(t => t.status === TripStatus.ACTIVE).length;
-  const pendingWaybills = db.waybills.filter(w => w.status === WaybillStatus.NEW).length;
-  // Mock On-time rate
-  const onTimeRate = 0.95;
+app.get('/api/dashboard/metrics', async (req, res) => {
+  try {
+    const waybillsCount = await query('SELECT COUNT(*) FROM waybills');
+    const tripsCount = await query('SELECT COUNT(*) FROM trips WHERE status = $1', [TripStatus.ACTIVE]);
+    const pendingWaybillsCount = await query('SELECT COUNT(*) FROM waybills WHERE status = $1', [WaybillStatus.NEW]);
+    const onTimeRate = 0.95; // Mock for now
 
-  res.json({
-    totalWaybills,
-    activeTrips,
-    pendingWaybills,
-    onTimeRate
-  });
+    res.json({
+      totalWaybills: parseInt(waybillsCount.rows[0].count),
+      activeTrips: parseInt(tripsCount.rows[0].count),
+      pendingWaybills: parseInt(pendingWaybillsCount.rows[0].count),
+      onTimeRate
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
-app.get('/api/dashboard/jobs', (req, res) => {
-  // Return last 5 waybills
-  const recentWaybills = [...db.waybills]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
-  res.json(recentWaybills);
+app.get('/api/dashboard/jobs', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM waybills ORDER BY created_at DESC LIMIT 5');
+    res.json(result.rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 
 // --- Core Data APIs ---
 
-app.get('/api/waybills', (req, res) => {
+app.get('/api/waybills', async (req, res) => {
   const status = req.query.status as string;
-  let result = db.waybills;
-  if (status) {
-    result = result.filter(w => w.status === status);
+  try {
+    if (status) {
+      const result = await query('SELECT * FROM waybills WHERE status = $1', [status]);
+      res.json(result.rows);
+    } else {
+      const result = await query('SELECT * FROM waybills');
+      res.json(result.rows);
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-  res.json(result);
 });
 
-app.post('/api/waybills', (req, res) => {
-  const newWaybill = {
-    id: `WB-${Date.now()}`,
-    created_at: new Date().toISOString(),
-    status: WaybillStatus.NEW,
-    ...req.body
-  };
-  db.waybills.push(newWaybill);
-  res.json(newWaybill);
+app.post('/api/waybills', async (req, res) => {
+  const {
+    waybill_no, customer_id, origin, destination,
+    cargo_desc, price_estimated, delivery_date, reference_code,
+    fc_alias, // mapped to fulfillment_center
+    pallet_count
+  } = req.body;
+
+  const id = `WB-${Date.now()}`;
+  const status = WaybillStatus.NEW;
+  const created_at = new Date().toISOString();
+
+  try {
+    await query(
+      `INSERT INTO waybills (
+                id, waybill_no, customer_id, origin, destination, cargo_desc, status, 
+                price_estimated, created_at, fulfillment_center, delivery_date, reference_code, pallet_count
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [
+        id, waybill_no, customer_id, origin, destination, cargo_desc, status,
+        price_estimated, created_at, fc_alias, delivery_date, reference_code,
+        pallet_count ? parseInt(pallet_count) : 0
+      ]
+    );
+
+    // Return constructed object to match frontend expectation immediately
+    res.json({ id, waybill_no, status, ...req.body });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to create waybill' });
+  }
 });
 
-app.post('/api/waybills/:id/assign', (req, res) => {
+app.post('/api/waybills/:id/assign', async (req, res) => {
   const { id } = req.params;
   const { driver_id, vehicle_id } = req.body;
 
-  const waybill = db.waybills.find(w => w.id === id);
-  if (!waybill) return res.status(404).json({ error: 'Waybill not found' });
+  const client = await pool.connect();
 
-  // Create a new Trip for this assignment (Simple logic for MVP)
-  const newTrip = {
-    id: `T-${Date.now()}`,
-    driver_id,
-    vehicle_id,
-    status: TripStatus.PLANNED,
-    start_time_est: new Date().toISOString(),
-    end_time_est: new Date(Date.now() + 86400000).toISOString(), // +1 day
-  };
+  try {
+    await client.query('BEGIN');
 
-  db.trips.push(newTrip);
+    // Check Waybill
+    const wbRes = await client.query('SELECT * FROM waybills WHERE id = $1', [id]);
+    if (wbRes.rows.length === 0) {
+      throw new Error('Waybill not found');
+    }
 
-  // Update Waybill
-  waybill.status = WaybillStatus.ASSIGNED;
-  waybill.trip_id = newTrip.id;
+    // Create Trip
+    const tripId = `T-${Date.now()}`;
+    const startTime = new Date().toISOString();
+    const endTime = new Date(Date.now() + 86400000).toISOString();
 
-  // Update Driver/Vehicle Status
-  const driver = db.drivers.find(d => d.id === driver_id);
-  if (driver) driver.status = 'BUSY';
+    const newTrip = {
+      id: tripId,
+      driver_id,
+      vehicle_id,
+      status: TripStatus.PLANNED,
+      start_time_est: startTime,
+      end_time_est: endTime
+    };
 
-  const vehicle = db.vehicles.find(v => v.id === vehicle_id);
-  if (vehicle) vehicle.status = 'BUSY';
+    await client.query(
+      `INSERT INTO trips (id, driver_id, vehicle_id, status, start_time_est, end_time_est) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [tripId, driver_id, vehicle_id, TripStatus.PLANNED, startTime, endTime]
+    );
 
-  res.json({ waybill, trip: newTrip });
+    // Update Waybill
+    await client.query(
+      `UPDATE waybills SET status = $1, trip_id = $2 WHERE id = $3`,
+      [WaybillStatus.ASSIGNED, tripId, id]
+    );
+
+    // Update Resources
+    await client.query(`UPDATE drivers SET status = 'BUSY' WHERE id = $1`, [driver_id]);
+    await client.query(`UPDATE vehicles SET status = 'BUSY' WHERE id = $1`, [vehicle_id]);
+
+    await client.query('COMMIT');
+    res.json({ waybill: { ...wbRes.rows[0], status: WaybillStatus.ASSIGNED, trip_id: tripId }, trip: newTrip });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error(e);
+    res.status(500).json({ error: 'Assignment failed' });
+  } finally {
+    client.release();
+  }
 });
 
-app.get('/api/drivers', (req, res) => {
-  res.json(db.drivers);
+app.get('/api/drivers', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM drivers');
+    res.json(result.rows);
+  } catch (e) { res.status(500).json([]); }
 });
 
-app.get('/api/vehicles', (req, res) => {
-  res.json(db.vehicles);
+app.get('/api/vehicles', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM vehicles');
+    res.json(result.rows);
+  } catch (e) { res.status(500).json([]); }
 });
 
 
-app.get('/api/expenses', (req, res) => {
-  res.json(db.expenses);
+app.get('/api/expenses', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM expenses');
+    res.json(result.rows);
+  } catch (e) { res.status(500).json([]); }
 });
 
 // --- Tracking & Communication APIs ---
 
-app.get('/api/trips/:id/tracking', (req, res) => {
+app.get('/api/trips/:id/tracking', async (req, res) => {
   const { id } = req.params;
-  const trip = db.trips.find(t => t.id === id);
-  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+  try {
+    const tripRes = await query('SELECT * FROM trips WHERE id = $1', [id]);
+    if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const trip = tripRes.rows[0];
 
-  const waybills = db.waybills.filter(w => w.trip_id === id);
-  const driver = db.drivers.find(d => d.id === trip.driver_id);
-  const vehicle = db.vehicles.find(v => v.id === trip.vehicle_id);
+    const waybillsRes = await query('SELECT * FROM waybills WHERE trip_id = $1', [id]);
+    const driverRes = await query('SELECT * FROM drivers WHERE id = $1', [trip.driver_id]);
+    const vehicleRes = await query('SELECT * FROM vehicles WHERE id = $1', [trip.vehicle_id]);
+    const timelineRes = await query('SELECT * FROM trip_events WHERE trip_id = $1 ORDER BY time DESC', [id]);
 
-  res.json({
-    ...trip,
-    waybills,
-    driver,
-    vehicle,
-    // Add mock location for map
-    currentLocation: { lat: 41.59, lng: -93.60, place: 'Near Des Moines, IA' }
-  });
+    res.json({
+      ...trip,
+      waybills: waybillsRes.rows,
+      driver: driverRes.rows[0],
+      vehicle: vehicleRes.rows[0],
+      timeline: timelineRes.rows,
+      currentLocation: { lat: 41.59, lng: -93.60, place: 'Near Des Moines, IA' }
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Tracking error' });
+  }
 });
 
-app.get('/api/trips/:id/messages', (req, res) => {
+app.get('/api/trips/:id/messages', async (req, res) => {
   const { id } = req.params;
-  const messages = db.messages.filter(m => m.trip_id === id);
-  res.json(messages);
+  try {
+    const result = await query('SELECT * FROM messages WHERE trip_id = $1 ORDER BY timestamp ASC', [id]);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json([]); }
 });
 
-app.post('/api/trips/:id/messages', (req, res) => {
+app.post('/api/trips/:id/messages', async (req, res) => {
   const { id } = req.params;
   const { text } = req.body;
-  const newMessage = {
-    id: `M-${Date.now()}`,
-    trip_id: id,
-    sender: 'DISPATCHER', // Hardcoded for now
-    text,
-    timestamp: new Date().toISOString()
-  };
-  // @ts-ignore
-  db.messages.push(newMessage);
-  res.json(newMessage);
+  const msgId = `M-${Date.now()}`;
+  const timestamp = new Date().toISOString();
+
+  try {
+    await query(
+      'INSERT INTO messages (id, trip_id, sender, text, timestamp) VALUES ($1, $2, $3, $4, $5)',
+      [msgId, id, 'DISPATCHER', text, timestamp]
+    );
+    res.json({ id: msgId, trip_id: id, sender: 'DISPATCHER', text, timestamp });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Message failed' });
+  }
 });
 
 

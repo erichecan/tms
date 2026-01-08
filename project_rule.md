@@ -22,5 +22,19 @@ This document outlines critical development standards and lessons learned. **ALL
 - **Strict Mode**: React Strict Mode is enabled. Ensure effects are idempotent.
 - **Mock Data**: When mocking data, ensure the mock structure perfectly matches the interface definitions in `types.ts`.
 
+
+## 3. Database & Backend Configuration
+
+### The "White Screen / Loading Forever" Incident
+**Context**: During the migration to PostgreSQL, the frontend was stuck in a loading state because the backend crashed silently.
+**Cause**:
+1.  **Import Errors**: `ts-node` in CommonJS mode failed to resolving `.js` extensions and default imports for `express`/`dotenv`.
+2.  **Silent Failure**: When the backend process crashes in a dev environment loop, the frontend `fetch` request simply times out or hangs, leading to infinite spinners.
+
+### Rules for Future Development
+1.  **TS-Node Compat**: In this project (`commonjs` config), avoid using `.js` extensions in imports for TypeScript files. Use `import * as pkg from 'pkg'` for CommonJS modules (Express, Cors, Dotenv).
+2.  **Backend Health Checks**: When Frontend is stuck loading, **first check if the backend process is actually running/listening**.
+3.  **Migration Safety**: Migrations (like `migrate.ts`) must be robust and runnable multiple times (idempotent) via `IF NOT EXISTS` or `ON CONFLICT DO NOTHING`.
+
 ---
 *Last Updated: 2026-01-08*
