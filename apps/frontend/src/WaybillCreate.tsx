@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import logo from './assets/logo.png';
 
 interface GoodsLine {
     pallet_count: string;
@@ -121,9 +122,7 @@ export const WaybillCreate = () => {
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 800, color: 'black', letterSpacing: '-1px' }}>
-                            Apony <span style={{ fontSize: '14px', fontWeight: 400, color: '#6B7280', display: 'block', marginTop: '-4px' }}>Group</span>
-                        </h1>
+                        <img src={logo} alt="Apony Group" style={{ height: '48px', objectFit: 'contain' }} />
                     </div>
                     <div style={{ textAlign: 'right', fontSize: '12px', color: '#374151' }}>
                         <div>Tel: 437 888 8888</div>
