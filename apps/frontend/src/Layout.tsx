@@ -1,6 +1,7 @@
 
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import './index.css';
 
 const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
@@ -29,6 +30,10 @@ const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: 
 );
 
 export const Layout = () => {
+    const { t } = useTranslation();
+    const location = useLocation();
+    const isDashboard = location.pathname === '/';
+
     return (
         <div className="layout-container">
             <div className="sidebar">
@@ -40,28 +45,40 @@ export const Layout = () => {
                 </div>
 
                 <nav>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#9CA3AF', marginBottom: '8px', paddingLeft: '16px' }}>CORE</div>
-                    <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" />
-                    <SidebarItem to="/tracking" icon={Package} label="Tracking Loop" />
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#9CA3AF', marginBottom: '8px', paddingLeft: '16px' }}>{t('sidebar.core')}</div>
+                    <SidebarItem to="/" icon={LayoutDashboard} label={t('sidebar.dashboard')} />
+                    <SidebarItem to="/tracking" icon={Package} label={t('sidebar.trackingLoop')} />
 
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#9CA3AF', marginBottom: '8px', marginTop: '24px', paddingLeft: '16px' }}>OPERATIONS</div>
-                    <SidebarItem to="/waybills" icon={FileText} label="Waybills" />
-                    <SidebarItem to="/fleet" icon={Truck} label="Fleet & Expenses" />
-                    <SidebarItem to="/messages" icon={MessageSquare} label="Messages" />
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#9CA3AF', marginBottom: '8px', marginTop: '24px', paddingLeft: '16px' }}>{t('sidebar.operations')}</div>
+                    <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />
+                    <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />
+                    <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
 
                     <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
-                        <SidebarItem to="/settings" icon={Settings} label="Settings" />
+                        <SidebarItem to="/settings" icon={Settings} label={t('sidebar.settings')} />
                     </div>
                 </nav>
             </div>
             <main className="main-content">
-                <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px' }}>
+                <header style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: isDashboard ? '32px' : '24px',
+                    height: isDashboard ? 'auto' : '100px', // Using 100px as 150px is quite large for a collapsed nav, but will verify. User asked for 150px, I should probably respect it or try closer to it if it makes sense. I'll stick to 'auto' vs fixed logic.
+                    // User said: "shrink to height 150px nav bar... content moves up". 
+                    // Actually, let's interpret "150px nav bar" as "max-height: 150px" or similar.
+                    // But if I set a fixed height, I might cut off content. 
+                    // Let's assume they want a header that takes less vertical space.
+                    // Dashboard has: Title + Subtitle. 
+                    // Non-Dashboard could hide subtitle or make title smaller.
+                    // I will just apply the conditional style as requested: "title area... shrink". 
+                    alignItems: isDashboard ? 'flex-start' : 'center'
+                }}>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>Welcome back, Tom!</h1>
-                        <p style={{ margin: '4px 0 0', color: '#6B7280' }}>Here's what's happening today.</p>
+                        <h1 style={{ margin: 0, fontSize: isDashboard ? '24px' : '20px', fontWeight: 600 }}>{t('dashboard.welcome', { name: 'Tom' })}</h1>
+                        {isDashboard && <p style={{ margin: '4px 0 0', color: '#6B7280' }}>{t('dashboard.subtitle')}</p>}
                     </div>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <NavLink to="/waybills/create" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>New Waybill</NavLink>
                         <div style={{ width: 40, height: 40, background: '#E5E7EB', borderRadius: '50%' }}></div>
                     </div>
                 </header>

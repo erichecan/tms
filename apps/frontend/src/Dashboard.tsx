@@ -1,6 +1,9 @@
 
+
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Truck, Clock, AlertCircle, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Metrics {
     totalWaybills: number;
@@ -31,12 +34,22 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 );
 
 export const Dashboard = () => {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
     const [metrics, setMetrics] = useState<Metrics | null>(null);
     const [jobs, setJobs] = useState<Job[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedWaybill, setSelectedWaybill] = useState<string | null>(null);
     const [resources, setResources] = useState<{ drivers: any[], vehicles: any[] }>({ drivers: [], vehicles: [] });
     const [assignData, setAssignData] = useState({ driver_id: '', vehicle_id: '' });
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 5;
+
+    const handleViewReports = () => {
+        alert(t('dashboard.viewReports') + ' - Coming Soon (Feature under design)');
+    };
 
     const fetchData = () => {
         const API_URL = 'http://localhost:3001/api';
@@ -49,7 +62,6 @@ export const Dashboard = () => {
             .then(setMetrics)
             .catch(err => {
                 console.error("Metrics fetch error:", err);
-                // metrics state remains null, handled by loading state
             });
 
         fetch(`${API_URL}/dashboard/jobs`)
@@ -111,37 +123,39 @@ export const Dashboard = () => {
         }
     };
 
-    if (!metrics) return <div>Loading...</div>;
+    if (!metrics) return <div>{t('common.loading')}</div>;
 
     return (
         <div>
             {/* Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
-                <StatCard label="Total Waybills" value={metrics.totalWaybills} icon={FileText} color="#6366F1" />
-                <StatCard label="Active Trips" value={metrics.activeTrips} icon={Truck} color="#10B981" />
-                <StatCard label="Pending Waybills" value={metrics.pendingWaybills} icon={Clock} color="#F59E0B" />
-                <StatCard label="On-Time Rate" value={`${(metrics.onTimeRate * 100).toFixed(0)}%`} icon={AlertCircle} color="#EC4899" />
+                <StatCard label={t('dashboard.totalWaybills')} value={metrics.totalWaybills} icon={FileText} color="#6366F1" />
+                <StatCard label={t('dashboard.activeTrips')} value={metrics.activeTrips} icon={Truck} color="#10B981" />
+                <StatCard label={t('dashboard.pendingWaybills')} value={metrics.pendingWaybills} icon={Clock} color="#F59E0B" />
+                <StatCard label={t('dashboard.onTimeRate')} value={`${(metrics.onTimeRate * 100).toFixed(0)}%`} icon={AlertCircle} color="#EC4899" />
             </div>
 
             {/* Recent Jobs */}
             <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px' }}>Recent Pending Waybills</h3>
-                    <a href="#" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 500 }}>View All</a>
+                    <h3 style={{ margin: 0, fontSize: '18px' }}>{t('dashboard.pendingWaybills')}</h3>
+                    <a href="#" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 500 }}>{t('dashboard.viewReports')}</a>
                 </div>
 
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>WAYBILL ID</th>
-                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>ROUTE</th>
-                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>STATUS</th>
-                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>PRICE</th>
-                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>ACTION</th>
+                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>{t('waybill.waybillNo')}</th>
+                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>{t('waybill.route')}</th>
+                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>{t('common.status')}</th>
+                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>{t('waybill.estPrice')}</th>
+                            <th style={{ padding: '12px 0', color: '#6B7280', fontWeight: 500, fontSize: '14px' }}>{t('common.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {jobs.map(job => (
+                        {jobs.length === 0 ? (
+                            <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>{t('dashboard.noJobs')}</td></tr>
+                        ) : jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(job => (
                             <tr key={job.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                                 <td style={{ padding: '16px 0', fontWeight: 500 }}>{job.waybill_no}</td>
                                 <td style={{ padding: '16px 0' }}>
@@ -166,7 +180,10 @@ export const Dashboard = () => {
                                             Assign
                                         </button>
                                     ) : (
-                                        <button style={{ padding: '6px 12px', background: 'transparent', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                        <button
+                                            onClick={() => navigate(`/tracking/${job.id}`)}
+                                            style={{ padding: '6px 12px', background: 'transparent', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}
+                                        >
                                             Details
                                         </button>
                                     )}
@@ -175,6 +192,35 @@ export const Dashboard = () => {
                         ))}
                     </tbody>
                 </table>
+
+                {/* Pagination Controls */}
+                {jobs.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', marginTop: '16px', padding: '0 8px' }}>
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            style={{
+                                padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: '6px', background: 'white',
+                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.5 : 1
+                            }}
+                        >
+                            {t('common.back')}
+                        </button>
+                        <span style={{ fontSize: '14px', color: '#6B7280' }}>
+                            Page {currentPage} of {Math.ceil(jobs.length / pageSize)}
+                        </span>
+                        <button
+                            disabled={currentPage * pageSize >= jobs.length}
+                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(jobs.length / pageSize), p + 1))}
+                            style={{
+                                padding: '6px 12px', border: '1px solid #E5E7EB', borderRadius: '6px', background: 'white',
+                                cursor: currentPage * pageSize >= jobs.length ? 'not-allowed' : 'pointer', opacity: currentPage * pageSize >= jobs.length ? 0.5 : 1
+                            }}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Modal Overlay */}
@@ -218,13 +264,13 @@ export const Dashboard = () => {
                                 onClick={() => setIsModalOpen(false)}
                                 style={{ padding: '10px 20px', background: 'none', border: '1px solid #E5E7EB', borderRadius: '8px', cursor: 'pointer' }}
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 className="btn-primary"
                                 onClick={handleAssign}
                             >
-                                Confirm Assignment
+                                {t('common.save')}
                             </button>
                         </div>
                     </div>

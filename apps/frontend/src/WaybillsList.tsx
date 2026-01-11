@@ -1,7 +1,9 @@
 
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, MoreHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Waybill {
     id: string;
@@ -15,6 +17,7 @@ interface Waybill {
 }
 
 export const WaybillsList = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [waybills, setWaybills] = useState<Waybill[]>([]);
     const [filterStatus, setFilterStatus] = useState('ALL');
@@ -58,22 +61,23 @@ export const WaybillsList = () => {
         <div style={{ paddingBottom: '40px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>Waybills</h1>
-                    <p style={{ margin: '4px 0 0', color: '#6B7280' }}>Manage shipments and orders.</p>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>{t('waybill.listTitle')}</h1>
+                    <p style={{ margin: '4px 0 0', color: '#6B7280' }}>{t('waybill.listSubtitle')}</p>
                 </div>
-                <button onClick={() => navigate('/waybills/create')} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Plus size={20} /> New Waybill
+                <button data-testid="create-waybill-btn" onClick={() => navigate('/waybills/create')} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Plus size={20} /> {t('waybill.createTitle')}
                 </button>
             </div>
 
             <div className="card">
                 {/* Toolbar */}
                 <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+                    <div style={{ position: 'relative', width: '300px', flex: 'none' }}>
                         <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
                         <input
+                            data-testid="waybill-search-input"
                             type="text"
-                            placeholder="Search waybill #, customer, or destination..."
+                            placeholder={t('common.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{
@@ -87,6 +91,7 @@ export const WaybillsList = () => {
                         {['ALL', 'NEW', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED'].map(status => (
                             <button
                                 key={status}
+                                data-testid={`filter-${status}`}
                                 onClick={() => setFilterStatus(status)}
                                 style={{
                                     padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '14px',
@@ -94,7 +99,7 @@ export const WaybillsList = () => {
                                     color: filterStatus === status ? 'white' : '#4B5563'
                                 }}
                             >
-                                {status.charAt(0) + status.slice(1).toLowerCase().replace('_', ' ')}
+                                {status === 'ALL' ? 'ALL' : status.replace('_', ' ')}
                             </button>
                         ))}
                     </div>
@@ -104,18 +109,18 @@ export const WaybillsList = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>Waybill No</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>Customer</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>Route</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>Est. Price</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>Status</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>Created</th>
+                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.waybillNo')}</th>
+                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.customer')}</th>
+                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.route')}</th>
+                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.estPrice')}</th>
+                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('common.status')}</th>
+                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.created')}</th>
                             <th style={{ padding: '16px' }}></th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredWaybills.length > 0 ? filteredWaybills.map(wb => (
-                            <tr key={wb.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                            <tr key={wb.id} data-testid="waybill-row" style={{ borderBottom: '1px solid #F3F4F6' }}>
                                 <td style={{ padding: '16px', fontWeight: 500 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ padding: '8px', background: '#F3F4F6', borderRadius: '8px', color: '#6B7280' }}>
@@ -148,7 +153,7 @@ export const WaybillsList = () => {
                         )) : (
                             <tr>
                                 <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
-                                    No waybills found matching your filters.
+                                    {t('dashboard.noJobs')}
                                 </td>
                             </tr>
                         )}
