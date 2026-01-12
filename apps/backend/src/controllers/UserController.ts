@@ -19,7 +19,9 @@ export const createUser = (req: Request, res: Response) => {
 export const updateUser = (req: Request, res: Response) => {
     const idx = db.users.findIndex(u => u.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'User not found' });
-    db.users[idx] = { ...db.users[idx], ...req.body };
+    // If password is provided, prioritize it
+    const updateData = { ...req.body };
+    db.users[idx] = { ...db.users[idx], ...updateData };
     res.json(db.users[idx]);
 };
 

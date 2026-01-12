@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Edit, Trash2 } from 'lucide-react';
+import { Shield, Plus, Edit, Trash2, User as UserIcon } from 'lucide-react';
 import Modal from './components/Modal/Modal';
+import { API_BASE_URL } from './apiConfig';
 
 interface User {
     id: string;
@@ -19,12 +21,14 @@ export const UserManagement = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingUser, setEditingUser] = useState<Partial<User>>({});
+    const [editingUser, setEditingUser] = useState<Partial<User & { password?: string }>>({});
+    const [passwordMode, setPasswordMode] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
 
     const fetchData = async () => {
         const [uRes, rRes] = await Promise.all([
-            fetch('http://localhost:3001/api/users'),
-            fetch('http://localhost:3001/api/roles')
+            fetch(`${API_BASE_URL}/users`),
+            fetch(`${API_BASE_URL}/roles`)
         ]);
         if (uRes.ok) setUsers(await uRes.json());
         if (rRes.ok) setRoles(await rRes.json());
@@ -37,7 +41,7 @@ export const UserManagement = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         const isEdit = !!editingUser.id;
-        const url = isEdit ? `http://localhost:3001/api/users/${editingUser.id}` : 'http://localhost:3001/api/users';
+        const url = isEdit ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/users`;
         const method = isEdit ? 'PUT' : 'POST';
 
         await fetch(url, {
@@ -49,60 +53,88 @@ export const UserManagement = () => {
         fetchData();
     };
 
+    const handlePasswordUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newPassword) return;
+        await fetch(`${API_BASE_URL}/users/${editingUser.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: newPassword })
+        });
+        setPasswordMode(false);
+        setNewPassword('');
+        setIsModalOpen(false);
+        fetchData();
+    };
+
     const handleDelete = async (id: string) => {
-        if (!confirm('Delete user?')) return;
-        await fetch(`http://localhost:3001/api/users/${id}`, { method: 'DELETE' });
+        if (!confirm('Erase this agent from local records?')) return;
+        await fetch(`${API_BASE_URL}/users/${id}`, { method: 'DELETE' });
         fetchData();
     };
 
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-                <h1>User Management</h1>
+        <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>User Management</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Control system access and permissions for your team.</p>
+                </div>
                 <button
                     onClick={() => { setEditingUser({ status: 'ACTIVE' }); setIsModalOpen(true); }}
                     className="btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                    style={{ padding: '12px 24px' }}
                 >
-                    <Plus size={18} /> Add User
+                    <Plus size={20} /> Add Team Member
                 </button>
             </div>
 
-            <div className="card" style={{ background: 'white', padding: 20, borderRadius: 12 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="glass" style={{ padding: '0' }}>
+                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0' }}>
                     <thead>
-                        <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
-                            <th style={{ padding: 12, textAlign: 'left' }}>User</th>
-                            <th style={{ padding: 12, textAlign: 'left' }}>Role</th>
-                            <th style={{ padding: 12, textAlign: 'left' }}>Status</th>
-                            <th style={{ padding: 12, textAlign: 'left' }}>Actions</th>
+                        <tr style={{ background: 'var(--slate-50)' }}>
+                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '16px 0 0 0' }}>User Details</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Security Role</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Access Status</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0 16px 0 0' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {users.map(u => (
-                            <tr key={u.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                                <td style={{ padding: 12 }}>
-                                    <div style={{ fontWeight: 600 }}>{u.name}</div>
-                                    <div style={{ fontSize: 13, color: '#666' }}>{u.email}</div>
+                        {users.length === 0 ? (
+                            <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: 'var(--slate-400)' }}>No users found in the registry.</td></tr>
+                        ) : users.map(u => (
+                            <tr key={u.id} style={{ borderBottom: '1px solid var(--glass-border)' }} className="table-row-hover">
+                                <td style={{ padding: '20px 24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--slate-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-start)' }}>
+                                            <UserIcon size={20} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{u.name}</div>
+                                            <div style={{ fontSize: '13px', color: 'var(--slate-500)', fontWeight: 500 }}>{u.email}</div>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td style={{ padding: 12 }}>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
-                                        <Shield size={12} />
+                                <td style={{ padding: '20px 24px' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0,128,255,0.08)', color: 'var(--primary-start)', padding: '6px 14px', borderRadius: '30px', fontSize: '12px', fontWeight: 700 }}>
+                                        <Shield size={14} />
                                         {roles.find(r => r.id === u.roleId)?.name || u.roleId}
                                     </span>
                                 </td>
-                                <td style={{ padding: 12 }}>
-                                    <span style={{
-                                        padding: '2px 8px', borderRadius: 99, fontSize: 12,
-                                        background: u.status === 'ACTIVE' ? '#DEF7EC' : '#FDE8E8',
-                                        color: u.status === 'ACTIVE' ? '#03543F' : '#9B1C1C'
-                                    }}>
+                                <td style={{ padding: '20px 24px' }}>
+                                    <span className={u.status === 'ACTIVE' ? 'badge-blue' : 'badge-gray'} style={{ fontSize: '11px', fontWeight: 800 }}>
                                         {u.status}
                                     </span>
                                 </td>
-                                <td style={{ padding: 12 }}>
-                                    <button onClick={() => { setEditingUser(u); setIsModalOpen(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}><Edit size={16} /></button>
-                                    <button onClick={() => handleDelete(u.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'red' }}><Trash2 size={16} /></button>
+                                <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <button onClick={() => { setEditingUser(u); setIsModalOpen(true); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
+                                            <Edit size={16} />
+                                        </button>
+                                        <button onClick={() => handleDelete(u.id)} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px', color: '#EF4444' }}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -110,40 +142,68 @@ export const UserManagement = () => {
                 </table>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser.id ? 'Edit User' : 'Create User'}>
-                <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 4, fontSize: 14 }}>Name</label>
-                            <input required style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 4 }} value={editingUser.name || ''} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 4, fontSize: 14 }}>Email</label>
-                            <input required type="email" style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 4 }} value={editingUser.email || ''} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} />
-                        </div>
-                    </div>
+            <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingUser({}); setPasswordMode(false); }} title={passwordMode ? 'Modify Access Credentials' : (editingUser.id ? 'Edit User Profile' : 'Register New Mission Member')}>
+                <form onSubmit={passwordMode ? handlePasswordUpdate : handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '480px' }}>
+                    {!passwordMode ? (
+                        <>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Full Identity</label>
+                                    <input required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingUser.name || ''} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} placeholder="Mission Agent Name" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Secure Email</label>
+                                    <input required type="email" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingUser.email || ''} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} placeholder="agent@apony.com" />
+                                </div>
+                            </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 4, fontSize: 14 }}>Role</label>
-                            <select required style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 4 }} value={editingUser.roleId || ''} onChange={e => setEditingUser({ ...editingUser, roleId: e.target.value })}>
-                                <option value="">Select Role</option>
-                                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 4, fontSize: 14 }}>Status</label>
-                            <select style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 4 }} value={editingUser.status || 'ACTIVE'} onChange={e => setEditingUser({ ...editingUser, status: e.target.value as any })}>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Clearance Level</label>
+                                    <select required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }} value={editingUser.roleId || ''} onChange={e => setEditingUser({ ...editingUser, roleId: e.target.value })}>
+                                        <option value="">Select Protocol</option>
+                                        {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Deployment Status</label>
+                                    <select style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }} value={editingUser.status || 'ACTIVE'} onChange={e => setEditingUser({ ...editingUser, status: e.target.value as any })}>
+                                        <option value="ACTIVE">ACTIVE PROTOCOL</option>
+                                        <option value="INACTIVE">SUSPENDED</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                    <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                        <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: 10, background: 'white', border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
-                        <button type="submit" style={{ flex: 1, padding: 10, background: 'blue', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Save</button>
-                    </div>
+                            {!editingUser.id && (
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Initial Passkey</label>
+                                    <input required type="password" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingUser.password || ''} onChange={e => setEditingUser({ ...editingUser, password: e.target.value })} placeholder="Set Entry Cipher" />
+                                </div>
+                            )}
+
+                            {editingUser.id && (
+                                <button type="button" onClick={() => setPasswordMode(true)} className="btn-secondary" style={{ padding: '10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                    <Shield size={14} /> Update Authorization Cipher
+                                </button>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ flex: 1 }}>Abort</button>
+                                <button type="submit" className="btn-primary" style={{ flex: 1 }}>{editingUser.id ? 'Authorize Updates' : 'Initialize Agent'}</button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>New Authorization Cipher</label>
+                                <input required type="password" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter New Cipher" />
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <button type="button" onClick={() => setPasswordMode(false)} className="btn-secondary" style={{ flex: 1 }}>Return</button>
+                                <button type="submit" className="btn-primary" style={{ flex: 1 }}>Recode Authorization</button>
+                            </div>
+                        </>
+                    )}
                 </form>
             </Modal>
         </div>

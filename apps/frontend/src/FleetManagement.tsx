@@ -1,37 +1,46 @@
+
 import { useEffect, useState } from 'react';
-import { Truck, User, DollarSign, Plus, Calendar } from 'lucide-react';
+import { Truck, User, DollarSign, Plus, Calendar, MoreHorizontal, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
+import { API_BASE_URL } from './apiConfig';
 
 export const FleetManagement = () => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'drivers' | 'vehicles' | 'expenses' | 'schedule'>('drivers');
     const [data, setData] = useState<any>({ drivers: [], vehicles: [], expenses: [] });
 
+    const [trips, setTrips] = useState<any[]>([]);
+
+    const fetchData = async () => {
+        const API_URL = API_BASE_URL;
+        try {
+            const [driversRes, vehiclesRes, expensesRes, tripsRes] = await Promise.all([
+                fetch(`${API_URL}/drivers`),
+                fetch(`${API_URL}/vehicles`),
+                fetch(`${API_URL}/expenses`),
+                fetch(`${API_URL}/trips`)
+            ]);
+
+            const drivers = driversRes.ok ? await driversRes.json() : [];
+            const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : [];
+            const expenses = expensesRes.ok ? await expensesRes.json() : [];
+            const trips = tripsRes.ok ? await tripsRes.json() : [];
+
+            setData({
+                drivers: Array.isArray(drivers) ? drivers : [],
+                vehicles: Array.isArray(vehicles) ? vehicles : [],
+                expenses: Array.isArray(expenses) ? expenses : []
+            });
+            setTrips(Array.isArray(trips) ? trips : []);
+        } catch (e) {
+            console.error("Failed to fetch fleet data", e);
+            setData({ drivers: [], vehicles: [], expenses: [] });
+            setTrips([]);
+        }
+    };
+
     useEffect(() => {
-        const API_URL = 'http://localhost:3001/api';
-        const fetchData = async () => {
-            try {
-                const [driversRes, vehiclesRes, expensesRes] = await Promise.all([
-                    fetch(`${API_URL}/drivers`),
-                    fetch(`${API_URL}/vehicles`),
-                    fetch(`${API_URL}/expenses`)
-                ]);
-
-                const drivers = driversRes.ok ? await driversRes.json() : [];
-                const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : [];
-                const expenses = expensesRes.ok ? await expensesRes.json() : [];
-
-                setData({
-                    drivers: Array.isArray(drivers) ? drivers : [],
-                    vehicles: Array.isArray(vehicles) ? vehicles : [],
-                    expenses: Array.isArray(expenses) ? expenses : []
-                });
-            } catch (e) {
-                console.error("Failed to fetch fleet data", e);
-                setData({ drivers: [], vehicles: [], expenses: [] });
-            }
-        };
         fetchData();
     }, []);
 
@@ -39,12 +48,15 @@ export const FleetManagement = () => {
         <button
             onClick={() => setActiveTab(id)}
             style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '12px 24px',
-                border: 'none', background: 'none',
-                borderBottom: activeTab === id ? '2px solid var(--color-primary)' : '2px solid transparent',
-                color: activeTab === id ? 'var(--color-primary)' : '#6B7280',
-                fontWeight: 500, cursor: 'pointer', fontSize: '15px'
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                background: activeTab === id ? 'var(--primary-grad)' : 'transparent',
+                color: activeTab === id ? 'white' : 'var(--slate-500)',
+                fontWeight: 700, cursor: 'pointer', fontSize: '14px',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: activeTab === id ? '0 4px 12px rgba(0, 128, 255, 0.2)' : 'none'
             }}
         >
             <Icon size={18} />
@@ -52,11 +64,60 @@ export const FleetManagement = () => {
         </button>
     );
 
-    // Mock Schedule Data for Visual Timeline
     const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const MOCK_TASKS: any = {
-        'driver-1': { day: 0, title: 'Trip TO-QC', hours: 8 },
-        'driver-2': { day: 2, title: 'Local Delivery', hours: 4 }
+    const [draggedTrip, setDraggedTrip] = useState<any>(null);
+
+    const handleDragStart = (e: React.DragEvent, trip: any) => {
+        setDraggedTrip(trip);
+        e.dataTransfer.effectAllowed = 'move';
+        // Add a class for styling if needed
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = async (e: React.DragEvent, driverId: string, dayIdx: number) => {
+        e.preventDefault();
+        if (!draggedTrip) return;
+
+        // Calculate new dates based on today's week start
+        const today = new Date();
+        const currentDay = today.getDay(); // 0 is Sun, 1 is Mon
+        const diff = today.getDate() - (currentDay === 0 ? 6 : currentDay - 1); // Get Mon
+        const monday = new Date(today.setDate(diff));
+
+        const targetDate = new Date(monday);
+        targetDate.setDate(monday.getDate() + dayIdx);
+
+        // Preserve time but change date
+        const oldStart = new Date(draggedTrip.start_time_est);
+        const oldEnd = new Date(draggedTrip.end_time_est);
+        const duration = oldEnd.getTime() - oldStart.getTime();
+
+        const newStart = new Date(targetDate);
+        newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
+        const newEnd = new Date(newStart.getTime() + duration);
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/trips/${draggedTrip.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    driver_id: driverId,
+                    start_time_est: newStart.toISOString(),
+                    end_time_est: newEnd.toISOString()
+                })
+            });
+
+            if (res.ok) {
+                fetchData();
+            }
+        } catch (error) {
+            console.error("Drop failed", error);
+        }
+        setDraggedTrip(null);
     };
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,7 +134,7 @@ export const FleetManagement = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const endpoint = activeTab; // 'drivers', 'vehicles', 'expenses'
+        const endpoint = activeTab;
         if (endpoint === 'schedule') {
             alert(t('common.comingSoon'));
             setIsModalOpen(false);
@@ -81,7 +142,6 @@ export const FleetManagement = () => {
         }
 
         try {
-            // Set defaults if missing
             const payload = { ...newEntry };
             if (activeTab === 'drivers') payload.status = payload.status || 'IDLE';
             if (activeTab === 'vehicles') payload.status = payload.status || 'IDLE';
@@ -91,7 +151,7 @@ export const FleetManagement = () => {
             }
 
             const isEdit = !!payload.id;
-            const url = isEdit ? `http://localhost:3001/api/${endpoint}/${payload.id}` : `http://localhost:3001/api/${endpoint}`;
+            const url = isEdit ? `${API_BASE_URL}/${endpoint}/${payload.id}` : `${API_BASE_URL}/${endpoint}`;
             const method = isEdit ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -103,226 +163,247 @@ export const FleetManagement = () => {
             if (res.ok) {
                 setIsModalOpen(false);
                 setNewEntry({});
-                // Refetch data
-                const API_URL = 'http://localhost:3001/api';
+                const API_URL = API_BASE_URL;
                 const [driversRes, vehiclesRes, expensesRes] = await Promise.all([
                     fetch(`${API_URL}/drivers`),
                     fetch(`${API_URL}/vehicles`),
                     fetch(`${API_URL}/expenses`)
                 ]);
-                const drivers = driversRes.ok ? await driversRes.json() : [];
-                const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : [];
-                const expenses = expensesRes.ok ? await expensesRes.json() : [];
                 setData({
-                    drivers: Array.isArray(drivers) ? drivers : [],
-                    vehicles: Array.isArray(vehicles) ? vehicles : [],
-                    expenses: Array.isArray(expenses) ? expenses : []
+                    drivers: driversRes.ok ? await driversRes.json() : [],
+                    vehicles: vehiclesRes.ok ? await vehiclesRes.json() : [],
+                    expenses: expensesRes.ok ? await expensesRes.json() : []
                 });
-            } else {
-                alert('Failed to save entry');
             }
         } catch (error) {
             console.error(error);
-            alert('Error saving entry');
         }
     };
 
-    const inputStyle = {
-        width: '100%',
-        padding: '10px',
-        border: '1px solid #D1D5DB',
-        borderRadius: '6px'
-    };
-
-    const labelStyle = {
-        display: 'block',
-        fontSize: '14px',
-        fontWeight: 500,
-        color: '#374151'
-    };
-
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h1 style={{ margin: 0, fontSize: '24px' }}>{t('fleet.title')}</h1>
+        <div style={{ animation: 'fadeIn 0.5s ease-out', paddingBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>{t('fleet.title')}</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Real-time coordination and management of your global fleet assets.</p>
+                </div>
                 <button
                     className="btn-primary"
                     onClick={handleAddClick}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    style={{ padding: '12px 24px' }}
                 >
-                    <Plus size={18} />
+                    <Plus size={20} />
                     {t('common.add')} {activeTab === 'expenses' ? t('fleet.expense') : activeTab === 'schedule' ? 'Task' : activeTab === 'drivers' ? t('fleet.driver') : t('fleet.vehicle')}
                 </button>
             </div>
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', marginBottom: '24px' }}>
+            {/* Premium Tabs */}
+            <div className="glass" style={{ display: 'inline-flex', gap: '4px', padding: '6px', marginBottom: '32px' }}>
                 <TabButton id="drivers" label={t('fleet.drivers')} icon={User} />
                 <TabButton id="vehicles" label={t('fleet.vehicles')} icon={Truck} />
                 <TabButton id="expenses" label={t('fleet.expenses')} icon={DollarSign} />
                 <TabButton id="schedule" label="Schedule" icon={Calendar} />
             </div>
 
-            {/* Content */}
-            <div className="card">
+            {/* Content Container */}
+            <div className="glass" style={{ padding: '0', overflow: 'hidden' }}>
                 {activeTab === 'schedule' ? (
                     <div style={{ overflowX: 'auto' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '150px repeat(7, 1fr)', gap: '1px', background: '#E5E7EB', border: '1px solid #E5E7EB' }}>
-                            {/* Header */}
-                            <div style={{ background: '#F9FAFB', padding: '12px', fontWeight: 600 }}>Driver</div>
-                            {DAYS.map(day => (
-                                <div key={day} style={{ background: '#F9FAFB', padding: '12px', textAlign: 'center', fontWeight: 600 }}>{day}</div>
-                            ))}
-
-                            {/* Rows */}
-                            {data.drivers.length === 0 && <div style={{ background: 'white', padding: '20px', gridColumn: 'span 8', textAlign: 'center' }}>No drivers found</div>}
-
-                            {data.drivers.map((driver: any, idx: number) => (
-                                <div key={driver.id || `driver-${idx}`} style={{ display: 'contents' }}>
-                                    <div style={{ background: 'white', padding: '12px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#E5E7EB' }}></div>
-                                        <span style={{ fontSize: '13px', fontWeight: 500 }}>{driver.name}</span>
-                                    </div>
-                                    {DAYS.map((_, dayIdx) => {
-                                        const task = MOCK_TASKS[`driver-${idx + 1}`]; // Mock matching
-                                        const hasTask = task && task.day === dayIdx;
-                                        return (
-                                            <div key={`c-${idx}-${dayIdx}`} style={{ background: 'white', padding: '4px', borderBottom: '1px solid #F3F4F6', height: '50px' }}>
-                                                {hasTask && (
-                                                    <div style={{
-                                                        background: 'var(--color-primary)', opacity: 0.8, color: 'white',
-                                                        fontSize: '11px', padding: '4px 8px', borderRadius: '4px',
-                                                        height: '100%', display: 'flex', alignItems: 'center'
-                                                    }}>
-                                                        {task.title}
-                                                    </div>
-                                                )}
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0' }}>
+                            <thead>
+                                <tr style={{ background: 'var(--slate-50)' }}>
+                                    <th style={{ width: '200px', padding: '20px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderRight: '1px solid var(--glass-border)' }}>Operations Team</th>
+                                    {DAYS.map(day => (
+                                        <th key={day} style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: '120px' }}>{day}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.drivers.length === 0 ? (
+                                    <tr><td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>No drivers assigned to the current roster.</td></tr>
+                                ) : data.drivers.map((driver: any, idx: number) => (
+                                    <tr key={driver.id || `driver-${idx}`} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                        <td style={{ padding: '20px 24px', borderRight: '1px solid var(--glass-border)', background: 'var(--slate-50)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'var(--slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-start)' }}>
+                                                    <User size={18} />
+                                                </div>
+                                                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--slate-900)' }}>{driver.name}</span>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
+                                        </td>
+                                        {DAYS.map((_, dayIdx) => {
+                                            const tripInCell = trips.find(t => {
+                                                if (t.driver_id !== driver.id) return false;
+                                                const tripDay = new Date(t.start_time_est).getDay();
+                                                const adjustedDay = tripDay === 0 ? 6 : tripDay - 1; // 0=Mon...6=Sun
+                                                return adjustedDay === dayIdx;
+                                            });
+
+                                            return (
+                                                <td
+                                                    key={`c-${idx}-${dayIdx}`}
+                                                    onDragOver={handleDragOver}
+                                                    onDrop={(e) => handleDrop(e, driver.id, dayIdx)}
+                                                    style={{
+                                                        padding: '12px',
+                                                        borderRight: dayIdx < 6 ? '1px solid var(--glass-border)' : 'none',
+                                                        position: 'relative',
+                                                        background: draggedTrip ? 'rgba(0,128,255,0.02)' : 'transparent',
+                                                        transition: 'background 0.2s'
+                                                    }}
+                                                >
+                                                    {tripInCell && (
+                                                        <div
+                                                            draggable
+                                                            onDragStart={(e) => handleDragStart(e, tripInCell)}
+                                                            style={{
+                                                                background: 'var(--primary-grad)',
+                                                                color: 'white',
+                                                                fontSize: '11px',
+                                                                fontWeight: 800,
+                                                                padding: '8px 12px',
+                                                                borderRadius: '10px',
+                                                                boxShadow: '0 4px 12px rgba(0, 128, 255, 0.2)',
+                                                                cursor: 'grab',
+                                                                zIndex: 10,
+                                                                position: 'relative'
+                                                            }}
+                                                        >
+                                                            Mission {tripInCell.id.split('-')[1]}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                                {activeTab === 'drivers' && (
-                                    <>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.name')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.phone')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('common.status')}</th>
-                                    </>
-                                )}
-                                {activeTab === 'vehicles' && (
-                                    <>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.plateId')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.model')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.capacity')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('common.status')}</th>
-                                    </>
-                                )}
-                                {activeTab === 'expenses' && (
-                                    <>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.category')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.amount')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('fleet.date')}</th>
-                                        <th style={{ padding: '16px', color: '#6B7280' }}>{t('common.status')}</th>
-                                    </>
-                                )}
-                                <th style={{ padding: '16px', color: '#6B7280' }}>{t('common.actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data[activeTab]?.map((item: any) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: 'var(--slate-50)' }}>
                                     {activeTab === 'drivers' && (
                                         <>
-                                            <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E5E7EB', backgroundImage: `url(${item.avatar_url})`, backgroundSize: 'cover' }}></div>
-                                                <span style={{ fontWeight: 500 }}>{item.name}</span>
-                                            </td>
-                                            <td style={{ padding: '16px' }}>{item.phone}</td>
-                                            <td style={{ padding: '16px' }}>
-                                                <span className={`badge ${item.status === 'IDLE' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
-                                            </td>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.name')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.phone')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('common.status')}</th>
                                         </>
                                     )}
                                     {activeTab === 'vehicles' && (
                                         <>
-                                            <td style={{ padding: '16px', fontWeight: 500 }}>{item.plate}</td>
-                                            <td style={{ padding: '16px' }}>{item.model}</td>
-                                            <td style={{ padding: '16px' }}>{item.capacity}</td>
-                                            <td style={{ padding: '16px' }}>
-                                                <span className={`badge ${item.status === 'IDLE' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
-                                            </td>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.plateId')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.model')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.capacity')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('common.status')}</th>
                                         </>
                                     )}
                                     {activeTab === 'expenses' && (
                                         <>
-                                            <td style={{ padding: '16px', fontWeight: 500 }}>{item.category}</td>
-                                            <td style={{ padding: '16px' }}>${item.amount.toFixed(2)}</td>
-                                            <td style={{ padding: '16px' }}>{new Date(item.date).toLocaleDateString()}</td>
-                                            <td style={{ padding: '16px' }}>
-                                                <span className={`badge ${item.status === 'PAID' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
-                                            </td>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.category')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.amount')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.date')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('common.status')}</th>
                                         </>
                                     )}
-                                    <td style={{ padding: '16px' }}>
-                                        <button
-                                            onClick={() => {
-                                                setNewEntry(item);
-                                                setIsModalOpen(true);
-                                            }}
-                                            style={{ color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer' }}
-                                        >
-                                            {t('common.edit')}
-                                        </button>
-                                    </td>
+                                    <th style={{ padding: '20px 24px', textAlign: 'right' }}></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {data[activeTab]?.map((item: any) => (
+                                    <tr key={item.id} style={{ borderBottom: '1px solid var(--glass-border)' }} className="table-row-hover">
+                                        {activeTab === 'drivers' && (
+                                            <>
+                                                <td style={{ padding: '20px 24px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                        <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'var(--slate-100)', backgroundImage: `url(${item.avatar_url})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--glass-border)' }}>
+                                                            {!item.avatar_url && <User size={20} color="var(--primary-start)" style={{ margin: '10px' }} />}
+                                                        </div>
+                                                        <span style={{ fontWeight: 800, color: 'var(--slate-900)' }}>{item.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--slate-600)' }}>{item.phone}</td>
+                                                <td style={{ padding: '20px 24px' }}>
+                                                    <span className={`badge ${item.status === 'IDLE' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
+                                                </td>
+                                            </>
+                                        )}
+                                        {activeTab === 'vehicles' && (
+                                            <>
+                                                <td style={{ padding: '20px 24px', fontWeight: 800, color: 'var(--slate-900)' }}>{item.plate}</td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--slate-700)' }}>{item.model}</td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 700 }}>{item.capacity} Tons</td>
+                                                <td style={{ padding: '20px 24px' }}>
+                                                    <span className={`badge ${item.status === 'IDLE' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
+                                                </td>
+                                            </>
+                                        )}
+                                        {activeTab === 'expenses' && (
+                                            <>
+                                                <td style={{ padding: '20px 24px', fontWeight: 800, color: 'var(--slate-900)' }}>{item.category}</td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 900, color: 'var(--primary-start)' }}>${item.amount.toFixed(2)}</td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--slate-500)' }}>{new Date(item.date).toLocaleDateString()}</td>
+                                                <td style={{ padding: '20px 24px' }}>
+                                                    <span className={`badge ${item.status === 'PAID' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
+                                                </td>
+                                            </>
+                                        )}
+                                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                <button onClick={() => { setNewEntry(item); setIsModalOpen(true); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
+                                                    <MoreHorizontal size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={`Add ${activeTab === 'drivers' ? t('fleet.driver') : activeTab === 'vehicles' ? t('fleet.vehicle') : activeTab === 'expenses' ? t('fleet.expense') : 'Task'}`}
+                title={newEntry.id ? `Update ${activeTab.slice(0, -1)} Registry` : `Register New ${activeTab.slice(0, -1)}`}
             >
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {activeTab === 'drivers' && (
-                        <div style={{ display: 'grid', gap: 16 }}>
+                        <div style={{ display: 'grid', gap: '20px' }}>
                             <div>
-                                <label style={labelStyle}>{t('fleet.name')}</label>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Driver Full Name</label>
                                 <input
                                     required
-                                    style={inputStyle}
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                     value={newEntry.name || ''}
                                     onChange={e => handleInputChange('name', e.target.value)}
                                 />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.phone')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Contact Number</label>
                                     <input
                                         required
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                         value={newEntry.phone || ''}
                                         onChange={e => handleInputChange('phone', e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Status</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Operational Status</label>
                                     <select
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.status || 'IDLE'}
                                         onChange={e => handleInputChange('status', e.target.value)}
                                     >
-                                        <option value="IDLE">IDLE</option>
-                                        <option value="ON_DUTY">ON DUTY</option>
+                                        <option value="IDLE">IDLE / STANDBY</option>
+                                        <option value="ON_DUTY">ACTIVE DUTY</option>
                                     </select>
                                 </div>
                             </div>
@@ -330,48 +411,48 @@ export const FleetManagement = () => {
                     )}
 
                     {activeTab === 'vehicles' && (
-                        <div style={{ display: 'grid', gap: 16 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div style={{ display: 'grid', gap: '20px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.plateId')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>License Plate</label>
                                     <input
                                         required
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                         value={newEntry.plate || ''}
                                         onChange={e => handleInputChange('plate', e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.model')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Vehicle Model</label>
                                     <input
                                         required
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                         value={newEntry.model || ''}
                                         onChange={e => handleInputChange('model', e.target.value)}
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.capacity')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Payload Capacity (T)</label>
                                     <input
                                         required
                                         type="number"
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                         value={newEntry.capacity || ''}
                                         onChange={e => handleInputChange('capacity', e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Status</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Status</label>
                                     <select
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.status || 'IDLE'}
                                         onChange={e => handleInputChange('status', e.target.value)}
                                     >
                                         <option value="IDLE">IDLE</option>
                                         <option value="IN_TRANSIT">IN TRANSIT</option>
-                                        <option value="MAINTENANCE">MAINTENANCE</option>
+                                        <option value="MAINTENANCE">UNDER SERVICE</option>
                                     </select>
                                 </div>
                             </div>
@@ -379,79 +460,75 @@ export const FleetManagement = () => {
                     )}
 
                     {activeTab === 'expenses' && (
-                        <div style={{ display: 'grid', gap: 16 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div style={{ display: 'grid', gap: '20px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.category')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Expense Category</label>
                                     <select
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.category || 'Fuel'}
                                         onChange={e => handleInputChange('category', e.target.value)}
                                     >
-                                        <option value="Fuel">Fuel</option>
-                                        <option value="Maintenance">Maintenance</option>
-                                        <option value="Toll">Toll</option>
-                                        <option value="Insurance">Insurance</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Fuel">Fuel / Diesel</option>
+                                        <option value="Maintenance">Mechanical Repair</option>
+                                        <option value="Toll">Road Tolls</option>
+                                        <option value="Insurance">Fleet Insurance</option>
+                                        <option value="Other">Miscellaneous</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.amount')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Transaction Amount ($)</label>
                                     <input
                                         required
                                         type="number"
                                         step="0.01"
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 900, color: 'var(--primary-start)' }}
                                         value={newEntry.amount || ''}
                                         onChange={e => handleInputChange('amount', parseFloat(e.target.value))}
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>{t('fleet.date')}</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Transaction Date</label>
                                     <input
                                         required
                                         type="date"
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                         value={newEntry.date ? newEntry.date.split('T')[0] : ''}
                                         onChange={e => handleInputChange('date', e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Status</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Payment Status</label>
                                     <select
-                                        style={inputStyle}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.status || 'PENDING'}
                                         onChange={e => handleInputChange('status', e.target.value)}
                                     >
-                                        <option value="PENDING">PENDING</option>
-                                        <option value="PAID">PAID</option>
+                                        <option value="PENDING">SETTLEMENT PENDING</option>
+                                        <option value="PAID">COMPLETED / PAID</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            style={{
-                                flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB',
-                                background: 'white', color: '#374151', cursor: 'pointer', fontWeight: 500
-                            }}
+                            className="btn-secondary"
+                            style={{ flex: 1 }}
                         >
-                            {t('common.cancel')}
+                            Dismiss
                         </button>
                         <button
                             type="submit"
-                            style={{
-                                flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
-                                background: 'var(--color-primary)', color: 'white', cursor: 'pointer', fontWeight: 500
-                            }}
+                            className="btn-primary"
+                            style={{ flex: 1 }}
                         >
-                            {t('common.save')}
+                            {newEntry.id ? 'Save Updates' : 'Confirm Registration'}
                         </button>
                     </div>
                 </form>

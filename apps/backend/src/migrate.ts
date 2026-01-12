@@ -16,6 +16,29 @@ const migrate = async () => {
         status VARCHAR(20) DEFAULT 'IDLE',
         avatar_url TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(100),
+        roleId VARCHAR(50),
+        status VARCHAR(20) DEFAULT 'ACTIVE',
+        lastLogin TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS customers (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100),
+        phone VARCHAR(20),
+        address TEXT,
+        businessType VARCHAR(50),
+        taxId VARCHAR(50),
+        creditLimit NUMERIC DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     await client.query(`
@@ -57,15 +80,30 @@ const migrate = async () => {
         delivery_date DATE,
         reference_code VARCHAR(100),
         pallet_count INTEGER,
+        item_count INTEGER,
+        pro_number VARCHAR(100),
+        po_list TEXT,
         total_weight NUMERIC,
         time_in VARCHAR(20),
         time_out VARCHAR(20),
         distance NUMERIC,
         FOREIGN KEY (trip_id) REFERENCES trips(id)
       );
-    `);
 
-    await client.query(`
+      -- Idempotent column additions for existing installations
+      DO $$ 
+      BEGIN 
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='item_count') THEN
+              ALTER TABLE waybills ADD COLUMN item_count INTEGER;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='pro_number') THEN
+              ALTER TABLE waybills ADD COLUMN pro_number VARCHAR(100);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='po_list') THEN
+              ALTER TABLE waybills ADD COLUMN po_list TEXT;
+          END IF;
+      END $$;
+
       CREATE TABLE IF NOT EXISTS expenses (
         id VARCHAR(50) PRIMARY KEY,
         category VARCHAR(50),
@@ -150,6 +188,21 @@ const migrate = async () => {
       ('V-101', 'TX-101', 'Volvo VNL', '53ft', 'BUSY'),
       ('V-102', 'TX-102', 'Peterbilt 579', '53ft', 'IDLE'),
       ('V-103', 'TX-103', 'Kenworth T680', '53ft', 'BUSY')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // Users
+    await client.query(`
+      INSERT INTO users (id, name, email, password, roleId, status) VALUES 
+      ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
+      ('U-02', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
+      ON CONFLICT (id) DO NOTHING;
+
+      -- Customers
+      INSERT INTO customers (id, name, email, phone, businessType, status) VALUES 
+      ('C-01', 'Apony Prime', 'prime@apony.com', '437-111-2222', 'VIP', 'ACTIVE'),
+      ('C-02', 'Global Logistics Co.', 'info@global.com', '437-333-4444', 'STANDARD', 'ACTIVE'),
+      ('C-03', 'Retail Giant', 'support@retail.com', '437-555-6666', 'STANDARD', 'ACTIVE')
       ON CONFLICT (id) DO NOTHING;
     `);
 

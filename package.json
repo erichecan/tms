@@ -1,1 +1,13 @@
-{"name": "tms-2.0-monorepo", "private": true, "workspaces": ["apps/*"]}
+{
+    "name": "tms-2.0-monorepo",
+    "private": true,
+    "workspaces": [
+        "apps/*"
+    ],
+    "scripts": {
+        "install:all": "npm install",
+        "build:backend": "npm run build --workspace=backend",
+        "build:frontend": "npm run build --workspace=frontend",
+        "build": "npm run build:backend && npm run build:frontend"
+    }
+}

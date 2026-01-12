@@ -1,9 +1,8 @@
-
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { API_BASE_URL } from './apiConfig';
 
 interface Waybill {
     id: string;
@@ -26,7 +25,7 @@ export const WaybillsList = () => {
     useEffect(() => {
         const fetchWaybills = async () => {
             try {
-                const res = await fetch('http://localhost:3001/api/waybills');
+                const res = await fetch(`${API_BASE_URL}/waybills`);
                 if (res.ok) {
                     const data = await res.json();
                     setWaybills(Array.isArray(data) ? data : []);
@@ -58,22 +57,22 @@ export const WaybillsList = () => {
     };
 
     return (
-        <div style={{ paddingBottom: '40px' }}>
+        <div style={{ paddingBottom: '40px', animation: 'fadeIn 0.5s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>{t('waybill.listTitle')}</h1>
-                    <p style={{ margin: '4px 0 0', color: '#6B7280' }}>{t('waybill.listSubtitle')}</p>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>{t('waybill.listTitle')}</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('waybill.listSubtitle')}</p>
                 </div>
-                <button data-testid="create-waybill-btn" onClick={() => navigate('/waybills/create')} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button data-testid="create-waybill-btn" onClick={() => navigate('/waybills/create')} className="btn-primary" style={{ padding: '12px 28px' }}>
                     <Plus size={20} /> {t('waybill.createTitle')}
                 </button>
             </div>
 
-            <div className="card">
+            <div className="glass" style={{ padding: '24px' }}>
                 {/* Toolbar */}
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', width: '300px', flex: 'none' }}>
-                        <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '24px', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', width: '380px', flex: 'none' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
                         <input
                             data-testid="waybill-search-input"
                             type="text"
@@ -81,22 +80,24 @@ export const WaybillsList = () => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{
-                                width: '100%', padding: '10px 10px 10px 40px',
-                                border: '1px solid #E5E7EB', borderRadius: '8px', outline: 'none'
+                                width: '100%', padding: '12px 12px 12px 48px',
+                                border: '1px solid var(--glass-border)', borderRadius: '12px', outline: 'none',
+                                background: 'var(--slate-50)', fontWeight: 600, fontSize: '14px'
                             }}
                         />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="glass" style={{ display: 'flex', gap: '4px', padding: '4px' }}>
                         {['ALL', 'NEW', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED'].map(status => (
                             <button
                                 key={status}
                                 data-testid={`filter-${status}`}
                                 onClick={() => setFilterStatus(status)}
                                 style={{
-                                    padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '14px',
-                                    background: filterStatus === status ? 'var(--color-primary)' : '#F3F4F6',
-                                    color: filterStatus === status ? 'white' : '#4B5563'
+                                    padding: '8px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '12px',
+                                    background: filterStatus === status ? 'var(--primary-grad)' : 'transparent',
+                                    color: filterStatus === status ? 'white' : 'var(--slate-500)',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
                             >
                                 {status === 'ALL' ? 'ALL' : status.replace('_', ' ')}
@@ -106,59 +107,62 @@ export const WaybillsList = () => {
                 </div>
 
                 {/* Table */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.waybillNo')}</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.customer')}</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.route')}</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.estPrice')}</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('common.status')}</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontSize: '12px', textTransform: 'uppercase' }}>{t('waybill.created')}</th>
-                            <th style={{ padding: '16px' }}></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredWaybills.length > 0 ? filteredWaybills.map(wb => (
-                            <tr key={wb.id} data-testid="waybill-row" style={{ borderBottom: '1px solid #F3F4F6' }}>
-                                <td style={{ padding: '16px', fontWeight: 500 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ padding: '8px', background: '#F3F4F6', borderRadius: '8px', color: '#6B7280' }}>
-                                            <FileText size={16} />
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ background: 'var(--slate-50)' }}>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '12px 0 0 0' }}>{t('waybill.waybillNo')}</th>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.customer')}</th>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.route')}</th>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.estPrice')}</th>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('common.status')}</th>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.created')}</th>
+                                <th style={{ padding: '16px 20px', textAlign: 'right', borderRadius: '0 12px 0 0' }}></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredWaybills.length > 0 ? filteredWaybills.map(wb => (
+                                <tr key={wb.id} data-testid="waybill-row" style={{ borderBottom: '1px solid var(--glass-border)' }} className="table-row-hover">
+                                    <td style={{ padding: '20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                            <div style={{ padding: '10px', background: 'var(--slate-100)', borderRadius: '10px', color: 'var(--primary-start)' }}>
+                                                <FileText size={18} />
+                                            </div>
+                                            <span style={{ fontWeight: 800, color: 'var(--slate-900)' }}>{wb.waybill_no}</span>
                                         </div>
-                                        {wb.waybill_no}
-                                    </div>
-                                </td>
-                                <td style={{ padding: '16px', color: '#374151' }}>{wb.customer_id}</td>
-                                <td style={{ padding: '16px', color: '#374151' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span>{wb.origin}</span>
-                                        <span style={{ color: '#9CA3AF' }}>→</span>
-                                        <span>{wb.destination}</span>
-                                    </div>
-                                </td>
-                                <td style={{ padding: '16px', fontWeight: 500 }}>${wb.price_estimated}</td>
-                                <td style={{ padding: '16px' }}>
-                                    <span className={`badge ${getStatusColor(wb.status)}`}>{wb.status}</span>
-                                </td>
-                                <td style={{ padding: '16px', color: '#6B7280', fontSize: '14px' }}>
-                                    {new Date(wb.created_at).toLocaleDateString()}
-                                </td>
-                                <td style={{ padding: '16px', textAlign: 'right' }}>
-                                    <button style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9CA3AF' }}>
-                                        <MoreHorizontal size={20} />
-                                    </button>
-                                </td>
-                            </tr>
-                        )) : (
-                            <tr>
-                                <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
-                                    {t('dashboard.noJobs')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                    </td>
+                                    <td style={{ padding: '20px', fontWeight: 600, color: 'var(--slate-700)' }}>{wb.customer_id}</td>
+                                    <td style={{ padding: '20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontWeight: 700, fontSize: '14px' }}>{wb.origin}</span>
+                                            <span style={{ color: 'var(--primary-start)', fontWeight: 800 }}>→</span>
+                                            <span style={{ fontWeight: 700, fontSize: '14px' }}>{wb.destination}</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '20px', fontWeight: 900, fontSize: '15px' }}>${wb.price_estimated}</td>
+                                    <td style={{ padding: '20px' }}>
+                                        <span className={`badge ${getStatusColor(wb.status)}`} style={{ fontSize: '11px', fontWeight: 800 }}>{wb.status}</span>
+                                    </td>
+                                    <td style={{ padding: '20px', color: 'var(--slate-500)', fontSize: '13px', fontWeight: 600 }}>
+                                        {new Date(wb.created_at).toLocaleDateString()}
+                                    </td>
+                                    <td style={{ padding: '20px', textAlign: 'right' }}>
+                                        <button className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
+                                            <MoreHorizontal size={20} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={7} style={{ padding: '80px', textAlign: 'center', color: 'var(--slate-400)' }}>
+                                        <div style={{ marginBottom: '16px' }}><Search size={48} opacity={0.2} /></div>
+                                        <div style={{ fontWeight: 600 }}>{t('dashboard.noJobs')}</div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

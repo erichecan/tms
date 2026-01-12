@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
-import { Driver, Vehicle, Expense } from '../types';
+import { Driver, Vehicle, Expense, Trip } from '../types';
 
 // --- Drivers ---
 export const getDrivers = (req: Request, res: Response) => {
@@ -66,4 +66,15 @@ export const deleteExpense = (req: Request, res: Response) => {
     if (idx === -1) return res.status(404).send();
     db.expenses.splice(idx, 1);
     res.status(204).send();
+};
+// --- Trips ---
+export const getTrips = (req: Request, res: Response) => {
+    res.json(db.trips);
+};
+
+export const updateTrip = (req: Request, res: Response) => {
+    const idx = db.trips.findIndex(t => t.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Trip not found' });
+    db.trips[idx] = { ...db.trips[idx], ...req.body };
+    res.json(db.trips[idx]);
 };

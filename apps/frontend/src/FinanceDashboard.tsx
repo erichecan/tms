@@ -1,12 +1,13 @@
 
 import { useEffect, useState } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from './apiConfig';
 
 export const FinanceDashboard = () => {
     const [metrics, setMetrics] = useState<any>(null);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/finance/dashboard')
+        fetch(`${API_BASE_URL}/finance/dashboard`)
             .then(res => res.json())
             .then(data => setMetrics(data))
             .catch(err => console.error(err));

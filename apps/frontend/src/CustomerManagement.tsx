@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from 'react';
-import { Users, Plus, Edit, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Plus, Edit, Trash2, Building2, Mail, Phone as PhoneIcon, MapPin, DollarSign } from 'lucide-react';
+// import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
+import { API_BASE_URL } from './apiConfig';
 
 interface Customer {
     id: string;
@@ -15,7 +17,7 @@ interface Customer {
 }
 
 export const CustomerManagement = () => {
-    const { t } = useTranslation();
+    // const { t } = useTranslation(); // Removed unused t
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Partial<Customer>>({});
@@ -23,7 +25,7 @@ export const CustomerManagement = () => {
 
     const fetchCustomers = async () => {
         try {
-            const res = await fetch('http://localhost:3001/api/customers');
+            const res = await fetch(`${API_BASE_URL}/customers`);
             if (res.ok) {
                 const data = await res.json();
                 setCustomers(data);
@@ -48,9 +50,9 @@ export const CustomerManagement = () => {
     };
 
     const handleDeleteClick = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this customer?')) return;
+        if (!window.confirm('Archive this customer account?')) return;
         try {
-            await fetch(`http://localhost:3001/api/customers/${id}`, { method: 'DELETE' });
+            await fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' });
             fetchCustomers();
         } catch (error) {
             console.error('Failed to delete customer', error);
@@ -63,8 +65,8 @@ export const CustomerManagement = () => {
         try {
             const isEdit = !!editingCustomer.id;
             const url = isEdit
-                ? `http://localhost:3001/api/customers/${editingCustomer.id}`
-                : 'http://localhost:3001/api/customers';
+                ? `${API_BASE_URL}/customers/${editingCustomer.id}`
+                : `${API_BASE_URL}/customers`;
 
             const method = isEdit ? 'PUT' : 'POST';
 
@@ -77,102 +79,91 @@ export const CustomerManagement = () => {
             if (res.ok) {
                 setIsModalOpen(false);
                 fetchCustomers();
-            } else {
-                alert('Failed to save customer');
             }
         } catch (error) {
             console.error('Error saving customer', error);
-            alert('Error saving customer');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const inputStyle = {
-        width: '100%',
-        padding: '10px',
-        border: '1px solid #D1D5DB',
-        borderRadius: '6px',
-        marginTop: '4px',
-        marginBottom: '16px'
-    };
-
-    const labelStyle = {
-        display: 'block',
-        fontSize: '14px',
-        fontWeight: 500,
-        color: '#374151'
-    };
-
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h1 style={{ margin: 0, fontSize: '24px' }}>Customer Management</h1>
+        <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>Customer Management</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Maintain a high-fidelity database of your corporate partners and individual clients.</p>
+                </div>
                 <button
                     onClick={handleAddClick}
                     className="btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}
+                    style={{ padding: '12px 24px' }}
                 >
-                    <Plus size={18} />
-                    Add Customer
+                    <Plus size={20} />
+                    Onboard New Partner
                 </button>
             </div>
 
-            <div className="card" style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="glass" style={{ padding: '0', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', textAlign: 'left' }}>
                     <thead>
-                        <tr style={{ borderBottom: '1px solid #E5E7EB', background: '#F9FAFB' }}>
-                            <th style={{ padding: '16px', color: '#6B7280', fontWeight: 600 }}>Name / Company</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontWeight: 600 }}>Contact Info</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontWeight: 600 }}>Address</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontWeight: 600 }}>Credit Limit</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontWeight: 600 }}>Status</th>
-                            <th style={{ padding: '16px', color: '#6B7280', fontWeight: 600 }}>Actions</th>
+                        <tr style={{ background: 'var(--slate-50)' }}>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>account entity</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>contact secure</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>logistic hub</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>credit health</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Status</th>
+                            <th style={{ padding: '20px 24px', textAlign: 'right' }}></th>
                         </tr>
                     </thead>
                     <tbody>
                         {customers.map((customer) => (
-                            <tr key={customer.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                                <td style={{ padding: '16px' }}>
-                                    <div style={{ fontWeight: 500, color: '#111827' }}>{customer.name}</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>{customer.company}</div>
+                            <tr key={customer.id} style={{ borderBottom: '1px solid var(--glass-border)' }} className="table-row-hover">
+                                <td style={{ padding: '20px 24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: 44, height: 44, borderRadius: '14px', background: 'var(--slate-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-start)' }}>
+                                            <Building2 size={22} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 800, color: 'var(--slate-900)', fontSize: '15px' }}>{customer.company}</div>
+                                            <div style={{ fontSize: '13px', color: 'var(--slate-500)', fontWeight: 600 }}>Rep: {customer.name}</div>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td style={{ padding: '16px' }}>
-                                    <div style={{ fontSize: '14px' }}>{customer.phone}</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>{customer.email}</div>
+                                <td style={{ padding: '20px 24px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--slate-700)' }}>
+                                            <PhoneIcon size={14} color="var(--slate-400)" /> {customer.phone}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)' }}>
+                                            <Mail size={14} color="var(--slate-400)" /> {customer.email}
+                                        </div>
+                                    </div>
                                 </td>
-                                <td style={{ padding: '16px', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {customer.address}
+                                <td style={{ padding: '20px 24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--slate-600)', maxWidth: '240px' }}>
+                                        <MapPin size={16} color="var(--primary-start)" />
+                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer.address}</span>
+                                    </div>
                                 </td>
-                                <td style={{ padding: '16px' }}>
-                                    ${customer.creditLimit?.toLocaleString()}
+                                <td style={{ padding: '20px 24px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 900, color: 'var(--primary-start)', fontSize: '15px' }}>
+                                        <DollarSign size={16} />
+                                        {customer.creditLimit?.toLocaleString()}
+                                    </div>
+                                    <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginTop: '4px' }}>Approved Limit</div>
                                 </td>
-                                <td style={{ padding: '16px' }}>
-                                    <span style={{
-                                        padding: '4px 10px',
-                                        borderRadius: '9999px',
-                                        fontSize: '12px',
-                                        fontWeight: 500,
-                                        backgroundColor: customer.status === 'ACTIVE' ? '#DEF7EC' : '#FDE8E8',
-                                        color: customer.status === 'ACTIVE' ? '#03543F' : '#9B1C1C'
-                                    }}>
+                                <td style={{ padding: '20px 24px' }}>
+                                    <span className={customer.status === 'ACTIVE' ? 'badge-green' : 'badge-yellow'} style={{ fontSize: '11px', fontWeight: 800 }}>
                                         {customer.status}
                                     </span>
                                 </td>
-                                <td style={{ padding: '16px' }}>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button
-                                            onClick={() => handleEditClick(customer)}
-                                            style={{ padding: '6px', border: 'none', background: 'none', cursor: 'pointer', color: '#4B5563' }}
-                                            title="Edit"
-                                        >
+                                <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <button onClick={() => handleEditClick(customer)} className="btn-secondary" style={{ padding: '10px', borderRadius: '12px' }}>
                                             <Edit size={18} />
                                         </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(customer.id)}
-                                            style={{ padding: '6px', border: 'none', background: 'none', cursor: 'pointer', color: '#EF4444' }}
-                                            title="Delete"
-                                        >
+                                        <button onClick={() => handleDeleteClick(customer.id)} className="btn-secondary" style={{ padding: '10px', borderRadius: '12px', color: '#EF4444' }}>
                                             <Trash2 size={18} />
                                         </button>
                                     </div>
@@ -181,8 +172,8 @@ export const CustomerManagement = () => {
                         ))}
                         {customers.length === 0 && (
                             <tr>
-                                <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#6B7280' }}>
-                                    No customers found. Click "Add Customer" to create one.
+                                <td colSpan={6} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>
+                                    The partner roster is currently empty.
                                 </td>
                             </tr>
                         )}
@@ -193,104 +184,106 @@ export const CustomerManagement = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editingCustomer.id ? 'Edit Customer' : 'Add New Customer'}
+                title={editingCustomer.id ? 'Refine Account Details' : 'Initialize Partner Account'}
             >
-                <form onSubmit={handleSubmit}>
-                    <label style={labelStyle}>Contact Name</label>
-                    <input
-                        required
-                        style={inputStyle}
-                        value={editingCustomer.name || ''}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                        placeholder="e.g. John Doe"
-                    />
-
-                    <label style={labelStyle}>Company Name</label>
-                    <input
-                        required
-                        style={inputStyle}
-                        value={editingCustomer.company || ''}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, company: e.target.value })}
-                        placeholder="e.g. Acme Logistics"
-                    />
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '500px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={labelStyle}>Phone</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Authorized Representative</label>
                             <input
                                 required
-                                style={inputStyle}
-                                value={editingCustomer.phone || ''}
-                                onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
-                                placeholder="+1 234 567 8900"
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                value={editingCustomer.name || ''}
+                                onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                                placeholder="Full Name"
                             />
                         </div>
                         <div>
-                            <label style={labelStyle}>Email</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Legal Entity Name</label>
                             <input
-                                type="email"
                                 required
-                                style={inputStyle}
-                                value={editingCustomer.email || ''}
-                                onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
-                                placeholder="email@company.com"
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                value={editingCustomer.company || ''}
+                                onChange={(e) => setEditingCustomer({ ...editingCustomer, company: e.target.value })}
+                                placeholder="Company Name"
                             />
                         </div>
                     </div>
 
-                    <label style={labelStyle}>Address</label>
-                    <input
-                        required
-                        style={inputStyle}
-                        value={editingCustomer.address || ''}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
-                        placeholder="Full Address"
-                    />
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={labelStyle}>Credit Limit ($)</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Business Contact</label>
+                            <input
+                                required
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                value={editingCustomer.phone || ''}
+                                onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                                placeholder="+1 (000) 000-0000"
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Official Email</label>
+                            <input
+                                type="email"
+                                required
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                value={editingCustomer.email || ''}
+                                onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                                placeholder="entity@domain.com"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>HQ / Logistics Node Address</label>
+                        <input
+                            required
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                            value={editingCustomer.address || ''}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
+                            placeholder="Full Address"
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Credit Allocation ($)</label>
                             <input
                                 type="number"
-                                style={inputStyle}
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 900, color: 'var(--primary-start)' }}
                                 value={editingCustomer.creditLimit || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, creditLimit: Number(e.target.value) })}
                             />
                         </div>
                         <div>
-                            <label style={labelStyle}>Status</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Account Standing</label>
                             <select
-                                style={inputStyle}
+                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                 value={editingCustomer.status || 'ACTIVE'}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, status: e.target.value as any })}
                             >
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
+                                <option value="ACTIVE">ACTIVE PARTNERSHIP</option>
+                                <option value="INACTIVE">SUSPENDED / DORMANT</option>
                             </select>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            style={{
-                                flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB',
-                                background: 'white', color: '#374151', cursor: 'pointer', fontWeight: 500
-                            }}
+                            className="btn-secondary"
+                            style={{ flex: 1 }}
                         >
-                            Cancel
+                            Dismiss
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            style={{
-                                flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
-                                background: 'var(--color-primary)', color: 'white', cursor: 'pointer', fontWeight: 500,
-                                opacity: isLoading ? 0.7 : 1
-                            }}
+                            className="btn-primary"
+                            style={{ flex: 1 }}
                         >
-                            {isLoading ? 'Saving...' : 'Save Customer'}
+                            {isLoading ? 'Processing...' : (editingCustomer.id ? 'Refine Account' : 'Initialize Account')}
                         </button>
                     </div>
                 </form>

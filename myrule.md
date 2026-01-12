@@ -10,6 +10,17 @@
     -   反馈使用 `toast` 或 `alert` (尽量升级为 toast, 目前暂时使用 alert).
     -   **[模态框]**: 使用内联样式的通用 `Modal` 组件，保持简单.
 
+# TMS 2.0 Development Rules
+
+## UI & Design Consistency
+- **Design System**: Strictly adhere to the modern SaaS glassmorphism style defined in `index.css`.
+- **CSS Variables**: ALWAYS use CSS variables (e.g., `var(--slate-900)`, `var(--primary-grad)`, `var(--glass-bg)`) instead of hardcoded hex codes.
+- **Glassmorphism**: Use `.glass` for large containers and `.glass-card` for content sections.
+- **Typography**: Headers should use `fontWeight: 800` and `color: var(--slate-900)`. Labels should be uppercase `var(--slate-400)` with `fontSize: 11px`.
+- **Buttons**: Use global classes `.btn-primary` and `.btn-secondary`. Avoid ad-hoc inline background colors for buttons.
+- **Tables**: Use `border-collapse: separate` with `border-spacing: 0` and `.table-row-hover` for consistent list styling.
+- **Alignment**: Use standard grids (`24px` gap) and flexbox alignment to ensure all form fields and toolbars are visually synchronized.
+
 ## 经验教训 (Lessons Learned)
 -   **[API]**: 后端 `/api/trips/:id/tracking` 接口如果传入 Waybill ID，需要手动查找对应的 Trip ID.
 -   **[React]**: 列表渲染必须始终使用 `key` 属性，以避免警告.

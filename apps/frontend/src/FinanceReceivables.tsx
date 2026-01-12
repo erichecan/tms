@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { API_BASE_URL } from './apiConfig';
 
 interface FinancialRecord {
     id: string;
@@ -17,7 +18,7 @@ export const FinanceReceivables = () => {
 
     const fetchRecords = () => {
         setLoading(true);
-        fetch('http://localhost:3001/api/finance/records?type=receivable')
+        fetch(`${API_BASE_URL}/finance/records?type=receivable`)
             .then(res => res.json())
             .then(data => setRecords(data))
             .catch(err => console.error(err))
