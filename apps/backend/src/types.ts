@@ -76,6 +76,27 @@ export interface Trip {
     route_polyline?: string;
 }
 
+export interface Permission {
+    id: string;
+    resource: string;
+    action: 'READ' | 'WRITE' | 'DELETE' | 'ADMIN';
+}
+
+export interface Role {
+    id: string;
+    name: string;
+    permissions: Permission[];
+}
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    roleId: string;
+    status: 'ACTIVE' | 'INACTIVE';
+    lastLogin: string;
+}
+
 export interface Expense {
     id: string;
     category: ExpenseCategory;
@@ -84,6 +105,20 @@ export interface Expense {
     date: string;
     status: ExpenseStatus;
 }
+
+export interface Customer {
+    id: string;
+    name: string;
+    company: string;
+    phone: string;
+    email: string;
+    address: string;
+    creditLimit: number;
+    status: 'ACTIVE' | 'INACTIVE';
+    created_at: string;
+}
+
+
 
 export interface FinancialRecord {
     id: string;
@@ -191,4 +226,26 @@ export interface PricingDetail {
     inputValues: Record<string, any>;
     sequence: number;
     ruleId?: string;
+}
+
+export interface PricingRule {
+    id: string;
+    name: string;
+    type: 'BASE_RATE' | 'DISTANCE' | 'WEIGHT' | 'QUANTITY' | 'LUMP_SUM' | 'DISCOUNT';
+    value: number;
+    unit?: string; // e.g., 'PER_KM', 'PER_KG'
+    condition?: string; // JSON logic or simple string
+    priority: number;
+}
+
+export interface PricingTemplate {
+    id: string;
+    name: string;
+    description: string;
+    currency: string;
+    rules: PricingRule[];
+    isDefault: boolean;
+    status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+    created_at: string;
+    updated_at: string;
 }

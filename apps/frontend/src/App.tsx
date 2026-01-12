@@ -11,7 +11,9 @@ import { Settings } from './Settings';
 import { FinanceDashboard } from './FinanceDashboard';
 import { FinanceReceivables } from './FinanceReceivables';
 import { FinancePayables } from './FinancePayables';
-import { PricingCalculator } from './PricingCalculator';
+import { CustomerManagement } from './CustomerManagement';
+import { PricingRules } from './PricingRules';
+import { UserManagement } from './UserManagement';
 import './index.css';
 
 const router = createBrowserRouter([
@@ -22,6 +24,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
+      },
+      {
+        path: 'customers',
+        element: <CustomerManagement />,
       },
       {
         path: 'waybills',
@@ -60,8 +66,12 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: 'pricing',
-        element: <PricingCalculator />,
+        path: 'pricing/rules',
+        element: <PricingRules />,
+      },
+      {
+        path: 'users',
+        element: <UserManagement />,
       },
     ],
   },

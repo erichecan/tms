@@ -90,8 +90,12 @@ export const FleetManagement = () => {
                 payload.date = payload.date || new Date().toISOString();
             }
 
-            const res = await fetch(`http://localhost:3001/api/${endpoint}`, {
-                method: 'POST',
+            const isEdit = !!payload.id;
+            const url = isEdit ? `http://localhost:3001/api/${endpoint}/${payload.id}` : `http://localhost:3001/api/${endpoint}`;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
@@ -115,11 +119,11 @@ export const FleetManagement = () => {
                     expenses: Array.isArray(expenses) ? expenses : []
                 });
             } else {
-                alert('Failed to create entry');
+                alert('Failed to save entry');
             }
         } catch (error) {
             console.error(error);
-            alert('Error creating entry');
+            alert('Error saving entry');
         }
     };
 
@@ -127,9 +131,7 @@ export const FleetManagement = () => {
         width: '100%',
         padding: '10px',
         border: '1px solid #D1D5DB',
-        borderRadius: '6px',
-        marginTop: '4px',
-        marginBottom: '16px'
+        borderRadius: '6px'
     };
 
     const labelStyle = {
@@ -269,7 +271,10 @@ export const FleetManagement = () => {
                                     )}
                                     <td style={{ padding: '16px' }}>
                                         <button
-                                            onClick={() => alert(`Edit ${activeTab} feature coming soon for ID: ${item.id}`)}
+                                            onClick={() => {
+                                                setNewEntry(item);
+                                                setIsModalOpen(true);
+                                            }}
                                             style={{ color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer' }}
                                         >
                                             {t('common.edit')}
@@ -289,119 +294,143 @@ export const FleetManagement = () => {
             >
                 <form onSubmit={handleSubmit}>
                     {activeTab === 'drivers' && (
-                        <>
-                            <label style={labelStyle}>{t('fleet.name')}</label>
-                            <input
-                                required
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.name || ''}
-                                onChange={e => handleInputChange('name', e.target.value)}
-                            />
-
-                            <label style={labelStyle}>{t('fleet.phone')}</label>
-                            <input
-                                required
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.phone || ''}
-                                onChange={e => handleInputChange('phone', e.target.value)}
-                            />
-
-                            <label style={labelStyle}>Status</label>
-                            <select
-                                style={inputStyle}
-                                value={newEntry.status || 'IDLE'}
-                                onChange={e => handleInputChange('status', e.target.value)}
-                            >
-                                <option value="IDLE">IDLE</option>
-                                <option value="ON_DUTY">ON DUTY</option>
-                            </select>
-                        </>
+                        <div style={{ display: 'grid', gap: 16 }}>
+                            <div>
+                                <label style={labelStyle}>{t('fleet.name')}</label>
+                                <input
+                                    required
+                                    style={inputStyle}
+                                    value={newEntry.name || ''}
+                                    onChange={e => handleInputChange('name', e.target.value)}
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.phone')}</label>
+                                    <input
+                                        required
+                                        style={inputStyle}
+                                        value={newEntry.phone || ''}
+                                        onChange={e => handleInputChange('phone', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Status</label>
+                                    <select
+                                        style={inputStyle}
+                                        value={newEntry.status || 'IDLE'}
+                                        onChange={e => handleInputChange('status', e.target.value)}
+                                    >
+                                        <option value="IDLE">IDLE</option>
+                                        <option value="ON_DUTY">ON DUTY</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {activeTab === 'vehicles' && (
-                        <>
-                            <label style={labelStyle}>{t('fleet.plateId')}</label>
-                            <input
-                                required
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.plate || ''}
-                                onChange={e => handleInputChange('plate', e.target.value)}
-                            />
-
-                            <label style={labelStyle}>{t('fleet.model')}</label>
-                            <input
-                                required
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.model || ''}
-                                onChange={e => handleInputChange('model', e.target.value)}
-                            />
-
-                            <label style={labelStyle}>{t('fleet.capacity')}</label>
-                            <input
-                                required
-                                type="number"
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.capacity || ''}
-                                onChange={e => handleInputChange('capacity', e.target.value)}
-                            />
-
-                            <label style={labelStyle}>Status</label>
-                            <select
-                                style={inputStyle}
-                                value={newEntry.status || 'IDLE'}
-                                onChange={e => handleInputChange('status', e.target.value)}
-                            >
-                                <option value="IDLE">IDLE</option>
-                                <option value="IN_TRANSIT">IN TRANSIT</option>
-                                <option value="MAINTENANCE">MAINTENANCE</option>
-                            </select>
-                        </>
+                        <div style={{ display: 'grid', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.plateId')}</label>
+                                    <input
+                                        required
+                                        style={inputStyle}
+                                        value={newEntry.plate || ''}
+                                        onChange={e => handleInputChange('plate', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.model')}</label>
+                                    <input
+                                        required
+                                        style={inputStyle}
+                                        value={newEntry.model || ''}
+                                        onChange={e => handleInputChange('model', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.capacity')}</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        style={inputStyle}
+                                        value={newEntry.capacity || ''}
+                                        onChange={e => handleInputChange('capacity', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Status</label>
+                                    <select
+                                        style={inputStyle}
+                                        value={newEntry.status || 'IDLE'}
+                                        onChange={e => handleInputChange('status', e.target.value)}
+                                    >
+                                        <option value="IDLE">IDLE</option>
+                                        <option value="IN_TRANSIT">IN TRANSIT</option>
+                                        <option value="MAINTENANCE">MAINTENANCE</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {activeTab === 'expenses' && (
-                        <>
-                            <label style={labelStyle}>{t('fleet.category')}</label>
-                            <select
-                                style={inputStyle}
-                                value={newEntry.category || 'Fuel'}
-                                onChange={e => handleInputChange('category', e.target.value)}
-                            >
-                                <option value="Fuel">Fuel</option>
-                                <option value="Maintenance">Maintenance</option>
-                                <option value="Toll">Toll</option>
-                                <option value="Insurance">Insurance</option>
-                                <option value="Other">Other</option>
-                            </select>
-
-                            <label style={labelStyle}>{t('fleet.amount')}</label>
-                            <input
-                                required
-                                type="number"
-                                step="0.01"
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.amount || ''}
-                                onChange={e => handleInputChange('amount', parseFloat(e.target.value))}
-                            />
-
-                            <label style={labelStyle}>{t('fleet.date')}</label>
-                            <input
-                                required
-                                type="date"
-                                style={{ ...inputStyle, width: '60%' }}
-                                value={newEntry.date ? newEntry.date.split('T')[0] : ''}
-                                onChange={e => handleInputChange('date', e.target.value)}
-                            />
-
-                            <label style={labelStyle}>Status</label>
-                            <select
-                                style={inputStyle}
-                                value={newEntry.status || 'PENDING'}
-                                onChange={e => handleInputChange('status', e.target.value)}
-                            >
-                                <option value="PENDING">PENDING</option>
-                                <option value="PAID">PAID</option>
-                            </select>
-                        </>
+                        <div style={{ display: 'grid', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.category')}</label>
+                                    <select
+                                        style={inputStyle}
+                                        value={newEntry.category || 'Fuel'}
+                                        onChange={e => handleInputChange('category', e.target.value)}
+                                    >
+                                        <option value="Fuel">Fuel</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                        <option value="Toll">Toll</option>
+                                        <option value="Insurance">Insurance</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.amount')}</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        step="0.01"
+                                        style={inputStyle}
+                                        value={newEntry.amount || ''}
+                                        onChange={e => handleInputChange('amount', parseFloat(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>{t('fleet.date')}</label>
+                                    <input
+                                        required
+                                        type="date"
+                                        style={inputStyle}
+                                        value={newEntry.date ? newEntry.date.split('T')[0] : ''}
+                                        onChange={e => handleInputChange('date', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Status</label>
+                                    <select
+                                        style={inputStyle}
+                                        value={newEntry.status || 'PENDING'}
+                                        onChange={e => handleInputChange('status', e.target.value)}
+                                    >
+                                        <option value="PENDING">PENDING</option>
+                                        <option value="PAID">PAID</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>

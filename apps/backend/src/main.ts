@@ -152,28 +152,6 @@ app.post('/api/waybills/:id/assign', async (req, res) => {
   }
 });
 
-app.get('/api/drivers', async (req, res) => {
-  try {
-    const result = await query('SELECT * FROM drivers');
-    res.json(result.rows);
-  } catch (e) { res.status(500).json([]); }
-});
-
-app.get('/api/vehicles', async (req, res) => {
-  try {
-    const result = await query('SELECT * FROM vehicles');
-    res.json(result.rows);
-  } catch (e) { res.status(500).json([]); }
-});
-
-
-app.get('/api/expenses', async (req, res) => {
-  try {
-    const result = await query('SELECT * FROM expenses');
-    res.json(result.rows);
-  } catch (e) { res.status(500).json([]); }
-});
-
 // --- Tracking & Communication APIs ---
 
 app.get('/api/trips/:id/tracking', async (req, res) => {
@@ -238,15 +216,17 @@ app.post('/api/trips/:id/messages', async (req, res) => {
   }
 });
 
-
-
-
-// Import Routes
 import financeRoutes from './routes/financeRoutes';
 import pricingRoutes from './routes/pricingRoutes';
+import customerRoutes from './routes/customerRoutes';
+import fleetRoutes from './routes/fleetRoutes';
+import userRoutes from './routes/userRoutes';
 
 app.use('/api/finance', financeRoutes);
 app.use('/api/pricing', pricingRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api', fleetRoutes);
+app.use('/api', userRoutes);
 
 app.listen(port, () => {
   console.log(`Backend server running at http://localhost:${port}`);

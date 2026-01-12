@@ -1,5 +1,5 @@
 
-import { Driver, Vehicle, Waybill, Trip, Expense, WaybillStatus, TripStatus, ExpenseCategory, ExpenseStatus } from './types.js';
+import { Driver, Vehicle, Waybill, Trip, Expense, Customer, PricingTemplate, User, Role, WaybillStatus, TripStatus, ExpenseCategory, ExpenseStatus } from './types';
 
 export interface TimelineEvent {
     status: TripStatus | WaybillStatus;
@@ -71,4 +71,22 @@ export const db = {
         { id: 'M-1', trip_id: 'T-1001', sender: 'DRIVER', text: 'Loaded and rolling out.', timestamp: '2026-01-08T08:16:00Z' },
         { id: 'M-2', trip_id: 'T-1001', sender: 'DISPATCHER', text: 'Copy that. Watch out for snow near Des Moines.', timestamp: '2026-01-08T08:18:00Z' },
     ] as Message[],
+
+    customers: [
+        { id: 'C-01', name: 'Alice Smith', company: 'ABC Retail', phone: '416-555-0101', email: 'alice@abcretail.com', address: '123 Market St, Toronto, ON', creditLimit: 5000, status: 'ACTIVE', created_at: '2026-01-01T10:00:00Z' },
+        { id: 'C-02', name: 'Bob Jones', company: 'XYZ Logistics', phone: '905-555-0102', email: 'bob@xyzlogistics.com', address: '456 Warehouse Dr, Mississauga, ON', creditLimit: 10000, status: 'ACTIVE', created_at: '2026-01-02T11:00:00Z' },
+        { id: 'C-03', name: 'Charlie Day', company: 'Fresh Foods Inc', phone: '647-555-0103', email: 'charlie@freshfoods.com', address: '789 Farm Rd, Guelph, ON', creditLimit: 2000, status: 'INACTIVE', created_at: '2026-01-03T09:00:00Z' },
+    ] as Customer[],
+
+    pricingTemplates: [] as PricingTemplate[],
+
+    roles: [
+        { id: 'R-ADMIN', name: 'Administrator', permissions: [{ id: 'P-ALL', resource: '*', action: 'ADMIN' }] },
+        { id: 'R-DRIVER', name: 'Driver', permissions: [{ id: 'P-TRIP', resource: 'trip', action: 'READ' }] }
+    ] as Role[],
+
+    users: [
+        { id: 'U-01', name: 'Tom Dispatcher', email: 'tom@tms.com', roleId: 'R-ADMIN', status: 'ACTIVE', lastLogin: '2026-01-12T09:00:00Z' },
+        { id: 'U-02', name: 'Jerry Driver', email: 'jerry@tms.com', roleId: 'R-DRIVER', status: 'ACTIVE', lastLogin: '2026-01-11T16:00:00Z' }
+    ] as User[]
 };
