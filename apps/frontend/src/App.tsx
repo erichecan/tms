@@ -8,6 +8,10 @@ import { FleetManagement } from './FleetManagement';
 import { TrackingPage } from './TrackingPage';
 import { Messages } from './Messages';
 import { Settings } from './Settings';
+import { FinanceDashboard } from './FinanceDashboard';
+import { FinanceReceivables } from './FinanceReceivables';
+import { FinancePayables } from './FinancePayables';
+import { PricingCalculator } from './PricingCalculator';
 import './index.css';
 
 const router = createBrowserRouter([
@@ -46,6 +50,18 @@ const router = createBrowserRouter([
       {
         path: 'settings',
         element: <Settings />,
+      },
+      {
+        path: 'finance',
+        children: [
+          { index: true, element: <FinanceDashboard /> },
+          { path: 'receivables', element: <FinanceReceivables /> },
+          { path: 'payables', element: <FinancePayables /> }
+        ]
+      },
+      {
+        path: 'pricing',
+        element: <PricingCalculator />,
       },
     ],
   },

@@ -84,3 +84,111 @@ export interface Expense {
     date: string;
     status: ExpenseStatus;
 }
+
+export interface FinancialRecord {
+    id: string;
+    tenant_id: string;
+    shipment_id: string;
+    type: 'receivable' | 'payable';
+    reference_id: string;
+    amount: number;
+    currency: string;
+    status: 'PENDING' | 'PAID' | 'OVERDUE' | 'VOID';
+    statement_id?: string;
+    due_date?: string;
+    paid_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Statement {
+    id: string;
+    tenant_id: string;
+    type: 'customer' | 'driver';
+    reference_id: string;
+    period_start: string;
+    period_end: string;
+    total_amount: number;
+    status: 'DRAFT' | 'SENT' | 'PAID' | 'VOID';
+    generated_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
+// --- Google Maps & Pricing Types ---
+
+export interface AddressInfo {
+    formattedAddress: string;
+    latitude: number;
+    longitude: number;
+    placeId?: string;
+    city?: string;
+    province?: string;
+    postalCode?: string;
+    country?: string;
+}
+
+export interface LogisticsRouteRequest {
+    pickupAddress: AddressInfo;
+    deliveryAddress: AddressInfo;
+    businessType?: string;
+    cargoInfo?: any;
+    waitingTimeLimit?: number;
+}
+
+export interface LogisticsRouteResponse {
+    optimalRoute: {
+        distance: number;
+        duration: number;
+        fuelCost: number;
+        segments: any[];
+        returnRoute?: any;
+    };
+    costBreakdown: any;
+    estimatedArrival: string;
+}
+
+export interface GoogleMapsApiConfig {
+    apiKey: string;
+    baseUrl: string;
+    rateLimit?: any;
+    cacheConfig?: any;
+}
+
+export interface MapsApiError {
+    code: number;
+    message: string;
+    details?: any;
+}
+
+export interface CostBreakdown {
+    baseCost: number;
+    distanceCost: number;
+    cargoHandlingCost: number;
+    waitingCost: number;
+    fuelCost: number;
+    tollCost: number;
+    scenarioAdjustment: number;
+    customerPremium: number;
+    totalCost: number;
+}
+
+export interface PricingCalculation {
+    totalRevenue: number;
+    breakdown: any[];
+    currency: string;
+    distance: number;
+    duration: number;
+    appliedRules: string[];
+}
+
+export interface PricingDetail {
+    componentCode: string;
+    componentName: string;
+    amount: number;
+    currency: string;
+    formula: string;
+    inputValues: Record<string, any>;
+    sequence: number;
+    ruleId?: string;
+}

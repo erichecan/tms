@@ -1,6 +1,6 @@
 
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import './index.css';
 
@@ -54,6 +54,11 @@ export const Layout = () => {
                     <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />
                     <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
 
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#9CA3AF', marginBottom: '8px', marginTop: '24px', paddingLeft: '16px' }}>Finance</div>
+                    <SidebarItem to="/finance" icon={DollarSign} label="Financial Overview" />
+                    <SidebarItem to="/finance/receivables" icon={FileText} label="Receivables" />
+                    <SidebarItem to="/finance/payables" icon={FileText} label="Payables" />
+
                     <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
                         <SidebarItem to="/settings" icon={Settings} label={t('sidebar.settings')} />
                     </div>
@@ -84,6 +89,6 @@ export const Layout = () => {
                 </header>
                 <Outlet />
             </main>
-        </div>
+        </div >
     );
 };

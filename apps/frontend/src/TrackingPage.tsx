@@ -11,7 +11,9 @@ export const TrackingPage = () => {
     // Hardcoded ID for MVP demo if no params
     const { id } = useParams();
     const tripId = id || 'T-1001';
+    const navigate = useNavigate();
 
+    const [activeTrips, setActiveTrips] = useState<any[]>([]);
     const [tripData, setTripData] = useState<any>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState('');
@@ -59,6 +61,14 @@ export const TrackingPage = () => {
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Fetch Active Trips for Sidebar
+    useEffect(() => {
+        fetch('http://localhost:3001/api/trips?status=ACTIVE')
+            .then(res => res.json())
+            .then(data => setActiveTrips(Array.isArray(data) ? data : []))
+            .catch(console.error);
+    }, []);
 
     const handleSendMessage = async () => {
         if (!newMessage.trim()) return;
@@ -119,17 +129,6 @@ export const TrackingPage = () => {
             });
         }
     });
-
-    const [activeTrips, setActiveTrips] = useState<any[]>([]);
-    const navigate = useNavigate();
-
-    // Fetch Active Trips for Sidebar
-    useEffect(() => {
-        fetch('http://localhost:3001/api/trips?status=ACTIVE')
-            .then(res => res.json())
-            .then(data => setActiveTrips(Array.isArray(data) ? data : []))
-            .catch(console.error);
-    }, []);
 
     // ... existing fetch logic for specific trip ...
 

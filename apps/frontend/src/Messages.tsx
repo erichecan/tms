@@ -1,5 +1,7 @@
+
 import { useState } from 'react';
 import { Search, Send, Phone, Video, MoreVertical, Paperclip } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Contact {
     id: string; // Trip ID for now, since chat is trip-based
@@ -19,6 +21,7 @@ interface Message {
 }
 
 export const Messages = () => {
+    const { t } = useTranslation();
     // Mock Data for UI
     const contacts: Contact[] = [
         { id: 'T-1001', name: 'James Holloway', avatar: 'https://i.pravatar.cc/150?u=D-001', lastMessage: 'Loaded and rolling out.', time: '10:30 AM', unread: 2, status: 'online' },
@@ -50,11 +53,11 @@ export const Messages = () => {
             {/* Sidebar List */}
             <div className="card" style={{ width: '300px', padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ padding: '20px', borderBottom: '1px solid #F3F4F6' }}>
-                    <h2 style={{ margin: '0 0 16px', fontSize: '20px' }}>Messages</h2>
+                    <h2 style={{ margin: '0 0 16px', fontSize: '20px' }}>{t('sidebar.messages')}</h2>
                     <div style={{ position: 'relative' }}>
                         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
                         <input
-                            placeholder="Search chats..."
+                            placeholder={t('common.search')}
                             style={{
                                 width: '100%', padding: '8px 8px 8px 36px',
                                 border: '1px solid #E5E7EB', borderRadius: '8px', background: '#F9FAFB', outline: 'none'
@@ -148,7 +151,7 @@ export const Messages = () => {
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                            placeholder="Type a message..."
+                            placeholder={t('messages.typeMessage')}
                             style={{
                                 flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none', resize: 'none',
                                 maxHeight: '100px', fontFamily: 'inherit'

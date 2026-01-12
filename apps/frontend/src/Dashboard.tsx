@@ -47,9 +47,9 @@ export const Dashboard = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
 
-    const handleViewReports = () => {
-        alert(t('dashboard.viewReports') + ' - Coming Soon (Feature under design)');
-    };
+    // const handleViewReports = () => {
+    //     alert(t('dashboard.viewReports') + ' - Coming Soon (Feature under design)');
+    // };
 
     const fetchData = () => {
         const API_URL = 'http://localhost:3001/api';

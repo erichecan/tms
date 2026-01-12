@@ -177,8 +177,18 @@ app.get('/api/expenses', async (req, res) => {
 // --- Tracking & Communication APIs ---
 
 app.get('/api/trips/:id/tracking', async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
   try {
+    // If ID is a Waybill ID, look up the Trip ID
+    if (id.startsWith('WB-')) {
+      const wbRes = await query('SELECT trip_id FROM waybills WHERE id = $1', [id]);
+      if (wbRes.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
+
+      const tripId = wbRes.rows[0].trip_id;
+      if (!tripId) return res.status(404).json({ error: 'Waybill not assigned to a trip yet' });
+      id = tripId;
+    }
+
     const tripRes = await query('SELECT * FROM trips WHERE id = $1', [id]);
     if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
     const trip = tripRes.rows[0];
@@ -230,7 +240,16 @@ app.post('/api/trips/:id/messages', async (req, res) => {
 
 
 
+
+// Import Routes
+import financeRoutes from './routes/financeRoutes';
+import pricingRoutes from './routes/pricingRoutes';
+
+app.use('/api/finance', financeRoutes);
+app.use('/api/pricing', pricingRoutes);
+
 app.listen(port, () => {
   console.log(`Backend server running at http://localhost:${port}`);
 });
+
 

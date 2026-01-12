@@ -2,13 +2,13 @@
 import { pool } from './db-postgres';
 
 const migrate = async () => {
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-        // --- Create Tables ---
+    // --- Create Tables ---
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS drivers (
         id VARCHAR(50) PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
@@ -18,7 +18,7 @@ const migrate = async () => {
       );
     `);
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS vehicles (
         id VARCHAR(50) PRIMARY KEY,
         plate VARCHAR(20) NOT NULL,
@@ -28,7 +28,7 @@ const migrate = async () => {
       );
     `);
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS trips (
         id VARCHAR(50) PRIMARY KEY,
         driver_id VARCHAR(50),
@@ -41,7 +41,7 @@ const migrate = async () => {
       );
     `);
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS waybills (
         id VARCHAR(50) PRIMARY KEY,
         waybill_no VARCHAR(50) NOT NULL,
@@ -65,7 +65,7 @@ const migrate = async () => {
       );
     `);
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS expenses (
         id VARCHAR(50) PRIMARY KEY,
         category VARCHAR(50),
@@ -76,7 +76,7 @@ const migrate = async () => {
       );
     `);
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id VARCHAR(50) PRIMARY KEY,
         trip_id VARCHAR(50),
@@ -87,7 +87,7 @@ const migrate = async () => {
       );
     `);
 
-        await client.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS trip_events (
         id SERIAL PRIMARY KEY,
         trip_id VARCHAR(50),
@@ -98,10 +98,45 @@ const migrate = async () => {
       );
     `);
 
-        // --- Seed Data (Idempotent) ---
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS statements (
+        id VARCHAR(50) PRIMARY KEY,
+        tenant_id VARCHAR(50), 
+        type VARCHAR(20),
+        reference_id VARCHAR(50),
+        period_start DATE,
+        period_end DATE,
+        total_amount NUMERIC,
+        status VARCHAR(20) DEFAULT 'DRAFT',
+        generated_by VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
 
-        // Drivers
-        await client.query(`
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS financial_records (
+        id VARCHAR(50) PRIMARY KEY,
+        tenant_id VARCHAR(50),
+        shipment_id VARCHAR(50),
+        type VARCHAR(20),
+        reference_id VARCHAR(50),
+        amount NUMERIC,
+        currency VARCHAR(3) DEFAULT 'CNY',
+        status VARCHAR(20) DEFAULT 'PENDING',
+        statement_id VARCHAR(50),
+        due_date DATE,
+        paid_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (statement_id) REFERENCES statements(id)
+      );
+    `);
+
+    // --- Seed Data (Idempotent) ---
+
+    // Drivers
+    await client.query(`
       INSERT INTO drivers (id, name, phone, status, avatar_url) VALUES 
       ('D-001', 'James Holloway', '555-0101', 'BUSY', 'https://i.pravatar.cc/150?u=D-001'),
       ('D-002', 'Robert McAllister', '555-0102', 'IDLE', 'https://i.pravatar.cc/150?u=D-002'),
@@ -109,8 +144,8 @@ const migrate = async () => {
       ON CONFLICT (id) DO NOTHING;
     `);
 
-        // Vehicles
-        await client.query(`
+    // Vehicles
+    await client.query(`
       INSERT INTO vehicles (id, plate, model, capacity, status) VALUES 
       ('V-101', 'TX-101', 'Volvo VNL', '53ft', 'BUSY'),
       ('V-102', 'TX-102', 'Peterbilt 579', '53ft', 'IDLE'),
@@ -118,52 +153,52 @@ const migrate = async () => {
       ON CONFLICT (id) DO NOTHING;
     `);
 
-        // Only seed trips if table is empty to avoid dupes/fk issues
-        const tripCount = await client.query('SELECT COUNT(*) FROM trips');
-        if (parseInt(tripCount.rows[0].count) === 0) {
-            await client.query(`
+    // Only seed trips if table is empty to avoid dupes/fk issues
+    const tripCount = await client.query('SELECT COUNT(*) FROM trips');
+    if (parseInt(tripCount.rows[0].count) === 0) {
+      await client.query(`
           INSERT INTO trips (id, driver_id, vehicle_id, status, start_time_est, end_time_est) VALUES 
           ('T-1001', 'D-001', 'V-101', 'ACTIVE', '2026-01-08T08:00:00Z', '2026-01-08T18:00:00Z'),
           ('T-1002', 'D-003', 'V-103', 'ACTIVE', '2026-01-08T09:00:00Z', '2026-01-09T12:00:00Z');
         `);
 
-            // Waybills
-            await client.query(`
+      // Waybills
+      await client.query(`
           INSERT INTO waybills (id, waybill_no, customer_id, origin, destination, cargo_desc, status, trip_id, price_estimated, created_at) VALUES 
           ('WB-001', 'WB-20260108-001', 'C-01', 'Omaha, NE', 'Chicago, IL', 'Pork Bellies - 20 Pallets', 'IN_TRANSIT', 'T-1001', 1200, '2026-01-07T10:00:00Z'),
           ('WB-004', 'WB-20260108-004', 'C-03', 'St. Louis, MO', 'Nashville, TN', 'Poultry - 22 Pallets', 'IN_TRANSIT', 'T-1002', 1100, '2026-01-07T14:00:00Z');
         `);
 
-            // Other Waybills
-            await client.query(`
+      // Other Waybills
+      await client.query(`
            INSERT INTO waybills (id, waybill_no, customer_id, origin, destination, cargo_desc, status, price_estimated, created_at) VALUES 
            ('WB-002', 'WB-20260108-002', 'C-02', 'Kansas City, MO', 'Dallas, TX', 'Frozen Beef - 18 Pallets', 'NEW', 1500, '2026-01-08T09:00:00Z'),
            ('WB-003', 'WB-20260108-003', 'C-01', 'Des Moines, IA', 'Minneapolis, MN', 'Live Hogs - 150 Head', 'NEW', 800, '2026-01-08T10:30:00Z');
          `);
 
-            // Events
-            await client.query(`
+      // Events
+      await client.query(`
           INSERT INTO trip_events (trip_id, status, time, description) VALUES
           ('T-1001', 'PLANNED', '2026-01-08T07:00:00Z', 'Trip created'),
           ('T-1001', 'ACTIVE', '2026-01-08T08:15:00Z', 'Driver departed from Omaha');
         `);
 
-            // Messages
-            await client.query(`
+      // Messages
+      await client.query(`
           INSERT INTO messages (id, trip_id, sender, text, timestamp) VALUES
           ('M-1', 'T-1001', 'DRIVER', 'Loaded and rolling out.', '2026-01-08T08:16:00Z'),
           ('M-2', 'T-1001', 'DISPATCHER', 'Copy that. Watch out for snow near Des Moines.', '2026-01-08T08:18:00Z');
         `);
-        }
-
-        await client.query('COMMIT');
-        console.log("Migration successful");
-    } catch (e) {
-        await client.query('ROLLBACK');
-        console.error("Migration failed", e);
-    } finally {
-        client.release();
     }
+
+    await client.query('COMMIT');
+    console.log("Migration successful");
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error("Migration failed", e);
+  } finally {
+    client.release();
+  }
 };
 
 migrate().then(() => process.exit(0));

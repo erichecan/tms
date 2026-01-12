@@ -1,7 +1,9 @@
 
 import { Save, User, Bell, Shield, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const Settings = () => {
+    const { t, i18n } = useTranslation();
     return (
         <div style={{ paddingBottom: '40px' }}>
             <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 600 }}>Settings</h1>
@@ -77,6 +79,46 @@ export const Settings = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>Address</label>
                                 <textarea defaultValue="123 Logistics Way, Toronto, ON" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB' }} rows={3} />
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    {/* Language Settings */}
+                    <div className="card">
+                        <h2 style={{ fontSize: '18px', margin: '0 0 24px', paddingBottom: '16px', borderBottom: '1px solid #F3F4F6' }}>
+                            {t('settings.language')}
+                        </h2>
+                        <div style={{ display: 'grid', gap: '16px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
+                                    {t('settings.selectLanguage')}
+                                </label>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button
+                                        onClick={() => i18n.changeLanguage('en')}
+                                        style={{
+                                            padding: '10px 20px', borderRadius: '8px', border: i18n.language === 'en' ? '2px solid var(--color-primary)' : '1px solid #D1D5DB',
+                                            background: i18n.language === 'en' ? 'var(--color-primary-light)' : 'white',
+                                            fontWeight: i18n.language === 'en' ? 600 : 400,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        English
+                                    </button>
+                                    <button
+                                        onClick={() => i18n.changeLanguage('zh')}
+                                        style={{
+                                            padding: '10px 20px', borderRadius: '8px', border: i18n.language === 'zh' ? '2px solid var(--color-primary)' : '1px solid #D1D5DB',
+                                            background: i18n.language === 'zh' ? 'var(--color-primary-light)' : 'white',
+                                            fontWeight: i18n.language === 'zh' ? 600 : 400,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        中文 (Chinese)
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
