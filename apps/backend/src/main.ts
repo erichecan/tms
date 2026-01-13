@@ -248,6 +248,17 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=bol-${id}.pdf`);
     doc.pipe(res);
   } catch (e) {
+    console.error(e);
+    res.status(500).send('Error generating PDF');
+  }
+});
+
+app.post('/api/waybills/:id/assign', async (req, res) => {
+  const { id } = req.params;
+  const { driver_id, vehicle_id, bonus } = req.body;
+  const client = await pool.connect();
+
+  try {
     await client.query('BEGIN');
 
     // Check Waybill
