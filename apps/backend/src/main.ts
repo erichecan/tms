@@ -239,212 +239,212 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=bol-${id}.pdf`);
     doc.pipe(res);
   } catch (e) {
-    console.error(e);
-    res.status(500).send('Error generating BOL');
-  }
-});
+    app.post('/api/waybills/:id/assign', async (req, res) => {
+      const { id } = req.params;
+      const { driver_id, vehicle_id, bonus } = req.body; // Accept bonus
 
-app.post('/api/waybills/:id/assign', async (req, res) => {
-  const { id } = req.params;
-  const { driver_id, vehicle_id } = req.body;
+      const client = await pool.connect();
 
-  const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-  try {
-    await client.query('BEGIN');
+        // Check Waybill
+        const wbRes = await client.query('SELECT * FROM waybills WHERE id = $1', [id]);
+        if (wbRes.rows.length === 0) {
+          throw new Error('Waybill not found');
+        }
+        const waybill = wbRes.rows[0];
 
-    // Check Waybill
-    const wbRes = await client.query('SELECT * FROM waybills WHERE id = $1', [id]);
-    if (wbRes.rows.length === 0) {
-      throw new Error('Waybill not found');
-    }
-    const waybill = wbRes.rows[0];
+        // Fetch Customer for BusinessType
+        const custRes = await client.query('SELECT businessType FROM customers WHERE id = $1', [waybill.customer_id]);
+        const businessType = custRes.rows[0]?.businesstype || 'STANDARD'; // Note: Postgres column case might be lowercase
 
-    // Fetch Customer for BusinessType
-    const custRes = await client.query('SELECT businessType FROM customers WHERE id = $1', [waybill.customer_id]);
-    const businessType = custRes.rows[0]?.businesstype || 'STANDARD'; // Note: Postgres column case might be lowercase
+        // Calculate Driver Pay
+        const payContext = {
+          distance: parseFloat(waybill.distance || 0),
+          businessType: businessType,
+          cargoInfo: waybill.cargo_desc
+        };
 
-    // Calculate Driver Pay
-    const payContext = {
-      distance: parseFloat(waybill.distance || 0),
-      businessType: businessType,
-      cargoInfo: waybill.cargo_desc
-    };
+        // Default pay result
+        let driverPay = {
+          basePay: 0,
+          bonus: 0,
+          totalPay: 0,
+          currency: 'CAD',
+          breakdown: [],
+          conflictWarning: false
+        };
 
-    // Default pay result
-    let driverPay = {
-      basePay: 0,
-      bonus: 0,
-      totalPay: 0,
-      currency: 'CAD',
-      breakdown: [],
-      conflictWarning: false
-    };
+        try {
+          driverPay = await ruleEngineService.calculateDriverPay(payContext);
+        } catch (calcError) {
+          console.error("Failed to calculate driver pay", calcError);
+          // Continue with 0 pay, don't block assignment
+        }
 
-    try {
-      driverPay = await ruleEngineService.calculateDriverPay(payContext);
-    } catch (calcError) {
-      console.error("Failed to calculate driver pay", calcError);
-      // Continue with 0 pay, don't block assignment
-    }
+        // Apply Manual Bonus if provided
+        const manualBonus = parseFloat(bonus || 0);
+        driverPay.bonus = manualBonus; // Override calculated bonus (usually 0) with manual
+        driverPay.totalPay = driverPay.basePay + manualBonus;
 
-    // Create Trip
-    const tripId = `T-${Date.now()}`;
-    const startTime = new Date().toISOString();
-    const endTime = new Date(Date.now() + 86400000).toISOString();
+        // Create Trip
+        const tripId = `T-${Date.now()}`;
+        const startTime = new Date().toISOString();
+        const endTime = new Date(Date.now() + 86400000).toISOString();
 
-    const newTrip = {
-      id: tripId,
-      driver_id,
-      vehicle_id,
-      status: TripStatus.PLANNED,
-      start_time_est: startTime,
-      end_time_est: endTime,
-      driver_pay_calculated: driverPay.basePay,
-      driver_pay_bonus: driverPay.bonus,
-      driver_pay_total: driverPay.totalPay,
-      driver_pay_currency: driverPay.currency,
-      driver_pay_details: driverPay
-    };
+        const newTrip = {
+          id: tripId,
+          driver_id,
+          vehicle_id,
+          status: TripStatus.PLANNED,
+          start_time_est: startTime,
+          end_time_est: endTime,
+          driver_pay_calculated: driverPay.basePay,
+          driver_pay_bonus: driverPay.bonus,
+          driver_pay_total: driverPay.totalPay,
+          driver_pay_currency: driverPay.currency,
+          driver_pay_details: driverPay
+        };
 
-    await client.query(
-      `INSERT INTO trips (
+        await client.query(
+          `INSERT INTO trips (
         id, driver_id, vehicle_id, status, start_time_est, end_time_est,
         driver_pay_calculated, driver_pay_bonus, driver_pay_total, driver_pay_currency, driver_pay_details
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [
-        tripId, driver_id, vehicle_id, TripStatus.PLANNED, startTime, endTime,
-        driverPay.basePay, driverPay.bonus, driverPay.totalPay, driverPay.currency, driverPay
-      ]
-    );
+          [
+            tripId, driver_id, vehicle_id, TripStatus.PLANNED, startTime, endTime,
+            driverPay.basePay, driverPay.bonus, driverPay.totalPay, driverPay.currency, driverPay
+          ]
+        );
 
-    // Update Waybill
-    await client.query(
-      `UPDATE waybills SET status = $1, trip_id = $2 WHERE id = $3`,
-      [WaybillStatus.ASSIGNED, tripId, id]
-    );
+        // Update Waybill
+        await client.query(
+          `UPDATE waybills SET status = $1, trip_id = $2 WHERE id = $3`,
+          [WaybillStatus.ASSIGNED, tripId, id]
+        );
 
-    // Update Resources
-    await client.query(`UPDATE drivers SET status = 'BUSY' WHERE id = $1`, [driver_id]);
-    await client.query(`UPDATE vehicles SET status = 'BUSY' WHERE id = $1`, [vehicle_id]);
+        // Update Resources
+        await client.query(`UPDATE drivers SET status = 'BUSY' WHERE id = $1`, [driver_id]);
+        await client.query(`UPDATE vehicles SET status = 'BUSY' WHERE id = $1`, [vehicle_id]);
 
-    await client.query('COMMIT');
-    res.json({ waybill: { ...wbRes.rows[0], status: WaybillStatus.ASSIGNED, trip_id: tripId }, trip: newTrip });
-  } catch (e) {
-    await client.query('ROLLBACK');
-    console.error(e);
-    res.status(500).json({ error: 'Assignment failed' });
-  } finally {
-    client.release();
-  }
-});
-
-// --- Tracking & Communication APIs ---
-
-app.get('/api/trips/:id/tracking', async (req, res) => {
-  let { id } = req.params;
-  try {
-    // If ID is a Waybill ID, look up the Trip ID
-    if (id.startsWith('WB-')) {
-      const wbRes = await query('SELECT trip_id FROM waybills WHERE id = $1', [id]);
-      if (wbRes.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
-
-      const tripId = wbRes.rows[0].trip_id;
-      if (!tripId) return res.status(404).json({ error: 'Waybill not assigned to a trip yet' });
-      id = tripId;
-    }
-
-    const tripRes = await query('SELECT * FROM trips WHERE id = $1', [id]);
-    if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
-    const trip = tripRes.rows[0];
-
-    const waybillsRes = await query('SELECT * FROM waybills WHERE trip_id = $1', [id]);
-    const driverRes = await query('SELECT * FROM drivers WHERE id = $1', [trip.driver_id]);
-    const vehicleRes = await query('SELECT * FROM vehicles WHERE id = $1', [trip.vehicle_id]);
-    const timelineRes = await query('SELECT * FROM trip_events WHERE trip_id = $1 ORDER BY time DESC', [id]);
-
-    res.json({
-      ...trip,
-      waybills: waybillsRes.rows,
-      driver: driverRes.rows[0],
-      vehicle: vehicleRes.rows[0],
-      timeline: timelineRes.rows,
-      currentLocation: { lat: 41.59, lng: -93.60, place: 'Near Des Moines, IA' }
+        await client.query('COMMIT');
+        res.json({ waybill: { ...wbRes.rows[0], status: WaybillStatus.ASSIGNED, trip_id: tripId }, trip: newTrip });
+      } catch (e) {
+        await client.query('ROLLBACK');
+        console.error(e);
+        res.status(500).json({ error: 'Assignment failed' });
+      } finally {
+        client.release();
+      }
     });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Tracking error' });
-  }
-});
 
-app.get('/api/trips/:id/messages', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await query('SELECT * FROM messages WHERE trip_id = $1 ORDER BY timestamp ASC', [id]);
-    res.json(result.rows);
-  } catch (e) { res.status(500).json([]); }
-});
+    // --- Tracking & Communication APIs ---
 
-app.post('/api/trips/:id/messages', async (req, res) => {
-  const { id } = req.params;
-  const { text } = req.body;
-  const msgId = `M-${Date.now()}`;
-  const timestamp = new Date().toISOString();
+    app.get('/api/trips/:id/tracking', async (req, res) => {
+      let { id } = req.params;
+      try {
+        // If ID is a Waybill ID, look up the Trip ID
+        if (id.startsWith('WB-')) {
+          const wbRes = await query('SELECT trip_id FROM waybills WHERE id = $1', [id]);
+          if (wbRes.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
 
-  try {
-    await query(
-      'INSERT INTO messages (id, trip_id, sender, text, timestamp) VALUES ($1, $2, $3, $4, $5)',
-      [msgId, id, 'DISPATCHER', text, timestamp]
-    );
-    res.json({ id: msgId, trip_id: id, sender: 'DISPATCHER', text, timestamp });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Message failed' });
-  }
-});
+          const tripId = wbRes.rows[0].trip_id;
+          if (!tripId) return res.status(404).json({ error: 'Waybill not assigned to a trip yet' });
+          id = tripId;
+        }
 
-import authRoutes from './routes/authRoutes';
-import financeRoutes from './routes/financeRoutes';
-import pricingRoutes from './routes/pricingRoutes';
-import customerRoutes from './routes/customerRoutes';
-import fleetRoutes from './routes/fleetRoutes';
-import userRoutes from './routes/userRoutes';
-import ruleRoutes from './routes/ruleRoutes';
-import { verifyToken } from './middleware/AuthMiddleware';
+        const tripRes = await query('SELECT * FROM trips WHERE id = $1', [id]);
+        if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+        const trip = tripRes.rows[0];
 
-// Auth Routes (Public login)
-app.use('/api/auth', authRoutes);
+        const waybillsRes = await query('SELECT * FROM waybills WHERE trip_id = $1', [id]);
+        const driverRes = await query('SELECT * FROM drivers WHERE id = $1', [trip.driver_id]);
+        const vehicleRes = await query('SELECT * FROM vehicles WHERE id = $1', [trip.vehicle_id]);
+        const timelineRes = await query('SELECT * FROM trip_events WHERE trip_id = $1 ORDER BY time DESC', [id]);
 
-// Protected Routes (Apply verifyToken middleware)
-// Note: Some legacy routes might need specific handling, but general protection is good.
-// We can apply it globally for /api/ except auth/health, OR apply per route.
-// Let's apply per route module for clarity.
+        res.json({
+          ...trip,
+          waybills: waybillsRes.rows,
+          driver: driverRes.rows[0],
+          vehicle: vehicleRes.rows[0],
+          timeline: timelineRes.rows,
+          currentLocation: { lat: 41.59, lng: -93.60, place: 'Near Des Moines, IA' }
+        });
+      } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Tracking error' });
+      }
+    });
 
-app.use('/api/finance', verifyToken, financeRoutes);
-app.use('/api/pricing', verifyToken, pricingRoutes);
-app.use('/api/customers', verifyToken, customerRoutes);
-app.use('/api/rules', verifyToken, ruleRoutes);
-app.use('/api', verifyToken, fleetRoutes);
-app.use('/api', verifyToken, userRoutes);
+    app.get('/api/trips/:id/messages', async (req, res) => {
+      const { id } = req.params;
+      try {
+        const result = await query('SELECT * FROM messages WHERE trip_id = $1 ORDER BY timestamp ASC', [id]);
+        res.json(result.rows);
+      } catch (e) { res.status(500).json([]); }
+    });
 
-app.listen(port, () => {
-  console.log(`Backend primary engine running at http://localhost:${port}`);
-});
+    app.post('/api/trips/:id/messages', async (req, res) => {
+      const { id } = req.params;
+      const { text } = req.body;
+      const msgId = `M-${Date.now()}`;
+      const timestamp = new Date().toISOString();
 
-// Complementary port to resolve legacy/environment friction (as requested by user)
-// Using .on('error') to prevent process crash if 8000 is occupied by workspace proxy
-if (Number(port) !== 8000) {
-  const secondaryServer = app.listen(8000, () => {
-    console.log('Backend compatibility layer running at http://localhost:8000');
-  });
+      try {
+        await query(
+          'INSERT INTO messages (id, trip_id, sender, text, timestamp) VALUES ($1, $2, $3, $4, $5)',
+          [msgId, id, 'DISPATCHER', text, timestamp]
+        );
+        res.json({ id: msgId, trip_id: id, sender: 'DISPATCHER', text, timestamp });
+      } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Message failed' });
+      }
+    });
 
-  secondaryServer.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log('⚠️ Port 8000 is busy (likely workspace proxy). Primary engine is safe on 3001.');
-    } else {
-      console.error('Secondary server error:', err);
+    import authRoutes from './routes/authRoutes';
+    import financeRoutes from './routes/financeRoutes';
+    import pricingRoutes from './routes/pricingRoutes';
+    import customerRoutes from './routes/customerRoutes';
+    import fleetRoutes from './routes/fleetRoutes';
+    import userRoutes from './routes/userRoutes';
+    import ruleRoutes from './routes/ruleRoutes';
+    import { verifyToken } from './middleware/AuthMiddleware';
+
+    // Auth Routes (Public login)
+    app.use('/api/auth', authRoutes);
+
+    // Protected Routes (Apply verifyToken middleware)
+    // Note: Some legacy routes might need specific handling, but general protection is good.
+    // We can apply it globally for /api/ except auth/health, OR apply per route.
+    // Let's apply per route module for clarity.
+
+    app.use('/api/finance', verifyToken, financeRoutes);
+    app.use('/api/pricing', verifyToken, pricingRoutes);
+    app.use('/api/customers', verifyToken, customerRoutes);
+    app.use('/api/rules', verifyToken, ruleRoutes);
+    app.use('/api', verifyToken, fleetRoutes);
+    app.use('/api', verifyToken, userRoutes);
+
+    app.listen(port, () => {
+      console.log(`Backend primary engine running at http://localhost:${port}`);
+    });
+
+    // Complementary port to resolve legacy/environment friction (as requested by user)
+    // Using .on('error') to prevent process crash if 8000 is occupied by workspace proxy
+    if (Number(port) !== 8000) {
+      const secondaryServer = app.listen(8000, () => {
+        console.log('Backend compatibility layer running at http://localhost:8000');
+      });
+
+      secondaryServer.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          console.log('⚠️ Port 8000 is busy (likely workspace proxy). Primary engine is safe on 3001.');
+        } else {
+          console.error('Secondary server error:', err);
+        }
+      });
     }
-  });
-}
 
 
