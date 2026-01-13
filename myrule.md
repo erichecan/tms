@@ -49,3 +49,25 @@ description: TMS 项目配置经验和调试规则
 -   **[规则引擎]**: **规则动态同步**: 后端规则引擎 (`json-rules-engine`) 如果以单例模式运行，在数据库规则发生变更后（如迁移、手动增删）**必须重新加载**规则到内存中。可以在计算前增加 `await loadRulesFromDb()` 调用，或实现监听/过期机制，否则会导致计算仍使用旧规则，产生数据不一致。
 -   **[后端/数据库]**: **JSONB 数据持久化安全**: 在执行 `UPDATE` 操作时，如果涉及 `jsonb` 字段（如 `details`），务必在 SQL 中使用 `details = COALESCE($15, details)`。这可以防止在前端进行 partial update（如仅修改状态或签名）而未传递完整 JSON 时，导致原有复杂的详情数据被 null 覆盖。
 -   **[前端/兼容性]**: **旧数据兜底解析**: 随着系统升级，核心数据可能从“平铺字段”迁移到“JSONB 详情字段”。在加载数据时应实现**智能回退机制**：如果 JSONB 为空，尝试通过正则 (Regex) 从 `cargo_desc` 等文本记录中提取关键信息（如 `ShipFrom`, `ShipTo` 公司），确保历史运单在 View 模式下依然完整可见。
+-   **[GCP/部署]**: **Cloud Build 变量**: 手动执行 `gcloud builds submit` 时，Cloud Build 内置变量（如 `$COMMIT_SHA`, `$SHORT_SHA`）为空。必须使用固定标签（如 `tmsv2-latest`）或通过 GitHub 触发器自动部署才能使用这些变量。
+-   **[GCP/Dockerfile]**: **Monorepo 依赖**: 在 monorepo 项目中，Dockerfile 不能依赖不存在的 workspace（如 `@tms/shared-types`）。必须检查 `package.json` 中的 workspaces 配置，确保 Dockerfile 中的构建步骤与实际项目结构匹配。
+-   **[GCP/Node版本]**: **引擎兼容性**: 如果项目依赖要求 Node 20+（如 `vite@7.x`, `react-router@7.x`），Dockerfile 必须使用 `FROM node:20-alpine` 而不是 `node:18-alpine`，否则会出现 `EBADENGINE` 警告或构建失败。
+-   **[后端/CORS]**: **生产环境 CORS 配置**: 默认的 `app.use(cors())` 在生产环境可能不工作。必须明确配置 `corsOptions`，包括：
+    - `origin`: 函数式验证，支持从 `process.env.CORS_ORIGIN` 读取多个域名（逗号分隔）
+    - `credentials: true`: 允许携带凭证
+    - `methods`: 明确允许的 HTTP 方法
+    - `allowedHeaders`: 明确允许的请求头
+    - 示例：`CORS_ORIGIN=https://tms.aponygroup.com,https://tms-frontend-xxx.run.app`
+-   **[GCP/环境变量]**: **Cloud Run 环境变量更新**: 使用 `gcloud run services update` 更新环境变量时，多个值必须用逗号分隔且不能有空格，或者使用引号包裹。错误示例：`--update-env-vars=CORS_ORIGIN=https://a.com,https://b.com` 会报错。正确做法：先在代码中实现逗号分隔解析，然后设置单个字符串值。
+-   **[前端/SEO]**: **页面标题和图标**: `index.html` 中的 `<title>` 和 favicon 必须更新为项目品牌。不要保留默认的 "frontend" 或 "Vite" 标识。使用项目 logo 作为 favicon 提升专业度。
+-   **[认证/安全]**: **登录页面缺失**: 如果项目没有登录页面，所有路由都是公开的。在生产环境部署前，必须实现：
+    - 登录/注册页面
+    - JWT 认证中间件
+    - 路由守卫（Protected Routes）
+    - 用户会话管理
+    - 否则任何人都可以访问和操作系统数据
+-   **[数据库/迁移]**: **生产环境迁移**: GCP 部署时，数据库迁移步骤通常被注释掉（权限问题）。部署后必须手动运行迁移：
+    - 方法1: 通过 Cloud Run 实例执行迁移脚本
+    - 方法2: 本地连接生产数据库执行 SQL
+    - 方法3: 在 Cloud Build 中启用迁移步骤并配置正确的权限
+    - **警告**: 未运行迁移会导致 API 查询失败（表或列不存在）
