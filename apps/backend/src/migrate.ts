@@ -285,7 +285,6 @@ const migrate = async () => {
         `);
     }
 
-    await client.query('COMMIT');
     // Migration: Add driver pay columns to trips table
     await client.query(`
             ALTER TABLE trips 
@@ -297,7 +296,8 @@ const migrate = async () => {
         `);
     console.log('Migration: Added driver pay columns to trips table');
 
-    console.log('Database migration completed successfully.');
+    await client.query('COMMIT');
+    console.log("Migration successful");
   } catch (e) {
     await client.query('ROLLBACK');
     console.error("Migration failed", e);
