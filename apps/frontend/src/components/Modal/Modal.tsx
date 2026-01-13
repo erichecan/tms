@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
                 background: 'white',
                 borderRadius: '12px',
                 width: '100%',
-                maxWidth: '500px',
+                maxWidth: '800px',
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                 margin: '20px',
                 display: 'flex',

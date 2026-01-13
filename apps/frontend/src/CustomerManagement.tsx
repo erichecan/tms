@@ -92,7 +92,7 @@ export const CustomerManagement = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
                     <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>Customer Management</h1>
-                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Maintain a high-fidelity database of your corporate partners and individual clients.</p>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Maintain a high-fidelity database of your corporate customers and individual clients.</p>
                 </div>
                 <button
                     onClick={handleAddClick}
@@ -100,7 +100,7 @@ export const CustomerManagement = () => {
                     style={{ padding: '12px 24px' }}
                 >
                     <Plus size={20} />
-                    Onboard New Partner
+                    Onboard New Customer
                 </button>
             </div>
 
@@ -173,7 +173,7 @@ export const CustomerManagement = () => {
                         {customers.length === 0 && (
                             <tr>
                                 <td colSpan={6} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>
-                                    The partner roster is currently empty.
+                                    The customer roster is currently empty.
                                 </td>
                             </tr>
                         )}
@@ -184,14 +184,12 @@ export const CustomerManagement = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editingCustomer.id ? 'Refine Account Details' : 'Initialize Partner Account'}
+                title={editingCustomer.id ? 'Edit Account Details' : 'Add Customer Account'}
             >
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '500px' }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '600px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Authorized Representative</label>
                             <input
-                                required
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.name || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
@@ -199,9 +197,7 @@ export const CustomerManagement = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Legal Entity Name</label>
                             <input
-                                required
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.company || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, company: e.target.value })}
@@ -212,9 +208,7 @@ export const CustomerManagement = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Business Contact</label>
                             <input
-                                required
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.phone || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
@@ -222,10 +216,9 @@ export const CustomerManagement = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Official Email</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Email Address</label>
                             <input
                                 type="email"
-                                required
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.email || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
@@ -237,7 +230,6 @@ export const CustomerManagement = () => {
                     <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>HQ / Logistics Node Address</label>
                         <input
-                            required
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={editingCustomer.address || ''}
                             onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
@@ -262,7 +254,7 @@ export const CustomerManagement = () => {
                                 value={editingCustomer.status || 'ACTIVE'}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, status: e.target.value as any })}
                             >
-                                <option value="ACTIVE">ACTIVE PARTNERSHIP</option>
+                                <option value="ACTIVE">ACTIVE CUSTOMER</option>
                                 <option value="INACTIVE">SUSPENDED / DORMANT</option>
                             </select>
                         </div>
@@ -275,7 +267,7 @@ export const CustomerManagement = () => {
                             className="btn-secondary"
                             style={{ flex: 1 }}
                         >
-                            Dismiss
+                            Cancel
                         </button>
                         <button
                             type="submit"
@@ -283,7 +275,7 @@ export const CustomerManagement = () => {
                             className="btn-primary"
                             style={{ flex: 1 }}
                         >
-                            {isLoading ? 'Processing...' : (editingCustomer.id ? 'Refine Account' : 'Initialize Account')}
+                            {isLoading ? 'Processing...' : (editingCustomer.id ? 'Save Changes' : 'Create Account')}
                         </button>
                     </div>
                 </form>

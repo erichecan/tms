@@ -142,8 +142,8 @@ export const UserManagement = () => {
                 </table>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingUser({}); setPasswordMode(false); }} title={passwordMode ? 'Modify Access Credentials' : (editingUser.id ? 'Edit User Profile' : 'Register New Mission Member')}>
-                <form onSubmit={passwordMode ? handlePasswordUpdate : handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '480px' }}>
+            <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingUser({}); setPasswordMode(false); }} title={passwordMode ? 'Modify Access Credentials' : (editingUser.id ? 'Edit User Profile' : 'New Mission Member')}>
+                <form onSubmit={passwordMode ? handlePasswordUpdate : handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '600px' }}>
                     {!passwordMode ? (
                         <>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -189,7 +189,7 @@ export const UserManagement = () => {
 
                             <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ flex: 1 }}>Abort</button>
-                                <button type="submit" className="btn-primary" style={{ flex: 1 }}>{editingUser.id ? 'Authorize Updates' : 'Initialize Agent'}</button>
+                                <button type="submit" className="btn-primary" style={{ flex: 1 }}>{editingUser.id ? 'Authorize Updates' : 'Add Agent'}</button>
                             </div>
                         </>
                     ) : (

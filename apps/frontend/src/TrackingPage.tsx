@@ -8,7 +8,7 @@ import GoogleMap from './components/GoogleMap/GoogleMap';
 export const TrackingPage = () => {
     const { t } = useTranslation();
     const { id } = useParams();
-    const tripId = id || 'T-1001';
+    const tripId = id && id !== 'undefined' ? id : 'T-1001';
     const navigate = useNavigate();
 
     const [activeTrips, setActiveTrips] = useState<any[]>([]);

@@ -1,12 +1,13 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Calculator, Globe, Package, Target } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import logo from './assets/logo.png';
 import { API_BASE_URL } from './apiConfig';
 import { createPlacesAutocomplete } from './services/mapsService';
 import { calculatePrice, type PricingResult } from './services/pricingService';
+import { SignaturePad } from './components/SignaturePad';
 
 interface GoodsLine {
     pallet_count: string;
@@ -18,6 +19,10 @@ interface GoodsLine {
 export const WaybillCreate = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { id } = useParams();
+    const [searchParams] = useSearchParams();
+    const isViewMode = searchParams.get('mode') === 'view';
+    const isEditMode = Boolean(id) && !isViewMode;
 
     // Template State
     const [templateType, setTemplateType] = useState<'DEFAULT' | 'AMAZON'>('DEFAULT');
@@ -50,6 +55,9 @@ export const WaybillCreate = () => {
         price: '0'
     });
 
+    // Signature
+    const [signatureUrl, setSignatureUrl] = useState<string>('');
+
     // Image Placeholders
     const [isaImage, setIsaImage] = useState<string | null>(null);
     const [barcodeImage, setBarcodeImage] = useState<string | null>(null);
@@ -62,11 +70,66 @@ export const WaybillCreate = () => {
     const [pickupCoords, setPickupCoords] = useState<{ lat: number, lng: number } | null>(null);
     const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number, lng: number } | null>(null);
 
+    // Customer Dropdown Data
+    const [customers, setCustomers] = useState<any[]>([]);
+
     const shipFromRef = useRef<HTMLInputElement>(null);
     const shipToRef = useRef<HTMLInputElement>(null);
 
+    // Fetch Customers
     useEffect(() => {
-        if (templateType === 'DEFAULT') {
+        fetch(`${API_BASE_URL}/customers`).then(res => res.json()).then(setCustomers).catch(() => { });
+    }, []);
+
+    // Fetch Data on Edit/View
+    useEffect(() => {
+        if ((isEditMode || isViewMode) && id) {
+            fetch(`${API_BASE_URL}/waybills/${id}`)
+                .then(res => res.json())
+                .then(found => {
+                    if (found) {
+                        setWaybillNo(found.waybill_no);
+
+                        // Populate from saved JSON 'details' if available, otherwise fallback to columns
+                        const d = found.details || {};
+
+                        if (d.templateType) setTemplateType(d.templateType);
+
+                        setShipFrom(d.shipFrom || { company: '', contact: '', phone: '', address: found.origin || '' });
+                        setShipTo(d.shipTo || { company: '', contact: '', phone: '', address: found.destination || '' });
+
+                        if (d.baseInfo) {
+                            setBaseInfo(d.baseInfo);
+                        } else {
+                            // Fallback for flat cols
+                            setBaseInfo({
+                                fc_alias: found.fulfillment_center || '',
+                                fc_address: '',
+                                delivery_date: found.delivery_date || '',
+                                reference_code: found.reference_code || ''
+                            });
+                        }
+
+                        if (d.goodsLines) setGoodsLines(d.goodsLines);
+                        if (d.isaImage) setIsaImage(d.isaImage);
+                        if (d.barcodeImage) setBarcodeImage(d.barcodeImage);
+
+                        const loadedFooter = d.footerInfo || {};
+                        setFooterInfo({
+                            ...loadedFooter,
+                            client_name: loadedFooter.client_name || found.customer_id, // Backward compat
+                            price: found.price_estimated?.toString() || '0'
+                        });
+
+                        if (found.signature_url) setSignatureUrl(found.signature_url);
+                    }
+                });
+        }
+    }, [isEditMode, isViewMode, id]);
+
+
+    useEffect(() => {
+        if (templateType === 'DEFAULT' && !isViewMode) {
             if (shipFromRef.current) {
                 createPlacesAutocomplete(shipFromRef.current, {
                     onPlaceSelected: (place) => {
@@ -94,11 +157,11 @@ export const WaybillCreate = () => {
                 });
             }
         }
-    }, [templateType]);
+    }, [templateType, isViewMode]);
 
     useEffect(() => {
         const triggerCalculation = async () => {
-            if (pickupCoords && deliveryCoords && templateType === 'DEFAULT') {
+            if (pickupCoords && deliveryCoords && templateType === 'DEFAULT' && !isViewMode) {
                 setIsCalculating(true);
                 try {
                     const result = await calculatePrice({
@@ -130,33 +193,39 @@ export const WaybillCreate = () => {
         };
         const timer = setTimeout(triggerCalculation, 500); // Debounce
         return () => clearTimeout(timer);
-    }, [pickupCoords, deliveryCoords, businessType, waitingTime, templateType]);
+    }, [pickupCoords, deliveryCoords, businessType, waitingTime, templateType, isViewMode]);
 
     const handleBaseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isViewMode) return;
         setBaseInfo({ ...baseInfo, [e.target.name]: e.target.value });
     };
 
     const handleFooterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        if (isViewMode) return;
         setFooterInfo({ ...footerInfo, [e.target.name]: e.target.value });
     };
 
     const handleLineChange = (index: number, field: keyof GoodsLine, value: string) => {
+        if (isViewMode) return;
         const newLines = [...goodsLines];
         newLines[index][field] = value;
         setGoodsLines(newLines);
     };
 
     const addLine = () => {
+        if (isViewMode) return;
         setGoodsLines([...goodsLines, { pallet_count: '0', item_count: '0', pro: '', po_list: '' }]);
     };
 
     const removeLine = (index: number) => {
+        if (isViewMode) return;
         if (goodsLines.length > 1) {
             setGoodsLines(goodsLines.filter((_, i) => i !== index));
         }
     };
 
     const handlePaste = (e: React.ClipboardEvent, setImage: (s: string) => void) => {
+        if (isViewMode) return;
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
@@ -173,30 +242,52 @@ export const WaybillCreate = () => {
     };
 
     const handleSubmit = async () => {
+        if (isViewMode) return;
+
         const isAmazon = templateType === 'AMAZON';
+        const fullDetails = {
+            templateType,
+            shipFrom,
+            shipTo,
+            baseInfo,
+            goodsLines,
+            footerInfo,
+            isaImage,
+            barcodeImage
+        };
+
         const payload = {
             waybill_no: waybillNo,
-            customer_id: footerInfo.client_name || 'Unknown',
+            customer_id: footerInfo.client_name || '',
             origin: isAmazon ? 'Unknown' : shipFrom.address,
             destination: isAmazon ? (baseInfo.fc_address || baseInfo.fc_alias) : shipTo.address,
             fulfillment_center: isAmazon ? baseInfo.fc_alias : 'N/A',
-            cargo_desc: `Target: ${baseInfo.reference_code}, Items: ${goodsLines.length}, ShipFrom: ${shipFrom.company}, ShipTo: ${shipTo.company}`,
+            cargo_desc: `Target: ${baseInfo.reference_code || ''}, Items: ${goodsLines.length}, ShipFrom: ${shipFrom.company}, ShipTo: ${shipTo.company}`,
             price_estimated: Number(footerInfo.price) || 0,
             delivery_date: baseInfo.delivery_date,
-            created_at: new Date().toISOString(),
-            status: 'NEW'
+            status: 'NEW',
+            signature_url: signatureUrl,
+            signed_at: signatureUrl ? new Date().toISOString() : undefined,
+            signed_by: 'Driver/Customer',
+            details: fullDetails // Persist ALL state
         };
 
+        const url = isEditMode ? `${API_BASE_URL}/waybills/${id}` : `${API_BASE_URL}/waybills`;
+        const method = isEditMode ? 'PUT' : 'POST';
+
         try {
-            const res = await fetch(`${API_BASE_URL}/waybills`, {
-                method: 'POST',
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                navigate('/');
+                if (isEditMode) {
+                    alert('Waybill Updated Successfully');
+                }
+                navigate('/waybills');
             } else {
-                alert('Failed to create waybill');
+                alert('Failed to save waybill');
             }
         } catch (err) {
             console.error(err);
@@ -204,31 +295,42 @@ export const WaybillCreate = () => {
         }
     };
 
+    const handleSignatureSave = (data: string) => {
+        if (isViewMode) return;
+        setSignatureUrl(data);
+    };
+
     return (
         <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '40px', animation: 'fadeIn 0.5s ease-out' }}>
             {/* Header Controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <button onClick={() => navigate('/')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
+                <button onClick={() => navigate('/waybills')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}>
                     <ArrowLeft size={20} /> {t('common.back')}
                 </button>
 
-                <div className="glass" style={{ padding: '6px', display: 'flex', gap: '4px' }}>
-                    <button
-                        onClick={() => setTemplateType('DEFAULT')}
-                        style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'DEFAULT' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'DEFAULT' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
-                    >
-                        Default
-                    </button>
-                    <button
-                        onClick={() => setTemplateType('AMAZON')}
-                        style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'AMAZON' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'AMAZON' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
-                    >
-                        Amazon
-                    </button>
-                </div>
+                {!isViewMode && (
+                    <div className="glass" style={{ padding: '6px', display: 'flex', gap: '4px' }}>
+                        <button
+                            onClick={() => setTemplateType('DEFAULT')}
+                            style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'DEFAULT' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'DEFAULT' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
+                        >
+                            Default
+                        </button>
+                        <button
+                            onClick={() => setTemplateType('AMAZON')}
+                            style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'AMAZON' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'AMAZON' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
+                        >
+                            Amazon
+                        </button>
+                    </div>
+                )}
             </div>
 
-            <div className="glass-card" style={{ padding: '48px' }}>
+            <div className="glass-card" style={{ padding: '48px', pointerEvents: isViewMode ? 'none' : 'auto', opacity: isViewMode ? 0.9 : 1 }}>
+
+                {isEditMode && <div className="badge-yellow" style={{ marginBottom: '20px', textAlign: 'center' }}>EDIT MODE</div>}
+                {isViewMode && <div className="badge-blue" style={{ marginBottom: '20px', textAlign: 'center' }}>VIEW ONLY MODE</div>}
+
                 {/* Branding Block */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px' }}>
                     <div>
@@ -243,68 +345,54 @@ export const WaybillCreate = () => {
                                 value={waybillNo}
                                 onChange={(e) => setWaybillNo(e.target.value)}
                                 style={{ border: '1px solid var(--glass-border)', padding: '8px 16px', borderRadius: '10px', textAlign: 'right', width: '180px', fontWeight: 700, background: 'var(--slate-50)' }}
+                                readOnly={isViewMode}
                             />
                         </div>
                     </div>
                 </div>
 
+                {/* Templates */}
                 {templateType === 'AMAZON' ? (
                     <div style={{ marginBottom: '40px' }}>
                         <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
-                            <div style={{ width: '180px' }}>
-                                <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--slate-900)' }}>{t('waybill.form.isa')}</h4>
-                                <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '4px' }}>Paste appointment screenshots here</p>
-                            </div>
+                            <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>ISA / Barcode</h4></div>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div onPaste={(e) => handlePaste(e, setIsaImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--slate-50)', color: 'var(--slate-400)', fontSize: '13px', cursor: 'text', overflow: 'hidden' }}>
-                                    {isaImage ? <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} /> : <span>{t('waybill.form.isaPlaceholder')}</span>}
+                                <div onPaste={(e) => handlePaste(e, setIsaImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {isaImage ? <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} /> : <span>Paste ISA Here</span>}
                                 </div>
-                                <div onPaste={(e) => handlePaste(e, setBarcodeImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--slate-50)', color: 'var(--slate-400)', fontSize: '13px', cursor: 'text', overflow: 'hidden' }}>
-                                    {barcodeImage ? <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} /> : <span>{t('waybill.form.barcodePlaceholder')}</span>}
+                                <div onPaste={(e) => handlePaste(e, setBarcodeImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {barcodeImage ? <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} /> : <span>Paste Barcode Here</span>}
                                 </div>
                             </div>
                         </div>
-
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                             <div>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Fulfillment Center Code</label>
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <input name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} style={{ width: '100px', padding: '12px', border: '1px solid var(--glass-border)', borderRadius: '12px', fontWeight: 700 }} />
-                                    <input name="fc_address" placeholder="Full FC Address" value={baseInfo.fc_address} onChange={handleBaseChange} style={{ flex: 1, padding: '12px', border: '1px solid var(--glass-border)', borderRadius: '12px', background: 'var(--slate-50)' }} />
-                                </div>
+                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>Fulfillment Center Code</label>
+                                <input name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '100%' }} />
                             </div>
                             <div>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Delivery Schedule</label>
-                                <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} style={{ width: '100%', padding: '12px', border: '1px solid var(--glass-border)', borderRadius: '12px', fontWeight: 600 }} />
+                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>Delivery Date</label>
+                                <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '100%' }} />
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
-                        {/* Ship From */}
+                        {/* Pick Up */}
                         <div className="glass" style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                                <Globe size={20} color="var(--primary-start)" />
-                                <h4 style={{ fontWeight: 800, margin: 0 }}>PICK UP AT</h4>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                <input value={shipFrom.company} onChange={e => setShipFrom({ ...shipFrom, company: e.target.value })} placeholder="Company Name" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} />
-                                <input value={shipFrom.phone} onChange={e => setShipFrom({ ...shipFrom, phone: e.target.value })} placeholder="Phone" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} />
-                            </div>
-                            <input ref={shipFromRef} value={shipFrom.address} onChange={e => setShipFrom({ ...shipFrom, address: e.target.value })} placeholder="Origin address..." style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} />
+                            <div style={{ marginBottom: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><Globe size={16} /> PICK UP AT (Shipper)</div>
+                            <input value={shipFrom.company} onChange={e => setShipFrom({ ...shipFrom, company: e.target.value })} placeholder="Company Name" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipFrom.contact} onChange={e => setShipFrom({ ...shipFrom, contact: e.target.value })} placeholder="Contact Person" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipFrom.phone} onChange={e => setShipFrom({ ...shipFrom, phone: e.target.value })} placeholder="Phone" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input ref={shipFromRef} value={shipFrom.address} onChange={e => setShipFrom({ ...shipFrom, address: e.target.value })} placeholder="Address" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
                         </div>
-
-                        {/* Ship To */}
+                        {/* Deliver To */}
                         <div className="glass" style={{ padding: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                                <Target size={20} color="var(--secondary)" />
-                                <h4 style={{ fontWeight: 800, margin: 0 }}>DELIVER TO</h4>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                <input value={shipTo.company} onChange={e => setShipTo({ ...shipTo, company: e.target.value })} placeholder="Consignee Name" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} />
-                                <input value={shipTo.phone} onChange={e => setShipTo({ ...shipTo, phone: e.target.value })} placeholder="Phone" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} />
-                            </div>
-                            <input ref={shipToRef} value={shipTo.address} onChange={e => setShipTo({ ...shipTo, address: e.target.value })} placeholder="Destination address..." style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} />
+                            <div style={{ marginBottom: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><Target size={16} /> DELIVER TO (Consignee)</div>
+                            <input value={shipTo.company} onChange={e => setShipTo({ ...shipTo, company: e.target.value })} placeholder="Company Name" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipTo.contact} onChange={e => setShipTo({ ...shipTo, contact: e.target.value })} placeholder="Contact Person" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipTo.phone} onChange={e => setShipTo({ ...shipTo, phone: e.target.value })} placeholder="Phone" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input ref={shipToRef} value={shipTo.address} onChange={e => setShipTo({ ...shipTo, address: e.target.value })} placeholder="Address" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
                         </div>
                     </div>
                 )}
@@ -319,38 +407,36 @@ export const WaybillCreate = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--glass-border)' }}>
-                                    <th style={{ padding: '16px', textAlign: 'left', fontSize: '11px', fontWeight: 700 }}>#</th>
-                                    <th style={{ padding: '16px', textAlign: 'left', fontSize: '11px', fontWeight: 700 }}>PALLETS</th>
-                                    <th style={{ padding: '16px', textAlign: 'left', fontSize: '11px', fontWeight: 700 }}>ITEMS</th>
-                                    <th style={{ padding: '16px', textAlign: 'left', fontSize: '11px', fontWeight: 700 }}>PRO #</th>
-                                    <th style={{ padding: '16px', textAlign: 'left', fontSize: '11px', fontWeight: 700 }}>PO LIST</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>#</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>PALLETS</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>ITEMS</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>PRO # / DESCRIPTION</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>PO LIST</th>
                                     <th style={{ padding: '16px' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {goodsLines.map((line, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                        <td style={{ padding: '16px', fontWeight: 700, color: 'var(--slate-400)' }}>{idx + 1}</td>
-                                        <td style={{ padding: '16px' }}><input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} /></td>
-                                        <td style={{ padding: '16px' }}><input value={line.item_count} onChange={e => handleLineChange(idx, 'item_count', e.target.value)} style={{ width: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} /></td>
-                                        <td style={{ padding: '16px' }}><input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} placeholder="PRO#" style={{ width: '140px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} /></td>
-                                        <td style={{ padding: '16px' }}><input value={line.po_list} onChange={e => handleLineChange(idx, 'po_list', e.target.value)} placeholder="PO List" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} /></td>
-                                        <td style={{ padding: '16px', textAlign: 'center' }}><button onClick={() => removeLine(idx)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={18} /></button></td>
+                                        <td style={{ padding: '16px' }}>{idx + 1}</td>
+                                        <td style={{ padding: '16px' }}><input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
+                                        <td style={{ padding: '16px' }}><input value={line.item_count} onChange={e => handleLineChange(idx, 'item_count', e.target.value)} style={{ width: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
+                                        <td style={{ padding: '16px' }}><input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} style={{ width: '140px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
+                                        <td style={{ padding: '16px' }}><input value={line.po_list} onChange={e => handleLineChange(idx, 'po_list', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
+                                        <td style={{ padding: '16px' }}>{!isViewMode && <button onClick={() => removeLine(idx)} style={{ color: '#EF4444', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={18} /></button>}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        <div style={{ padding: '16px' }}>
-                            <button onClick={addLine} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}>
-                                <Plus size={16} /> Add Goods Line
-                            </button>
-                        </div>
+                        {!isViewMode && <div style={{ padding: '16px' }}>
+                            <button onClick={addLine} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}><Plus size={16} /> Add Goods Line</button>
+                        </div>}
                     </div>
                 </div>
 
                 {/* Logistics Engine Integrated */}
                 {templateType === 'DEFAULT' && (
-                    <div className="glass" style={{ marginBottom: '40px', padding: '32px', border: '1px solid var(--primary-start)', background: 'linear-gradient(135deg, rgba(0,128,255,0.03) 0%, rgba(139,0,255,0.03) 100%)' }}>
+                    <div className="glass" style={{ marginBottom: '40px', padding: '32px', background: 'linear-gradient(135deg, rgba(0,128,255,0.03) 0%, rgba(139,0,255,0.03) 100%)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                 <div style={{ padding: '10px', background: 'var(--primary-grad)', borderRadius: '12px', color: 'white' }}>
@@ -358,70 +444,54 @@ export const WaybillCreate = () => {
                                 </div>
                                 <div>
                                     <h4 style={{ margin: 0, fontWeight: 800 }}>Real-time Logistics Engine</h4>
-                                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--slate-500)' }}>Automated rate prediction based on route feasibility</p>
-                                </div>
-                            </div>
-                            {isCalculating && <div className="badge-blue">Analyzing...</div>}
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '32px' }}>
-                            <div>
-                                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-900)', display: 'block', marginBottom: '12px', textTransform: 'uppercase' }}>Service Tier</label>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    {['STANDARD', 'WASTE_COLLECTION', 'WAREHOUSE_TRANSFER'].map(t => (
-                                        <button key={t} onClick={() => setBusinessType(t)} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: businessType === t ? 'var(--slate-900)' : 'white', color: businessType === t ? 'white' : 'var(--slate-500)', fontSize: '11px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                            {t.replace('_', ' ')}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '24px' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-900)', display: 'block', marginBottom: '12px', textTransform: 'uppercase' }}>Schedule Date</label>
-                                    <input type="date" value={baseInfo.delivery_date} onChange={e => setBaseInfo({ ...baseInfo, delivery_date: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)' }} />
-                                </div>
-                                <div style={{ width: '120px' }}>
-                                    <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-900)', display: 'block', marginBottom: '12px', textTransform: 'uppercase' }}>Wait (Min)</label>
-                                    <input type="number" value={waitingTime} onChange={e => setWaitingTime(parseInt(e.target.value) || 0)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', textAlign: 'center', fontWeight: 700 }} />
                                 </div>
                             </div>
                         </div>
-
-                        {pricingResult && (
-                            <div style={{ marginTop: '32px', padding: '24px', background: 'rgba(255,255,255,0.6)', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--glass-border)' }}>
+                        {pricingResult ? (
+                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
                                 <div>
-                                    <div style={{ fontSize: '11px', color: 'var(--slate-500)', fontWeight: 700, marginBottom: '6px' }}>ESTIMATED TOTAL QUOTE</div>
-                                    <div style={{ fontSize: '42px', fontWeight: 900, color: 'var(--primary-start)' }}>${pricingResult.totalRevenue.toFixed(2)} <span style={{ fontSize: '18px', fontWeight: 600 }}>USD</span></div>
+                                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-500)' }}>ESTIMATED</div>
+                                    <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--primary-start)' }}>${pricingResult.totalRevenue.toFixed(2)}</div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '4px' }}>{pricingResult.distance.toFixed(1)} KM</div>
-                                    <div style={{ fontSize: '13px', color: 'var(--slate-500)', fontWeight: 600 }}>ETA: ~{pricingResult.duration.toFixed(0)} minutes</div>
+                                    <div style={{ fontSize: '16px', fontWeight: 800 }}>{pricingResult.distance.toFixed(1)} KM</div>
+                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>~{pricingResult.duration.toFixed(0)} MIN</div>
                                 </div>
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: '14px', fontStyle: 'italic', color: 'var(--slate-500)' }}>
+                                {isViewMode ? `Recorded Price: $${footerInfo.price}` : 'Enter addresses to calculate...'}
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Final Submission Controls */}
-                <div className="glass" style={{ padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
-                    <div style={{ display: 'flex', gap: '40px' }}>
-                        <div>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Client Selection</div>
-                            <select name="client_name" value={footerInfo.client_name} onChange={handleFooterChange} style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }}>
-                                <option value="">Select Partner</option>
-                                <option value="Customer A">Apony Prime</option>
-                                <option value="Customer B">Global Logistics Co.</option>
-                            </select>
-                        </div>
-                        <div style={{ width: '150px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Final Estimate</div>
-                            <div style={{ fontSize: '28px', fontWeight: 900, color: 'var(--slate-900)' }}>${footerInfo.price}</div>
-                        </div>
+                {/* Signature Pad */}
+                <div style={{ marginBottom: '40px' }}>
+                    <div style={{ pointerEvents: isViewMode ? 'none' : 'auto' }}>
+                        <SignaturePad onSave={handleSignatureSave} initialUrl={signatureUrl} />
                     </div>
-                    <button onClick={handleSubmit} className="btn-primary" style={{ padding: '16px 48px', fontSize: '18px' }}>
-                        Create & Finish Waybill
-                    </button>
                 </div>
+
+                {/* Final Submission Controls */}
+                {!isViewMode && (
+                    <div className="glass" style={{ padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
+                        <div style={{ display: 'flex', gap: '40px' }}>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>BILL TO (Customer)</div>
+                                <select name="client_name" value={footerInfo.client_name} onChange={handleFooterChange} style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }}>
+                                    <option value="">Select Customer</option>
+                                    {customers.length > 0 ? customers.map((c: any) => (
+                                        <option key={c.id} value={c.name}>{c.name}</option>
+                                    )) : <option value="Ad Hoc">Ad Hoc Client</option>}
+                                </select>
+                            </div>
+                        </div>
+                        <button onClick={handleSubmit} className="btn-primary" style={{ padding: '16px 48px', fontSize: '18px' }}>
+                            {isEditMode ? 'Update Waybill' : 'Create & Finish Waybill'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

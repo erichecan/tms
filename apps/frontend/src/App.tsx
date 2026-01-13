@@ -38,6 +38,10 @@ const router = createBrowserRouter([
         element: <WaybillCreate />,
       },
       {
+        path: 'waybills/edit/:id',
+        element: <WaybillCreate />,
+      },
+      {
         path: 'fleet',
         element: <FleetManagement />,
       },

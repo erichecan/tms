@@ -7,6 +7,36 @@ export enum WaybillStatus {
     ARRIVED = 'ARRIVED',
     DELIVERED = 'DELIVERED',
     COMPLETED = 'COMPLETED',
+    ARCHIVED = 'ARCHIVED',
+}
+
+// ... (skip lines)
+
+export interface Waybill {
+    id: string;
+    waybill_no: string; // "WB-2026..."
+    customer_id: string; // "CUST-001"
+    origin: string; // "YYZ9"
+    destination: string; // "YYZ3"
+    cargo_desc: string; // "Pork Bellies, 20 Pallets"
+    status: WaybillStatus;
+    trip_id?: string;
+    price_estimated: number;
+    created_at: string;
+    // New Fields from Amazon Template
+    fulfillment_center?: string;
+    delivery_date?: string;
+    reference_code?: string;
+    pallet_count?: number;
+    total_weight?: number;
+    time_in?: string;
+    time_out?: string;
+    distance?: number;
+    // Signature
+    signature_url?: string;
+    signed_at?: string;
+    signed_by?: string;
+    details?: any; // Full JSON state
 }
 
 export enum TripStatus {
@@ -44,27 +74,7 @@ export interface Vehicle {
     status: 'IDLE' | 'BUSY';
 }
 
-export interface Waybill {
-    id: string;
-    waybill_no: string; // "WB-2026..."
-    customer_id: string; // "CUST-001"
-    origin: string; // "YYZ9"
-    destination: string; // "YYZ3"
-    cargo_desc: string; // "Pork Bellies, 20 Pallets"
-    status: WaybillStatus;
-    trip_id?: string;
-    price_estimated: number;
-    created_at: string;
-    // New Fields from Amazon Template
-    fulfillment_center?: string;
-    delivery_date?: string;
-    reference_code?: string;
-    pallet_count?: number;
-    total_weight?: number;
-    time_in?: string;
-    time_out?: string;
-    distance?: number;
-}
+
 
 export interface Trip {
     id: string;

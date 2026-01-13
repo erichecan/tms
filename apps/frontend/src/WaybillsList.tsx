@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, FileText } from 'lucide-react';
+import { WaybillActionMenu } from './components/WaybillActionMenu';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from './apiConfig';
 
@@ -147,9 +148,7 @@ export const WaybillsList = () => {
                                         {new Date(wb.created_at).toLocaleDateString()}
                                     </td>
                                     <td style={{ padding: '20px', textAlign: 'right' }}>
-                                        <button className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
-                                            <MoreHorizontal size={20} />
-                                        </button>
+                                        <WaybillActionMenu waybillId={wb.id} />
                                     </td>
                                 </tr>
                             )) : (

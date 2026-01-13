@@ -185,7 +185,7 @@ export const PricingRules = () => {
                         {[
                             { id: 'WASTE_COLLECTION', name: 'Waste Collection', icon: '🗑️', desc: 'Internal WH → Landfill' },
                             { id: 'WAREHOUSE_TRANSFER', name: 'WH Transfer', icon: '📦', desc: 'Internal WH → 3PL / Amazon' },
-                            { id: 'CLIENT_DIRECT', name: 'Client Direct', icon: '🚛', desc: 'Client Site → Destination' }
+                            { id: 'CLIENT_DIRECT', name: 'Customer Direct', icon: '🚛', desc: 'Customer Site → Destination' }
                         ].map(s => (
                             <div
                                 key={s.id}
@@ -224,7 +224,7 @@ export const PricingRules = () => {
                                     onChange={e => updateCondition('pickupType', e.target.value)}
                                 >
                                     <option value="OWN_WAREHOUSE">Internal Warehouse</option>
-                                    <option value="CLIENT_SITE">Client Site</option>
+                                    <option value="CLIENT_SITE">Customer Site</option>
                                     <option value="3PL">Third Party Logistics</option>
                                 </select>
                             </div>
@@ -481,7 +481,7 @@ export const PricingRules = () => {
                 </div>
                 <button className="btn-primary" onClick={handleCreate} style={{ padding: '14px 28px', borderRadius: '16px', boxShadow: 'var(--primary-shadow)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Plus size={20} />
-                    <span style={{ fontWeight: 700 }}>Initialize Template</span>
+                    <span style={{ fontWeight: 700 }}>Create Template</span>
                 </button>
             </div>
 
@@ -493,7 +493,7 @@ export const PricingRules = () => {
                             <Layers size={32} />
                         </div>
                         <h3 style={{ margin: '0 0 8px', color: 'var(--slate-900)' }}>No Pricing Templates</h3>
-                        <p style={{ margin: 0, color: 'var(--slate-400)', fontSize: '14px' }}>Initialize your first template to start automating logistics costs.</p>
+                        <p style={{ margin: 0, color: 'var(--slate-400)', fontSize: '14px' }}>Create your first template to start automating logistics costs.</p>
                     </div>
                 ) : templates.map(t => (
                     <div key={t.id} className="glass card" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>

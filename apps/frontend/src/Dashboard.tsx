@@ -19,6 +19,7 @@ interface Job {
     destination: string;
     status: string;
     price_estimated: number;
+    trip_id?: string;
 }
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
@@ -147,9 +148,9 @@ export const Dashboard = () => {
                                     <td style={{ padding: '20px 24px', fontWeight: 900, color: 'var(--slate-900)' }}>${job.price_estimated?.toLocaleString()}</td>
                                     <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                         {job.status === 'NEW' ? (
-                                            <button onClick={() => openAssignModal(job.id)} className="btn-primary" style={{ padding: '10px 24px', fontSize: '12px' }}>Initialize Mission</button>
+                                            <button onClick={() => openAssignModal(job.id)} className="btn-primary" style={{ padding: '10px 24px', fontSize: '12px' }}>Dispatch</button>
                                         ) : (
-                                            <button onClick={() => navigate(`/tracking/${job.id}`)} className="btn-secondary" style={{ padding: '10px 24px', fontSize: '12px' }}>Intercept Tracking</button>
+                                            <button onClick={() => navigate(`/tracking/${job.trip_id || job.id}`)} className="btn-secondary" style={{ padding: '10px 24px', fontSize: '12px' }}>Intercept Tracking</button>
                                         )}
                                     </td>
                                 </tr>

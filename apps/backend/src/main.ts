@@ -3,6 +3,7 @@ import * as express from 'express';
 import * as cors from 'cors';
 import { pool, query } from './db-postgres';
 import { TripStatus, WaybillStatus } from './types';
+import { generateWaybillPDF, generateBOL } from './services/pdfService';
 
 const app = express();
 const port = process.env.PORT || 3001; // Frontend usually 5173
@@ -48,6 +49,18 @@ app.get('/api/dashboard/jobs', async (req, res) => {
 
 // --- Core Data APIs ---
 
+app.get('/api/waybills/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query('SELECT * FROM waybills WHERE id = $1', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
+    res.json(result.rows[0]);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.get('/api/waybills', async (req, res) => {
   const status = req.query.status as string;
   try {
@@ -68,8 +81,9 @@ app.post('/api/waybills', async (req, res) => {
   const {
     waybill_no, customer_id, origin, destination,
     cargo_desc, price_estimated, delivery_date, reference_code,
-    fc_alias, // mapped to fulfillment_center
-    pallet_count
+    fc_alias,
+    pallet_count,
+    details // New JSONB field
   } = req.body;
 
   const id = `WB-${Date.now()}`;
@@ -80,20 +94,96 @@ app.post('/api/waybills', async (req, res) => {
     await query(
       `INSERT INTO waybills (
                 id, waybill_no, customer_id, origin, destination, cargo_desc, status, 
-                price_estimated, created_at, fulfillment_center, delivery_date, reference_code, pallet_count
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+                price_estimated, created_at, fulfillment_center, delivery_date, reference_code, pallet_count, details
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
       [
         id, waybill_no, customer_id, origin, destination, cargo_desc, status,
         price_estimated, created_at, fc_alias, delivery_date, reference_code,
-        pallet_count ? parseInt(pallet_count) : 0
+        pallet_count ? parseInt(pallet_count) : 0,
+        details // Save full JSON state
       ]
     );
 
-    // Return constructed object to match frontend expectation immediately
     res.json({ id, waybill_no, status, ...req.body });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to create waybill' });
+  }
+});
+
+app.put('/api/waybills/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    waybill_no, customer_id, origin, destination,
+    cargo_desc, price_estimated, status,
+    fulfillment_center, delivery_date, reference_code, pallet_count,
+    signature_url, signed_at, signed_by, details
+  } = req.body;
+
+  try {
+    const result = await query(
+      `UPDATE waybills SET 
+                waybill_no = $1, customer_id = $2, origin = $3, destination = $4, 
+                cargo_desc = $5, price_estimated = $6, status = COALESCE($7, status),
+                fulfillment_center = $8, delivery_date = $9, reference_code = $10, pallet_count = $11,
+                signature_url = COALESCE($12, signature_url), 
+                signed_at = COALESCE($13, signed_at), 
+                signed_by = COALESCE($14, signed_by),
+                details = $15
+             WHERE id = $16 RETURNING *`,
+      [
+        waybill_no, customer_id, origin, destination,
+        cargo_desc, price_estimated, status,
+        fulfillment_center, delivery_date, reference_code, pallet_count ? parseInt(pallet_count) : 0,
+        signature_url, signed_at, signed_by,
+        details,
+        id
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Waybill not found' });
+    }
+
+    res.json({ message: 'Waybill updated successfully', waybill: result.rows[0] });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to update waybill' });
+  }
+});
+
+
+
+app.get('/api/waybills/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query('SELECT * FROM waybills WHERE id = $1', [id]);
+    if (result.rows.length === 0) return res.status(404).send('Waybill not found');
+
+    const doc = generateWaybillPDF(result.rows[0], result.rows[0].signature_url);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=waybill-${id}.pdf`);
+    doc.pipe(res);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error generating PDF');
+  }
+});
+
+app.get('/api/waybills/:id/bol', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query('SELECT * FROM waybills WHERE id = $1', [id]);
+    if (result.rows.length === 0) return res.status(404).send('Waybill not found');
+
+    const doc = generateBOL(result.rows[0], result.rows[0].signature_url);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=bol-${id}.pdf`);
+    doc.pipe(res);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error generating BOL');
   }
 });
 
