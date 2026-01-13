@@ -63,14 +63,49 @@ app.get('/api/waybills/:id', async (req, res) => {
 
 app.get('/api/waybills', async (req, res) => {
   const status = req.query.status as string;
+  const search = (req.query.search as string || '').toLowerCase();
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const offset = (page - 1) * limit;
+
   try {
-    if (status) {
-      const result = await query('SELECT * FROM waybills WHERE status = $1', [status]);
-      res.json(result.rows);
-    } else {
-      const result = await query('SELECT * FROM waybills');
-      res.json(result.rows);
+    let whereClauses: string[] = [];
+    let params: any[] = [];
+
+    if (status && status !== 'ALL') {
+      params.push(status);
+      whereClauses.push(`status = $${params.length}`);
     }
+
+    if (search) {
+      params.push(`%${search}%`);
+      whereClauses.push(`(
+        LOWER(waybill_no) LIKE $${params.length} OR 
+        LOWER(customer_id) LIKE $${params.length} OR 
+        LOWER(destination) LIKE $${params.length}
+      )`);
+    }
+
+    const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const countResult = await query(`SELECT COUNT(*) FROM waybills ${whereStr}`, params);
+    const total = parseInt(countResult.rows[0].count);
+
+    const queryStr = `
+      SELECT * FROM waybills 
+      ${whereStr} 
+      ORDER BY created_at DESC 
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    const result = await query(queryStr, [...params, limit, offset]);
+
+    res.json({
+      data: result.rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -129,7 +164,7 @@ app.put('/api/waybills/:id', async (req, res) => {
                 signature_url = COALESCE($12, signature_url), 
                 signed_at = COALESCE($13, signed_at), 
                 signed_by = COALESCE($14, signed_by),
-                details = $15
+                details = COALESCE($15, details)
              WHERE id = $16 RETURNING *`,
       [
         waybill_no, customer_id, origin, destination,
@@ -311,15 +346,33 @@ import pricingRoutes from './routes/pricingRoutes';
 import customerRoutes from './routes/customerRoutes';
 import fleetRoutes from './routes/fleetRoutes';
 import userRoutes from './routes/userRoutes';
+import ruleRoutes from './routes/ruleRoutes';
 
 app.use('/api/finance', financeRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/rules', ruleRoutes);
 app.use('/api', fleetRoutes);
 app.use('/api', userRoutes);
 
 app.listen(port, () => {
-  console.log(`Backend server running at http://localhost:${port}`);
+  console.log(`Backend primary engine running at http://localhost:${port}`);
 });
+
+// Complementary port to resolve legacy/environment friction (as requested by user)
+// Using .on('error') to prevent process crash if 8000 is occupied by workspace proxy
+if (Number(port) !== 8000) {
+  const secondaryServer = app.listen(8000, () => {
+    console.log('Backend compatibility layer running at http://localhost:8000');
+  });
+
+  secondaryServer.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log('⚠️ Port 8000 is busy (likely workspace proxy). Primary engine is safe on 3001.');
+    } else {
+      console.error('Secondary server error:', err);
+    }
+  });
+}
 
 

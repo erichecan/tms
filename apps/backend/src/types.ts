@@ -120,10 +120,12 @@ export interface Expense {
 export interface Customer {
     id: string;
     name: string;
-    company: string;
+    company?: string;
     phone: string;
     email: string;
     address: string;
+    businessType?: string;
+    taxId?: string;
     creditLimit: number;
     status: 'ACTIVE' | 'INACTIVE';
     created_at: string;
@@ -259,4 +261,39 @@ export interface PricingTemplate {
     status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
     created_at: string;
     updated_at: string;
+}
+
+// --- Universal Rules (JSON Rules Engine) ---
+
+export enum RuleType {
+    PRICING = 'pricing',
+    PAYROLL = 'payroll',
+}
+
+export enum RuleStatus {
+    ACTIVE = 'active',
+    INACTIVE = 'inactive',
+}
+
+export interface RuleCondition {
+    fact: string;
+    operator: string;
+    value: string | number | boolean;
+}
+
+export interface RuleAction {
+    type: string;
+    params: Record<string, any>;
+}
+
+export interface Rule {
+    id: string;
+    name: string;
+    description: string;
+    type: RuleType;
+    priority: number;
+    status: RuleStatus;
+    conditions: RuleCondition[];
+    actions: RuleAction[];
+    created_at: string;
 }

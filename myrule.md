@@ -42,3 +42,10 @@ description: TMS 项目配置经验和调试规则
 -   **[API/部署]**: **禁止硬编码 API 地址**: 严禁在代码中直接写 `http://localhost:3001`. 必须统一引用 `src/apiConfig.ts` 中的 `API_BASE_URL`. 它会自动根据环境选择 API 地址。
 -   **[数据库]**: **同步更新**: 每当前端增加新字段（如 `waybill` 的 `item_count`），**必须同步修改** `apps/backend/src/migrate.ts` 并增加 `ALTER TABLE` 语句确保老环境也能直接运行迁移。
 -   **[V2 部署]**: **平行部署流程**: 运行 `./deploy-v2.sh` 进行平行部署. 该脚本会自动化创建 `tms-v2-backend` 和 `tms-v2-frontend` 服务，确保不影响生产环境。
+-   **[后端/CORS]**: **双端口与地址冲突**: 如果前端报错 `blocked by CORS` 或 `Failed to fetch` 指向 `localhost:8000` 而后端运行在 `3001`，通常是 `API_BASE_URL` 配置不一致。注意：**8000 端口常被系统/编辑器插件代理占用**，项目应优先统一使用 **3001** 端口。在 `apiConfig.ts` 和 `main.ts` 中必须保持一致。
+-   **[前端/路由]**: **侧边栏与路由同步**: 每次在 `Layout.tsx` 侧边栏增加新功能链接（如 `/pricing`）后，**必须同步**在 `App.tsx` 的 `createBrowserRouter` 中注册对应的路由和组件。否则会导致 404 Error (Unexpected Application Error)。
+-   **[API/配置]**: **环境变量缺失**: 如果系统报错 `Google Maps API Key is required`，说明 `.env` 文件缺失或配置错误。**前端**需在 `apps/frontend/.env` 设置 `VITE_GOOGLE_MAPS_API_KEY`；**后端**需在 `apps/backend/.env` 设置 `GOOGLE_MAPS_API_KEY`。务必区分前端专用 Key（常带前端限流/授权）与后端 Key。
+-   **[React/UI]**: **数值输入框清除逻辑**: 在 React 中处理数字输入框 (`type="number"`) 时，避免在 `onChange` 中使用 `parseInt(val) || 0`，这会导致用户无法删除最后的 0 或清空输入。**正确做法**: 状态应允许 `number | string`，允许 `""` (空字符串) 存在，在提交 API 前再统一转换回数字。
+-   **[规则引擎]**: **规则动态同步**: 后端规则引擎 (`json-rules-engine`) 如果以单例模式运行，在数据库规则发生变更后（如迁移、手动增删）**必须重新加载**规则到内存中。可以在计算前增加 `await loadRulesFromDb()` 调用，或实现监听/过期机制，否则会导致计算仍使用旧规则，产生数据不一致。
+-   **[后端/数据库]**: **JSONB 数据持久化安全**: 在执行 `UPDATE` 操作时，如果涉及 `jsonb` 字段（如 `details`），务必在 SQL 中使用 `details = COALESCE($15, details)`。这可以防止在前端进行 partial update（如仅修改状态或签名）而未传递完整 JSON 时，导致原有复杂的详情数据被 null 覆盖。
+-   **[前端/兼容性]**: **旧数据兜底解析**: 随着系统升级，核心数据可能从“平铺字段”迁移到“JSONB 详情字段”。在加载数据时应实现**智能回退机制**：如果 JSONB 为空，尝试通过正则 (Regex) 从 `cargo_desc` 等文本记录中提取关键信息（如 `ShipFrom`, `ShipTo` 公司），确保历史运单在 View 模式下依然完整可见。

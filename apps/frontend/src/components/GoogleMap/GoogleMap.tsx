@@ -42,11 +42,11 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     onMarkerClick,
 }) => {
     const mapRef = useRef<HTMLDivElement>(null);
-    const [map, setMap] = useState<google.maps.Map | null>(null);
+    const [map, setMap] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const markersRef = useRef<google.maps.Marker[]>([]);
-    const routesRef = useRef<google.maps.Polyline[]>([]);
+    const markersRef = useRef<any[]>([]);
+    const routesRef = useRef<any[]>([]);
 
     useEffect(() => {
         const initMap = async () => {
@@ -54,25 +54,18 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                 setLoading(true);
                 setError(null);
 
-                // Dynamic import to avoid SSR issues if any, and circular dependencies
-
-                // This will define window.google
-                // Note: mapsService.initialize() doesn't exist in the new service file I created.
-                // It exports ensureMapsLoaded indirectly via exported functions.
-                // However, I need to load the API first.
-                // I can use `loadGoogleMaps` from lib directly or expose a init function in service.
-                // But `mapsService` doesn't export `ensureMapsLoaded`.
-                // Let's use `loadGoogleMaps` from lib for simplicity here or import it.
-                const { loadGoogleMaps } = await import('../../lib/googleMapsLoader');
+                const { loadGoogleMaps, importLibrary } = await import('../../lib/googleMapsLoader');
                 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
                 await loadGoogleMaps(API_KEY);
+                const { Map } = await importLibrary('maps');
 
-                if (mapRef.current && window.google && window.google.maps) {
-                    const mapInstance = new window.google.maps.Map(mapRef.current, {
+                if (mapRef.current) {
+                    const mapInstance = new Map(mapRef.current, {
                         center,
                         zoom,
                         mapTypeId: 'roadmap',
+                        mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
                         styles: [
                             {
                                 featureType: 'poi',
@@ -83,8 +76,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                     });
 
                     setMap(mapInstance);
-                } else {
-                    console.warn('⚠️ [GoogleMap Component] Cannot create map instance');
                 }
             } catch (err: any) {
                 console.error('❌ [GoogleMap Component] Google Maps failed to load:', err);
@@ -95,61 +86,75 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         };
 
         initMap();
-    }, []); // Run once on mount
+    }, []);
 
     // Update markers
     useEffect(() => {
-        if (!map || !window.google || !window.google.maps) return;
+        if (!map) return;
 
-        // Clear existing
-        markersRef.current.forEach(marker => marker.setMap(null));
-        markersRef.current = [];
+        const updateMarkers = async () => {
+            const { importLibrary } = await import('../../lib/googleMapsLoader');
+            // Use Marker for now as it's easier, or AdvancedMarkerElement if mapId is set
+            const { Marker, InfoWindow } = await importLibrary('maps');
 
-        // Add new
-        markers.forEach(markerData => {
-            const marker = new window.google.maps.Marker({
-                position: markerData.position,
-                map,
-                title: markerData.title,
-                // icon can be customized
+            // Clear existing
+            markersRef.current.forEach(marker => marker.setMap(null));
+            markersRef.current = [];
+
+            // Add new
+            markers.forEach(markerData => {
+                const marker = new Marker({
+                    position: markerData.position,
+                    map,
+                    title: markerData.title,
+                });
+
+                if (markerData.info) {
+                    const infoWindow = new InfoWindow({
+                        content: markerData.info,
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                        onMarkerClick?.(markerData.id);
+                    });
+                }
+
+                markersRef.current.push(marker);
             });
+        };
 
-            if (markerData.info) {
-                const infoWindow = new window.google.maps.InfoWindow({
-                    content: markerData.info,
-                });
-
-                marker.addListener('click', () => {
-                    infoWindow.open(map, marker);
-                    onMarkerClick?.(markerData.id);
-                });
-            }
-
-            markersRef.current.push(marker);
-        });
+        updateMarkers();
     }, [map, markers, onMarkerClick]);
 
     // Update routes
     useEffect(() => {
-        if (!map || !window.google || !window.google.maps) return;
+        if (!map) return;
 
-        // Clear existing
-        routesRef.current.forEach(route => route.setMap(null));
-        routesRef.current = [];
+        const updateRoutes = async () => {
+            const { importLibrary } = await import('../../lib/googleMapsLoader');
+            const { Polyline } = await importLibrary('maps');
 
-        // Add new
-        routes.forEach(routeData => {
-            const polyline = new window.google.maps.Polyline({
-                path: [routeData.from, routeData.to],
-                geodesic: true,
-                strokeColor: routeData.color || '#FF0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 3,
-                map,
+            // Clear existing
+            routesRef.current.forEach(route => route.setMap(null));
+            routesRef.current = [];
+
+            // Add new
+            routes.forEach(routeData => {
+                const polyline = new Polyline({
+                    path: [routeData.from, routeData.to],
+                    geodesic: true,
+                    strokeColor: routeData.color || '#FF0000',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 3,
+                    map,
+                });
+
+                routesRef.current.push(polyline);
             });
+        };
 
-            routesRef.current.push(polyline);
-        });
+        updateRoutes();
     }, [map, routes]);
 
     // Update center/zoom

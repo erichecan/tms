@@ -112,6 +112,24 @@ const migrate = async () => {
         date TIMESTAMP,
         status VARCHAR(20) DEFAULT 'PENDING'
       );
+
+      CREATE TABLE IF NOT EXISTS roles (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS rules (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        type VARCHAR(20) NOT NULL,
+        priority INTEGER DEFAULT 0,
+        conditions JSONB,
+        actions JSONB,
+        status VARCHAR(20) DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     await client.query(`
@@ -173,6 +191,15 @@ const migrate = async () => {
 
     // --- Seed Data (Idempotent) ---
 
+    // Roles
+    await client.query(`
+      INSERT INTO roles (id, name, description) VALUES 
+      ('R-ADMIN', 'Administrator', 'Full system access'),
+      ('R-DISPATCHER', 'Dispatcher', 'Manage trips and waybills'),
+      ('R-DRIVER', 'Driver', 'Mobile portal access')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
     // Drivers
     await client.query(`
       INSERT INTO drivers (id, name, phone, status, avatar_url) VALUES 
@@ -197,12 +224,26 @@ const migrate = async () => {
       ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
       ('U-02', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
       ON CONFLICT (id) DO NOTHING;
+    `);
 
-      -- Customers
+    // Customers
+    await client.query(`
       INSERT INTO customers (id, name, email, phone, businessType, status) VALUES 
       ('C-01', 'Apony Prime', 'prime@apony.com', '437-111-2222', 'VIP', 'ACTIVE'),
       ('C-02', 'Global Logistics Co.', 'info@global.com', '437-333-4444', 'STANDARD', 'ACTIVE'),
       ('C-03', 'Retail Giant', 'support@retail.com', '437-555-6666', 'STANDARD', 'ACTIVE')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // Rules
+    await client.query(`
+      INSERT INTO rules (id, name, description, type, priority, conditions, actions, status) VALUES 
+      ('RULE-ZONE-001', 'Zone Pricing (25km Radius)', 'PRD v2.0: $180 within 25km, $5/km extra beyond', 'pricing', 10, 
+       '[{"fact": "distance", "operator": "lessThanInclusive", "value": 25}]',
+       '[{"type": "addFee", "params": {"amount": 180}}]', 'ACTIVE'),
+      ('RULE-ZONE-002', 'Over Radius Surcharge', 'PRD v2.0: $5/km extra beyond 25km', 'pricing', 9, 
+       '[{"fact": "distance", "operator": "greaterThan", "value": 25}]',
+       '[{"type": "calculateBaseFee", "params": {"ratePerKm": 5, "baseFee": 180, "subtractDistance": 25}}]', 'ACTIVE')
       ON CONFLICT (id) DO NOTHING;
     `);
 

@@ -1,40 +1,53 @@
-import { db } from '../db';
+import { query } from '../db-postgres';
 import { Customer } from '../types';
 
 export const customerService = {
     getAll: async (): Promise<Customer[]> => {
-        return db.customers || [];
+        const result = await query('SELECT * FROM customers ORDER BY created_at DESC');
+        return result.rows;
     },
 
     getById: async (id: string): Promise<Customer | undefined> => {
-        return db.customers?.find(c => c.id === id);
+        const result = await query('SELECT * FROM customers WHERE id = $1', [id]);
+        return result.rows[0];
     },
 
     create: async (data: Omit<Customer, 'id' | 'created_at' | 'status'>): Promise<Customer> => {
-        const newCustomer: Customer = {
-            id: `C-${Date.now()}`,
-            ...data,
-            status: 'ACTIVE',
-            created_at: new Date().toISOString(),
-            creditLimit: data.creditLimit || 0
-        };
-        db.customers.push(newCustomer);
-        return newCustomer;
+        const id = `C-${Date.now()}`;
+        const result = await query(
+            `INSERT INTO customers (id, name, email, phone, address, businessType, taxId, creditLimit, status, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [
+                id,
+                data.name,
+                data.email,
+                data.phone,
+                data.address,
+                data.businessType,
+                data.taxId,
+                data.creditLimit || 0,
+                'ACTIVE',
+                new Date().toISOString()
+            ]
+        );
+        return result.rows[0];
     },
 
     update: async (id: string, data: Partial<Customer>): Promise<Customer | null> => {
-        const index = db.customers.findIndex(c => c.id === id);
-        if (index === -1) return null;
+        const fields = Object.keys(data);
+        const values = Object.values(data);
+        if (fields.length === 0) return null;
 
-        db.customers[index] = { ...db.customers[index], ...data };
-        return db.customers[index];
+        const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+        const result = await query(
+            `UPDATE customers SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`,
+            [...values, id]
+        );
+        return result.rows[0] || null;
     },
 
     delete: async (id: string): Promise<boolean> => {
-        const index = db.customers.findIndex(c => c.id === id);
-        if (index === -1) return false;
-
-        db.customers.splice(index, 1);
-        return true;
+        const result = await query('DELETE FROM customers WHERE id = $1 RETURNING id', [id]);
+        return (result.rows.length > 0);
     }
 };

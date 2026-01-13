@@ -1,6 +1,6 @@
 
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import logo from './assets/logo.png';
 import './index.css';
@@ -56,8 +56,8 @@ export const Layout = () => {
                     <SidebarItem to="/finance" icon={DollarSign} label="Financial Overview" />
                     <SidebarItem to="/finance/receivables" icon={FileText} label="Receivables" />
                     <SidebarItem to="/finance/payables" icon={FileText} label="Payables" />
-                    <SidebarItem to="/pricing/rules" icon={Settings} label="Rule Engine" />
-                    <SidebarItem to="/pricing" icon={DollarSign} label="Calculator" />
+                    <SidebarItem to="/pricing" icon={DollarSign} label="Price Calculator" />
+                    <SidebarItem to="/rules" icon={ShieldCheck} label="Universal Rules" />
                 </nav>
 
                 <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px', marginTop: '24px' }}>

@@ -12,8 +12,9 @@ import { FinanceDashboard } from './FinanceDashboard';
 import { FinanceReceivables } from './FinanceReceivables';
 import { FinancePayables } from './FinancePayables';
 import { CustomerManagement } from './CustomerManagement';
-import { PricingRules } from './PricingRules';
+import RuleManagement from './RuleManagement';
 import { UserManagement } from './UserManagement';
+import { PricingCalculator } from './PricingCalculator';
 import './index.css';
 
 const router = createBrowserRouter([
@@ -70,8 +71,12 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: 'pricing/rules',
-        element: <PricingRules />,
+        path: 'rules',
+        element: <RuleManagement />,
+      },
+      {
+        path: 'pricing',
+        element: <PricingCalculator />,
       },
       {
         path: 'users',
@@ -81,8 +86,14 @@ const router = createBrowserRouter([
   },
 ]);
 
+import { DialogProvider } from './context/DialogContext';
+
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <DialogProvider>
+      <RouterProvider router={router} />
+    </DialogProvider>
+  );
 }
 
 export default App;

@@ -4,11 +4,13 @@ import { Truck, User, DollarSign, Plus, Calendar, MoreHorizontal, Edit } from 'l
 import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
+import { useDialog } from './context/DialogContext';
 
 export const FleetManagement = () => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'drivers' | 'vehicles' | 'expenses' | 'schedule'>('drivers');
     const [data, setData] = useState<any>({ drivers: [], vehicles: [], expenses: [] });
+    const { alert } = useDialog();
 
     const [trips, setTrips] = useState<any[]>([]);
 
@@ -136,7 +138,7 @@ export const FleetManagement = () => {
         e.preventDefault();
         const endpoint = activeTab;
         if (endpoint === 'schedule') {
-            alert(t('common.comingSoon'));
+            await alert(t('common.comingSoon'), 'Feature Coming Soon');
             setIsModalOpen(false);
             return;
         }

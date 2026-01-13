@@ -22,30 +22,54 @@ export const WaybillsList = () => {
     const [waybills, setWaybills] = useState<Waybill[]>([]);
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const pageSize = 10;
+
+    // Use a debounced search term for API calls
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     useEffect(() => {
-        const fetchWaybills = async () => {
-            try {
-                const res = await fetch(`${API_BASE_URL}/waybills`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setWaybills(Array.isArray(data) ? data : []);
-                }
-            } catch (err) {
-                console.error("Failed to fetch waybills", err);
-                setWaybills([]);
-            }
-        };
-        fetchWaybills();
-    }, []);
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
-    const filteredWaybills = waybills.filter(wb => {
-        const matchesStatus = filterStatus === 'ALL' || wb.status === filterStatus;
-        const matchesSearch = wb.waybill_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            wb.customer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            wb.destination.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesStatus && matchesSearch;
-    });
+    const fetchWaybills = async () => {
+        try {
+            setLoading(true);
+            const queryParams = new URLSearchParams({
+                status: filterStatus,
+                page: String(currentPage),
+                limit: String(pageSize),
+                search: debouncedSearch
+            });
+            const res = await fetch(`${API_BASE_URL}/waybills?${queryParams.toString()}`);
+            if (res.ok) {
+                const result = await res.json();
+                setWaybills(Array.isArray(result.data) ? result.data : []);
+                setTotalPages(result.totalPages || 1);
+                setTotalItems(result.total || 0);
+            }
+        } catch (err) {
+            console.error("Failed to fetch waybills", err);
+            setWaybills([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchWaybills();
+    }, [filterStatus, currentPage, debouncedSearch]);
+
+    // Reset to page 1 when filtering or searching
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, debouncedSearch]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -122,7 +146,13 @@ export const WaybillsList = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredWaybills.length > 0 ? filteredWaybills.map(wb => (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7} style={{ padding: '80px', textAlign: 'center' }}>
+                                        <div style={{ width: 40, height: 40, border: '4px solid var(--primary-start)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
+                                    </td>
+                                </tr>
+                            ) : waybills.length > 0 ? waybills.map(wb => (
                                 <tr key={wb.id} data-testid="waybill-row" style={{ borderBottom: '1px solid var(--glass-border)' }} className="table-row-hover">
                                     <td style={{ padding: '20px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -161,6 +191,47 @@ export const WaybillsList = () => {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '32px', padding: '0 8px' }}>
+                    <div style={{ color: 'var(--slate-500)', fontSize: '13px', fontWeight: 600 }}>
+                        Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} waybills
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className={`btn-secondary ${currentPage === 1 ? 'opacity-50 pointer-events-none' : ''}`}
+                            style={{ padding: '8px 16px', fontSize: '13px' }}
+                        >
+                            Previous
+                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {[...Array(totalPages)].map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    style={{
+                                        width: '36px', height: '36px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                                        background: currentPage === i + 1 ? 'var(--primary-grad)' : 'var(--slate-100)',
+                                        color: currentPage === i + 1 ? 'white' : 'var(--slate-600)',
+                                        fontWeight: 700, fontSize: '13px', transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className={`btn-secondary ${currentPage === totalPages ? 'opacity-50 pointer-events-none' : ''}`}
+                            style={{ padding: '8px 16px', fontSize: '13px' }}
+                        >
+                            Next
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

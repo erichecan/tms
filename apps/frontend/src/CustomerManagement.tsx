@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Building2, Mail, Phone as PhoneIcon, MapPin, Dollar
 // import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
+import { useDialog } from './context/DialogContext';
 
 interface Customer {
     id: string;
@@ -22,6 +23,7 @@ export const CustomerManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Partial<Customer>>({});
     const [isLoading, setIsLoading] = useState(false);
+    const { confirm } = useDialog();
 
     const fetchCustomers = async () => {
         try {
@@ -50,7 +52,8 @@ export const CustomerManagement = () => {
     };
 
     const handleDeleteClick = async (id: string) => {
-        if (!window.confirm('Archive this customer account?')) return;
+        const ok = await confirm('Archive this customer account? This will restrict their access to new waybill creation.', 'Archive Customer Account');
+        if (!ok) return;
         try {
             await fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' });
             fetchCustomers();

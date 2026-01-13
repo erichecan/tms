@@ -6,7 +6,7 @@
 
 /// <reference types="google.maps" />
 
-import { loadGoogleMaps, isGoogleMapsLoaded } from '../lib/googleMapsLoader';
+import { loadGoogleMaps, isGoogleMapsLoaded, importLibrary } from '../lib/googleMapsLoader';
 import type { AddressInfo, LogisticsRoute } from '../types/maps';
 // @ts-ignore
 import LRUCache from 'lru-cache';
@@ -138,7 +138,7 @@ function reportTelemetry(event: GoogleMapsCallEvent): void {
 
 // 确保 Google Maps API 已加载
 async function ensureMapsLoaded(): Promise<typeof google> {
-    if (isGoogleMapsLoaded()) {
+    if (isGoogleMapsLoaded() && (window as any).google?.maps?.importLibrary) {
         return (window as any).google;
     }
 
@@ -147,8 +147,7 @@ async function ensureMapsLoaded(): Promise<typeof google> {
     }
 
     countAndCheck('js_api_load');
-    const googleObj = await loadGoogleMaps(API_KEY, ['places', 'geometry']);
-    return googleObj;
+    return await loadGoogleMaps(API_KEY);
 }
 
 // 地址解析（Geocoding）
@@ -389,15 +388,18 @@ export function createPlacesAutocomplete(
         onPlaceSelected?: (place: google.maps.places.PlaceResult) => void;
         minLength?: number;
     } = {}
-): Promise<google.maps.places.Autocomplete> {
+): Promise<any> {
     const { onPlaceSelected, minLength = 3 } = options;
 
     return new Promise(async (resolve, reject) => {
         try {
-            const googleObj = await ensureMapsLoaded();
+            await ensureMapsLoaded();
+
+            // 采用 Places API (New) 推荐的加载方式
+            const { Autocomplete } = await importLibrary('places');
 
             // 创建 Autocomplete 实例
-            const autocomplete = new googleObj.maps.places.Autocomplete(input, {
+            const autocomplete = new Autocomplete(input, {
                 types: ['address'],
                 componentRestrictions: { country: 'ca' },
                 fields: ['formatted_address', 'geometry', 'address_components', 'place_id'],
@@ -405,27 +407,16 @@ export function createPlacesAutocomplete(
 
             // 去抖处理输入
             let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-            // const originalInputHandler = input.oninput; // Unused for now
 
             input.addEventListener('input', (e: Event) => {
                 const target = e.target as HTMLInputElement;
                 const value = target.value.trim();
 
-                // 清除之前的定时器
-                if (debounceTimer) {
-                    clearTimeout(debounceTimer);
-                }
+                if (debounceTimer) clearTimeout(debounceTimer);
+                if (value.length < minLength) return;
 
-                // 如果输入过短，不触发
-                if (value.length < minLength) {
-                    return;
-                }
-
-                // 去抖延迟
                 debounceTimer = setTimeout(() => {
                     countAndCheck('places_autocomplete');
-
-                    // 上报调用
                     reportTelemetry({
                         type: 'places_autocomplete',
                         paramsDigest: getParamsDigest('places_autocomplete', { query: value }),
@@ -449,6 +440,7 @@ export function createPlacesAutocomplete(
 
             resolve(autocomplete);
         } catch (error) {
+            console.error('❌ [Maps Service] Autocomplete initialization failed:', error);
             reject(error);
         }
     });

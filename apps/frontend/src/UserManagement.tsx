@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Shield, Plus, Edit, Trash2, User as UserIcon } from 'lucide-react';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
+import { useDialog } from './context/DialogContext';
 
 interface User {
     id: string;
@@ -24,6 +25,7 @@ export const UserManagement = () => {
     const [editingUser, setEditingUser] = useState<Partial<User & { password?: string }>>({});
     const [passwordMode, setPasswordMode] = useState(false);
     const [newPassword, setNewPassword] = useState('');
+    const { confirm } = useDialog();
 
     const fetchData = async () => {
         const [uRes, rRes] = await Promise.all([
@@ -68,7 +70,8 @@ export const UserManagement = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Erase this agent from local records?')) return;
+        const ok = await confirm('This action will permanently erase the agent from system records. Do you wish to proceed?', 'Erase Agent');
+        if (!ok) return;
         await fetch(`${API_BASE_URL}/users/${id}`, { method: 'DELETE' });
         fetchData();
     };

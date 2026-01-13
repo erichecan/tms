@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
+import { useNavigate } from 'react-router-dom';
+import { useDialog } from './context/DialogContext';
 
 interface FinancialRecord {
     id: string;
@@ -13,6 +15,8 @@ interface FinancialRecord {
 }
 
 export const FinanceReceivables = () => {
+    const navigate = useNavigate();
+    const { alert } = useDialog();
     const [records, setRecords] = useState<FinancialRecord[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -29,21 +33,14 @@ export const FinanceReceivables = () => {
         fetchRecords();
     }, []);
 
-    const handleGenerateStatement = () => {
-        alert('Feature coming soon: Generate Statement');
-    };
-
     return (
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Accounts Receivable</h2>
                 <button
-                    onClick={handleGenerateStatement}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        background: '#10B981', color: 'white', border: 'none',
-                        padding: '10px 16px', borderRadius: '8px', fontWeight: 500, cursor: 'pointer'
-                    }}
+                    onClick={() => alert('Feature coming soon: Generate Statement', 'Coming Soon')}
+                    className="btn-secondary"
+                    style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                     <Plus size={18} /> Generate Statement
                 </button>

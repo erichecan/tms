@@ -8,6 +8,7 @@ import { API_BASE_URL } from './apiConfig';
 import { createPlacesAutocomplete } from './services/mapsService';
 import { calculatePrice, type PricingResult } from './services/pricingService';
 import { SignaturePad } from './components/SignaturePad';
+import { useDialog } from './context/DialogContext';
 
 interface GoodsLine {
     pallet_count: string;
@@ -19,6 +20,7 @@ interface GoodsLine {
 export const WaybillCreate = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { alert } = useDialog();
     const { id } = useParams();
     const [searchParams] = useSearchParams();
     const isViewMode = searchParams.get('mode') === 'view';
@@ -92,25 +94,65 @@ export const WaybillCreate = () => {
 
                         // Populate from saved JSON 'details' if available, otherwise fallback to columns
                         const d = found.details || {};
+                        const cargoDesc = found.cargo_desc || '';
+
+                        // Recovery logic for legacy waybills where JSONB was empty
+                        let recoveredFromComp = '';
+                        let recoveredToComp = '';
+                        let recoveredRef = '';
+
+                        const fromMatch = cargoDesc.match(/ShipFrom:\s*([^,]+)/i);
+                        if (fromMatch) recoveredFromComp = fromMatch[1].trim();
+
+                        const toMatch = cargoDesc.match(/ShipTo:\s*([^,]+)/i);
+                        if (toMatch) recoveredToComp = toMatch[1].trim();
+
+                        const refMatch = cargoDesc.match(/Target:\s*([^,]+)/i);
+                        if (refMatch) recoveredRef = refMatch[1].trim();
+
+                        // Recover items count
+                        const itemsMatch = cargoDesc.match(/Items:\s*(\d+)/i);
+                        const recoveredItemCount = itemsMatch ? parseInt(itemsMatch[1]) : 0;
+                        const recoveredLines = [];
+                        if (recoveredItemCount > 0) {
+                            for (let i = 0; i < recoveredItemCount; i++) {
+                                recoveredLines.push({ pallet_count: '0', item_count: '0', pro: '', po_list: '' });
+                            }
+                        }
 
                         if (d.templateType) setTemplateType(d.templateType);
 
-                        setShipFrom(d.shipFrom || { company: '', contact: '', phone: '', address: found.origin || '' });
-                        setShipTo(d.shipTo || { company: '', contact: '', phone: '', address: found.destination || '' });
+                        setShipFrom(d.shipFrom || {
+                            company: recoveredFromComp,
+                            contact: '',
+                            phone: '',
+                            address: found.origin || ''
+                        });
+
+                        setShipTo(d.shipTo || {
+                            company: recoveredToComp,
+                            contact: '',
+                            phone: '',
+                            address: found.destination || ''
+                        });
 
                         if (d.baseInfo) {
                             setBaseInfo(d.baseInfo);
                         } else {
-                            // Fallback for flat cols
+                            // Fallback for flat cols + recovered ref
                             setBaseInfo({
                                 fc_alias: found.fulfillment_center || '',
                                 fc_address: '',
                                 delivery_date: found.delivery_date || '',
-                                reference_code: found.reference_code || ''
+                                reference_code: recoveredRef || found.reference_code || ''
                             });
                         }
 
-                        if (d.goodsLines) setGoodsLines(d.goodsLines);
+                        if (d.goodsLines) {
+                            setGoodsLines(d.goodsLines);
+                        } else if (recoveredLines.length > 0) {
+                            setGoodsLines(recoveredLines);
+                        }
                         if (d.isaImage) setIsaImage(d.isaImage);
                         if (d.barcodeImage) setBarcodeImage(d.barcodeImage);
 
@@ -283,15 +325,15 @@ export const WaybillCreate = () => {
             });
             if (res.ok) {
                 if (isEditMode) {
-                    alert('Waybill Updated Successfully');
+                    await alert('The waybill has been successfully updated in the system.', 'Update Successful');
                 }
                 navigate('/waybills');
             } else {
-                alert('Failed to save waybill');
+                await alert('The system encountered an error while attempting to save the waybill. Please try again.', 'Save Failed');
             }
         } catch (err) {
             console.error(err);
-            alert('Error connecting to server');
+            await alert('A connection error occurred. Please verify your network and try again.', 'Connection Error');
         }
     };
 

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, Eye, Edit, FileText, Download, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../apiConfig';
+import { useDialog } from '../context/DialogContext';
 
 interface WaybillActionMenuProps {
     waybillId: string;
@@ -11,8 +12,21 @@ interface WaybillActionMenuProps {
 
 export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpwards, setOpenUpwards] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
     const navigate = useNavigate();
+    const { confirm } = useDialog();
+
+    const toggleMenu = () => {
+        if (!isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            // If less than 250px below, open upwards
+            setOpenUpwards(spaceBelow < 250);
+        }
+        setIsOpen(!isOpen);
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -40,9 +54,9 @@ export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProp
                 window.open(`${API_BASE_URL}/waybills/${waybillId}/bol`, '_blank');
                 break;
             case 'delete':
-                if (window.confirm('Are you sure you want to delete this waybill?')) {
-                    onDelete?.();
-                }
+                confirm('Are you sure you want to permanently delete this waybill? This action cannot be undone.', 'Delete Waybill').then(ok => {
+                    if (ok) onDelete?.();
+                });
                 break;
         }
     };
@@ -50,19 +64,25 @@ export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProp
     return (
         <div style={{ position: 'relative' }} ref={menuRef}>
             <button
+                ref={buttonRef}
                 className="btn-secondary"
                 style={{ padding: '8px', borderRadius: '10px', cursor: 'pointer' }}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleMenu}
             >
                 <MoreHorizontal size={20} />
             </button>
 
             {isOpen && (
                 <div className="glass" style={{
-                    position: 'absolute', right: 0, top: '100%', marginTop: '8px',
+                    position: 'absolute',
+                    right: 0,
+                    [openUpwards ? 'bottom' : 'top']: '100%',
+                    [openUpwards ? 'marginBottom' : 'marginTop']: '8px',
                     background: 'white', borderRadius: '12px', padding: '8px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                    zIndex: 50, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '4px'
+                    boxShadow: openUpwards
+                        ? '0 -10px 25px -5px rgba(0, 0, 0, 0.1)'
+                        : '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                    zIndex: 100, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '4px'
                 }}>
                     <MenuOption icon={<Eye size={16} />} label="View Details" onClick={() => handleAction('view')} />
                     <MenuOption icon={<Edit size={16} />} label="Edit Waybill" onClick={() => handleAction('edit')} />

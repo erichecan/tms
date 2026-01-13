@@ -1,80 +1,195 @@
 import { Request, Response } from 'express';
-import { db } from '../db';
+import { query } from '../db-postgres';
 import { Driver, Vehicle, Expense, Trip } from '../types';
 
 // --- Drivers ---
-export const getDrivers = (req: Request, res: Response) => {
-    res.json(db.drivers);
+export const getDrivers = async (req: Request, res: Response) => {
+    try {
+        const result = await query('SELECT * FROM drivers');
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to fetch drivers' });
+    }
 };
-export const createDriver = (req: Request, res: Response) => {
-    const newDriver = { id: `D-${Date.now()}`, ...req.body };
-    db.drivers.push(newDriver);
-    res.status(201).json(newDriver);
+
+export const createDriver = async (req: Request, res: Response) => {
+    const { name, phone, status, avatar_url } = req.body;
+    const id = `D-${Date.now()}`;
+    try {
+        const result = await query(
+            'INSERT INTO drivers (id, name, phone, status, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [id, name, phone, status || 'IDLE', avatar_url]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to create driver' });
+    }
 };
-export const updateDriver = (req: Request, res: Response) => {
-    const idx = db.drivers.findIndex(d => d.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Driver not found' });
-    db.drivers[idx] = { ...db.drivers[idx], ...req.body };
-    res.json(db.drivers[idx]);
+
+export const updateDriver = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { name, phone, status, avatar_url } = req.body;
+    try {
+        const result = await query(
+            `UPDATE drivers SET 
+                name = COALESCE($1, name), 
+                phone = COALESCE($2, phone), 
+                status = COALESCE($3, status), 
+                avatar_url = COALESCE($4, avatar_url) 
+             WHERE id = $5 RETURNING *`,
+            [name, phone, status, avatar_url, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Driver not found' });
+        res.json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to update driver' });
+    }
 };
-export const deleteDriver = (req: Request, res: Response) => {
-    const idx = db.drivers.findIndex(d => d.id === req.params.id);
-    if (idx === -1) return res.status(404).send();
-    db.drivers.splice(idx, 1);
-    res.status(204).send();
+
+export const deleteDriver = async (req: Request, res: Response) => {
+    try {
+        const result = await query('DELETE FROM drivers WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).send();
+        res.status(204).send();
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to delete driver' });
+    }
 };
 
 // --- Vehicles ---
-export const getVehicles = (req: Request, res: Response) => {
-    res.json(db.vehicles);
+export const getVehicles = async (req: Request, res: Response) => {
+    try {
+        const result = await query('SELECT * FROM vehicles');
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to fetch vehicles' });
+    }
 };
-export const createVehicle = (req: Request, res: Response) => {
-    const newVehicle = { id: `V-${Date.now()}`, ...req.body };
-    db.vehicles.push(newVehicle);
-    res.status(201).json(newVehicle);
+
+export const createVehicle = async (req: Request, res: Response) => {
+    const { plate, model, capacity, status } = req.body;
+    const id = `V-${Date.now()}`;
+    try {
+        const result = await query(
+            'INSERT INTO vehicles (id, plate, model, capacity, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [id, plate, model, capacity, status || 'IDLE']
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to create vehicle' });
+    }
 };
-export const updateVehicle = (req: Request, res: Response) => {
-    const idx = db.vehicles.findIndex(v => v.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Vehicle not found' });
-    db.vehicles[idx] = { ...db.vehicles[idx], ...req.body };
-    res.json(db.vehicles[idx]);
+
+export const updateVehicle = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { plate, model, capacity, status } = req.body;
+    try {
+        const result = await query(
+            `UPDATE vehicles SET 
+                plate = COALESCE($1, plate), 
+                model = COALESCE($2, model), 
+                capacity = COALESCE($3, capacity), 
+                status = COALESCE($4, status) 
+             WHERE id = $5 RETURNING *`,
+            [plate, model, capacity, status, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Vehicle not found' });
+        res.json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to update vehicle' });
+    }
 };
-export const deleteVehicle = (req: Request, res: Response) => {
-    const idx = db.vehicles.findIndex(v => v.id === req.params.id);
-    if (idx === -1) return res.status(404).send();
-    db.vehicles.splice(idx, 1);
-    res.status(204).send();
+
+export const deleteVehicle = async (req: Request, res: Response) => {
+    try {
+        const result = await query('DELETE FROM vehicles WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).send();
+        res.status(204).send();
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to delete vehicle' });
+    }
 };
 
 // --- Expenses ---
-export const getExpenses = (req: Request, res: Response) => {
-    res.json(db.expenses);
-};
-export const createExpense = (req: Request, res: Response) => {
-    const newExpense = { id: `E-${Date.now()}`, ...req.body };
-    db.expenses.push(newExpense);
-    res.status(201).json(newExpense);
-};
-export const updateExpense = (req: Request, res: Response) => {
-    const idx = db.expenses.findIndex(e => e.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Expense not found' });
-    db.expenses[idx] = { ...db.expenses[idx], ...req.body };
-    res.json(db.expenses[idx]);
-};
-export const deleteExpense = (req: Request, res: Response) => {
-    const idx = db.expenses.findIndex(e => e.id === req.params.id);
-    if (idx === -1) return res.status(404).send();
-    db.expenses.splice(idx, 1);
-    res.status(204).send();
-};
-// --- Trips ---
-export const getTrips = (req: Request, res: Response) => {
-    res.json(db.trips);
+export const getExpenses = async (req: Request, res: Response) => {
+    try {
+        const result = await query('SELECT * FROM expenses');
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to fetch expenses' });
+    }
 };
 
-export const updateTrip = (req: Request, res: Response) => {
-    const idx = db.trips.findIndex(t => t.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Trip not found' });
-    db.trips[idx] = { ...db.trips[idx], ...req.body };
-    res.json(db.trips[idx]);
+export const createExpense = async (req: Request, res: Response) => {
+    const { category, amount, trip_id, date } = req.body;
+    const id = `E-${Date.now()}`;
+    try {
+        const result = await query(
+            'INSERT INTO expenses (id, category, amount, trip_id, date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [id, category, amount, trip_id, date || new Date().toISOString()]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to create expense' });
+    }
+};
+
+export const updateExpense = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { category, amount, trip_id, date, status } = req.body;
+    try {
+        const result = await query(
+            `UPDATE expenses SET 
+                category = COALESCE($1, category), 
+                amount = COALESCE($2, amount), 
+                trip_id = COALESCE($3, trip_id), 
+                date = COALESCE($4, date), 
+                status = COALESCE($5, status) 
+             WHERE id = $6 RETURNING *`,
+            [category, amount, trip_id, date, status, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Expense not found' });
+        res.json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to update expense' });
+    }
+};
+
+export const deleteExpense = async (req: Request, res: Response) => {
+    try {
+        const result = await query('DELETE FROM expenses WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).send();
+        res.status(204).send();
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to delete expense' });
+    }
+};
+
+// --- Trips ---
+export const getTrips = async (req: Request, res: Response) => {
+    try {
+        const result = await query('SELECT * FROM trips');
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to fetch trips' });
+    }
+};
+
+export const updateTrip = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const fields = Object.keys(req.body);
+        const values = Object.values(req.body);
+        if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+        const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+        const result = await query(
+            `UPDATE trips SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`,
+            [...values, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+        res.json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to update trip' });
+    }
 };
