@@ -252,10 +252,43 @@ app.post('/api/waybills/:id/assign', async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    import { ruleEngineService } from './services/RuleEngineService'; // Ensure import at top
+
+    // ... inside assign handler ...
+
     // Check Waybill
     const wbRes = await client.query('SELECT * FROM waybills WHERE id = $1', [id]);
     if (wbRes.rows.length === 0) {
       throw new Error('Waybill not found');
+    }
+    const waybill = wbRes.rows[0];
+
+    // Fetch Customer for BusinessType
+    const custRes = await client.query('SELECT businessType FROM customers WHERE id = $1', [waybill.customer_id]);
+    const businessType = custRes.rows[0]?.businesstype || 'STANDARD'; // Note: Postgres column case might be lowercase
+
+    // Calculate Driver Pay
+    const payContext = {
+      distance: parseFloat(waybill.distance || 0),
+      businessType: businessType,
+      cargoInfo: waybill.cargo_desc
+    };
+
+    // Default pay result
+    let driverPay = {
+      basePay: 0,
+      bonus: 0,
+      totalPay: 0,
+      currency: 'CAD',
+      breakdown: [],
+      conflictWarning: false
+    };
+
+    try {
+      driverPay = await ruleEngineService.calculateDriverPay(payContext);
+    } catch (calcError) {
+      console.error("Failed to calculate driver pay", calcError);
+      // Continue with 0 pay, don't block assignment
     }
 
     // Create Trip
@@ -269,12 +302,23 @@ app.post('/api/waybills/:id/assign', async (req, res) => {
       vehicle_id,
       status: TripStatus.PLANNED,
       start_time_est: startTime,
-      end_time_est: endTime
+      end_time_est: endTime,
+      driver_pay_calculated: driverPay.basePay,
+      driver_pay_bonus: driverPay.bonus,
+      driver_pay_total: driverPay.totalPay,
+      driver_pay_currency: driverPay.currency,
+      driver_pay_details: driverPay
     };
 
     await client.query(
-      `INSERT INTO trips (id, driver_id, vehicle_id, status, start_time_est, end_time_est) VALUES ($1, $2, $3, $4, $5, $6)`,
-      [tripId, driver_id, vehicle_id, TripStatus.PLANNED, startTime, endTime]
+      `INSERT INTO trips (
+        id, driver_id, vehicle_id, status, start_time_est, end_time_est,
+        driver_pay_calculated, driver_pay_bonus, driver_pay_total, driver_pay_currency, driver_pay_details
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        tripId, driver_id, vehicle_id, TripStatus.PLANNED, startTime, endTime,
+        driverPay.basePay, driverPay.bonus, driverPay.totalPay, driverPay.currency, driverPay
+      ]
     );
 
     // Update Waybill
