@@ -286,7 +286,18 @@ const migrate = async () => {
     }
 
     await client.query('COMMIT');
-    console.log("Migration successful");
+    // Migration: Add driver pay columns to trips table
+    await client.query(`
+            ALTER TABLE trips 
+            ADD COLUMN IF NOT EXISTS driver_pay_calculated NUMERIC(10, 2),
+            ADD COLUMN IF NOT EXISTS driver_pay_bonus NUMERIC(10, 2) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS driver_pay_total NUMERIC(10, 2),
+            ADD COLUMN IF NOT EXISTS driver_pay_currency VARCHAR(10) DEFAULT 'CAD',
+            ADD COLUMN IF NOT EXISTS driver_pay_details JSONB;
+        `);
+    console.log('Migration: Added driver pay columns to trips table');
+
+    console.log('Database migration completed successfully.');
   } catch (e) {
     await client.query('ROLLBACK');
     console.error("Migration failed", e);
