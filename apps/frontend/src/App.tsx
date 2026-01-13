@@ -20,6 +20,7 @@ import './index.css';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { Login } from './pages/Login/Login';
+import { RoleManagement } from './pages/Settings/RoleManagement';
 
 const router = createBrowserRouter([
   {
@@ -93,6 +94,10 @@ const router = createBrowserRouter([
           {
             path: 'users',
             element: <UserManagement />,
+          },
+          {
+            path: 'roles',
+            element: <RoleManagement />,
           },
         ],
       }

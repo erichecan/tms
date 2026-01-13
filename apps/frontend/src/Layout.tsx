@@ -44,9 +44,16 @@ export const Layout = () => {
 
     // Role-based visibility helpers
     const isAdmin = hasRole('R-ADMIN') || hasRole('ADMIN');
-    const isFinance = hasRole('FINANCE') || isAdmin;
-    const isDispatcher = hasRole('R-DISPATCHER') || hasRole('DISPATCHER') || isAdmin;
-    const isManager = hasRole('GENERAL_MANAGER') || hasRole('FLEET_MANAGER') || isAdmin;
+    // const isFinance = hasRole('FINANCE') || isAdmin;
+    // const isDispatcher = hasRole('R-DISPATCHER') || hasRole('DISPATCHER') || isAdmin;
+    // const isManager = hasRole('GENERAL_MANAGER') || hasRole('FLEET_MANAGER') || isAdmin;
+
+    // Permission-based visibility (Configurable via Role Management)    
+    const canViewWaybills = user?.permissions?.includes('P-WAYBILL-VIEW') || isAdmin; // Fallback to admin if perms not loaded
+    const canViewFleet = user?.permissions?.includes('P-FLEET-VIEW') || isAdmin;
+    const canViewCustomers = user?.permissions?.includes('P-CUSTOMER-VIEW') || isAdmin;
+    const canViewFinance = user?.permissions?.includes('P-FINANCE-VIEW') || isAdmin;
+    const canViewUsers = user?.permissions?.includes('P-USER-VIEW') || isAdmin;
 
     return (
         <div className="layout-container">
@@ -58,20 +65,17 @@ export const Layout = () => {
                 <nav style={{ flex: 1, overflowY: 'auto' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.core')}</div>
 
-                    {(isDispatcher || isManager) && <SidebarItem to="/" icon={LayoutDashboard} label={t('sidebar.dashboard')} />}
-                    {(isDispatcher || isManager) && <SidebarItem to="/tracking" icon={Package} label={t('sidebar.trackingLoop')} />}
+                    <SidebarItem to="/" icon={LayoutDashboard} label={t('sidebar.dashboard')} />
+                    <SidebarItem to="/tracking" icon={Package} label={t('sidebar.trackingLoop')} />
 
-                    {(isDispatcher || isManager) && (
-                        <>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.operations')}</div>
-                            <SidebarItem to="/customers" icon={Users} label="Customers" />
-                            <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />
-                            <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />
-                            <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
-                        </>
-                    )}
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.operations')}</div>
 
-                    {(isFinance || isAdmin) && (
+                    {canViewCustomers && <SidebarItem to="/customers" icon={Users} label="Customers" />}
+                    {canViewWaybills && <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />}
+                    {canViewFleet && <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />}
+                    <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
+
+                    {canViewFinance && (
                         <>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
                             <SidebarItem to="/finance" icon={DollarSign} label="Financial Overview" />
@@ -84,7 +88,8 @@ export const Layout = () => {
                 </nav>
 
                 <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px', marginTop: '24px' }}>
-                    {isAdmin && <SidebarItem to="/users" icon={Users} label="User Management" />}
+                    {canViewUsers && <SidebarItem to="/users" icon={Users} label="User Management" />}
+                    {isAdmin && <SidebarItem to="/roles" icon={ShieldCheck} label="Role Management" />}
                     <SidebarItem to="/settings" icon={Settings} label={t('sidebar.settings')} />
                     <div onClick={handleLogout} style={{
                         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
