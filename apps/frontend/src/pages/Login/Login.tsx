@@ -76,7 +76,7 @@ export const Login = () => {
                         margin: '0 auto 24px',
                         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
                     }}>
-                        <img src={logo} alt="Logo" style={{ width: '32px', height: '32px' }} />
+                        <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '12px' }} />
                     </div>
                     <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '8px', letterSpacing: '-0.02em' }}>Welcome Back</h1>
                     <p style={{ color: 'var(--slate-500)', fontSize: '15px' }}>Sign in to access TMS 2.0 Dashboard</p>
