@@ -4,6 +4,7 @@ import * as cors from 'cors';
 import { pool, query } from './db-postgres';
 import { TripStatus, WaybillStatus } from './types';
 import { generateWaybillPDF, generateBOL } from './services/pdfService';
+import { ruleEngineService } from './services/RuleEngineService';
 
 const app = express();
 const port = process.env.PORT || 3001; // Frontend usually 5173
@@ -251,10 +252,6 @@ app.post('/api/waybills/:id/assign', async (req, res) => {
 
   try {
     await client.query('BEGIN');
-
-    import { ruleEngineService } from './services/RuleEngineService'; // Ensure import at top
-
-    // ... inside assign handler ...
 
     // Check Waybill
     const wbRes = await client.query('SELECT * FROM waybills WHERE id = $1', [id]);
