@@ -65,10 +65,10 @@ export const WaybillCreate = () => {
     const [barcodeImage, setBarcodeImage] = useState<string | null>(null);
 
     // Pricing Integration State
-    const [businessType, setBusinessType] = useState('STANDARD');
-    const [waitingTime, setWaitingTime] = useState(0);
+    const [businessType] = useState('STANDARD');
+    const [waitingTime] = useState(0);
     const [pricingResult, setPricingResult] = useState<PricingResult | null>(null);
-    const [isCalculating, setIsCalculating] = useState(false);
+    const [, setIsCalculating] = useState(false);
     const [pickupCoords, setPickupCoords] = useState<{ lat: number, lng: number } | null>(null);
     const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number, lng: number } | null>(null);
 

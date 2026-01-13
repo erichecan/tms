@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
 type DialogType = 'alert' | 'confirm';
 
@@ -59,7 +59,7 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 };
 
 // Internal component for the actual UI to avoid circular dependency if placed in separate file
-import { Info, AlertTriangle, CheckCircle, HelpCircle, X } from 'lucide-react';
+import { Info, HelpCircle } from 'lucide-react';
 
 interface PremiumDialogProps {
     type: DialogType;

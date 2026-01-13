@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
-import { useNavigate } from 'react-router-dom';
 import { useDialog } from './context/DialogContext';
 
 interface FinancialRecord {
@@ -15,7 +14,6 @@ interface FinancialRecord {
 }
 
 export const FinanceReceivables = () => {
-    const navigate = useNavigate();
     const { alert } = useDialog();
     const [records, setRecords] = useState<FinancialRecord[]>([]);
     const [loading, setLoading] = useState(false);
