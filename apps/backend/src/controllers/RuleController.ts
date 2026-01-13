@@ -2,6 +2,8 @@
 import { Request, Response } from 'express';
 import { query } from '../db-postgres';
 import { Rule, RuleStatus, RuleType } from '../types';
+import { ruleEngineService } from '../services/RuleEngineService';
+
 
 export const getRules = async (req: Request, res: Response) => {
     try {
