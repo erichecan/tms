@@ -31,7 +31,13 @@ export const Login = () => {
                 throw new Error(data.error || 'Login failed');
             }
 
-            login(data.token, data.user);
+            const userWithPerms = {
+                ...data.user,
+                roleId: data.role || data.user.roleid || data.user.role_id,
+                permissions: data.permissions
+            };
+
+            login(data.token, userWithPerms);
             navigate('/');
         } catch (err: any) {
             setError(err.message);

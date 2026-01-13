@@ -55,6 +55,24 @@ export const Layout = () => {
     const canViewFinance = user?.permissions?.includes('P-FINANCE-VIEW') || isAdmin;
     const canViewUsers = user?.permissions?.includes('P-USER-VIEW') || isAdmin;
 
+    // Role name mapping
+    const getRoleName = (roleId: string | undefined): string => {
+        if (!roleId) return 'User';
+        const roleMap: Record<string, string> = {
+            'R-ADMIN': 'Administrator',
+            'ADMIN': 'Administrator',
+            'R-DISPATCHER': 'Dispatcher',
+            'DISPATCHER': 'Dispatcher',
+            'R-DRIVER': 'Driver',
+            'DRIVER': 'Driver',
+            'R-FINANCE': 'Finance Manager',
+            'FINANCE': 'Finance Manager',
+            'GENERAL_MANAGER': 'General Manager',
+            'FLEET_MANAGER': 'Fleet Manager'
+        };
+        return roleMap[roleId] || roleId;
+    };
+
     return (
         <div className="layout-container">
             <aside className="sidebar">
@@ -128,7 +146,7 @@ export const Layout = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ color: 'var(--slate-900)', fontSize: '14px', fontWeight: 700 }}>{user?.name || 'User'}</div>
-                                <div style={{ color: 'var(--primary-start)', fontSize: '10px', fontWeight: 800 }}>{user?.roleId || 'ROLE'}</div>
+                                <div style={{ color: 'var(--primary-start)', fontSize: '10px', fontWeight: 800 }}>{getRoleName(user?.roleId)}</div>
                             </div>
                             <div style={{ width: 44, height: 44, borderRadius: '14px', background: 'white', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                                 <UserCircle size={28} color="var(--primary-start)" />
