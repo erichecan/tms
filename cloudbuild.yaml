@@ -16,7 +16,7 @@ steps:
           -t gcr.io/$PROJECT_ID/tms-backend:tmsv2-latest \
           --build-arg BUILD_VERSION=tmsv2-latest \
           --build-arg BUILD_TIME=$$BUILD_TIME \
-          -f legacy_ref/docker/backend/Dockerfile .
+          -f docker/backend/Dockerfile .
     dir: '.'
 
   # 构建前端 Docker 镜像 // 2025-12-04 添加版本信息
@@ -33,7 +33,7 @@ steps:
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
           --build-arg BUILD_VERSION=tmsv2-latest \
           --build-arg BUILD_TIME=$$BUILD_TIME \
-          -f legacy_ref/docker/frontend/Dockerfile .
+          -f docker/frontend/Dockerfile .
     dir: '.'
     secretEnv: ['GOOGLE_MAPS_API_KEY']
 
