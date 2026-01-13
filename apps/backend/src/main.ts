@@ -459,23 +459,11 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
             }
           });
 
-          import authRoutes from './routes/authRoutes';
-          import financeRoutes from './routes/financeRoutes';
-          import pricingRoutes from './routes/pricingRoutes';
-          import customerRoutes from './routes/customerRoutes';
-          import fleetRoutes from './routes/fleetRoutes';
-          import userRoutes from './routes/userRoutes';
-          import ruleRoutes from './routes/ruleRoutes';
-          import { verifyToken } from './middleware/AuthMiddleware';
 
           // Auth Routes (Public login)
           app.use('/api/auth', authRoutes);
 
-          // Protected Routes (Apply verifyToken middleware)
-          // Note: Some legacy routes might need specific handling, but general protection is good.
-          // We can apply it globally for /api/ except auth/health, OR apply per route.
-          // Let's apply per route module for clarity.
-
+          // Protected Routes
           app.use('/api/finance', verifyToken, financeRoutes);
           app.use('/api/pricing', verifyToken, pricingRoutes);
           app.use('/api/customers', verifyToken, customerRoutes);
