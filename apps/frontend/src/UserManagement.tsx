@@ -30,9 +30,13 @@ export const UserManagement = () => {
 
     const fetchData = async () => {
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const [uRes, rRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/users`),
-                fetch(`${API_BASE_URL}/roles`)
+                fetch(`${API_BASE_URL}/users`, { headers }),
+                fetch(`${API_BASE_URL}/roles`, { headers })
             ]);
             if (uRes.ok) setUsers(await uRes.json());
             if (rRes.ok) setRoles(await rRes.json());
@@ -52,9 +56,13 @@ export const UserManagement = () => {
         const method = isEdit ? 'PUT' : 'POST';
 
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(editingUser)
             });
             if (!res.ok) throw new Error('Failed to save');
@@ -68,12 +76,16 @@ export const UserManagement = () => {
     const handlePasswordReset = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             // Using the update endpoint which handles password update if permissions allow
             // Or use a specific reset endpoint if implemented. 
             // The UserController.updateUser handles password update.
             const res = await fetch(`${API_BASE_URL}/users/${passwordForm.userId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ password: passwordForm.newPassword })
             });
             if (!res.ok) throw new Error('Failed to reset');
@@ -87,7 +99,12 @@ export const UserManagement = () => {
     const handleDelete = async (id: string) => {
         const ok = await confirm('Are you sure you want to delete this user?', 'Delete User');
         if (!ok) return;
-        await fetch(`${API_BASE_URL}/users/${id}`, { method: 'DELETE' });
+
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        await fetch(`${API_BASE_URL}/users/${id}`, { method: 'DELETE', headers });
         fetchData();
     };
 

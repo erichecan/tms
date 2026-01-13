@@ -25,9 +25,17 @@ export const RoleManagement = () => {
     const { confirm } = useDialog();
 
     const fetchData = async () => {
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const [rRes, pRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/roles`),
-            fetch(`${API_BASE_URL}/permissions`)
+            fetch(`${API_BASE_URL}/roles`, { headers }),
+            fetch(`${API_BASE_URL}/permissions`, { headers })
         ]);
         if (rRes.ok) setRoles(await rRes.json());
         if (pRes.ok) setAllPermissions(await pRes.json());
@@ -43,9 +51,17 @@ export const RoleManagement = () => {
         const url = isEdit ? `${API_BASE_URL}/roles/${editingRole.id}` : `${API_BASE_URL}/roles`;
         const method = isEdit ? 'PUT' : 'POST';
 
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
                 name: editingRole.name,
                 description: editingRole.description,
