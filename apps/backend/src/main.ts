@@ -5,6 +5,15 @@ import { pool, query } from './db-postgres';
 import { TripStatus, WaybillStatus } from './types';
 import { generateWaybillPDF, generateBOL } from './services/pdfService';
 import { ruleEngineService } from './services/RuleEngineService';
+import authRoutes from './routes/authRoutes';
+import financeRoutes from './routes/financeRoutes';
+import pricingRoutes from './routes/pricingRoutes';
+import customerRoutes from './routes/customerRoutes';
+import fleetRoutes from './routes/fleetRoutes';
+import userRoutes from './routes/userRoutes';
+import ruleRoutes from './routes/ruleRoutes';
+import { verifyToken } from './middleware/AuthMiddleware';
+
 
 const app = express();
 const port = process.env.PORT || 3001; // Frontend usually 5173
@@ -470,6 +479,7 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
           app.use('/api/rules', verifyToken, ruleRoutes);
           app.use('/api', verifyToken, fleetRoutes);
           app.use('/api', verifyToken, userRoutes);
+
 
           app.listen(port, () => {
             console.log(`Backend primary engine running at http://localhost:${port}`);
