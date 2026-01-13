@@ -17,72 +17,86 @@ import { UserManagement } from './UserManagement';
 import { PricingCalculator } from './PricingCalculator';
 import './index.css';
 
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './ProtectedRoute';
+import { Login } from './pages/Login/Login';
+
 const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <Login />
+  },
+  {
     path: '/',
-    element: <Layout />,
+    element: <ProtectedRoute />, // All routes below are protected
     children: [
       {
-        index: true,
-        element: <Dashboard />,
-      },
-      {
-        path: 'customers',
-        element: <CustomerManagement />,
-      },
-      {
-        path: 'waybills',
-        element: <WaybillsList />,
-      },
-      {
-        path: 'waybills/create',
-        element: <WaybillCreate />,
-      },
-      {
-        path: 'waybills/edit/:id',
-        element: <WaybillCreate />,
-      },
-      {
-        path: 'fleet',
-        element: <FleetManagement />,
-      },
-      {
-        path: 'tracking',
-        element: <TrackingPage />,
-      },
-      {
-        path: 'tracking/:id',
-        element: <TrackingPage />,
-      },
-      {
-        path: 'messages',
-        element: <Messages />,
-      },
-      {
-        path: 'settings',
-        element: <Settings />,
-      },
-      {
-        path: 'finance',
+        path: '/',
+        element: <Layout />,
         children: [
-          { index: true, element: <FinanceDashboard /> },
-          { path: 'receivables', element: <FinanceReceivables /> },
-          { path: 'payables', element: <FinancePayables /> }
-        ]
-      },
-      {
-        path: 'rules',
-        element: <RuleManagement />,
-      },
-      {
-        path: 'pricing',
-        element: <PricingCalculator />,
-      },
-      {
-        path: 'users',
-        element: <UserManagement />,
-      },
-    ],
+          {
+            index: true,
+            element: <Dashboard />,
+          },
+          {
+            path: 'customers',
+            element: <CustomerManagement />,
+          },
+          {
+            path: 'waybills',
+            element: <WaybillsList />,
+          },
+          {
+            path: 'waybills/create',
+            element: <WaybillCreate />,
+          },
+          {
+            path: 'waybills/edit/:id',
+            element: <WaybillCreate />,
+          },
+          {
+            path: 'fleet',
+            element: <FleetManagement />,
+          },
+          {
+            path: 'tracking',
+            element: <TrackingPage />,
+          },
+          {
+            path: 'tracking/:id',
+            element: <TrackingPage />,
+          },
+          {
+            path: 'messages',
+            element: <Messages />,
+          },
+          {
+            path: 'settings',
+            element: <Settings />,
+          },
+          {
+            path: 'finance',
+            children: [
+              { index: true, element: <FinanceDashboard /> },
+              { path: 'receivables', element: <FinanceReceivables /> },
+              { path: 'payables', element: <FinancePayables /> }
+            ]
+          },
+          {
+            path: 'rules',
+            element: <RuleManagement />,
+          },
+          {
+            path: 'pricing',
+            element: <PricingCalculator />,
+          },
+          {
+            path: 'users',
+            element: <UserManagement />,
+          },
+        ],
+      }
+    ]
   },
 ]);
 
@@ -90,9 +104,11 @@ import { DialogProvider } from './context/DialogContext';
 
 function App() {
   return (
-    <DialogProvider>
-      <RouterProvider router={router} />
-    </DialogProvider>
+    <AuthProvider>
+      <DialogProvider>
+        <RouterProvider router={router} />
+      </DialogProvider>
+    </AuthProvider>
   );
 }
 

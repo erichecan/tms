@@ -84,6 +84,13 @@ export interface Trip {
     start_time_est: string;
     end_time_est: string;
     route_polyline?: string;
+    // Driver Compensation
+    driver_pay_calculated?: number;
+    driver_pay_bonus?: number;
+    driver_pay_total?: number;
+    driver_pay_currency?: string; // 'CAD' | 'CNY'
+    driver_pay_details?: any; // Snapshot of calculation logic
+
 }
 
 export interface Permission {
@@ -228,6 +235,16 @@ export interface PricingCalculation {
     distance: number;
     duration: number;
     appliedRules: string[];
+}
+
+export interface DriverPayCalculation {
+    basePay: number;
+    bonus: number;
+    totalPay: number;
+    currency: string;
+    breakdown: PricingDetail[]; // Reusing PricingDetail for consistency
+    conflictWarning?: boolean; // If multiple rules matched
+    appliedRuleName?: string;
 }
 
 export interface PricingDetail {

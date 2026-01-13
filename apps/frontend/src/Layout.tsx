@@ -1,7 +1,8 @@
 
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck } from 'lucide-react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from './context/AuthContext';
 import logo from './assets/logo.png';
 import './index.css';
 
@@ -32,7 +33,20 @@ const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: 
 export const Layout = () => {
     const { t } = useTranslation();
     const location = useLocation();
+    const { user, logout, hasRole, hasPermission } = useAuth();
+    const navigate = useNavigate();
     const isDashboard = location.pathname === '/';
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    // Role-based visibility helpers
+    const isAdmin = hasRole('R-ADMIN') || hasRole('ADMIN');
+    const isFinance = hasRole('FINANCE') || isAdmin;
+    const isDispatcher = hasRole('R-DISPATCHER') || hasRole('DISPATCHER') || isAdmin;
+    const isManager = hasRole('GENERAL_MANAGER') || hasRole('FLEET_MANAGER') || isAdmin;
 
     return (
         <div className="layout-container">
@@ -43,26 +57,43 @@ export const Layout = () => {
 
                 <nav style={{ flex: 1, overflowY: 'auto' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.core')}</div>
-                    <SidebarItem to="/" icon={LayoutDashboard} label={t('sidebar.dashboard')} />
-                    <SidebarItem to="/tracking" icon={Package} label={t('sidebar.trackingLoop')} />
 
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.operations')}</div>
-                    <SidebarItem to="/customers" icon={Users} label="Customers" />
-                    <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />
-                    <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />
-                    <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
+                    {(isDispatcher || isManager) && <SidebarItem to="/" icon={LayoutDashboard} label={t('sidebar.dashboard')} />}
+                    {(isDispatcher || isManager) && <SidebarItem to="/tracking" icon={Package} label={t('sidebar.trackingLoop')} />}
 
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
-                    <SidebarItem to="/finance" icon={DollarSign} label="Financial Overview" />
-                    <SidebarItem to="/finance/receivables" icon={FileText} label="Receivables" />
-                    <SidebarItem to="/finance/payables" icon={FileText} label="Payables" />
-                    <SidebarItem to="/pricing" icon={DollarSign} label="Price Calculator" />
-                    <SidebarItem to="/rules" icon={ShieldCheck} label="Universal Rules" />
+                    {(isDispatcher || isManager) && (
+                        <>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.operations')}</div>
+                            <SidebarItem to="/customers" icon={Users} label="Customers" />
+                            <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />
+                            <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />
+                            <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
+                        </>
+                    )}
+
+                    {(isFinance || isAdmin) && (
+                        <>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
+                            <SidebarItem to="/finance" icon={DollarSign} label="Financial Overview" />
+                            <SidebarItem to="/finance/receivables" icon={FileText} label="Receivables" />
+                            <SidebarItem to="/finance/payables" icon={FileText} label="Payables" />
+                            <SidebarItem to="/pricing" icon={DollarSign} label="Price Calculator" />
+                            <SidebarItem to="/rules" icon={ShieldCheck} label="Universal Rules" />
+                        </>
+                    )}
                 </nav>
 
                 <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px', marginTop: '24px' }}>
-                    <SidebarItem to="/users" icon={Users} label="User Management" />
+                    {isAdmin && <SidebarItem to="/users" icon={Users} label="User Management" />}
                     <SidebarItem to="/settings" icon={Settings} label={t('sidebar.settings')} />
+                    <div onClick={handleLogout} style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+                        fontSize: '14px', fontWeight: 600, color: '#EF4444',
+                        cursor: 'pointer', borderRadius: '12px', transition: 'all 0.2s'
+                    }} className="table-row-hover">
+                        <LogOut size={18} />
+                        <span>Sign Out</span>
+                    </div>
                 </div>
             </aside>
 
@@ -75,7 +106,7 @@ export const Layout = () => {
                 }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>
-                            {isDashboard ? t('dashboard.welcome', { name: 'Tom' }) : 'Control Center'}
+                            {isDashboard ? t('dashboard.welcome', { name: user?.name || 'User' }) : 'Control Center'}
                         </h1>
                         {isDashboard && <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('dashboard.subtitle')}</p>}
                     </div>
@@ -91,8 +122,8 @@ export const Layout = () => {
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ textAlign: 'right' }}>
-                                <div style={{ color: 'var(--slate-900)', fontSize: '14px', fontWeight: 700 }}>Tom Archer</div>
-                                <div style={{ color: 'var(--primary-start)', fontSize: '10px', fontWeight: 800 }}>ADMINISTRATOR</div>
+                                <div style={{ color: 'var(--slate-900)', fontSize: '14px', fontWeight: 700 }}>{user?.name || 'User'}</div>
+                                <div style={{ color: 'var(--primary-start)', fontSize: '10px', fontWeight: 800 }}>{user?.roleId || 'ROLE'}</div>
                             </div>
                             <div style={{ width: 44, height: 44, borderRadius: '14px', background: 'white', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                                 <UserCircle size={28} color="var(--primary-start)" />

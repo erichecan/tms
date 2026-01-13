@@ -40,6 +40,8 @@ export class RuleEngineService {
                         params: {
                             ruleId: rule.id,
                             name: rule.name,
+                            type: rule.type, // Added type to params
+                            priority: rule.priority,
                             actions: rule.actions
                         }
                     },
@@ -65,8 +67,11 @@ export class RuleEngineService {
         // 1. Run json-rules-engine for dynamic logic
         const { events } = await this.engine.run(context);
 
+        // Filter for PRICING rules only
+        const pricingEvents = events.filter(e => e.type === 'ruleMatched' && e.params?.type === 'pricing');
+
         // Handle triggered actions
-        events.forEach(event => {
+        pricingEvents.forEach(event => {
             appliedRules.push(event.params.name);
             const actions = event.params.actions;
             actions.forEach((action: any) => {
@@ -184,6 +189,99 @@ export class RuleEngineService {
             distance,
             duration: context.duration || 0,
             appliedRules: appliedRules.length > 0 ? appliedRules : ['ZONE_PRICING_V1']
+        };
+    }
+
+    async calculateDriverPay(context: any): Promise<{
+        basePay: number;
+        bonus: number;
+        totalPay: number;
+        currency: string;
+        breakdown: PricingDetail[];
+        conflictWarning: boolean;
+        appliedRuleName?: string;
+    }> {
+        // Ensure rules are loaded
+        if (!this.engine) await this.loadRulesFromDb(); // Or just await this.loadRulesFromDb() if we want fresh data every time
+
+        const { distance } = context;
+        const currency = context.currency || 'CAD'; // Default to CAD, but allow override
+        const breakdown: PricingDetail[] = [];
+        let basePay = 0;
+        let bonus = 0;
+
+        // 1. Run engine
+        const { events } = await this.engine.run(context);
+
+        // 2. Filter for PAYROLL rules
+        const payrollEvents = events
+            .filter(e => e.type === 'ruleMatched' && e.params?.type === 'payroll')
+            .sort((a, b) => (b.params?.priority || 0) - (a.params?.priority || 0)); // Sort by priority DESC
+
+        if (payrollEvents.length === 0) {
+            // Default Fallback if no rules found
+            return {
+                basePay: 0,
+                bonus: 0,
+                totalPay: 0,
+                currency,
+                breakdown: [],
+                conflictWarning: false
+            };
+        }
+
+        // 3. Conflict Resolution: Pick Highest Priority
+        const selectedRuleEvent = payrollEvents[0];
+        const conflictWarning = payrollEvents.length > 1; // Mark conflict if multiple rules matched
+
+        // 4. Calculate Pay based on Selected Rule
+        const actions = selectedRuleEvent.params?.actions || [];
+        actions.forEach((action: any) => {
+            if (action.type === 'calculateBasePay') {
+                const rate = parseFloat(action.params.ratePerKm || 0);
+                const fixedPay = parseFloat(action.params.fixedPay || 0);
+
+                const amount = fixedPay + (distance * rate);
+                basePay += amount;
+
+                breakdown.push({
+                    componentCode: `PAY_RULE_${selectedRuleEvent.params.ruleId}`,
+                    componentName: `${selectedRuleEvent.params.name}`,
+                    amount: amount,
+                    currency,
+                    formula: `Action: ${fixedPay} + ${distance.toFixed(1)}km * ${rate}`,
+                    inputValues: { distance, rate, fixedPay },
+                    sequence: 1,
+                    ruleId: selectedRuleEvent.params.ruleId
+                });
+            } else if (action.type === 'addPercentage') {
+                // Example: % of Revenue (requires totalRevenue in context)
+                if (context.totalRevenue) {
+                    const percentage = parseFloat(action.params.percentage || 0);
+                    const amount = context.totalRevenue * (percentage / 100);
+                    basePay += amount;
+                    breakdown.push({
+                        componentCode: `PAY_RULE_${selectedRuleEvent.params.ruleId}_PCT`,
+                        componentName: `${selectedRuleEvent.params.name} (% of Rev)`,
+                        amount: amount,
+                        currency,
+                        formula: `${percentage}% of ${context.totalRevenue}`,
+                        inputValues: { totalRevenue: context.totalRevenue, percentage },
+                        sequence: breakdown.length + 1,
+                        ruleId: selectedRuleEvent.params.ruleId
+                    });
+                }
+            }
+        });
+
+        return {
+            basePay: parseFloat(basePay.toFixed(2)),
+            bonus: 0, // Bonus is manual, initially 0
+            totalPay: parseFloat((basePay + bonus).toFixed(2)),
+            currency,
+            breakdown,
+            conflictWarning,
+            appliedRuleName: selectedRuleEvent.params.name
         };
     }
 }
