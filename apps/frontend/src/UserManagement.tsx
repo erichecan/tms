@@ -157,7 +157,7 @@ export const UserManagement = () => {
                                         <button onClick={() => { setPasswordForm({ userId: user.id, newPassword: '' }); setIsPasswordModalOpen(true); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }} title="Reset Password">
                                             <Key size={16} />
                                         </button>
-                                        <button onClick={() => { setEditingUser(user); setIsModalOpen(true); setPasswordMode(false); setNewPassword(''); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
+                                        <button onClick={() => { setEditingUser(user); setIsModalOpen(true); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
                                             <Edit size={16} />
                                         </button>
                                         <button onClick={() => handleDelete(user.id)} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px', color: '#EF4444' }}>

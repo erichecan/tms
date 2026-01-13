@@ -33,7 +33,7 @@ const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: 
 export const Layout = () => {
     const { t } = useTranslation();
     const location = useLocation();
-    const { user, logout, hasRole, hasPermission } = useAuth();
+    const { user, logout, hasRole } = useAuth();
     const navigate = useNavigate();
     const isDashboard = location.pathname === '/';
 

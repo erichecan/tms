@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Edit, Trash2 } from 'lucide-react';
-import Modal from '../components/Modal/Modal';
-import { API_BASE_URL } from '../apiConfig';
-import { useDialog } from '../context/DialogContext';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import Modal from '../../components/Modal/Modal';
+import { API_BASE_URL } from '../../apiConfig';
+import { useDialog } from '../../context/DialogContext';
 
 interface Role {
     id: string;
@@ -56,7 +56,7 @@ export const RoleManagement = () => {
         fetchData();
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (_id: string) => {
         // Deleting roles is dangerous if users assigned. Should check first.
         const ok = await confirm('Deleting a role might invalid permissions for assigned users. Continue?', 'Delete Role');
         if (!ok) return;

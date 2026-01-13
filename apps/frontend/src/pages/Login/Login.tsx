@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_BASE_URL } from '../apiConfig';
+import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../apiConfig';
 import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 
 export const Login = () => {
     const [identifier, setIdentifier] = useState('');
