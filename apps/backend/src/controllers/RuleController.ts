@@ -108,3 +108,21 @@ export const deleteRule = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to delete rule' });
     }
 };
+
+export const previewDriverPay = async (req: Request, res: Response) => {
+    try {
+        const { distance, businessType, cargoInfo, currency } = req.body;
+        const context = {
+            distance: parseFloat(distance || 0),
+            businessType: businessType || 'STANDARD',
+            cargoInfo,
+            currency
+        };
+        const result = await ruleEngineService.calculateDriverPay(context);
+        res.json(result);
+    } catch (e) {
+        console.error('Failed to preview driver pay', e);
+        res.status(500).json({ error: 'Failed to calculate pay preview' });
+    }
+};
+

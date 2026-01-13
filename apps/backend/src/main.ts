@@ -296,10 +296,6 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
         const newTrip = {
           id: tripId,
           driver_id,
-          vehicle_id,
-          status: TripStatus.PLANNED,
-          start_time_est: startTime,
-          end_time_est: endTime,
           app.post('/api/waybills/:id/assign', async (req, res) => {
             const { id } = req.params;
             const { driver_id, vehicle_id, bonus } = req.body; // Accept bonus
@@ -318,7 +314,7 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
 
               // Fetch Customer for BusinessType
               const custRes = await client.query('SELECT businessType FROM customers WHERE id = $1', [waybill.customer_id]);
-              const businessType = custRes.rows[0]?.businesstype || 'STANDARD'; // Note: Postgres column case might be lowercase
+              const businessType = custRes.rows[0]?.businesstype || 'STANDARD';
 
               // Calculate Driver Pay
               const payContext = {
@@ -341,12 +337,11 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
                 driverPay = await ruleEngineService.calculateDriverPay(payContext);
               } catch (calcError) {
                 console.error("Failed to calculate driver pay", calcError);
-                // Continue with 0 pay, don't block assignment
               }
 
               // Apply Manual Bonus if provided
               const manualBonus = parseFloat(bonus || 0);
-              driverPay.bonus = manualBonus; // Override calculated bonus (usually 0) with manual
+              driverPay.bonus = manualBonus;
               driverPay.totalPay = driverPay.basePay + manualBonus;
 
               // Create Trip
@@ -373,6 +368,16 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
         id, driver_id, vehicle_id, status, start_time_est, end_time_est,
         driver_pay_calculated, driver_pay_bonus, driver_pay_total, driver_pay_currency, driver_pay_details
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                [
+                  tripId, driver_id, vehicle_id, TripStatus.PLANNED, startTime, endTime,
+                  driverPay.basePay, driverPay.bonus, driverPay.totalPay, driverPay.currency, driverPay
+                ]
+              );
+
+              // Update Waybill
+              await client.query(
+                `UPDATE waybills SET status = $1, trip_id = $2 WHERE id = $3`,
+                [WaybillStatus.ASSIGNED, tripId, id]
               );
 
               // Update Resources
