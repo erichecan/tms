@@ -13,8 +13,8 @@ steps:
       - |
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
-          -t gcr.io/$PROJECT_ID/tms-backend:$SHORT_SHA \
-          --build-arg BUILD_VERSION=$SHORT_SHA \
+          -t gcr.io/$PROJECT_ID/tms-backend:tmsv2-latest \
+          --build-arg BUILD_VERSION=tmsv2-latest \
           --build-arg BUILD_TIME=$$BUILD_TIME \
           -f docker/backend/Dockerfile .
     dir: '.'
@@ -28,10 +28,10 @@ steps:
       - |
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
-          -t gcr.io/$PROJECT_ID/tms-frontend:$SHORT_SHA \
+          -t gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest \
           --build-arg VITE_API_BASE_URL=https://tms-backend-$PROJECT_ID.us-central1.run.app \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
-          --build-arg BUILD_VERSION=$SHORT_SHA \
+          --build-arg BUILD_VERSION=tmsv2-latest \
           --build-arg BUILD_TIME=$$BUILD_TIME \
           -f docker/frontend/Dockerfile .
     dir: '.'
@@ -39,11 +39,11 @@ steps:
 
   # 推送后端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-backend:$SHORT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/tms-backend:tmsv2-latest']
 
   # 推送前端镜像到 Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:$SHORT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest']
 
   # 运行数据库迁移 - 暂时跳过，权限问题待解决
   # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -63,7 +63,7 @@ steps:
       - 'run'
       - 'deploy'
       - 'tms-backend'
-      - '--image=gcr.io/$PROJECT_ID/tms-backend:$SHORT_SHA'
+      - '--image=gcr.io/$PROJECT_ID/tms-backend:tmsv2-latest'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
       - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_MAPS_API_KEY=google-maps-api-key:latest'
@@ -84,7 +84,7 @@ steps:
       - 'run'
       - 'deploy'
       - 'tms-frontend'
-      - '--image=gcr.io/$PROJECT_ID/tms-frontend:$SHORT_SHA'
+      - '--image=gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
       - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app' # 2025-11-24T16:35:00Z Updated by Assistant: use dynamic backend URL
@@ -98,8 +98,8 @@ steps:
 
 # 镜像标签
 images:
-  - 'gcr.io/$PROJECT_ID/tms-backend:$SHORT_SHA'
-  - 'gcr.io/$PROJECT_ID/tms-frontend:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/tms-backend:tmsv2-latest'
+  - 'gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest'
 
 # 构建选项
 options:
