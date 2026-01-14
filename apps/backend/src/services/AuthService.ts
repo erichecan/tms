@@ -71,8 +71,8 @@ export class AuthService {
                 const permResult = await query(`
                     SELECT p.id 
                     FROM permissions p
-                    JOIN role_permissions rp ON p.id = rp.permission_id
-                    WHERE rp.role_id = $1
+                    JOIN role_permissions rp ON p.id = rp.permissionid
+                    WHERE rp.roleid = $1
                 `, [roleId]);
                 permissions = permResult.rows.map(r => r.id);
             } catch (err: any) {

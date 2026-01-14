@@ -5,26 +5,21 @@ import { Driver, Vehicle, Expense, Trip } from '../types';
 // --- Drivers ---
 export const getDrivers = async (req: Request, res: Response) => {
     try {
-        const [driversRes, usersRes] = await Promise.all([
-            query('SELECT * FROM drivers'),
-            query("SELECT * FROM users WHERE roleid = 'R-DRIVER' OR roleid = 'driver'")
-        ]);
+        // Professional Join: Unify Identity (Users) and Logistics Metadata (Drivers)
+        // Respects "Entity Uniqueness": linked records appear once, legacy records are preserved.
+        const driversRes = await query(`
+            SELECT 
+                COALESCE(u.id, d.id) as id,
+                COALESCE(u.name, d.name) as name,
+                COALESCE(d.phone, '') as phone,
+                COALESCE(d.status, 'IDLE') as status,
+                COALESCE(u.avatar_url, d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url
+            FROM drivers d
+            FULL OUTER JOIN users u ON d.id = u.id
+            WHERE d.id IS NOT NULL OR u.roleid IN ('R-DRIVER', 'driver')
+        `);
 
-        const legacyDrivers: Driver[] = driversRes.rows;
-
-        // Map users to Driver interface
-        const userDrivers: Driver[] = usersRes.rows.map((u: any) => ({
-            id: u.id,
-            name: u.name,
-            phone: '', // Users don't have phone column
-            status: 'IDLE', // Default status for users
-            avatar_url: u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random`
-        }));
-
-        // Merge (legacy drivers take precedence if IDs conflict, though unlikely)
-        const allDrivers = [...legacyDrivers, ...userDrivers];
-
-        res.json(allDrivers);
+        res.json(driversRes.rows);
     } catch (e) {
         console.error('Error fetching drivers:', e);
         res.status(500).json({ error: 'Failed to fetch drivers' });
@@ -78,9 +73,21 @@ export const deleteDriver = async (req: Request, res: Response) => {
 // --- Vehicles ---
 export const getVehicles = async (req: Request, res: Response) => {
     try {
-        const result = await query('SELECT * FROM vehicles');
+        // Unify Vehicles: Join vehicles table with users (in case vehicles have user accounts/IoT identity)
+        const result = await query(`
+            SELECT 
+                COALESCE(v.id, u.id) as id,
+                COALESCE(v.plate, u.name) as plate,
+                COALESCE(v.model, 'Asset') as model,
+                COALESCE(v.capacity, 'Standard') as capacity,
+                COALESCE(v.status, u.status, 'IDLE') as status
+            FROM vehicles v
+            FULL OUTER JOIN users u ON v.id = u.id
+            WHERE v.id IS NOT NULL OR u.roleid = 'R-VEHICLE'
+        `);
         res.json(result.rows);
     } catch (e) {
+        console.error('Error fetching vehicles:', e);
         res.status(500).json({ error: 'Failed to fetch vehicles' });
     }
 };
@@ -187,9 +194,26 @@ export const deleteExpense = async (req: Request, res: Response) => {
 // --- Trips ---
 export const getTrips = async (req: Request, res: Response) => {
     try {
-        const result = await query('SELECT * FROM trips');
+        // Enriched query: Join trips with waybills to provide context in the schedule
+        const result = await query(`
+            SELECT 
+                t.*,
+                (
+                    SELECT json_agg(json_build_object(
+                        'id', w.id,
+                        'waybill_no', w.waybill_no,
+                        'origin', w.origin,
+                        'destination', w.destination,
+                        'pallet_count', w.pallet_count
+                    ))
+                    FROM waybills w
+                    WHERE w.trip_id = t.id
+                ) as waybills
+            FROM trips t
+        `);
         res.json(result.rows);
     } catch (e) {
+        console.error('Error fetching trips:', e);
         res.status(500).json({ error: 'Failed to fetch trips' });
     }
 };
@@ -197,6 +221,7 @@ export const getTrips = async (req: Request, res: Response) => {
 export const updateTrip = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
+        const { driver_id } = req.body;
         const fields = Object.keys(req.body);
         const values = Object.values(req.body);
         if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
@@ -204,30 +229,65 @@ export const updateTrip = async (req: Request, res: Response) => {
         // Fetch current trip to check for status transition
         const currentRes = await query('SELECT * FROM trips WHERE id = $1', [id]);
         if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
-        const oldStatus = currentRes.rows[0].status;
+        const oldTrip = currentRes.rows[0];
+
+        // Ensure driver and vehicle exist in their respective tables to satisfy FK constraint
+        if (driver_id && driver_id !== oldTrip.driver_id) {
+            const drCheck = await query('SELECT id FROM drivers WHERE id = $1', [driver_id]);
+            if (drCheck.rows.length === 0) {
+                const userCheck = await query('SELECT id, name FROM users WHERE id = $1', [driver_id]);
+                if (userCheck.rows.length > 0) {
+                    const u = userCheck.rows[0];
+                    await query('INSERT INTO drivers (id, name, status) VALUES ($1, $2, $3)', [u.id, u.name, 'BUSY']);
+                    console.log(`Auto-created driver registry for user ${u.name} (${u.id}) during trip assignment.`);
+                }
+            }
+        }
+
+        const { vehicle_id } = req.body;
+        if (vehicle_id && vehicle_id !== oldTrip.vehicle_id) {
+            const vCheck = await query('SELECT id FROM vehicles WHERE id = $1', [vehicle_id]);
+            if (vCheck.rows.length === 0) {
+                const userCheck = await query('SELECT id, name FROM users WHERE id = $1', [vehicle_id]);
+                if (userCheck.rows.length > 0) {
+                    const u = userCheck.rows[0];
+                    await query('INSERT INTO vehicles (id, plate, status) VALUES ($1, $2, $3)', [u.id, u.name, 'BUSY']);
+                    console.log(`Auto-created vehicle registry for user/IoT ${u.name} (${u.id}) during trip assignment.`);
+                }
+            }
+        }
 
         const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
         const result = await query(
             `UPDATE trips SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`,
             [...values, id]
         );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Trip not found after update' });
+        }
+
         const updatedTrip = result.rows[0];
 
         // Trigger: If status changed to COMPLETED, create a payable record for the driver
-        if (updatedTrip.status === 'COMPLETED' && oldStatus !== 'COMPLETED') {
-            const amount = updatedTrip.driver_pay_total || 0;
-            const recordId = `FR-${Date.now()}`;
-            await query(
-                `INSERT INTO financial_records (id, tenant_id, shipment_id, type, reference_id, amount, currency, status)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [recordId, 'DEFAULT_TENANT', updatedTrip.id, 'payable', updatedTrip.driver_id, amount, updatedTrip.driver_pay_currency || 'CAD', 'PENDING']
-            );
-            console.log(`Financial record ${recordId} created for completed trip ${updatedTrip.id}`);
+        if (updatedTrip.status === 'COMPLETED' && oldTrip.status !== 'COMPLETED') {
+            try {
+                const amount = updatedTrip.driver_pay_total || 0;
+                const recordId = `FR-${Date.now()}`;
+                await query(
+                    `INSERT INTO financial_records (id, tenant_id, shipment_id, type, reference_id, amount, currency, status)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                    [recordId, 'DEFAULT_TENANT', updatedTrip.id, 'payable', updatedTrip.driver_id, amount, updatedTrip.driver_pay_currency || 'CAD', 'PENDING']
+                );
+                console.log(`Financial record ${recordId} created for completed trip ${updatedTrip.id}`);
+            } catch (triggerError) {
+                console.error('Trigger logic failed but trip was updated:', triggerError);
+            }
         }
 
         res.json(updatedTrip);
     } catch (e) {
         console.error('Error updating trip:', e);
-        res.status(500).json({ error: 'Failed to update trip' });
+        res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to update trip' });
     }
 };

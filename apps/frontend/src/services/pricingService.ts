@@ -32,6 +32,8 @@ export interface PricingResult {
 }
 
 export const calculatePrice = async (data: PricingRequest): Promise<PricingResult> => {
-    const response = await axios.post(`${API_URL}/pricing/calculate`, data);
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const response = await axios.post(`${API_URL}/pricing/calculate`, data, { headers });
     return response.data;
 };

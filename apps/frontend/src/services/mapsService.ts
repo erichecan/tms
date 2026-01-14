@@ -8,6 +8,7 @@
 
 import { loadGoogleMaps, isGoogleMapsLoaded, importLibrary } from '../lib/googleMapsLoader';
 import type { AddressInfo, LogisticsRoute } from '../types/maps';
+import { API_BASE_URL } from '../apiConfig';
 // @ts-ignore
 import LRUCache from 'lru-cache';
 
@@ -121,14 +122,17 @@ function reportTelemetry(event: GoogleMapsCallEvent): void {
                 const events = [...telemetryQueue];
                 telemetryQueue = [];
 
+                const token = localStorage.getItem('token');
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
                 // 上报到后端（如果后端支持）
-                fetch('/api/telemetry/googlemaps', {
+                fetch(`${API_BASE_URL}/telemetry/googlemaps`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ events }),
                 }).catch(() => {
                     // 静默失败，非关键功能
-                    // console.warn('⚠️ [Google Maps Service] Failed to report telemetry:', err);
                 });
             }
             telemetryTimer = null;

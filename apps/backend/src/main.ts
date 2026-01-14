@@ -147,9 +147,13 @@ app.post('/api/waybills', async (req, res) => {
   const {
     waybill_no, customer_id, origin, destination,
     cargo_desc, price_estimated, delivery_date, reference_code,
-    fc_alias,
+    fulfillment_center, // Use fulfillment_center consistently
     pallet_count,
-    details // New JSONB field
+    distance,
+    signature_url,
+    signed_at,
+    signed_by,
+    details
   } = req.body;
 
   const id = `WB-${Date.now()}`;
@@ -160,13 +164,22 @@ app.post('/api/waybills', async (req, res) => {
     await query(
       `INSERT INTO waybills (
                 id, waybill_no, customer_id, origin, destination, cargo_desc, status, 
-                price_estimated, created_at, fulfillment_center, delivery_date, reference_code, pallet_count, details
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+                price_estimated, created_at, fulfillment_center, delivery_date, reference_code, 
+                pallet_count, distance, signature_url, signed_at, signed_by, details
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
       [
         id, waybill_no, customer_id, origin, destination, cargo_desc, status,
-        price_estimated, created_at, fc_alias, delivery_date, reference_code,
+        price_estimated ? parseFloat(price_estimated) : 0,
+        created_at,
+        fulfillment_center,
+        delivery_date || null, // Handle empty string as null for DATE
+        reference_code || null,
         pallet_count ? parseInt(pallet_count) : 0,
-        details // Save full JSON state
+        distance ? parseFloat(distance) : 0,
+        signature_url || null,
+        signed_at || null,
+        signed_by || null,
+        details || null
       ]
     );
 
@@ -183,6 +196,7 @@ app.put('/api/waybills/:id', async (req, res) => {
     waybill_no, customer_id, origin, destination,
     cargo_desc, price_estimated, status,
     fulfillment_center, delivery_date, reference_code, pallet_count,
+    distance, // Added distance
     signature_url, signed_at, signed_by, details
   } = req.body;
 
@@ -191,21 +205,43 @@ app.put('/api/waybills/:id', async (req, res) => {
     const currentRes = await query('SELECT * FROM waybills WHERE id = $1', [id]);
     if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
     const oldStatus = currentRes.rows[0].status;
+    const oldCustomerId = currentRes.rows[0].customer_id;
+
+    // Entity Uniqueness Sync: Ensure customer exists in customers table
+    if (customer_id && customer_id !== oldCustomerId) {
+      const custCheck = await query('SELECT id FROM customers WHERE id = $1', [customer_id]);
+      if (custCheck.rows.length === 0) {
+        const userCheck = await query('SELECT id, name, email FROM users WHERE id = $1', [customer_id]);
+        if (userCheck.rows.length > 0) {
+          const u = userCheck.rows[0];
+          await query(
+            'INSERT INTO customers (id, name, email, status) VALUES ($1, $2, $3, $4)',
+            [u.id, u.name, u.email, 'ACTIVE']
+          );
+          console.log(`Auto-created customer entry for user ${u.name} (${u.id}) during waybill update.`);
+        }
+      }
+    }
 
     const result = await query(
       `UPDATE waybills SET 
                 waybill_no = $1, customer_id = $2, origin = $3, destination = $4, 
                 cargo_desc = $5, price_estimated = $6, status = COALESCE($7, status),
-                fulfillment_center = $8, delivery_date = $9, reference_code = $10, pallet_count = $11,
-                signature_url = COALESCE($12, signature_url), 
-                signed_at = COALESCE($13, signed_at), 
-                signed_by = COALESCE($14, signed_by),
-                details = COALESCE($15, details)
-             WHERE id = $16 RETURNING *`,
+                fulfillment_center = $8, delivery_date = $9, reference_code = $10, 
+                pallet_count = $11, distance = $12,
+                signature_url = COALESCE($13, signature_url), 
+                signed_at = COALESCE($14, signed_at), 
+                signed_by = COALESCE($15, signed_by),
+                details = COALESCE($16, details)
+             WHERE id = $17 RETURNING *`,
       [
         waybill_no, customer_id, origin, destination,
-        cargo_desc, price_estimated, status,
-        fulfillment_center, delivery_date, reference_code, pallet_count ? parseInt(pallet_count) : 0,
+        cargo_desc, price_estimated ? parseFloat(price_estimated) : 0, status,
+        fulfillment_center,
+        delivery_date || null,
+        reference_code || null,
+        pallet_count ? parseInt(pallet_count) : 0,
+        distance ? parseFloat(distance) : 0,
         signature_url, signed_at, signed_by,
         details,
         id
@@ -428,6 +464,12 @@ app.post('/api/trips/:id/messages', async (req, res) => {
     console.error(e);
     res.status(500).json({ error: 'Message failed' });
   }
+});
+
+
+app.post('/api/telemetry/googlemaps', verifyToken, (req, res) => {
+  // Silent ingestion of Google Maps usage data
+  res.status(200).json({ status: 'recorded' });
 });
 
 

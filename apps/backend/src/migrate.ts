@@ -87,6 +87,10 @@ const migrate = async () => {
         time_in VARCHAR(20),
         time_out VARCHAR(20),
         distance NUMERIC,
+        signature_url TEXT,
+        signed_at TIMESTAMP,
+        signed_by VARCHAR(100),
+        details JSONB,
         FOREIGN KEY (trip_id) REFERENCES trips(id)
       );
 
@@ -101,6 +105,18 @@ const migrate = async () => {
           END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='po_list') THEN
               ALTER TABLE waybills ADD COLUMN po_list TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='signature_url') THEN
+              ALTER TABLE waybills ADD COLUMN signature_url TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='signed_at') THEN
+              ALTER TABLE waybills ADD COLUMN signed_at TIMESTAMP;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='signed_by') THEN
+              ALTER TABLE waybills ADD COLUMN signed_by VARCHAR(100);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='details') THEN
+              ALTER TABLE waybills ADD COLUMN details JSONB;
           END IF;
       END $$;
 
@@ -117,6 +133,21 @@ const migrate = async () => {
         id VARCHAR(50) PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         description TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS permissions (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        module VARCHAR(50) NOT NULL,
+        description TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS role_permissions (
+        roleid VARCHAR(50) NOT NULL,
+        permissionid VARCHAR(50) NOT NULL,
+        PRIMARY KEY (roleid, permissionid),
+        FOREIGN KEY (roleid) REFERENCES roles(id) ON DELETE CASCADE,
+        FOREIGN KEY (permissionid) REFERENCES permissions(id) ON DELETE CASCADE
       );
 
       CREATE TABLE IF NOT EXISTS rules (
@@ -198,6 +229,50 @@ const migrate = async () => {
       ('R-DISPATCHER', 'Dispatcher', 'Manage trips and waybills'),
       ('R-DRIVER', 'Driver', 'Mobile portal access')
       ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // Permissions
+    await client.query(`
+      INSERT INTO permissions (id, name, module, description) VALUES 
+      ('P-WAYBILL-VIEW', 'View Waybills', 'Waybills', 'View waybill list and details'),
+      ('P-WAYBILL-CREATE', 'Create Waybills', 'Waybills', 'Create new waybills'),
+      ('P-WAYBILL-EDIT', 'Edit Waybills', 'Waybills', 'Edit existing waybills'),
+      ('P-WAYBILL-DELETE', 'Delete Waybills', 'Waybills', 'Delete waybills'),
+      ('P-FLEET-VIEW', 'View Fleet', 'Fleet', 'View fleet and expenses'),
+      ('P-FLEET-MANAGE', 'Manage Fleet', 'Fleet', 'Manage vehicles and drivers'),
+      ('P-CUSTOMER-VIEW', 'View Customers', 'Customers', 'View customer list'),
+      ('P-CUSTOMER-MANAGE', 'Manage Customers', 'Customers', 'Create and edit customers'),
+      ('P-FINANCE-VIEW', 'View Finance', 'Finance', 'View financial reports'),
+      ('P-FINANCE-MANAGE', 'Manage Finance', 'Finance', 'Manage receivables and payables'),
+      ('P-USER-VIEW', 'View Users', 'Users', 'View user list'),
+      ('P-USER-MANAGE', 'Manage Users', 'Users', 'Create and edit users'),
+      ('P-ROLE-MANAGE', 'Manage Roles', 'Roles', 'Create and edit roles and permissions')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // Role-Permission Mappings (Admin gets all permissions)
+    await client.query(`
+      INSERT INTO role_permissions (roleid, permissionid) VALUES 
+      ('R-ADMIN', 'P-WAYBILL-VIEW'),
+      ('R-ADMIN', 'P-WAYBILL-CREATE'),
+      ('R-ADMIN', 'P-WAYBILL-EDIT'),
+      ('R-ADMIN', 'P-WAYBILL-DELETE'),
+      ('R-ADMIN', 'P-FLEET-VIEW'),
+      ('R-ADMIN', 'P-FLEET-MANAGE'),
+      ('R-ADMIN', 'P-CUSTOMER-VIEW'),
+      ('R-ADMIN', 'P-CUSTOMER-MANAGE'),
+      ('R-ADMIN', 'P-FINANCE-VIEW'),
+      ('R-ADMIN', 'P-FINANCE-MANAGE'),
+      ('R-ADMIN', 'P-USER-VIEW'),
+      ('R-ADMIN', 'P-USER-MANAGE'),
+      ('R-ADMIN', 'P-ROLE-MANAGE'),
+      ('R-DISPATCHER', 'P-WAYBILL-VIEW'),
+      ('R-DISPATCHER', 'P-WAYBILL-CREATE'),
+      ('R-DISPATCHER', 'P-WAYBILL-EDIT'),
+      ('R-DISPATCHER', 'P-FLEET-VIEW'),
+      ('R-DISPATCHER', 'P-CUSTOMER-VIEW'),
+      ('R-DRIVER', 'P-WAYBILL-VIEW')
+      ON CONFLICT (roleid, permissionid) DO NOTHING;
     `);
 
     // Drivers

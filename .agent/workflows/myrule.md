@@ -96,3 +96,38 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localho
     - 前端 `apps/frontend/.env`: `VITE_GOOGLE_MAPS_API_KEY` 和 `VITE_API_BASE_URL` 必须正确配置。
 3. **数据库迁移**: 每次环境变更或重置前，运行 `cd apps/backend && npm run migrate` 确保表结构同步。
 4. **重启服务**: 先启动后端，再启动前端。
+
+---
+
+## 7. 数据库交互与数据同步 (Empty String vs Null)
+
+### 问题
+后端 API 报错 `DateTimeParseError` 或 `invalid input syntax for type numeric`。
+
+### 根因
+前端表单中的空字符串 `""` 传给后端后，如果直接映射到数据库的 `DATE`、`NUMERIC` 或 `UUID` 字段，PostgreSQL 会报错。
+
+### 避坑指南
+1. **日期字段**: 在存入数据库前，务必将空字符串转换为 `null`。
+    - 示例: `[delivery_date || null]`
+2. **数值字段**: 确保使用 `parseFloat()` 或 `parseInt()` 处理，并提供默认值 `0`。
+    - 示例: `[price ? parseFloat(price) : 0]`
+3. **JSONB 字段**: 确保传给数据库的是对象或 `null`，而不是 `undefined`。
+4. **字段一致性**: 确保 `POST` 和 `PUT` 接口处理的字段集完全一致，避免“创建成功但更新失败”的情况。
+
+---
+
+## 8. Role & Permissions 数据缺失问题
+
+### 问题
+Role Management 页面显示为空，即使 User Management 中的用户都有角色分配。
+
+### 根因
+数据库迁移脚本中缺少 `permissions` 和 `role_permissions` 表的创建语句。前端调用 `/api/permissions` 和 `/api/roles` 时返回空数组。
+
+### 解决方案
+1. **创建权限表**: 在 `migrate.ts` 中添加 `permissions` 表（包含 id, name, module, description 字段）。
+2. **创建关联表**: 添加 `role_permissions` 表（roleid, permissionid 作为复合主键）。
+3. **种子数据**: 插入默认权限（如 P-WAYBILL-VIEW, P-FLEET-MANAGE 等）和角色-权限映射。
+4. **字段名统一**: 确保 `AuthService.ts` 和 `UserController.ts` 中的 JOIN 查询使用正确的列名（`roleid` 和 `permissionid`，而非 `role_id` 和 `permission_id`）。
+5. **重新迁移**: 运行 `npm run migrate` 应用表结构和种子数据。

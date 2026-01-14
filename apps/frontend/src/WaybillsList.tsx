@@ -28,6 +28,12 @@ export const WaybillsList = () => {
     const [loading, setLoading] = useState(false);
     const pageSize = 10;
 
+    // Assignment State
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [selectedWaybill, setSelectedWaybill] = useState<string | null>(null);
+    const [resources, setResources] = useState<{ drivers: any[], vehicles: any[] }>({ drivers: [], vehicles: [] });
+    const [assignData, setAssignData] = useState({ driver_id: '', vehicle_id: '' });
+
     // Use a debounced search term for API calls
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -63,6 +69,45 @@ export const WaybillsList = () => {
             setWaybills([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const openAssignModal = async (waybillId: string) => {
+        setSelectedWaybill(waybillId);
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const [drivers, vehicles] = await Promise.all([
+            fetch(`${API_BASE_URL}/drivers`, { headers }).then(res => res.json()),
+            fetch(`${API_BASE_URL}/vehicles`, { headers }).then(res => res.json())
+        ]);
+        setResources({
+            drivers: Array.isArray(drivers) ? drivers.filter((d: any) => d.status === 'IDLE') : [],
+            vehicles: Array.isArray(vehicles) ? vehicles.filter((v: any) => v.status === 'IDLE') : []
+        });
+        setIsAssignModalOpen(true);
+    };
+
+    const handleAssign = async () => {
+        if (!selectedWaybill || !assignData.driver_id || !assignData.vehicle_id) return;
+        try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`${API_BASE_URL}/waybills/${selectedWaybill}/assign`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(assignData)
+            });
+            if (res.ok) {
+                setIsAssignModalOpen(false);
+                setAssignData({ driver_id: '', vehicle_id: '' });
+                fetchWaybills();
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -182,7 +227,7 @@ export const WaybillsList = () => {
                                         {new Date(wb.created_at).toLocaleDateString()}
                                     </td>
                                     <td style={{ padding: '20px', textAlign: 'right' }}>
-                                        <WaybillActionMenu waybillId={wb.id} />
+                                        <WaybillActionMenu waybillId={wb.id} onAssign={() => openAssignModal(wb.id)} />
                                     </td>
                                 </tr>
                             )) : (
@@ -238,6 +283,38 @@ export const WaybillsList = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Assignment Modal */}
+            {isAssignModalOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.3s ease-out' }}>
+                    <div className="glass-card" style={{ width: '480px', padding: '40px', background: 'white' }}>
+                        <h3 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px', color: 'var(--slate-900)' }}>{t('dashboard.modal.title')}</h3>
+                        <p style={{ color: 'var(--slate-500)', fontSize: '14px', marginBottom: '32px', fontWeight: 500 }}>{t('dashboard.modal.subtitle')}</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '40px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('dashboard.modal.driverLabel')}</label>
+                                <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, driver_id: e.target.value })} value={assignData.driver_id}>
+                                    <option value="">{t('dashboard.modal.driverPlaceholder')}</option>
+                                    {resources.drivers.map(d => <option key={d.id} value={d.id}>{d.name} (READY)</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('dashboard.modal.vehicleLabel')}</label>
+                                <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, vehicle_id: e.target.value })} value={assignData.vehicle_id}>
+                                    <option value="">{t('dashboard.modal.vehiclePlaceholder')}</option>
+                                    {resources.vehicles.map(v => <option key={v.id} value={v.id}>{v.plate} • {v.model}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '16px' }}>
+                            <button onClick={() => setIsAssignModalOpen(false)} className="btn-secondary" style={{ flex: 1 }}>{t('dashboard.modal.cancel')}</button>
+                            <button onClick={handleAssign} className="btn-primary" style={{ flex: 1 }}>{t('dashboard.modal.confirm')}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

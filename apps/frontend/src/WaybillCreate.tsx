@@ -128,34 +128,37 @@ export const WaybillCreate = () => {
 
                         if (d.templateType) setTemplateType(d.templateType);
 
-                        setShipFrom(d.shipFrom || {
-                            company: recoveredFromComp,
-                            contact: '',
-                            phone: '',
-                            address: found.origin || ''
+                        const loadedFrom = d.shipFrom || {};
+                        setShipFrom({
+                            company: loadedFrom.company || recoveredFromComp || '',
+                            contact: loadedFrom.contact || '',
+                            phone: loadedFrom.phone || '',
+                            address: loadedFrom.address || found.origin || ''
                         });
 
-                        setShipTo(d.shipTo || {
-                            company: recoveredToComp,
-                            contact: '',
-                            phone: '',
-                            address: found.destination || ''
+                        const loadedTo = d.shipTo || {};
+                        setShipTo({
+                            company: loadedTo.company || recoveredToComp || '',
+                            contact: loadedTo.contact || '',
+                            phone: loadedTo.phone || '',
+                            address: loadedTo.address || found.destination || ''
                         });
 
-                        if (d.baseInfo) {
-                            setBaseInfo(d.baseInfo);
-                        } else {
-                            // Fallback for flat cols + recovered ref
-                            setBaseInfo({
-                                fc_alias: found.fulfillment_center || '',
-                                fc_address: '',
-                                delivery_date: found.delivery_date || '',
-                                reference_code: recoveredRef || found.reference_code || ''
-                            });
-                        }
+                        const loadedBase = d.baseInfo || {};
+                        setBaseInfo({
+                            fc_alias: loadedBase.fc_alias || found.fulfillment_center || 'Y001',
+                            fc_address: loadedBase.fc_address || '',
+                            delivery_date: loadedBase.delivery_date || found.delivery_date || '',
+                            reference_code: loadedBase.reference_code || recoveredRef || found.reference_code || ''
+                        });
 
                         if (d.goodsLines) {
-                            setGoodsLines(d.goodsLines);
+                            setGoodsLines(d.goodsLines.map((l: any) => ({
+                                pallet_count: l.pallet_count || '0',
+                                item_count: l.item_count || '0',
+                                pro: l.pro || '',
+                                po_list: l.po_list || ''
+                            })));
                         } else if (recoveredLines.length > 0) {
                             setGoodsLines(recoveredLines);
                         }
@@ -164,9 +167,11 @@ export const WaybillCreate = () => {
 
                         const loadedFooter = d.footerInfo || {};
                         setFooterInfo({
-                            ...loadedFooter,
-                            client_name: loadedFooter.client_name || found.customer_id, // Backward compat
-                            price: found.price_estimated?.toString() || '0'
+                            time_in: loadedFooter.time_in || '',
+                            time_out: loadedFooter.time_out || '',
+                            client_name: loadedFooter.client_name || found.customer_id || '',
+                            distance: loadedFooter.distance || found.distance?.toString() || '0',
+                            price: loadedFooter.price || found.price_estimated?.toString() || '0'
                         });
 
                         if (found.signature_url) setSignatureUrl(found.signature_url);
@@ -317,6 +322,8 @@ export const WaybillCreate = () => {
             signature_url: signatureUrl,
             signed_at: signatureUrl ? new Date().toISOString() : undefined,
             signed_by: 'Driver/Customer',
+            pallet_count: goodsLines.reduce((acc, line) => acc + (parseInt(line.pallet_count) || 0), 0),
+            distance: Number(footerInfo.distance) || 0,
             details: fullDetails // Persist ALL state
         };
 

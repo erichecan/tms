@@ -26,9 +26,20 @@ export const createUser = async (req: Request, res: Response) => {
     try {
         // Use AuthService to handle hashing and creation
         const { name, email, username, password, roleId, status } = req.body;
-        const result = await AuthService.register({
+        const result: any = await AuthService.register({
             name, email, username, password, roleId
         });
+
+        // --- Entity Uniqueness Sync: Proactive Sync on Creation ---
+        const role = (roleId as string || '').toUpperCase();
+        if (role === 'R-DRIVER' || role === 'DRIVER') {
+            await query('INSERT INTO drivers (id, name, status) VALUES ($1, $2, $3)', [result.id, name, 'IDLE']);
+        } else if (role === 'R-CUSTOMER' || role === 'R-CLIENT') {
+            await query('INSERT INTO customers (id, name, email, status) VALUES ($1, $2, $3, $4)', [result.id, name, email, 'ACTIVE']);
+        } else if (role === 'R-VEHICLE') {
+            await query('INSERT INTO vehicles (id, plate, status) VALUES ($1, $2, $3)', [result.id, name, 'IDLE']);
+        }
+
         res.status(201).json(result);
     } catch (e: any) {
         console.error(e);
@@ -61,6 +72,17 @@ export const updateUser = async (req: Request, res: Response) => {
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         const user = result.rows[0];
+
+        // --- Entity Uniqueness Sync: Proactive Sync on Update ---
+        const role = (roleId as string || '').toUpperCase();
+        if (role === 'R-DRIVER' || role === 'DRIVER') {
+            await query('INSERT INTO drivers (id, name, status) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name', [id, name, 'IDLE']);
+        } else if (role === 'R-CUSTOMER' || role === 'R-CLIENT') {
+            await query('INSERT INTO customers (id, name, email, status) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email', [id, name, email, 'ACTIVE']);
+        } else if (role === 'R-VEHICLE') {
+            await query('INSERT INTO vehicles (id, plate, status) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET plate = EXCLUDED.plate', [id, name, 'IDLE']);
+        }
+
         res.json({
             ...user,
             password: undefined,

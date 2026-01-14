@@ -132,6 +132,10 @@ export const FleetManagement = () => {
         setDraggedTrip(null);
     };
 
+    const handleDragEnd = () => {
+        setDraggedTrip(null);
+    };
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newEntry, setNewEntry] = useState<any>({});
 
@@ -218,9 +222,9 @@ export const FleetManagement = () => {
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0' }}>
                             <thead>
                                 <tr style={{ background: 'var(--slate-50)' }}>
-                                    <th style={{ width: '200px', padding: '20px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderRight: '1px solid var(--glass-border)' }}>{t('fleet.scheduleTab.opsTeam')}</th>
+                                    <th style={{ width: '200px', padding: '20px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderRight: '1px solid #F1F5F9', borderBottom: '1px solid #F1F5F9' }}>{t('fleet.scheduleTab.opsTeam')}</th>
                                     {DAYS.map(day => (
-                                        <th key={day} style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: '120px' }}>{day}</th>
+                                        <th key={day} style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: '120px', borderBottom: '1px solid #F1F5F9' }}>{day}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -229,7 +233,12 @@ export const FleetManagement = () => {
                                     <tr><td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>{t('fleet.scheduleTab.empty')}</td></tr>
                                 ) : data.drivers.map((driver: any, idx: number) => (
                                     <tr key={driver.id || `driver-${idx}`} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                        <td style={{ padding: '20px 24px', borderRight: '1px solid var(--glass-border)', background: 'var(--slate-50)' }}>
+                                        <td style={{
+                                            padding: '20px 24px',
+                                            borderRight: '1px solid #F1F5F9',
+                                            borderBottom: '1px solid #F1F5F9',
+                                            background: 'var(--slate-50)'
+                                        }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'var(--slate-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-start)' }}>
                                                     <User size={18} />
@@ -240,7 +249,22 @@ export const FleetManagement = () => {
                                         {DAYS.map((_, dayIdx) => {
                                             const tripInCell = trips.find(t => {
                                                 if (t.driver_id !== driver.id) return false;
-                                                const tripDay = new Date(t.start_time_est).getDay();
+                                                const tripDate = new Date(t.start_time_est);
+
+                                                // Get start of current week
+                                                const now = new Date();
+                                                const day = now.getDay();
+                                                const diff = now.getDate() - (day === 0 ? 6 : day - 1);
+                                                const startOfWeek = new Date(now.setDate(diff));
+                                                startOfWeek.setHours(0, 0, 0, 0);
+
+                                                const endOfWeek = new Date(startOfWeek);
+                                                endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+                                                // Only show if in this week
+                                                if (tripDate < startOfWeek || tripDate >= endOfWeek) return false;
+
+                                                const tripDay = tripDate.getDay();
                                                 const adjustedDay = tripDay === 0 ? 6 : tripDay - 1; // 0=Mon...6=Sun
                                                 return adjustedDay === dayIdx;
                                             });
@@ -252,30 +276,60 @@ export const FleetManagement = () => {
                                                     onDrop={(e) => handleDrop(e, driver.id, dayIdx)}
                                                     style={{
                                                         padding: '12px',
-                                                        borderRight: dayIdx < 6 ? '1px solid var(--glass-border)' : 'none',
+                                                        borderRight: dayIdx < 6 ? '1px solid #F1F5F9' : 'none',
+                                                        borderBottom: '1px solid #F1F5F9',
                                                         position: 'relative',
-                                                        background: draggedTrip ? 'rgba(0,128,255,0.02)' : 'transparent',
-                                                        transition: 'background 0.2s'
+                                                        background: draggedTrip ? 'rgba(0,128,255,0.05)' : 'transparent',
+                                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                        minHeight: '64px'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (draggedTrip) e.currentTarget.style.background = 'rgba(0,128,255,0.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (draggedTrip) e.currentTarget.style.background = 'rgba(0,128,255,0.05)';
+                                                        else e.currentTarget.style.background = 'transparent';
                                                     }}
                                                 >
                                                     {tripInCell && (
                                                         <div
                                                             draggable
                                                             onDragStart={(e) => handleDragStart(e, tripInCell)}
+                                                            onDragEnd={handleDragEnd}
                                                             style={{
                                                                 background: 'var(--primary-grad)',
                                                                 color: 'white',
-                                                                fontSize: '11px',
-                                                                fontWeight: 800,
-                                                                padding: '8px 12px',
-                                                                borderRadius: '10px',
+                                                                fontSize: '10px',
+                                                                fontWeight: 700,
+                                                                padding: '6px 8px',
+                                                                borderRadius: '8px',
                                                                 boxShadow: '0 4px 12px rgba(0, 128, 255, 0.2)',
                                                                 cursor: 'grab',
                                                                 zIndex: 10,
-                                                                position: 'relative'
+                                                                position: 'relative',
+                                                                width: '100%',
+                                                                textAlign: 'left',
+                                                                userSelect: 'none',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                gap: '2px'
                                                             }}
                                                         >
-                                                            {t('fleet.scheduleTab.mission')} {tripInCell.id.split('-')[1]}
+                                                            <div style={{ fontWeight: 900, opacity: 0.9, fontSize: '9px', textTransform: 'uppercase' }}>
+                                                                {t('fleet.scheduleTab.mission')} {tripInCell.id.split('-')[1]?.substring(0, 6)}
+                                                            </div>
+                                                            {tripInCell.waybills && tripInCell.waybills.length > 0 ? (
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                        {tripInCell.waybills[0].origin.split(',')[0]} → {tripInCell.waybills[0].destination.split(',')[0]}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '8px', opacity: 0.8 }}>
+                                                                        {tripInCell.waybills[0].waybill_no}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <span>{t('fleet.scheduleTab.emptyMission')}</span>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </td>

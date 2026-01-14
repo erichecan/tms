@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, Eye, Edit, FileText, Download, Trash } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, FileText, Download, Trash, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../apiConfig';
@@ -9,9 +9,10 @@ import { useDialog } from '../context/DialogContext';
 interface WaybillActionMenuProps {
     waybillId: string;
     onDelete?: () => void;
+    onAssign?: () => void;
 }
 
-export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProps) => {
+export const WaybillActionMenu = ({ waybillId, onDelete, onAssign }: WaybillActionMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpwards, setOpenUpwards] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,7 @@ export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProp
                 }}>
                     <MenuOption icon={<Eye size={16} />} label={t('waybill.menu.view')} onClick={() => handleAction('view')} />
                     <MenuOption icon={<Edit size={16} />} label={t('waybill.menu.edit')} onClick={() => handleAction('edit')} />
+                    {onAssign && <MenuOption icon={<UserPlus size={16} />} label={t('dashboard.table.dispatch')} onClick={() => { setIsOpen(false); onAssign(); }} />}
                     <MenuOption icon={<Download size={16} />} label={t('waybill.menu.pdf')} onClick={() => handleAction('pdf')} />
                     <MenuOption icon={<FileText size={16} />} label={t('waybill.menu.bol')} onClick={() => handleAction('bol')} />
                     {onDelete && <MenuOption icon={<Trash size={16} />} label={t('waybill.menu.delete')} color="#ef4444" onClick={() => handleAction('delete')} />}

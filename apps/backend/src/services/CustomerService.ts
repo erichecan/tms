@@ -3,7 +3,25 @@ import { Customer } from '../types';
 
 export const customerService = {
     getAll: async (): Promise<Customer[]> => {
-        const result = await query('SELECT * FROM customers ORDER BY created_at DESC');
+        // Unify Customers: Join customers table with users (Role: R-CUSTOMER/R-CLIENT)
+        const result = await query(`
+            SELECT 
+                COALESCE(c.id, u.id) as id,
+                COALESCE(c.name, u.name) as name,
+                c.company,
+                COALESCE(u.email, c.email) as email,
+                c.phone,
+                c.address,
+                c.businessType as "businessType",
+                c.taxId as "taxId",
+                c.creditLimit as "creditLimit",
+                COALESCE(c.status, u.status, 'ACTIVE') as status,
+                COALESCE(c.created_at, u.created_at) as created_at
+            FROM customers c
+            FULL OUTER JOIN users u ON c.id = u.id
+            WHERE u.roleid IN ('R-CUSTOMER', 'R-CLIENT') OR c.id IS NOT NULL
+            ORDER BY created_at DESC
+        `);
         return result.rows;
     },
 
