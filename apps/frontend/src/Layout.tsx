@@ -6,7 +6,7 @@ import { useAuth } from './context/AuthContext';
 import logo from './assets/logo.png';
 import './index.css';
 
-const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
+const SidebarItem = ({ to, icon: Icon, label, indent = 0 }: { to: string; icon: any; label: string; indent?: number }) => (
     <NavLink
         to={to}
         style={({ isActive }) => ({
@@ -15,6 +15,7 @@ const SidebarItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: 
             alignItems: 'center',
             gap: '12px',
             padding: '12px 16px',
+            paddingLeft: `${16 + indent}px`,
             borderRadius: '12px',
             marginBottom: '4px',
             fontSize: '14px',
@@ -97,8 +98,8 @@ export const Layout = () => {
                         <>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.finance')}</div>
                             <SidebarItem to="/finance" icon={DollarSign} label={t('sidebar.financialOverview')} />
-                            <SidebarItem to="/finance/receivables" icon={FileText} label={t('sidebar.receivables')} />
-                            <SidebarItem to="/finance/payables" icon={FileText} label={t('sidebar.payables')} />
+                            <SidebarItem to="/finance/receivables" icon={FileText} label={t('sidebar.receivables')} indent={20} />
+                            <SidebarItem to="/finance/payables" icon={FileText} label={t('sidebar.payables')} indent={20} />
                             <SidebarItem to="/pricing" icon={DollarSign} label={t('sidebar.priceCalculator')} />
                             <SidebarItem to="/rules" icon={ShieldCheck} label={t('sidebar.universalRules')} />
                         </>

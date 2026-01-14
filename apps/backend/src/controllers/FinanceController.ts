@@ -107,7 +107,7 @@ export class FinanceController {
     static async generateStatement(req: Request, res: Response) {
         const { type, referenceId, periodStart, periodEnd } = req.body;
         // generatedBy should come from auth middleware, mocking for now
-        const generatedBy = 'USER-01';
+        const generatedBy = (req as any).user?.id || 'SYSTEM';
 
         try {
             // 1. Find all pending records for this reference within the period

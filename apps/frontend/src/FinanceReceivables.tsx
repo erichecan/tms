@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
-import { useDialog } from './context/DialogContext';
+import StatementGenerator from './components/Finance/StatementGenerator';
 
 interface FinancialRecord {
     id: string;
@@ -16,9 +16,9 @@ interface FinancialRecord {
 
 export const FinanceReceivables = () => {
     const { t } = useTranslation();
-    const { alert } = useDialog();
     const [records, setRecords] = useState<FinancialRecord[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
     const fetchRecords = () => {
         setLoading(true);
@@ -42,13 +42,20 @@ export const FinanceReceivables = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{t('finance.receivable.title')}</h2>
                 <button
-                    onClick={() => alert(t('common.comingSoon', { feature: t('common.generateStatement') }), 'Coming Soon')}
-                    className="btn-secondary"
+                    onClick={() => setIsGeneratorOpen(true)}
+                    className="btn-primary"
                     style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                     <Plus size={18} /> {t('common.generateStatement')}
                 </button>
             </div>
+
+            <StatementGenerator
+                isOpen={isGeneratorOpen}
+                onClose={() => setIsGeneratorOpen(false)}
+                type="customer"
+                onSuccess={fetchRecords}
+            />
 
             <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: '12px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -89,7 +96,7 @@ export const FinanceReceivables = () => {
                                     </td>
                                     <td style={{ padding: '16px' }}>
                                         <button style={{ color: '#2563EB', background: 'none', border: 'none', fontWeight: 500, cursor: 'pointer' }}>
-                                            {t('menu.view')}
+                                            {t('waybill.menu.view')}
                                         </button>
                                     </td>
                                 </tr>

@@ -187,6 +187,11 @@ app.put('/api/waybills/:id', async (req, res) => {
   } = req.body;
 
   try {
+    // Fetch current waybill to check for status transition
+    const currentRes = await query('SELECT * FROM waybills WHERE id = $1', [id]);
+    if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
+    const oldStatus = currentRes.rows[0].status;
+
     const result = await query(
       `UPDATE waybills SET 
                 waybill_no = $1, customer_id = $2, origin = $3, destination = $4, 
@@ -207,11 +212,21 @@ app.put('/api/waybills/:id', async (req, res) => {
       ]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Waybill not found' });
+    const updatedWaybill = result.rows[0];
+
+    // Trigger: If status changed to DELIVERED, create a receivable record for the customer
+    if (updatedWaybill.status === 'DELIVERED' && oldStatus !== 'DELIVERED') {
+      const amount = updatedWaybill.price_estimated || 0;
+      const recordId = `FR-${Date.now()}`;
+      await query(
+        `INSERT INTO financial_records (id, tenant_id, shipment_id, type, reference_id, amount, currency, status)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [recordId, 'DEFAULT_TENANT', updatedWaybill.id, 'receivable', updatedWaybill.customer_id, amount, 'CAD', 'PENDING']
+      );
+      console.log(`Financial record ${recordId} created for delivered waybill ${updatedWaybill.id}`);
     }
 
-    res.json({ message: 'Waybill updated successfully', waybill: result.rows[0] });
+    res.json({ message: 'Waybill updated successfully', waybill: updatedWaybill });
 
   } catch (e) {
     console.error(e);

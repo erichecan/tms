@@ -71,8 +71,9 @@ export const UserManagement = () => {
             setIsModalOpen(false);
             fetchData();
         } catch (err) {
-            alert('Error saving user');
+            alert(t('messages.saveFailed'));
         }
+
     };
 
     const handlePasswordReset = async (e: React.FormEvent) => {
@@ -89,10 +90,11 @@ export const UserManagement = () => {
             });
             if (!res.ok) throw new Error('Failed to reset');
             setIsPasswordModalOpen(false);
-            alert('Password updated successfully');
+            alert(t('messages.updateSuccess'));
         } catch (e) {
-            alert('Failed to reset password');
+            alert(t('messages.saveFailed'));
         }
+
     };
 
     const handleDelete = async (id: string) => {

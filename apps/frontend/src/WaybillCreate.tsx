@@ -1,12 +1,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Calculator, Globe, Package, Target } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Globe, Package, Target } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import logo from './assets/logo.png';
 import { API_BASE_URL } from './apiConfig';
 import { createPlacesAutocomplete } from './services/mapsService';
-import { calculatePrice, type PricingResult } from './services/pricingService';
+import { calculatePrice } from './services/pricingService';
 import { SignaturePad } from './components/SignaturePad';
 import { useDialog } from './context/DialogContext';
 
@@ -67,7 +67,6 @@ export const WaybillCreate = () => {
     // Pricing Integration State
     const [businessType] = useState('STANDARD');
     const [waitingTime] = useState(0);
-    const [pricingResult, setPricingResult] = useState<PricingResult | null>(null);
     const [, setIsCalculating] = useState(false);
     const [pickupCoords, setPickupCoords] = useState<{ lat: number, lng: number } | null>(null);
     const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number, lng: number } | null>(null);
@@ -227,7 +226,7 @@ export const WaybillCreate = () => {
                         businessType,
                         waitingTimeLimit: waitingTime
                     });
-                    setPricingResult(result);
+                    // setPricingResult(result);
                     setFooterInfo(prev => ({
                         ...prev,
                         price: result.totalRevenue.toFixed(2),
@@ -487,37 +486,6 @@ export const WaybillCreate = () => {
                     </div>
                 </div>
 
-                {/* Logistics Engine Integrated */}
-                {templateType === 'DEFAULT' && (
-                    <div className="glass" style={{ marginBottom: '40px', padding: '32px', background: 'linear-gradient(135deg, rgba(0,128,255,0.03) 0%, rgba(139,0,255,0.03) 100%)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <div style={{ padding: '10px', background: 'var(--primary-grad)', borderRadius: '12px', color: 'white' }}>
-                                    <Calculator size={24} />
-                                </div>
-                                <div>
-                                    <h4 style={{ margin: 0, fontWeight: 800 }}>{t('waybill.logisticsEngine')}</h4>
-                                </div>
-                            </div>
-                        </div>
-                        {pricingResult ? (
-                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                                <div>
-                                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-500)' }}>{t('fleet.estimated')}</div>
-                                    <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--primary-start)' }}>${pricingResult.totalRevenue.toFixed(2)}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '16px', fontWeight: 800 }}>{pricingResult.distance.toFixed(1)} {t('fleet.km')}</div>
-                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>~{pricingResult.duration.toFixed(0)} {t('fleet.min')}</div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={{ fontSize: '14px', fontStyle: 'italic', color: 'var(--slate-500)' }}>
-                                {isViewMode ? `${t('waybill.recordedPrice')}: $${footerInfo.price}` : t('waybill.enterAddressToCalc')}
-                            </div>
-                        )}
-                    </div>
-                )}
 
                 {/* Signature Pad */}
                 <div style={{ marginBottom: '40px' }}>
@@ -538,6 +506,14 @@ export const WaybillCreate = () => {
                                         <option key={c.id} value={c.name}>{c.name}</option>
                                     )) : <option value="Ad Hoc">{t('waybill.adHocClient')}</option>}
                                 </select>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.price')}</div>
+                                <input name="price" value={footerInfo.price} onChange={handleFooterChange} placeholder="0.00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '120px' }} />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.distance')}</div>
+                                <input name="distance" value={footerInfo.distance} onChange={handleFooterChange} placeholder="0" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '100px' }} />
                             </div>
                         </div>
                         <button onClick={handleSubmit} className="btn-primary" style={{ padding: '16px 48px', fontSize: '18px' }}>

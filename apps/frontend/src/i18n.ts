@@ -15,6 +15,8 @@ const resources = {
                 "delete": "Delete",
                 "edit": "Edit",
                 "add": "Add",
+                "error": "Error",
+
                 "search": "Search",
                 "loading": "Loading...",
                 "status": "Status",
@@ -163,17 +165,27 @@ const resources = {
                     "price": "Price",
                     "createButton": "Create Waybill",
                     "stamp": "Amazon Stamp"
+                },
+                "menu": {
+                    "view": "View Details",
+                    "edit": "Edit Waybill",
+                    "pdf": "Download PDF",
+                    "bol": "Generate BOL",
+                    "delete": "Delete",
+                    "deleteConfirm": "Are you sure you want to permanently delete this waybill? This action cannot be undone.",
+                    "deleteTitle": "Delete Waybill"
                 }
             },
-            "menu": {
-                "view": "View Details",
-                "edit": "Edit Waybill",
-                "pdf": "Download PDF",
-                "bol": "Generate BOL",
-                "delete": "Delete",
-                "deleteConfirm": "Are you sure you want to permanently delete this waybill? This action cannot be undone.",
-                "deleteTitle": "Delete Waybill"
+            "messages": {
+
+                "updateSuccess": "Information updated successfully",
+                "updateSuccessTitle": "Update Successful",
+                "saveFailed": "Failed to save information. Please try again.",
+                "saveFailedTitle": "Save Failed",
+                "connectionError": "Could not connect to the server. Please check your network.",
+                "connectionErrorTitle": "Connection Error"
             },
+
 
             "finance": {
                 "title": "Financial Overview",
@@ -203,6 +215,18 @@ const resources = {
                     "status": "STATUS",
                     "date": "DATE",
                     "action": "ACTION"
+                },
+                "statement": {
+                    "periodStart": "Period Start",
+                    "periodEnd": "Period End",
+                    "hint": "Generated statements will aggregate all PENDING financial records for the selected entity during this period. You can review and finalize them in the Statements list."
+                },
+                "errors": {
+                    "missingParams": "Please select a reference and date range",
+                    "noPending": "No pending records found for this period"
+                },
+                "messages": {
+                    "statementGenerated": "Statement has been generated successfully as a draft."
                 }
             },
             "pricing": {
@@ -330,6 +354,7 @@ const resources = {
                     "saveUpdates": "Save Updates",
                     "confirmRegistration": "Confirm Registration",
                     "statusOptions": {
+
                         "idle": "IDLE / STANDBY",
                         "onDuty": "ACTIVE DUTY",
                         "inTransit": "IN TRANSIT",
@@ -349,8 +374,17 @@ const resources = {
                     "opsTeam": "OPERATIONS TEAM",
                     "empty": "No drivers assigned to the current roster.",
                     "mission": "Mission"
-                }
+                },
+                "tel": "Tel",
+                "fax": "Fax",
+                "companyName": "Company Name",
+                "contactPerson": "Contact Person",
+                "address": "Address",
+                "estimated": "Estimated",
+                "km": "km",
+                "min": "min"
             },
+
             "tracking": {
                 "inTransit": "In Transit",
                 "eta": "ETA",
@@ -450,6 +484,8 @@ const resources = {
                 "delete": "删除",
                 "edit": "编辑",
                 "add": "添加",
+                "error": "错误",
+
                 "search": "搜索...",
                 "loading": "加载中...",
                 "status": "状态",
@@ -598,10 +634,27 @@ const resources = {
                     "price": "价格",
                     "createButton": "创建运单",
                     "stamp": "亚马逊盖章"
+                },
+                "menu": {
+                    "view": "查看详情",
+                    "edit": "编辑运单",
+                    "pdf": "下载 PDF",
+                    "bol": "生成 BOL",
+                    "delete": "删除",
+                    "deleteConfirm": "确定要永久删除此运单吗？此操作无法撤销。",
+                    "deleteTitle": "删除运单"
                 }
             },
-
+            "messages": {
+                "updateSuccess": "信息更新成功",
+                "updateSuccessTitle": "更新成功",
+                "saveFailed": "保存信息失败，请重试。",
+                "saveFailedTitle": "保存失败",
+                "connectionError": "无法连接到服务器，请检查网络。",
+                "connectionErrorTitle": "连接错误"
+            },
             "finance": {
+
                 "title": "财务概览",
                 "payable": {
                     "title": "应付账款",
@@ -629,6 +682,18 @@ const resources = {
                     "status": "状态",
                     "date": "日期",
                     "action": "操作"
+                },
+                "statement": {
+                    "periodStart": "结算起点",
+                    "periodEnd": "结算终点",
+                    "hint": "生成的报表将汇总所选实体在该期间内的所有“待处理”财务记录。您可以在报表列表中查看并确认。"
+                },
+                "errors": {
+                    "missingParams": "请选择关联实体和日期范围",
+                    "noPending": "该期间内未找到待处理记录"
+                },
+                "messages": {
+                    "statementGenerated": "报表已成功生成为草稿。"
                 }
             },
             "pricing": {
@@ -756,6 +821,7 @@ const resources = {
                     "saveUpdates": "保存更新",
                     "confirmRegistration": "确认注册",
                     "statusOptions": {
+
                         "idle": "空闲 / 待命",
                         "onDuty": "执勤中",
                         "inTransit": "运输中",
@@ -775,8 +841,17 @@ const resources = {
                     "opsTeam": "运营团队",
                     "empty": "当前名册中未分配司机。",
                     "mission": "任务"
-                }
+                },
+                "tel": "电话",
+                "fax": "传真",
+                "companyName": "公司名称",
+                "contactPerson": "联系人",
+                "address": "地址",
+                "estimated": "预估",
+                "km": "km",
+                "min": "分钟"
             },
+
             "tracking": {
                 "inTransit": "运输中",
                 "eta": "预计到达",
@@ -865,15 +940,14 @@ const resources = {
                     "create": "创建账户"
                 }
             },
-            "menu": {
-                "view": "查看详情",
-                "edit": "编辑运单",
-                "pdf": "下载 PDF",
-                "bol": "生成 BOL",
-                "delete": "删除",
-                "deleteConfirm": "确定要永久删除此运单吗？此操作无法撤销。",
-                "deleteTitle": "删除运单"
-            }
+        },
+        "messages": {
+            "updateSuccess": "信息更新成功",
+            "updateSuccessTitle": "更新成功",
+            "saveFailed": "保存信息失败，请重试。",
+            "saveFailedTitle": "保存失败",
+            "connectionError": "无法连接到服务器，请检查网络。",
+            "connectionErrorTitle": "连接错误"
         }
     }
 };
