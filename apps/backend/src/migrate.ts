@@ -202,38 +202,53 @@ const migrate = async () => {
     `);
 
     await client.query(`
-      CREATE TABLE IF NOT EXISTS financial_records (
+      DROP TABLE IF EXISTS notifications;
+      CREATE TABLE IF NOT EXISTS notifications (
         id VARCHAR(50) PRIMARY KEY,
-        tenant_id VARCHAR(50),
-        shipment_id VARCHAR(50),
-        type VARCHAR(20),
-        reference_id VARCHAR(50),
-        amount NUMERIC,
-        currency VARCHAR(3) DEFAULT 'CNY',
-        status VARCHAR(20) DEFAULT 'PENDING',
-        statement_id VARCHAR(50),
-        due_date DATE,
-        paid_at TIMESTAMP,
+        user_id VARCHAR(50),
+        type VARCHAR(20) DEFAULT 'INFO',
+        title VARCHAR(100) NOT NULL,
+        content TEXT,
+        is_read BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        FOREIGN KEY (statement_id) REFERENCES statements(id)
+        data JSONB
+        -- FOREIGN KEY (user_id) REFERENCES users(id) -- Optional: enforce generic user id
       );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS financial_records (
+      id VARCHAR(50) PRIMARY KEY,
+      tenant_id VARCHAR(50),
+      shipment_id VARCHAR(50),
+      type VARCHAR(20),
+      reference_id VARCHAR(50),
+      amount NUMERIC,
+      currency VARCHAR(3) DEFAULT 'CNY',
+      status VARCHAR(20) DEFAULT 'PENDING',
+      statement_id VARCHAR(50),
+      due_date DATE,
+      paid_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(statement_id) REFERENCES statements(id)
+    );
     `);
 
     // --- Seed Data (Idempotent) ---
 
     // Roles
     await client.query(`
-      INSERT INTO roles (id, name, description) VALUES 
+      INSERT INTO roles(id, name, description) VALUES
       ('R-ADMIN', 'Administrator', 'Full system access'),
       ('R-DISPATCHER', 'Dispatcher', 'Manage trips and waybills'),
       ('R-DRIVER', 'Driver', 'Mobile portal access')
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT(id) DO NOTHING;
     `);
 
     // Permissions
     await client.query(`
-      INSERT INTO permissions (id, name, module, description) VALUES 
+      INSERT INTO permissions(id, name, module, description) VALUES
       ('P-WAYBILL-VIEW', 'View Waybills', 'Waybills', 'View waybill list and details'),
       ('P-WAYBILL-CREATE', 'Create Waybills', 'Waybills', 'Create new waybills'),
       ('P-WAYBILL-EDIT', 'Edit Waybills', 'Waybills', 'Edit existing waybills'),
@@ -247,12 +262,12 @@ const migrate = async () => {
       ('P-USER-VIEW', 'View Users', 'Users', 'View user list'),
       ('P-USER-MANAGE', 'Manage Users', 'Users', 'Create and edit users'),
       ('P-ROLE-MANAGE', 'Manage Roles', 'Roles', 'Create and edit roles and permissions')
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT(id) DO NOTHING;
     `);
 
     // Role-Permission Mappings (Admin gets all permissions)
     await client.query(`
-      INSERT INTO role_permissions (roleid, permissionid) VALUES 
+      INSERT INTO role_permissions(roleid, permissionid) VALUES
       ('R-ADMIN', 'P-WAYBILL-VIEW'),
       ('R-ADMIN', 'P-WAYBILL-CREATE'),
       ('R-ADMIN', 'P-WAYBILL-EDIT'),
@@ -272,103 +287,111 @@ const migrate = async () => {
       ('R-DISPATCHER', 'P-FLEET-VIEW'),
       ('R-DISPATCHER', 'P-CUSTOMER-VIEW'),
       ('R-DRIVER', 'P-WAYBILL-VIEW')
-      ON CONFLICT (roleid, permissionid) DO NOTHING;
+      ON CONFLICT(roleid, permissionid) DO NOTHING;
     `);
 
     // Drivers
     await client.query(`
-      INSERT INTO drivers (id, name, phone, status, avatar_url) VALUES 
+      INSERT INTO drivers(id, name, phone, status, avatar_url) VALUES
       ('D-001', 'James Holloway', '555-0101', 'BUSY', 'https://i.pravatar.cc/150?u=D-001'),
       ('D-002', 'Robert McAllister', '555-0102', 'IDLE', 'https://i.pravatar.cc/150?u=D-002'),
       ('D-003', 'Michael Davidson', '555-0103', 'BUSY', 'https://i.pravatar.cc/150?u=D-003')
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT(id) DO NOTHING;
     `);
 
     // Vehicles
     await client.query(`
-      INSERT INTO vehicles (id, plate, model, capacity, status) VALUES 
+      INSERT INTO vehicles(id, plate, model, capacity, status) VALUES
       ('V-101', 'TX-101', 'Volvo VNL', '53ft', 'BUSY'),
       ('V-102', 'TX-102', 'Peterbilt 579', '53ft', 'IDLE'),
       ('V-103', 'TX-103', 'Kenworth T680', '53ft', 'BUSY')
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT(id) DO NOTHING;
     `);
 
     // Users
     await client.query(`
-      INSERT INTO users (id, name, email, password, roleId, status) VALUES 
+      INSERT INTO users(id, name, email, password, roleId, status) VALUES
       ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
       ('U-02', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
+      ON CONFLICT(id) DO NOTHING;
+    `);
+
+    // Notifications
+    await client.query(`
+      INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES 
+      ('N-1', 'U-01', 'ALERT', 'Waybill #123 Delivered', 'The waybill has been successfully delivered.', FALSE, NOW()),
+      ('N-2', 'U-01', 'INFO', 'System Update', 'Maintenance scheduled for tonight.', FALSE, NOW())
       ON CONFLICT (id) DO NOTHING;
     `);
 
     // Customers
     await client.query(`
-      INSERT INTO customers (id, name, email, phone, businessType, status) VALUES 
+      INSERT INTO customers(id, name, email, phone, businessType, status) VALUES
       ('C-01', 'Apony Prime', 'prime@apony.com', '437-111-2222', 'VIP', 'ACTIVE'),
       ('C-02', 'Global Logistics Co.', 'info@global.com', '437-333-4444', 'STANDARD', 'ACTIVE'),
       ('C-03', 'Retail Giant', 'support@retail.com', '437-555-6666', 'STANDARD', 'ACTIVE')
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT(id) DO NOTHING;
     `);
 
     // Rules
     await client.query(`
-      INSERT INTO rules (id, name, description, type, priority, conditions, actions, status) VALUES 
-      ('RULE-ZONE-001', 'Zone Pricing (25km Radius)', 'PRD v2.0: $180 within 25km, $5/km extra beyond', 'pricing', 10, 
-       '[{"fact": "distance", "operator": "lessThanInclusive", "value": 25}]',
-       '[{"type": "addFee", "params": {"amount": 180}}]', 'ACTIVE'),
-      ('RULE-ZONE-002', 'Over Radius Surcharge', 'PRD v2.0: $5/km extra beyond 25km', 'pricing', 9, 
-       '[{"fact": "distance", "operator": "greaterThan", "value": 25}]',
-       '[{"type": "calculateBaseFee", "params": {"ratePerKm": 5, "baseFee": 180, "subtractDistance": 25}}]', 'ACTIVE')
-      ON CONFLICT (id) DO NOTHING;
+      INSERT INTO rules(id, name, description, type, priority, conditions, actions, status) VALUES
+      ('RULE-ZONE-001', 'Zone Pricing (25km Radius)', 'PRD v2.0: $180 within 25km, $5/km extra beyond', 'pricing', 10,
+        '[{"fact": "distance", "operator": "lessThanInclusive", "value": 25}]',
+        '[{"type": "addFee", "params": {"amount": 180}}]', 'ACTIVE'),
+      ('RULE-ZONE-002', 'Over Radius Surcharge', 'PRD v2.0: $5/km extra beyond 25km', 'pricing', 9,
+        '[{"fact": "distance", "operator": "greaterThan", "value": 25}]',
+        '[{"type": "calculateBaseFee", "params": {"ratePerKm": 5, "baseFee": 180, "subtractDistance": 25}}]', 'ACTIVE')
+      ON CONFLICT(id) DO NOTHING;
     `);
 
     // Only seed trips if table is empty to avoid dupes/fk issues
     const tripCount = await client.query('SELECT COUNT(*) FROM trips');
     if (parseInt(tripCount.rows[0].count) === 0) {
       await client.query(`
-          INSERT INTO trips (id, driver_id, vehicle_id, status, start_time_est, end_time_est) VALUES 
-          ('T-1001', 'D-001', 'V-101', 'ACTIVE', '2026-01-08T08:00:00Z', '2026-01-08T18:00:00Z'),
-          ('T-1002', 'D-003', 'V-103', 'ACTIVE', '2026-01-08T09:00:00Z', '2026-01-09T12:00:00Z');
-        `);
+          INSERT INTO trips(id, driver_id, vehicle_id, status, start_time_est, end_time_est) VALUES
+      ('T-1001', 'D-001', 'V-101', 'ACTIVE', '2026-01-08T08:00:00Z', '2026-01-08T18:00:00Z'),
+      ('T-1002', 'D-003', 'V-103', 'ACTIVE', '2026-01-08T09:00:00Z', '2026-01-09T12:00:00Z');
+    `);
 
       // Waybills
       await client.query(`
-          INSERT INTO waybills (id, waybill_no, customer_id, origin, destination, cargo_desc, status, trip_id, price_estimated, created_at) VALUES 
-          ('WB-001', 'WB-20260108-001', 'C-01', 'Omaha, NE', 'Chicago, IL', 'Pork Bellies - 20 Pallets', 'IN_TRANSIT', 'T-1001', 1200, '2026-01-07T10:00:00Z'),
-          ('WB-004', 'WB-20260108-004', 'C-03', 'St. Louis, MO', 'Nashville, TN', 'Poultry - 22 Pallets', 'IN_TRANSIT', 'T-1002', 1100, '2026-01-07T14:00:00Z');
-        `);
+          INSERT INTO waybills(id, waybill_no, customer_id, origin, destination, cargo_desc, status, trip_id, price_estimated, created_at) VALUES
+      ('WB-001', 'WB-20260108-001', 'C-01', 'Omaha, NE', 'Chicago, IL', 'Pork Bellies - 20 Pallets', 'IN_TRANSIT', 'T-1001', 1200, '2026-01-07T10:00:00Z'),
+      ('WB-004', 'WB-20260108-004', 'C-03', 'St. Louis, MO', 'Nashville, TN', 'Poultry - 22 Pallets', 'IN_TRANSIT', 'T-1002', 1100, '2026-01-07T14:00:00Z');
+    `);
 
       // Other Waybills
       await client.query(`
-           INSERT INTO waybills (id, waybill_no, customer_id, origin, destination, cargo_desc, status, price_estimated, created_at) VALUES 
-           ('WB-002', 'WB-20260108-002', 'C-02', 'Kansas City, MO', 'Dallas, TX', 'Frozen Beef - 18 Pallets', 'NEW', 1500, '2026-01-08T09:00:00Z'),
-           ('WB-003', 'WB-20260108-003', 'C-01', 'Des Moines, IA', 'Minneapolis, MN', 'Live Hogs - 150 Head', 'NEW', 800, '2026-01-08T10:30:00Z');
-         `);
+           INSERT INTO waybills(id, waybill_no, customer_id, origin, destination, cargo_desc, status, price_estimated, created_at) VALUES
+      ('WB-002', 'WB-20260108-002', 'C-02', 'Kansas City, MO', 'Dallas, TX', 'Frozen Beef - 18 Pallets', 'NEW', 1500, '2026-01-08T09:00:00Z'),
+      ('WB-003', 'WB-20260108-003', 'C-01', 'Des Moines, IA', 'Minneapolis, MN', 'Live Hogs - 150 Head', 'NEW', 800, '2026-01-08T10:30:00Z');
+    `);
 
       // Events
       await client.query(`
-          INSERT INTO trip_events (trip_id, status, time, description) VALUES
-          ('T-1001', 'PLANNED', '2026-01-08T07:00:00Z', 'Trip created'),
-          ('T-1001', 'ACTIVE', '2026-01-08T08:15:00Z', 'Driver departed from Omaha');
-        `);
+          INSERT INTO trip_events(trip_id, status, time, description) VALUES
+      ('T-1001', 'PLANNED', '2026-01-08T07:00:00Z', 'Trip created'),
+      ('T-1001', 'ACTIVE', '2026-01-08T08:15:00Z', 'Driver departed from Omaha');
+    `);
 
       // Messages
       await client.query(`
-          INSERT INTO messages (id, trip_id, sender, text, timestamp) VALUES
-          ('M-1', 'T-1001', 'DRIVER', 'Loaded and rolling out.', '2026-01-08T08:16:00Z'),
-          ('M-2', 'T-1001', 'DISPATCHER', 'Copy that. Watch out for snow near Des Moines.', '2026-01-08T08:18:00Z');
-        `);
+          INSERT INTO messages(id, trip_id, sender, text, timestamp) VALUES
+      ('M-1', 'T-1001', 'DRIVER', 'Loaded and rolling out.', '2026-01-08T08:16:00Z'),
+      ('M-2', 'T-1001', 'DISPATCHER', 'Copy that. Watch out for snow near Des Moines.', '2026-01-08T08:18:00Z');
+    `);
     }
 
     // Migration: Add driver pay columns to trips table
     await client.query(`
             ALTER TABLE trips 
             ADD COLUMN IF NOT EXISTS driver_pay_calculated NUMERIC(10, 2),
-            ADD COLUMN IF NOT EXISTS driver_pay_bonus NUMERIC(10, 2) DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS driver_pay_total NUMERIC(10, 2),
-            ADD COLUMN IF NOT EXISTS driver_pay_currency VARCHAR(10) DEFAULT 'CAD',
+      ADD COLUMN IF NOT EXISTS driver_pay_bonus NUMERIC(10, 2) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS driver_pay_total NUMERIC(10, 2),
+          ADD COLUMN IF NOT EXISTS driver_pay_currency VARCHAR(10) DEFAULT 'CAD',
             ADD COLUMN IF NOT EXISTS driver_pay_details JSONB;
-        `);
+    `);
     console.log('Migration: Added driver pay columns to trips table');
 
     await client.query('COMMIT');

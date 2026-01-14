@@ -31,7 +31,7 @@ export const getUsers = async (req: Request, res: Response) => {
         const result = await query(`
             SELECT * FROM users 
             ${whereStr} 
-            ORDER BY created_at DESC 
+            ORDER BY name ASC 
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}
         `, [...params, limit, offset]);
 

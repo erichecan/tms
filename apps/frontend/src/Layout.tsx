@@ -1,6 +1,9 @@
 
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut, X, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { searchService } from './services/searchService';
+import { notificationService, type Notification } from './services/notificationService';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './context/AuthContext';
 import logo from './assets/logo.png';
@@ -38,9 +41,68 @@ export const Layout = () => {
     const navigate = useNavigate();
     const isDashboard = location.pathname === '/';
 
+    // --- Search State ---
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showSearch, setShowSearch] = useState(false);
+    const searchTimeout = useRef<any>(null);
+
+    // --- Notification State ---
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    // --- Search Logic ---
+    useEffect(() => {
+        if (!searchQuery || searchQuery.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+        searchTimeout.current = setTimeout(async () => {
+            try {
+                const results = await searchService.search(searchQuery);
+                setSearchResults(results);
+                setShowSearch(true);
+            } catch (e) {
+                console.error("Search error", e);
+            }
+        }, 300);
+    }, [searchQuery]);
+
+    // --- Notification Logic ---
+    const fetchNotifications = async () => {
+        if (!user) return;
+        try {
+            const data = await notificationService.getNotifications(user.id);
+            setNotifications(data);
+            setUnreadCount(data.filter(n => !n.is_read).length);
+        } catch (e) {
+            console.error("Failed to fetch notifications");
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 60000); // Poll every 60s
+        return () => clearInterval(interval);
+    }, [user]);
+
+    const handleMarkRead = async (id: string) => {
+        try {
+            await notificationService.markAsRead(id);
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     // Role-based visibility helpers
@@ -136,15 +198,107 @@ export const Layout = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        <div className="glass" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px', width: '280px' }}>
-                            <Search size={16} color="var(--slate-400)" />
-                            <input placeholder={t('common.searchPlaceholder')} style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--slate-900)', fontSize: '14px', width: '100%' }} />
+                        <div style={{ position: 'relative' }}>
+                            <div className="glass" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px', width: '280px' }}>
+                                <Search size={16} color="var(--slate-400)" />
+                                <input
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder={t('common.searchPlaceholder')}
+                                    onFocus={() => { if (searchResults.length > 0) setShowSearch(true); }}
+                                    onBlur={() => setTimeout(() => setShowSearch(false), 200)}
+                                    style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--slate-900)', fontSize: '14px', width: '100%' }}
+                                />
+                                {searchQuery && <X size={14} style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />}
+                            </div>
+
+                            {/* Search Dropdown */}
+                            {showSearch && searchResults.length > 0 && (
+                                <div className="glass-panel" style={{
+                                    position: 'absolute', top: '48px', left: 0, width: '320px',
+                                    zIndex: 100, padding: '8px 0', overflow: 'hidden'
+                                }}>
+                                    <div style={{ padding: '8px 16px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Results</div>
+                                    {searchResults.map((item) => (
+                                        <div key={item.id}
+                                            onClick={() => { navigate(item.link); setShowSearch(false); }}
+                                            className="table-row-hover"
+                                            style={{
+                                                padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer'
+                                            }}
+                                        >
+                                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {item.type === 'waybill' && <FileText size={12} color="#3B82F6" />}
+                                                {item.type === 'customer' && <Users size={12} color="#10B981" />}
+                                                {item.type === 'driver' && <Truck size={12} color="#F59E0B" />}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--slate-900)' }}>{item.title}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--slate-500)' }}>{item.subtitle}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                        <div className="glass" style={{ width: 40, height: 40, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <Bell size={18} color="var(--slate-500)" />
+                        <div style={{ position: 'relative' }}>
+                            <div
+                                className="glass"
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                style={{ width: 40, height: 40, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+                            >
+                                <Bell size={18} color="var(--slate-500)" />
+                                {unreadCount > 0 && (
+                                    <div style={{
+                                        position: 'absolute', top: 8, right: 8, width: 8, height: 8,
+                                        background: '#EF4444', borderRadius: '50%', border: '2px solid white'
+                                    }} />
+                                )}
+                            </div>
+
+                            {/* Notification Panel */}
+                            {showNotifications && (
+                                <div className="glass-panel" style={{
+                                    position: 'absolute', top: '56px', right: 0, width: '360px',
+                                    zIndex: 100, padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+                                }}>
+                                    <div style={{ padding: '16px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ fontWeight: 700, fontSize: '14px' }}>Notifications</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--primary-start)', cursor: 'pointer' }}>Mark all read</div>
+                                    </div>
+                                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                        {notifications.length === 0 ? (
+                                            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--slate-400)', fontSize: '13px' }}>No notifications</div>
+                                        ) : (
+                                            notifications.map(n => (
+                                                <div key={n.id} onClick={() => handleMarkRead(n.id)} style={{
+                                                    padding: '12px 16px', borderBottom: '1px solid var(--glass-border)',
+                                                    background: n.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                                                    cursor: 'pointer', transition: 'all 0.2s', display: 'flex', gap: '12px'
+                                                }} className="table-row-hover">
+                                                    <div style={{ marginTop: '2px' }}>
+                                                        {n.type === 'ALERT' ? <AlertTriangle size={16} color="#EF4444" /> :
+                                                            n.type === 'SUCCESS' ? <CheckCircle size={16} color="#10B981" /> :
+                                                                <Info size={16} color="#3B82F6" />}
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontSize: '13px', fontWeight: n.is_read ? 500 : 700, color: 'var(--slate-900)' }}>{n.title}</div>
+                                                        <div style={{ fontSize: '12px', color: 'var(--slate-600)', marginTop: '2px', lineHeight: '1.4' }}>{n.content}</div>
+                                                        <div style={{ fontSize: '10px', color: 'var(--slate-400)', marginTop: '4px' }}>{new Date(n.created_at).toLocaleString()}</div>
+                                                    </div>
+                                                    {!n.is_read && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3B82F6', marginTop: '6px' }} />}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                            onClick={() => navigate('/settings')}
+                        >
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ color: 'var(--slate-900)', fontSize: '14px', fontWeight: 700 }}>{user?.name || t('common.user')}</div>
                                 <div style={{ color: 'var(--primary-start)', fontSize: '10px', fontWeight: 800 }}>{getRoleName(user?.roleId)}</div>

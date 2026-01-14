@@ -12,6 +12,8 @@ import customerRoutes from './routes/customerRoutes';
 import fleetRoutes from './routes/fleetRoutes';
 import userRoutes from './routes/userRoutes';
 import ruleRoutes from './routes/ruleRoutes';
+import searchRoutes from './routes/searchRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import { verifyToken } from './middleware/AuthMiddleware';
 
 
@@ -483,6 +485,8 @@ app.use('/api/customers', verifyToken, customerRoutes);
 app.use('/api/rules', verifyToken, ruleRoutes);
 app.use('/api', verifyToken, fleetRoutes);
 app.use('/api', verifyToken, userRoutes);
+app.use('/api/search', verifyToken, searchRoutes);
+app.use('/api/notifications', verifyToken, notificationRoutes);
 
 
 app.listen(port, () => {

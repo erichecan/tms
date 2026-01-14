@@ -30,7 +30,7 @@ const resources = {
                 "generateStatement": "Generate Statement",
                 "comingSoon": "Feature coming soon: {{feature}}",
                 "pagination": {
-                    "showing": "Showing {{start}} to {{end}} of {{total}} waybills",
+                    "showing": "Showing {{start}} to {{end}} of {{total}} items",
                     "previous": "Previous",
                     "next": "Next"
                 }
@@ -505,7 +505,7 @@ const resources = {
                 "generateStatement": "生成报表",
                 "comingSoon": "功能即将上线: {{feature}}",
                 "pagination": {
-                    "showing": "显示 {{start}} 到 {{end}} 条，共 {{total}} 条运单",
+                    "showing": "显示 {{start}} 到 {{end}} 条，共 {{total}} 条记录",
                     "previous": "上一页",
                     "next": "下一页"
                 }

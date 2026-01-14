@@ -18,6 +18,8 @@ export const getDrivers = async (req: Request, res: Response) => {
         if (status && status !== 'ALL') {
             params.push(status);
             whereClauses.push(`COALESCE(d.status, 'IDLE') = $${params.length}`);
+        } else {
+            whereClauses.push(`COALESCE(d.status, 'IDLE') != 'DELETED'`);
         }
 
         if (search) {
@@ -101,10 +103,17 @@ export const updateDriver = async (req: Request, res: Response) => {
 
 export const deleteDriver = async (req: Request, res: Response) => {
     try {
-        const result = await query('DELETE FROM drivers WHERE id = $1 RETURNING id', [req.params.id]);
+        // Soft delete: Update status to DELETED
+        // And ensure we also update the linked User if exists? 
+        // For now, just mark Driver as deleted. 
+        // Ideally we should also check if they are currently on a trip? 
+        // The UI should prevent this, but soft delete is safe as trips will still reference the ID.
+        const result = await query("UPDATE drivers SET status = 'DELETED' WHERE id = $1 RETURNING id", [req.params.id]);
+
         if (result.rows.length === 0) return res.status(404).send();
         res.status(204).send();
     } catch (e) {
+        console.error("Delete driver failed", e);
         res.status(500).json({ error: 'Failed to delete driver' });
     }
 };
@@ -124,6 +133,8 @@ export const getVehicles = async (req: Request, res: Response) => {
         if (status && status !== 'ALL') {
             params.push(status);
             whereClauses.push(`COALESCE(v.status, u.status, 'IDLE') = $${params.length}`);
+        } else {
+            whereClauses.push(`COALESCE(v.status, u.status, 'IDLE') != 'DELETED'`);
         }
 
         if (search) {
@@ -205,10 +216,12 @@ export const updateVehicle = async (req: Request, res: Response) => {
 
 export const deleteVehicle = async (req: Request, res: Response) => {
     try {
-        const result = await query('DELETE FROM vehicles WHERE id = $1 RETURNING id', [req.params.id]);
+        // Soft delete
+        const result = await query("UPDATE vehicles SET status = 'DELETED' WHERE id = $1 RETURNING id", [req.params.id]);
         if (result.rows.length === 0) return res.status(404).send();
         res.status(204).send();
     } catch (e) {
+        console.error("Delete vehicle failed", e);
         res.status(500).json({ error: 'Failed to delete vehicle' });
     }
 };
