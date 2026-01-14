@@ -80,13 +80,20 @@ export const WaybillCreate = () => {
 
     // Fetch Customers
     useEffect(() => {
-        fetch(`${API_BASE_URL}/customers`).then(res => res.json()).then(setCustomers).catch(() => { });
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        fetch(`${API_BASE_URL}/customers`, { headers }).then(res => res.json()).then(setCustomers).catch(() => { });
     }, []);
 
     // Fetch Data on Edit/View
     useEffect(() => {
         if ((isEditMode || isViewMode) && id) {
-            fetch(`${API_BASE_URL}/waybills/${id}`)
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            fetch(`${API_BASE_URL}/waybills/${id}`, { headers })
                 .then(res => res.json())
                 .then(found => {
                     if (found) {
@@ -318,9 +325,13 @@ export const WaybillCreate = () => {
         const method = isEditMode ? 'PUT' : 'POST';
 
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(payload)
             });
             if (res.ok) {

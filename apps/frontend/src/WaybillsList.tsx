@@ -47,7 +47,11 @@ export const WaybillsList = () => {
                 limit: String(pageSize),
                 search: debouncedSearch
             });
-            const res = await fetch(`${API_BASE_URL}/waybills?${queryParams.toString()}`);
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`${API_BASE_URL}/waybills?${queryParams.toString()}`, { headers });
             if (res.ok) {
                 const result = await res.json();
                 setWaybills(Array.isArray(result.data) ? result.data : []);

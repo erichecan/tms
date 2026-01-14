@@ -16,12 +16,18 @@ export const FleetManagement = () => {
 
     const fetchData = async () => {
         const API_URL = API_BASE_URL;
+        const token = localStorage.getItem('token');
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
         try {
             const [driversRes, vehiclesRes, expensesRes, tripsRes] = await Promise.all([
-                fetch(`${API_URL}/drivers`),
-                fetch(`${API_URL}/vehicles`),
-                fetch(`${API_URL}/expenses`),
-                fetch(`${API_URL}/trips`)
+                fetch(`${API_URL}/drivers`, { headers }),
+                fetch(`${API_URL}/vehicles`, { headers }),
+                fetch(`${API_URL}/expenses`, { headers }),
+                fetch(`${API_URL}/trips`, { headers })
             ]);
 
             const drivers = driversRes.ok ? await driversRes.json() : [];
@@ -103,9 +109,13 @@ export const FleetManagement = () => {
         const newEnd = new Date(newStart.getTime() + duration);
 
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch(`${API_BASE_URL}/trips/${draggedTrip.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     driver_id: driverId,
                     start_time_est: newStart.toISOString(),
@@ -156,26 +166,20 @@ export const FleetManagement = () => {
             const url = isEdit ? `${API_BASE_URL}/${endpoint}/${payload.id}` : `${API_BASE_URL}/${endpoint}`;
             const method = isEdit ? 'PUT' : 'POST';
 
+            const token = localStorage.getItem('token');
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
 
             if (res.ok) {
                 setIsModalOpen(false);
                 setNewEntry({});
-                const API_URL = API_BASE_URL;
-                const [driversRes, vehiclesRes, expensesRes] = await Promise.all([
-                    fetch(`${API_URL}/drivers`),
-                    fetch(`${API_URL}/vehicles`),
-                    fetch(`${API_URL}/expenses`)
-                ]);
-                setData({
-                    drivers: driversRes.ok ? await driversRes.json() : [],
-                    vehicles: vehiclesRes.ok ? await vehiclesRes.json() : [],
-                    expenses: expensesRes.ok ? await expensesRes.json() : []
-                });
+                await fetchData();
             }
         } catch (error) {
             console.error(error);

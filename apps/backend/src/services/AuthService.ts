@@ -109,7 +109,7 @@ export class AuthService {
         const id = `U-${Date.now()}`; // Simple ID gen
 
         await query(
-            `INSERT INTO users (id, name, email, password_hash, role_id, status) 
+            `INSERT INTO users (id, name, email, password, roleid, status) 
              VALUES ($1, $2, $3, $4, $5, 'ACTIVE')`,
             [id, name, email, hashedPassword, roleId]
         );
@@ -123,19 +123,24 @@ export class AuthService {
 
         const user = result.rows[0];
 
-        if (user.password_hash) {
-            const match = await bcrypt.compare(oldPass, user.password_hash);
+        // MAPPING: DB 'password' column 
+        const dbPasswordHash = user.password_hash || user.password;
+
+        if (dbPasswordHash) {
+            const match = await bcrypt.compare(oldPass, dbPasswordHash);
             if (!match) throw new Error('Invalid old password');
-        } else if (user.password !== oldPass) {
+        } else {
+            // Should not happen if data is clean
             throw new Error('Invalid old password');
         }
 
         const newHash = await bcrypt.hash(newPass, SALT_ROUNDS);
-        await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+        // Use 'password' column as per schema check
+        await query('UPDATE users SET password = $1 WHERE id = $2', [newHash, userId]);
     }
 
     static async resetPassword(userId: string, newPass: string) {
         const newHash = await bcrypt.hash(newPass, SALT_ROUNDS);
-        await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+        await query('UPDATE users SET password = $1 WHERE id = $2', [newHash, userId]);
     }
 }

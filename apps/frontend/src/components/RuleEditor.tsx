@@ -93,9 +93,13 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
             const url = rule ? `${API_BASE_URL}/rules/${rule.id}` : `${API_BASE_URL}/rules`;
             const method = rule ? 'PUT' : 'POST';
 
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(ruleData)
             });
 

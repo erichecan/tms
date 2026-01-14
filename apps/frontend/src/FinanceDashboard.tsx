@@ -9,7 +9,11 @@ export const FinanceDashboard = () => {
     const [metrics, setMetrics] = useState<any>(null);
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/finance/dashboard`)
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_BASE_URL}/finance/dashboard`, { headers })
             .then(res => res.json())
             .then(data => setMetrics(data))
             .catch(err => console.error(err));

@@ -27,7 +27,10 @@ export const CustomerManagement = () => {
 
     const fetchCustomers = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/customers`);
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/customers`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setCustomers(data);
@@ -55,7 +58,11 @@ export const CustomerManagement = () => {
         const ok = await confirm(t('customers.archiveConfirm'), t('customers.archiveTitle'));
         if (!ok) return;
         try {
-            await fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' });
+            const token = localStorage.getItem('token');
+            await fetch(`${API_BASE_URL}/customers/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             fetchCustomers();
         } catch (error) {
             console.error('Failed to delete customer', error);
@@ -73,9 +80,13 @@ export const CustomerManagement = () => {
 
             const method = isEdit ? 'PUT' : 'POST';
 
+            const token = localStorage.getItem('token');
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(editingCustomer)
             });
 

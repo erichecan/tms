@@ -49,8 +49,12 @@ export const Dashboard = () => {
 
     const fetchData = () => {
         const API_URL = API_BASE_URL;
-        fetch(`${API_URL}/dashboard/metrics`).then(res => res.json()).then(setMetrics).catch(err => console.error(err));
-        fetch(`${API_URL}/dashboard/jobs`).then(res => res.json()).then(data => setJobs(Array.isArray(data) ? data : [])).catch(err => console.error(err));
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_URL}/dashboard/metrics`, { headers }).then(res => res.json()).then(setMetrics).catch(err => console.error(err));
+        fetch(`${API_URL}/dashboard/jobs`, { headers }).then(res => res.json()).then(data => setJobs(Array.isArray(data) ? data : [])).catch(err => console.error(err));
     };
 
     useEffect(() => {
@@ -60,9 +64,13 @@ export const Dashboard = () => {
     const openAssignModal = async (waybillId: string) => {
         setSelectedWaybill(waybillId);
         const API_URL = API_BASE_URL;
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const [drivers, vehicles] = await Promise.all([
-            fetch(`${API_URL}/drivers`).then(res => res.json()),
-            fetch(`${API_URL}/vehicles`).then(res => res.json())
+            fetch(`${API_URL}/drivers`, { headers }).then(res => res.json()),
+            fetch(`${API_URL}/vehicles`, { headers }).then(res => res.json())
         ]);
         setResources({
             drivers: Array.isArray(drivers) ? drivers.filter((d: any) => d.status === 'IDLE') : [],
@@ -74,9 +82,13 @@ export const Dashboard = () => {
     const handleAssign = async () => {
         if (!selectedWaybill || !assignData.driver_id || !assignData.vehicle_id) return;
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const res = await fetch(`${API_BASE_URL}/waybills/${selectedWaybill}/assign`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(assignData)
             });
             if (res.ok) {

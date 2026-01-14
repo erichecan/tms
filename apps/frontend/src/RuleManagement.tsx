@@ -32,7 +32,11 @@ const RuleManagement: React.FC = () => {
     const fetchRules = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/rules`);
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const response = await fetch(`${API_BASE_URL}/rules`, { headers });
             const data = await response.json();
             setRules(data);
         } catch (error) {
@@ -50,7 +54,11 @@ const RuleManagement: React.FC = () => {
         const ok = await confirm('This will permanently delete the business rule and its associated logic. This action cannot be undone.', 'Delete Business Rule');
         if (!ok) return;
         try {
-            await fetch(`${API_BASE_URL}/rules/${id}`, { method: 'DELETE' });
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            await fetch(`${API_BASE_URL}/rules/${id}`, { method: 'DELETE', headers });
             fetchRules();
         } catch (error) {
             console.error('Failed to delete rule:', error);

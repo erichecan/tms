@@ -78,3 +78,30 @@ description: TMS 项目配置经验和调试规则
 **Cause**: Developer assumed a standard schema (username/email) without checking the actual live database structure.
 **Fix**: Updated `AuthService` to query only by `email`.
 **Rule**: **Schema Verification First**. Before writing any SELECT/INSERT statement, **must RUN a query** (like `SELECT * FROM table LIMIT 1`) or check schema docs to confirm exact column names. Do not guess. Do not assume `username` exists. `email` is the preferred unique identifier.
+
+### The "500 Error on Fleet Drivers" Incident
+**Context**: Fleet Management API failed with 500 because the code queried `role_id` (and later `users` without verifying) but the actual DB column was `roleid`.
+**Cause**: Assumption of standard snake_case column names (`role_id`) when Postgres often defaults to lowercase (`roleid`) if created unquoted.
+**Fix**: Updated `FleetController.ts` to use correct `roleid` column name and handled missing `phone` column for users.
+**Rule**: **Verify Column Names**. Execute a debug script to list table keys (`Object.keys(row)`) before integrating new tables. Postgres is strict about column presence.
+
+### The "401 Unauthorized" & "500 Roles" Incident
+**Context**: `CustomerManagement` failed with 401 (Unauthorized) and Roles page failed with 500.
+**Cause**: 
+1. Frontend `fetch` calls missing `Authorization` header (silent failure/401).
+2. Backend `UserController` queried `role_id` instead of `roleid` (same schema issue).
+**Fix**:
+1. Added `Authorization: Bearer ${token}` to all frontend fetch calls.
+2. Fixed SQL queries in `UserController.ts` to match DB schema.
+**Rule**: **Horizontal Scanning (Auth)**. If one page (Fleet) is missing Auth headers, check ALL other pages (Customers, Roles, etc.) immediately. **Rule 35** applied.
+
+### Customer Company Persistence Incident
+**Context**: User reported "Company Name" missing after editing a newly created customer.
+**Cause**: `company` column was missing in the database `customers` table, and backend `INSERT` statement ignored the field. Silent data loss.
+**Fix**: Added column to DB and updated `CustomerService.ts`.
+**Rule**: **End-to-End Field Verification**. When implementing a form:
+1. Verify field exists in Frontend payload.
+2. Verify field is in Backend `req.body` destructuring.
+3. Verify field is in SQL `INSERT/UPDATE` column list.
+4. **CRITICAL**: Verify column exists in Database Schema (`SELECT * FROM table LIMIT 1`).
+**Checklist**: UI Input -> Payload -> API DTO -> SQL -> DB Column. One missing link = Silent Data Loss.

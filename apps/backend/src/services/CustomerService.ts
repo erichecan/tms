@@ -15,11 +15,12 @@ export const customerService = {
     create: async (data: Omit<Customer, 'id' | 'created_at' | 'status'>): Promise<Customer> => {
         const id = `C-${Date.now()}`;
         const result = await query(
-            `INSERT INTO customers (id, name, email, phone, address, businessType, taxId, creditLimit, status, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            `INSERT INTO customers (id, name, company, email, phone, address, businessType, taxId, creditLimit, status, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
             [
                 id,
                 data.name,
+                data.company,
                 data.email,
                 data.phone,
                 data.address,

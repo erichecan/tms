@@ -19,7 +19,11 @@ export const TrackingPage = () => {
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const fetchMessages = () => {
-        fetch(`${API_BASE_URL}/trips/${tripId}/messages`)
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_BASE_URL}/trips/${tripId}/messages`, { headers })
             .then(res => res.ok ? res.json() : [])
             .then(data => setMessages(Array.isArray(data) ? data : []))
             .catch(e => { console.error("Msg Error", e); setMessages([]); });
@@ -28,7 +32,11 @@ export const TrackingPage = () => {
     useEffect(() => {
         const API_URL = API_BASE_URL;
         setError(null);
-        fetch(`${API_URL}/trips/${tripId}/tracking`)
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_URL}/trips/${tripId}/tracking`, { headers })
             .then(async res => {
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({}));
@@ -56,7 +64,11 @@ export const TrackingPage = () => {
     }, [messages]);
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/trips?status=ACTIVE`)
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_BASE_URL}/trips?status=ACTIVE`, { headers })
             .then(res => res.json())
             .then(data => setActiveTrips(Array.isArray(data) ? data : []))
             .catch(console.error);
@@ -65,9 +77,13 @@ export const TrackingPage = () => {
     const handleSendMessage = async () => {
         if (!newMessage.trim()) return;
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             await fetch(`${API_BASE_URL}/trips/${tripId}/messages`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ text: newMessage })
             });
             setNewMessage('');

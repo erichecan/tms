@@ -5,9 +5,28 @@ import { Driver, Vehicle, Expense, Trip } from '../types';
 // --- Drivers ---
 export const getDrivers = async (req: Request, res: Response) => {
     try {
-        const result = await query('SELECT * FROM drivers');
-        res.json(result.rows);
+        const [driversRes, usersRes] = await Promise.all([
+            query('SELECT * FROM drivers'),
+            query("SELECT * FROM users WHERE roleid = 'R-DRIVER' OR roleid = 'driver'")
+        ]);
+
+        const legacyDrivers: Driver[] = driversRes.rows;
+
+        // Map users to Driver interface
+        const userDrivers: Driver[] = usersRes.rows.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            phone: '', // Users don't have phone column
+            status: 'IDLE', // Default status for users
+            avatar_url: u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random`
+        }));
+
+        // Merge (legacy drivers take precedence if IDs conflict, though unlikely)
+        const allDrivers = [...legacyDrivers, ...userDrivers];
+
+        res.json(allDrivers);
     } catch (e) {
+        console.error('Error fetching drivers:', e);
         res.status(500).json({ error: 'Failed to fetch drivers' });
     }
 };
@@ -125,8 +144,8 @@ export const createExpense = async (req: Request, res: Response) => {
     const id = `E-${Date.now()}`;
     try {
         const result = await query(
-            'INSERT INTO expenses (id, category, amount, trip_id, date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [id, category, amount, trip_id, date || new Date().toISOString()]
+            'INSERT INTO expenses (id, category, amount, trip_id, date, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [id, category, amount, trip_id, date || new Date().toISOString(), 'PENDING']
         );
         res.status(201).json(result.rows[0]);
     } catch (e) {

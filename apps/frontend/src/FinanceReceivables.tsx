@@ -22,7 +22,11 @@ export const FinanceReceivables = () => {
 
     const fetchRecords = () => {
         setLoading(true);
-        fetch(`${API_BASE_URL}/finance/records?type=receivable`)
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_BASE_URL}/finance/records?type=receivable`, { headers })
             .then(res => res.json())
             .then(data => setRecords(data))
             .catch(err => console.error(err))

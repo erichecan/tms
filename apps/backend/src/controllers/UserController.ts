@@ -14,8 +14,7 @@ export const getUsers = async (req: Request, res: Response) => {
         const safeUsers = result.rows.map(u => ({
             ...u,
             password: undefined,
-            password_hash: undefined,
-            roleId: u.role_id || u.roleid // normalizing for frontend
+            roleId: u.roleid // normalizing for frontend
         }));
         res.json(safeUsers);
     } catch (e) {
@@ -52,8 +51,8 @@ export const updateUser = async (req: Request, res: Response) => {
                 name = COALESCE($1, name), 
                 email = COALESCE($2, email), 
                 username = COALESCE($3, username),
-                password_hash = COALESCE($4, password_hash), 
-                role_id = COALESCE($5, role_id), 
+                password = COALESCE($4, password), 
+                roleid = COALESCE($5, roleid), 
                 status = COALESCE($6, status) 
              WHERE id = $7 RETURNING *`,
             [name, email, username, passwordHash, roleId, status, id]
@@ -65,8 +64,7 @@ export const updateUser = async (req: Request, res: Response) => {
         res.json({
             ...user,
             password: undefined,
-            password_hash: undefined,
-            roleId: user.role_id
+            roleId: user.roleid
         });
     } catch (e) {
         console.error(e);
@@ -95,8 +93,8 @@ export const getRoles = async (req: Request, res: Response) => {
         for (const role of roles) {
             const permResult = await query(`
                 SELECT p.* FROM permissions p
-                JOIN role_permissions rp ON p.id = rp.permission_id
-                WHERE rp.role_id = $1
+                JOIN role_permissions rp ON p.id = rp.permissionid
+                WHERE rp.roleid = $1
             `, [role.id]);
             role.permissions = permResult.rows;
         }
@@ -125,7 +123,7 @@ export const createRole = async (req: Request, res: Response) => {
         if (permissions && Array.isArray(permissions)) {
             for (const permId of permissions) {
                 await client.query(
-                    'INSERT INTO role_permissions (role_id, permission_id) VALUES ($1, $2)',
+                    'INSERT INTO role_permissions (roleid, permissionid) VALUES ($1, $2)',
                     [id, permId]
                 );
             }
@@ -160,10 +158,10 @@ export const updateRole = async (req: Request, res: Response) => {
 
         if (permissions && Array.isArray(permissions)) {
             // Simple replace strategy
-            await client.query('DELETE FROM role_permissions WHERE role_id = $1', [id]);
+            await client.query('DELETE FROM role_permissions WHERE roleid = $1', [id]);
             for (const permId of permissions) {
                 await client.query(
-                    'INSERT INTO role_permissions (role_id, permission_id) VALUES ($1, $2)',
+                    'INSERT INTO role_permissions (roleid, permissionid) VALUES ($1, $2)',
                     [id, permId]
                 );
             }
