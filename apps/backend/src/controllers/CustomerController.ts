@@ -16,7 +16,8 @@ export const getCustomers = async (req: Request, res: Response) => {
 
 export const getCustomerById = async (req: Request, res: Response) => {
     try {
-        const customer = await customerService.getById(req.params.id);
+        const { id } = req.params;
+        const customer = await customerService.getById(id as string);
         if (!customer) return res.status(404).json({ error: 'Customer not found' });
         res.json(customer);
     } catch (error) {
@@ -35,7 +36,8 @@ export const createCustomer = async (req: Request, res: Response) => {
 
 export const updateCustomer = async (req: Request, res: Response) => {
     try {
-        const updated = await customerService.update(req.params.id, req.body);
+        const { id } = req.params;
+        const updated = await customerService.update(id as string, req.body);
         if (!updated) return res.status(404).json({ error: 'Customer not found' });
         res.json(updated);
     } catch (error) {
@@ -45,7 +47,8 @@ export const updateCustomer = async (req: Request, res: Response) => {
 
 export const deleteCustomer = async (req: Request, res: Response) => {
     try {
-        const success = await customerService.delete(req.params.id);
+        const { id } = req.params;
+        const success = await customerService.delete(id as string);
         if (!success) return res.status(404).json({ error: 'Customer not found' });
         res.status(204).send();
     } catch (error) {

@@ -41,24 +41,20 @@ export const FleetManagement = () => {
 
         try {
             if (activeTab === 'schedule') {
-                const [driversRes, tripsRes] = await Promise.all([
-                    fetch(`${API_URL}/drivers`, { headers }), // Fetch all drivers for schedule (pagination might act differently here vs list) - for now assuming schedule view needs all or specific handling. 
-                    // To keep schedule working as expected with the new backend changes which now paginate by default, 
-                    // we might need to request a larger limit or handle it differently.
-                    // For now, let's request a large limit for schedule view's drivers to replicate previous behavior
+                const [driversRes, vehiclesRes, tripsRes] = await Promise.all([
+                    fetch(`${API_URL}/drivers`, { headers }),
+                    fetch(`${API_URL}/vehicles`, { headers }),
                     fetch(`${API_URL}/trips`, { headers })
                 ]);
 
-                // For schedule, we probably want all drivers. 
-                // Since the backend now paginates, we might need a specific param or loop. 
-                // Or simply use the paginated endpoint with a high limit for now.
                 const driversData = driversRes.ok ? await driversRes.json() : [];
-                // Handle new paginated response structure if applicable (driversRes now returns { data: [], ... } )
                 const driversList = Array.isArray(driversData) ? driversData : (driversData.data || []);
+                const vehiclesData = vehiclesRes.ok ? await vehiclesRes.json() : [];
+                const vehiclesList = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData.data || []);
 
                 const trips = tripsRes.ok ? await tripsRes.json() : [];
 
-                setData((prev: any) => ({ ...prev, drivers: driversList }));
+                setData((prev: any) => ({ ...prev, drivers: driversList, vehicles: vehiclesList }));
                 setTrips(Array.isArray(trips) ? trips : []);
 
             } else {
@@ -186,7 +182,17 @@ export const FleetManagement = () => {
     const [newEntry, setNewEntry] = useState<any>({});
 
     const handleAddClick = () => {
-        setNewEntry({});
+        const now = new Date();
+        const nextHour = new Date(now);
+        nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+        const endHour = new Date(nextHour);
+        endHour.setHours(nextHour.getHours() + 4);
+
+        setNewEntry(activeTab === 'schedule' ? {
+            start_time_est: nextHour.toISOString(),
+            end_time_est: endHour.toISOString(),
+            status: 'PLANNED'
+        } : {});
         setIsModalOpen(true);
     };
 
@@ -198,8 +204,27 @@ export const FleetManagement = () => {
         e.preventDefault();
         const endpoint = activeTab;
         if (endpoint === 'schedule') {
-            await alert(t('common.comingSoon'), t('common.comingSoon'));
-            setIsModalOpen(false);
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_BASE_URL}/trips`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(newEntry)
+                });
+                if (res.ok) {
+                    setIsModalOpen(false);
+                    setNewEntry({});
+                    await fetchData();
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Failed to create mission', t('common.error'));
+                }
+            } catch (error) {
+                console.error(error);
+            }
             return;
         }
 
@@ -665,6 +690,61 @@ export const FleetManagement = () => {
                                         <option value="PENDING">{t('fleet.modal.statusOptions.pending')}</option>
                                         <option value="PAID">{t('fleet.modal.statusOptions.paid')}</option>
                                     </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'schedule' && (
+                        <div style={{ display: 'grid', gap: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.driver')}</label>
+                                <select
+                                    required
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
+                                    value={newEntry.driver_id || ''}
+                                    onChange={e => handleInputChange('driver_id', e.target.value)}
+                                >
+                                    <option value="">{t('fleet.modal.selectDriver') || 'Select Driver'}</option>
+                                    {data.drivers.map((d: any) => (
+                                        <option key={d.id} value={d.id}>{d.name} ({d.status})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.vehicle')}</label>
+                                <select
+                                    required
+                                    style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
+                                    value={newEntry.vehicle_id || ''}
+                                    onChange={e => handleInputChange('vehicle_id', e.target.value)}
+                                >
+                                    <option value="">{t('fleet.modal.selectVehicle') || 'Select Vehicle'}</option>
+                                    {data.vehicles.map((v: any) => (
+                                        <option key={v.id} value={v.id}>{v.plate} - {v.model} ({v.status})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.scheduleTab.startTime') || 'Start Time'}</label>
+                                    <input
+                                        required
+                                        type="datetime-local"
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                        value={newEntry.start_time_est ? newEntry.start_time_est.substring(0, 16) : ''}
+                                        onChange={e => handleInputChange('start_time_est', new Date(e.target.value).toISOString())}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.scheduleTab.endTime') || 'End Time'}</label>
+                                    <input
+                                        required
+                                        type="datetime-local"
+                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                        value={newEntry.end_time_est ? newEntry.end_time_est.substring(0, 16) : ''}
+                                        onChange={e => handleInputChange('end_time_est', new Date(e.target.value).toISOString())}
+                                    />
                                 </div>
                             </div>
                         </div>

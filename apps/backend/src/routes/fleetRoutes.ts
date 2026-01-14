@@ -3,7 +3,7 @@ import {
     getDrivers, createDriver, updateDriver, deleteDriver,
     getVehicles, createVehicle, updateVehicle, deleteVehicle,
     getExpenses, createExpense, updateExpense, deleteExpense,
-    getTrips, updateTrip
+    getTrips, createTrip, updateTrip
 } from '../controllers/FleetController';
 
 const router = express.Router();
@@ -24,6 +24,7 @@ router.put('/expenses/:id', updateExpense);
 router.delete('/expenses/:id', deleteExpense);
 
 router.get('/trips', getTrips);
+router.post('/trips', createTrip);
 router.put('/trips/:id', updateTrip);
 
 export default router;

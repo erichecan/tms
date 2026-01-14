@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Truck, MapPin, Clock, Send, MessageSquare } from 'lucide-react';
+import { Truck, Clock, Send, MessageSquare, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from './apiConfig';
 import GoogleMap from './components/GoogleMap/GoogleMap';
@@ -8,17 +8,20 @@ import GoogleMap from './components/GoogleMap/GoogleMap';
 export const TrackingPage = () => {
     const { t } = useTranslation();
     const { id } = useParams();
-    const tripId = id && id !== 'undefined' ? id : 'T-1001';
+    // Dynamic selection: use URL ID or wait for list to provide one
+    const tripId = id && id !== 'undefined' ? id : null;
     const navigate = useNavigate();
 
     const [activeTrips, setActiveTrips] = useState<any[]>([]);
     const [tripData, setTripData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [error, setError] = useState<string | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const fetchMessages = () => {
+        if (!tripId) return;
         const token = localStorage.getItem('token');
         const headers: HeadersInit = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -29,40 +32,7 @@ export const TrackingPage = () => {
             .catch(e => { console.error("Msg Error", e); setMessages([]); });
     };
 
-    useEffect(() => {
-        const API_URL = API_BASE_URL;
-        setError(null);
-        const token = localStorage.getItem('token');
-        const headers: HeadersInit = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        fetch(`${API_URL}/trips/${tripId}/tracking`, { headers })
-            .then(async res => {
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    throw new Error(err.error || "Failed to fetch tracking");
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (!data || !Array.isArray(data.waybills)) data.waybills = [];
-                if (!data.timeline) data.timeline = [];
-                setTripData(data);
-            })
-            .catch(err => {
-                console.error(err);
-                setError(err.message);
-            });
-
-        fetchMessages();
-        const interval = setInterval(fetchMessages, 3000);
-        return () => clearInterval(interval);
-    }, [tripId]);
-
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
+    // Load active trips list once
     useEffect(() => {
         const token = localStorage.getItem('token');
         const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -70,12 +40,63 @@ export const TrackingPage = () => {
 
         fetch(`${API_BASE_URL}/trips?status=ACTIVE`, { headers })
             .then(res => res.json())
-            .then(data => setActiveTrips(Array.isArray(data) ? data : []))
+            .then(data => {
+                const trips = Array.isArray(data) ? data : [];
+                setActiveTrips(trips);
+
+                // Auto-navigate to first trip if none specified in URL
+                if (!id && trips.length > 0) {
+                    navigate(`/tracking/${trips[0].id}`, { replace: true });
+                }
+            })
             .catch(console.error);
-    }, []);
+    }, [id, navigate]);
+
+    // Fetch specific trip data
+    useEffect(() => {
+        if (!tripId) {
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        fetch(`${API_BASE_URL}/trips/${tripId}/tracking`, { headers })
+            .then(async res => {
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || "Trip not found or tracking unavailable");
+                }
+                return res.json();
+            })
+            .then(data => {
+                // Ensure array properties exist
+                if (!data || !Array.isArray(data.waybills)) data.waybills = [];
+                if (!data.timeline) data.timeline = [];
+                setTripData(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setError(err.message);
+                setLoading(false);
+            });
+
+        fetchMessages();
+        const interval = setInterval(fetchMessages, 5000);
+        return () => clearInterval(interval);
+    }, [tripId]);
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
     const handleSendMessage = async () => {
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() || !tripId) return;
         try {
             const token = localStorage.getItem('token');
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -96,15 +117,15 @@ export const TrackingPage = () => {
     if (error) {
         return (
             <div style={{ padding: '80px', textAlign: 'center', animation: 'fadeIn 0.5s ease-out' }}>
-                <div style={{ marginBottom: '24px', color: '#EF4444' }}><MapPin size={64} /></div>
-                <h2 style={{ color: 'var(--slate-900)', fontWeight: 800 }}>{t('common.error') || 'Deployment Error'}</h2>
+                <div style={{ marginBottom: '24px', color: '#EF4444' }}><AlertCircle size={64} /></div>
+                <h2 style={{ color: 'var(--slate-900)', fontWeight: 800 }}>{t('common.error') || 'Tracking Unavailable'}</h2>
                 <p style={{ color: 'var(--slate-500)', marginBottom: '32px' }}>{error}</p>
-                <button onClick={() => window.location.reload()} className="btn-primary">Retry Connection</button>
+                <button onClick={() => navigate('/tracking')} className="btn-secondary">View Fleet Overview</button>
             </div>
         );
     }
 
-    if (!tripData) return (
+    if (loading) return (
         <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ width: 40, height: 40, border: '4px solid var(--primary-start)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
@@ -112,6 +133,17 @@ export const TrackingPage = () => {
             </div>
         </div>
     );
+
+    if (!tripData && !tripId) return (
+        <div style={{ padding: '80px', textAlign: 'center', animation: 'fadeIn 0.5s ease-out' }}>
+            <div style={{ marginBottom: '24px', color: 'var(--primary-start)' }}><Truck size={64} /></div>
+            <h2 style={{ color: 'var(--slate-900)', fontWeight: 800 }}>No Active Deployments Selected</h2>
+            <p style={{ color: 'var(--slate-500)', marginBottom: '32px' }}>Please select a vehicle from the fleet list to begin tracking.</p>
+            {activeTrips.length === 0 && <p style={{ color: 'var(--slate-400)', fontStyle: 'italic' }}>The current fleet is stationed.</p>}
+        </div>
+    );
+
+    if (!tripData) return null;
 
     const currentLat = tripData.currentLocation?.latitude || tripData.currentLocation?.lat || 43.6532;
     const currentLng = tripData.currentLocation?.longitude || tripData.currentLocation?.lng || -79.3832;
@@ -135,6 +167,15 @@ export const TrackingPage = () => {
             });
         }
     });
+
+    const displayTime = (time: any) => {
+        if (!time) return 'Pending...';
+        try {
+            return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            return '---';
+        }
+    };
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 340px', gap: '24px', height: 'calc(100vh - 120px)', animation: 'fadeIn 0.5s ease-out' }}>
@@ -175,12 +216,12 @@ export const TrackingPage = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
                 <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px' }}>
                     <div>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '4px' }}>In Transit • {tripData.vehicle?.plate}</div>
-                        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{tripData.driver?.name}</h2>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '4px' }}>In Transit • {tripData.vehicle?.plate || 'Unknown Asset'}</div>
+                        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{tripData.driver?.name || 'Assigned Driver'}</h2>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '4px' }}>Arrival Estimate</div>
-                        <div style={{ fontWeight: 700, color: 'var(--primary-start)' }}>{new Date(tripData.end_time_est).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} Today</div>
+                        <div style={{ fontWeight: 700, color: 'var(--primary-start)' }}>{displayTime(tripData.end_time_est)} Today</div>
                     </div>
                 </div>
 
@@ -190,7 +231,7 @@ export const TrackingPage = () => {
 
                 <div className="glass-card" style={{ padding: '32px' }}>
                     <h3 style={{ marginTop: 0, fontSize: '18px', fontWeight: 800, marginBottom: '24px' }}>Assigned Manifest</h3>
-                    {tripData.waybills.length === 0 ? <p style={{ color: 'var(--slate-400)' }}>No waybills assigned.</p> :
+                    {(!tripData.waybills || tripData.waybills.length === 0) ? <p style={{ color: 'var(--slate-400)' }}>No waybills assigned.</p> :
                         tripData.waybills.map((w: any) => (
                             <div key={w.id} style={{ padding: '20px', border: '1px solid var(--glass-border)', borderRadius: '16px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--slate-50)' }}>
                                 <div>
@@ -211,14 +252,15 @@ export const TrackingPage = () => {
                         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>Journey Timeline</h3>
                     </div>
                     <div style={{ position: 'relative', paddingLeft: '24px', borderLeft: '2px solid var(--glass-border)', marginLeft: '8px' }}>
-                        {tripData.timeline?.map((event: any, i: number) => (
-                            <div key={i} style={{ marginBottom: '28px', position: 'relative' }}>
-                                <div style={{ position: 'absolute', left: '-31px', top: '0', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--primary-grad)', border: '3px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}></div>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)' }}>{new Date(event.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                <div style={{ fontWeight: 800, fontSize: '14px', margin: '2px 0', color: 'var(--slate-900)' }}>{event.status}</div>
-                                <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{event.description}</div>
-                            </div>
-                        ))}
+                        {(!tripData.timeline || tripData.timeline.length === 0) ? <p style={{ color: 'var(--slate-400)', fontSize: '13px' }}>Awaiting events...</p> :
+                            tripData.timeline.map((event: any, i: number) => (
+                                <div key={i} style={{ marginBottom: '28px', position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: '-31px', top: '0', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--primary-grad)', border: '3px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}></div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)' }}>{displayTime(event.time)}</div>
+                                    <div style={{ fontWeight: 800, fontSize: '14px', margin: '2px 0', color: 'var(--slate-900)' }}>{event.status}</div>
+                                    <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{event.description}</div>
+                                </div>
+                            ))}
                     </div>
                 </div>
 

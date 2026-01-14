@@ -21,6 +21,8 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { Login } from './pages/Login/Login';
 import { RoleManagement } from './pages/Settings/RoleManagement';
+import { DriverLayout } from './components/DriverLayout';
+import { DriverHome } from './pages/Driver/DriverHome';
 
 const router = createBrowserRouter([
   {
@@ -100,6 +102,28 @@ const router = createBrowserRouter([
             element: <RoleManagement />,
           },
         ],
+      },
+      {
+        path: '/driver',
+        element: <DriverLayout />,
+        children: [
+          {
+            index: true,
+            element: <DriverHome />,
+          },
+          {
+            path: 'messages',
+            element: <Messages />, // Reusing for now, will optimize later
+          },
+          {
+            path: 'settings',
+            element: <Settings />, // Reusing for now
+          },
+          {
+            path: 'waybill/:id',
+            element: <div style={{ padding: '20px' }}>Waybill Detail coming soon...</div>,
+          }
+        ]
       }
     ]
   },

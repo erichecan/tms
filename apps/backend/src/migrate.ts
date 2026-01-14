@@ -27,6 +27,20 @@ const migrate = async () => {
         lastLogin TIMESTAMP
       );
 
+      -- Migration: Add password_hash and username columns (idempotent)
+      DO $$ 
+      BEGIN 
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash') THEN
+              ALTER TABLE users ADD COLUMN password_hash VARCHAR(100);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='username') THEN
+              ALTER TABLE users ADD COLUMN username VARCHAR(100);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='created_at') THEN
+              ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+          END IF;
+      END $$;
+
       CREATE TABLE IF NOT EXISTS customers (
         id VARCHAR(50) PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
@@ -351,35 +365,40 @@ const migrate = async () => {
       await client.query(`
           INSERT INTO trips(id, driver_id, vehicle_id, status, start_time_est, end_time_est) VALUES
       ('T-1001', 'D-001', 'V-101', 'ACTIVE', '2026-01-08T08:00:00Z', '2026-01-08T18:00:00Z'),
-      ('T-1002', 'D-003', 'V-103', 'ACTIVE', '2026-01-08T09:00:00Z', '2026-01-09T12:00:00Z');
+      ('T-1002', 'D-003', 'V-103', 'ACTIVE', '2026-01-08T09:00:00Z', '2026-01-09T12:00:00Z')
+      ON CONFLICT(id) DO NOTHING;
     `);
 
       // Waybills
       await client.query(`
           INSERT INTO waybills(id, waybill_no, customer_id, origin, destination, cargo_desc, status, trip_id, price_estimated, created_at) VALUES
       ('WB-001', 'WB-20260108-001', 'C-01', 'Omaha, NE', 'Chicago, IL', 'Pork Bellies - 20 Pallets', 'IN_TRANSIT', 'T-1001', 1200, '2026-01-07T10:00:00Z'),
-      ('WB-004', 'WB-20260108-004', 'C-03', 'St. Louis, MO', 'Nashville, TN', 'Poultry - 22 Pallets', 'IN_TRANSIT', 'T-1002', 1100, '2026-01-07T14:00:00Z');
+      ('WB-004', 'WB-20260108-004', 'C-03', 'St. Louis, MO', 'Nashville, TN', 'Poultry - 22 Pallets', 'IN_TRANSIT', 'T-1002', 1100, '2026-01-07T14:00:00Z')
+      ON CONFLICT(id) DO NOTHING;
     `);
 
       // Other Waybills
       await client.query(`
            INSERT INTO waybills(id, waybill_no, customer_id, origin, destination, cargo_desc, status, price_estimated, created_at) VALUES
       ('WB-002', 'WB-20260108-002', 'C-02', 'Kansas City, MO', 'Dallas, TX', 'Frozen Beef - 18 Pallets', 'NEW', 1500, '2026-01-08T09:00:00Z'),
-      ('WB-003', 'WB-20260108-003', 'C-01', 'Des Moines, IA', 'Minneapolis, MN', 'Live Hogs - 150 Head', 'NEW', 800, '2026-01-08T10:30:00Z');
+      ('WB-003', 'WB-20260108-003', 'C-01', 'Des Moines, IA', 'Minneapolis, MN', 'Live Hogs - 150 Head', 'NEW', 800, '2026-01-08T10:30:00Z')
+      ON CONFLICT(id) DO NOTHING;
     `);
 
       // Events
       await client.query(`
           INSERT INTO trip_events(trip_id, status, time, description) VALUES
       ('T-1001', 'PLANNED', '2026-01-08T07:00:00Z', 'Trip created'),
-      ('T-1001', 'ACTIVE', '2026-01-08T08:15:00Z', 'Driver departed from Omaha');
+      ('T-1001', 'ACTIVE', '2026-01-08T08:15:00Z', 'Driver departed from Omaha')
+      ;
     `);
 
       // Messages
       await client.query(`
           INSERT INTO messages(id, trip_id, sender, text, timestamp) VALUES
       ('M-1', 'T-1001', 'DRIVER', 'Loaded and rolling out.', '2026-01-08T08:16:00Z'),
-      ('M-2', 'T-1001', 'DISPATCHER', 'Copy that. Watch out for snow near Des Moines.', '2026-01-08T08:18:00Z');
+      ('M-2', 'T-1001', 'DISPATCHER', 'Copy that. Watch out for snow near Des Moines.', '2026-01-08T08:18:00Z')
+      ON CONFLICT(id) DO NOTHING;
     `);
     }
 

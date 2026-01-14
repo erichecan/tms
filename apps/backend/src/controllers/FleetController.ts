@@ -12,13 +12,15 @@ export const getDrivers = async (req: Request, res: Response) => {
         const search = (req.query.search as string || '').toLowerCase();
         const status = req.query.status as string;
 
-        let whereClauses = ["(d.id IS NOT NULL OR u.roleid IN ('R-DRIVER', 'driver'))"];
+        // We want anyone in drivers table OR anyone in users table with a Driver role
+        let whereClauses = ["(d.id IS NOT NULL OR u.roleid IN ('R-DRIVER', 'DRIVER', 'R-DRIVER-MOBILE'))"];
         let params: any[] = [];
 
         if (status && status !== 'ALL') {
             params.push(status);
             whereClauses.push(`COALESCE(d.status, 'IDLE') = $${params.length}`);
         } else {
+            // Do not show deleted drivers unless explicitly requested
             whereClauses.push(`COALESCE(d.status, 'IDLE') != 'DELETED'`);
         }
 
@@ -31,7 +33,7 @@ export const getDrivers = async (req: Request, res: Response) => {
 
         // Count query
         const countRes = await query(`
-            SELECT COUNT(*) 
+            SELECT COUNT(DISTINCT COALESCE(u.id, d.id)) 
             FROM drivers d
             FULL OUTER JOIN users u ON d.id = u.id
             ${whereStr}
@@ -39,18 +41,20 @@ export const getDrivers = async (req: Request, res: Response) => {
 
         const total = parseInt(countRes.rows[0].count);
 
-        // Data query
+        // Data query: Primary source of truth is the User record if it exists, otherwise the Driver record
         const dataRes = await query(`
             SELECT 
                 COALESCE(u.id, d.id) as id,
                 COALESCE(u.name, d.name) as name,
                 COALESCE(d.phone, '') as phone,
                 COALESCE(d.status, 'IDLE') as status,
-                COALESCE(d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url
+                COALESCE(d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url,
+                u.roleid,
+                u.email
             FROM drivers d
             FULL OUTER JOIN users u ON d.id = u.id
             ${whereStr}
-            ORDER BY COALESCE(u.name, d.name) ASC
+            ORDER BY COALESCE(u.name, d.name) ASC, id ASC
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}
         `, [...params, limit, offset]);
 
@@ -135,6 +139,7 @@ export const getVehicles = async (req: Request, res: Response) => {
         const search = (req.query.search as string || '').toLowerCase();
         const status = req.query.status as string;
 
+        // Note: u.roleid = 'R-VEHICLE' is used for virtual assets or IoT trackers registered as users
         let whereClauses = ["(v.id IS NOT NULL OR u.roleid = 'R-VEHICLE')"];
         let params: any[] = [];
 
@@ -153,7 +158,7 @@ export const getVehicles = async (req: Request, res: Response) => {
         const whereStr = `WHERE ${whereClauses.join(' AND ')}`;
 
         const countRes = await query(`
-            SELECT COUNT(*)
+            SELECT COUNT(DISTINCT COALESCE(v.id, u.id))
             FROM vehicles v
             FULL OUTER JOIN users u ON v.id = u.id
             ${whereStr}
@@ -355,6 +360,34 @@ export const getTrips = async (req: Request, res: Response) => {
     } catch (e) {
         console.error('Error fetching trips:', e);
         res.status(500).json({ error: 'Failed to fetch trips' });
+    }
+};
+
+export const createTrip = async (req: Request, res: Response) => {
+    const { driver_id, vehicle_id, start_time_est, end_time_est, status } = req.body;
+    const id = `T-${Date.now()}`;
+    try {
+        await query('BEGIN');
+
+        const result = await query(
+            'INSERT INTO trips (id, driver_id, vehicle_id, start_time_est, end_time_est, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [id, driver_id, vehicle_id, start_time_est, end_time_est, status || 'PLANNED']
+        );
+
+        // Update driver and vehicle status to BUSY
+        if (driver_id) {
+            await query("UPDATE drivers SET status = 'BUSY' WHERE id = $1", [driver_id]);
+        }
+        if (vehicle_id) {
+            await query("UPDATE vehicles SET status = 'BUSY' WHERE id = $1", [vehicle_id]);
+        }
+
+        await query('COMMIT');
+        res.status(201).json(result.rows[0]);
+    } catch (e) {
+        await query('ROLLBACK');
+        console.error('Error creating trip:', e);
+        res.status(500).json({ error: 'Failed to create trip' });
     }
 };
 
