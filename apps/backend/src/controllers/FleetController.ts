@@ -102,15 +102,23 @@ export const updateDriver = async (req: Request, res: Response) => {
 };
 
 export const deleteDriver = async (req: Request, res: Response) => {
+    const { id } = req.params;
     try {
-        // Soft delete: Update status to DELETED
-        // And ensure we also update the linked User if exists? 
-        // For now, just mark Driver as deleted. 
-        // Ideally we should also check if they are currently on a trip? 
-        // The UI should prevent this, but soft delete is safe as trips will still reference the ID.
-        const result = await query("UPDATE drivers SET status = 'DELETED' WHERE id = $1 RETURNING id", [req.params.id]);
+        // 1. Try Soft delete existing driver record
+        const result = await query("UPDATE drivers SET status = 'DELETED' WHERE id = $1 RETURNING id", [id]);
 
-        if (result.rows.length === 0) return res.status(404).send();
+        if (result.rows.length === 0) {
+            // 2. If not found in drivers, check if it's a User meant to be a driver
+            const userCheck = await query('SELECT name FROM users WHERE id = $1', [id]);
+            if (userCheck.rows.length > 0) {
+                // Create a "Tombstone" record in drivers table so it gets filtered out by the list query
+                const name = userCheck.rows[0].name;
+                await query("INSERT INTO drivers (id, name, status) VALUES ($1, $2, 'DELETED')", [id, name]);
+                return res.status(204).send();
+            }
+            // 3. If neither, it's truly 404
+            return res.status(404).send();
+        }
         res.status(204).send();
     } catch (e) {
         console.error("Delete driver failed", e);
@@ -215,10 +223,22 @@ export const updateVehicle = async (req: Request, res: Response) => {
 };
 
 export const deleteVehicle = async (req: Request, res: Response) => {
+    const { id } = req.params;
     try {
-        // Soft delete
-        const result = await query("UPDATE vehicles SET status = 'DELETED' WHERE id = $1 RETURNING id", [req.params.id]);
-        if (result.rows.length === 0) return res.status(404).send();
+        // 1. Try Soft delete
+        const result = await query("UPDATE vehicles SET status = 'DELETED' WHERE id = $1 RETURNING id", [id]);
+
+        if (result.rows.length === 0) {
+            // 2. If not found, check Users (Role=R-VEHICLE)
+            const userCheck = await query('SELECT name FROM users WHERE id = $1', [id]);
+            if (userCheck.rows.length > 0) {
+                // Create Tombstone with name as plate
+                const plate = userCheck.rows[0].name; // In users table, plate is stored as name for vehicles
+                await query("INSERT INTO vehicles (id, plate, status) VALUES ($1, $2, 'DELETED')", [id, plate]);
+                return res.status(204).send();
+            }
+            return res.status(404).send();
+        }
         res.status(204).send();
     } catch (e) {
         console.error("Delete vehicle failed", e);
