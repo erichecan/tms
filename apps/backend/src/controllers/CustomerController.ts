@@ -3,8 +3,12 @@ import { customerService } from '../services/CustomerService';
 
 export const getCustomers = async (req: Request, res: Response) => {
     try {
-        const customers = await customerService.getAll();
-        res.json(customers);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const search = req.query.search as string;
+
+        const result = await customerService.getAll({ page, limit, search });
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch customers' });
     }

@@ -2,8 +2,33 @@ import { query } from '../db-postgres';
 import { Customer } from '../types';
 
 export const customerService = {
-    getAll: async (): Promise<Customer[]> => {
-        // Unify Customers: Join customers table with users (Role: R-CUSTOMER/R-CLIENT)
+    getAll: async (params: { page?: number, limit?: number, search?: string } = {}): Promise<any> => {
+        const page = params.page || 1;
+        const limit = params.limit || 10;
+        const offset = (page - 1) * limit;
+        const search = (params.search || '').toLowerCase();
+
+        let queryParams: any[] = [];
+        let whereClauses = ["(u.roleid IN ('R-CUSTOMER', 'R-CLIENT') OR c.id IS NOT NULL)"];
+
+        if (search) {
+            queryParams.push(`%${search}%`);
+            whereClauses.push(`(LOWER(COALESCE(c.name, u.name)) LIKE $${queryParams.length} OR LOWER(COALESCE(u.email, c.email)) LIKE $${queryParams.length} OR LOWER(c.company) LIKE $${queryParams.length})`);
+        }
+
+        const whereStr = `WHERE ${whereClauses.join(' AND ')}`;
+
+        // Count query
+        const countRes = await query(`
+            SELECT COUNT(*) 
+            FROM customers c
+            FULL OUTER JOIN users u ON c.id = u.id
+            ${whereStr}
+        `, queryParams);
+
+        const total = parseInt(countRes.rows[0].count);
+
+        // Data query
         const result = await query(`
             SELECT 
                 COALESCE(c.id, u.id) as id,
@@ -19,10 +44,18 @@ export const customerService = {
                 COALESCE(c.created_at, u.created_at) as created_at
             FROM customers c
             FULL OUTER JOIN users u ON c.id = u.id
-            WHERE u.roleid IN ('R-CUSTOMER', 'R-CLIENT') OR c.id IS NOT NULL
+            ${whereStr}
             ORDER BY created_at DESC
-        `);
-        return result.rows;
+            LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+        `, [...queryParams, limit, offset]);
+
+        return {
+            data: result.rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        };
     },
 
     getById: async (id: string): Promise<Customer | undefined> => {

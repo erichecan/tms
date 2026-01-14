@@ -1,10 +1,12 @@
 
+
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Shield, Plus, Edit, Trash2, User as UserIcon, Key } from 'lucide-react';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
 import { useDialog } from './context/DialogContext';
+import { Pagination } from './components/Pagination';
 
 interface User {
     id: string;
@@ -30,17 +32,41 @@ export const UserManagement = () => {
     const [passwordForm, setPasswordForm] = useState({ userId: '', newPassword: '' });
     const { confirm } = useDialog();
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
+
     const fetchData = async () => {
         try {
             const token = localStorage.getItem('token');
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
+            const queryParams = new URLSearchParams({
+                page: String(currentPage),
+                limit: String(pageSize),
+            });
+
             const [uRes, rRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/users`, { headers }),
+                fetch(`${API_BASE_URL}/users?${queryParams.toString()}`, { headers }),
                 fetch(`${API_BASE_URL}/roles`, { headers })
             ]);
-            if (uRes.ok) setUsers(await uRes.json());
+
+            if (uRes.ok) {
+                const result = await uRes.json();
+                // Check if result is paginated (object with data array) or legacy array
+                if (Array.isArray(result)) {
+                    setUsers(result);
+                    setTotalItems(result.length);
+                    setTotalPages(1);
+                } else {
+                    setUsers(result.data || []);
+                    setTotalItems(result.total || 0);
+                    setTotalPages(result.totalPages || 1);
+                }
+            }
             if (rRes.ok) setRoles(await rRes.json());
         } catch (e) {
             console.error(e);
@@ -49,7 +75,7 @@ export const UserManagement = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [currentPage]); // Re-fetch on page change
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -188,6 +214,14 @@ export const UserManagement = () => {
                     </tbody>
                 </table>
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+            />
 
             <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingUser({}); }} title={editingUser.id ? t('users.modal.edit') : t('users.modal.new')}>
                 <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '600px' }}>

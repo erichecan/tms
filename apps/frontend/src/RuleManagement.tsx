@@ -19,15 +19,49 @@ import RuleEditor from './components/RuleEditor';
 import type { Rule, RuleType } from './types/rules';
 import { RuleTypes, RuleStatuses } from './types/rules';
 import { useDialog } from './context/DialogContext';
+import { Pagination } from './components/Pagination';
 
 const RuleManagement: React.FC = () => {
     const [rules, setRules] = useState<Rule[]>([]);
+    const [statsRules, setStatsRules] = useState<Rule[]>([]); // For summary cards
     const [loading, setLoading] = useState(true);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingRule, setEditingRule] = useState<Rule | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterType, setFilterType] = useState<RuleType | 'ALL'>('ALL');
     const { confirm } = useDialog();
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
+
+    // Debounce search
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setCurrentPage(1); // Reset to page 1 on search
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
+    // Fetch stats (all rules) once
+    const fetchStats = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const response = await fetch(`${API_BASE_URL}/rules?limit=1000`, { headers });
+            if (response.ok) {
+                const data = await response.json();
+                setStatsRules(data.data || data); // Handle both paginated and compatible simple array if applicable
+            }
+        } catch (error) {
+            console.error('Failed to fetch stats rules', error);
+        }
+    };
 
     const fetchRules = async () => {
         try {
@@ -36,9 +70,28 @@ const RuleManagement: React.FC = () => {
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            const response = await fetch(`${API_BASE_URL}/rules`, { headers });
+            const queryParams = new URLSearchParams({
+                page: String(currentPage),
+                limit: String(pageSize),
+                search: debouncedSearch,
+            });
+            if (filterType !== 'ALL') {
+                queryParams.append('type', filterType);
+            }
+
+            const response = await fetch(`${API_BASE_URL}/rules?${queryParams.toString()}`, { headers });
             const data = await response.json();
-            setRules(data);
+
+            // Check if result is paginated (object with data array) or legacy array
+            if (Array.isArray(data)) {
+                setRules(data);
+                setTotalItems(data.length);
+                setTotalPages(1);
+            } else {
+                setRules(data.data || []);
+                setTotalItems(data.total || 0);
+                setTotalPages(data.totalPages || 1);
+            }
         } catch (error) {
             console.error('Failed to fetch rules:', error);
         } finally {
@@ -47,8 +100,12 @@ const RuleManagement: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchRules();
+        fetchStats();
     }, []);
+
+    useEffect(() => {
+        fetchRules();
+    }, [currentPage, debouncedSearch, filterType]);
 
     const handleDelete = async (id: string) => {
         const ok = await confirm('This will permanently delete the business rule and its associated logic. This action cannot be undone.', 'Delete Business Rule');
@@ -60,6 +117,7 @@ const RuleManagement: React.FC = () => {
 
             await fetch(`${API_BASE_URL}/rules/${id}`, { method: 'DELETE', headers });
             fetchRules();
+            fetchStats(); // Update stats
         } catch (error) {
             console.error('Failed to delete rule:', error);
         }
@@ -75,12 +133,10 @@ const RuleManagement: React.FC = () => {
         setIsEditorOpen(true);
     };
 
-    const filteredRules = rules.filter(r => {
-        const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.description.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filterType === 'ALL' || r.type === filterType;
-        return matchesSearch && matchesFilter;
-    });
+    const handleFilterChange = (type: RuleType | 'ALL') => {
+        setFilterType(type);
+        setCurrentPage(1);
+    };
 
     return (
         <div style={{ padding: '32px', minHeight: '100vh', background: 'var(--slate-50)' }}>
@@ -147,7 +203,7 @@ const RuleManagement: React.FC = () => {
                 </div>
             </div>
 
-            {/* Stats Summary */}
+            {/* Stats Summary - Using statsRules for accurate totals */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
@@ -156,9 +212,9 @@ const RuleManagement: React.FC = () => {
                 animation: 'fadeInUp 0.6s ease-out 0.1s both'
             }}>
                 {[
-                    { label: 'Total Rules', value: rules.length, icon: <FileText size={20} />, color: '#6366f1' },
-                    { label: 'Active Pricing', value: rules.filter(r => r.type === RuleTypes.PRICING && r.status === RuleStatuses.ACTIVE).length, icon: <TrendingUp size={20} />, color: '#22c55e' },
-                    { label: 'Payroll Logic', value: rules.filter(r => r.type === RuleTypes.PAYROLL).length, icon: <Zap size={20} />, color: '#f59e0b' },
+                    { label: 'Total Rules', value: statsRules.length, icon: <FileText size={20} />, color: '#6366f1' },
+                    { label: 'Active Pricing', value: statsRules.filter(r => r.type === RuleTypes.PRICING && r.status === RuleStatuses.ACTIVE).length, icon: <TrendingUp size={20} />, color: '#22c55e' },
+                    { label: 'Payroll Logic', value: statsRules.filter(r => r.type === RuleTypes.PAYROLL).length, icon: <Zap size={20} />, color: '#f59e0b' },
                     { label: 'Deployment Status', value: 'Live', icon: <CheckCircle2 size={20} />, color: '#3b82f6' }
                 ].map((stat, idx) => (
                     <div key={idx} className="glass card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -192,7 +248,7 @@ const RuleManagement: React.FC = () => {
                 {['ALL', RuleTypes.PRICING, RuleTypes.PAYROLL].map(type => (
                     <button
                         key={type}
-                        onClick={() => setFilterType(type as any)}
+                        onClick={() => handleFilterChange(type as any)}
                         style={{
                             padding: '10px 20px',
                             borderRadius: '12px',
@@ -223,7 +279,7 @@ const RuleManagement: React.FC = () => {
                         <div className="spinner"></div>
                         <p style={{ color: 'var(--slate-400)', marginTop: '20px' }}>Syncing Engine Logic...</p>
                     </div>
-                ) : filteredRules.length === 0 ? (
+                ) : rules.length === 0 ? (
                     <div style={{
                         gridColumn: '1/-1',
                         padding: '100px',
@@ -238,7 +294,7 @@ const RuleManagement: React.FC = () => {
                         <h3 style={{ margin: '0 0 8px', fontWeight: 800 }}>No rules deployed</h3>
                         <p style={{ color: 'var(--slate-400)', margin: 0 }}>Create your first business rule to automate logistics logic.</p>
                     </div>
-                ) : filteredRules.map(rule => (
+                ) : rules.map(rule => (
                     <div key={rule.id} className="glass card" style={{
                         padding: '24px',
                         position: 'relative',
@@ -320,6 +376,14 @@ const RuleManagement: React.FC = () => {
                 ))}
             </div>
 
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+            />
+
             {/* Rule Editor Modal */}
             <Modal
                 isOpen={isEditorOpen}
@@ -331,6 +395,7 @@ const RuleManagement: React.FC = () => {
                     onSave={() => {
                         setIsEditorOpen(false);
                         fetchRules();
+                        fetchStats();
                     }}
                     onCancel={() => setIsEditorOpen(false)}
                 />

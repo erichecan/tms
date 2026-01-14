@@ -5,21 +5,50 @@ import { Rule, RuleStatus, RuleType } from '../types';
 import { ruleEngineService } from '../services/RuleEngineService';
 
 
+
 export const getRules = async (req: Request, res: Response) => {
     try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+        const search = (req.query.search as string || '').toLowerCase();
         const type = req.query.type as string;
-        let sql = 'SELECT * FROM rules';
-        const params: any[] = [];
 
-        if (type) {
-            sql += ' WHERE type = $1';
+        let sql = 'FROM rules';
+        let params: any[] = [];
+        let whereClauses: string[] = [];
+
+        if (type && type !== 'ALL') {
             params.push(type);
+            whereClauses.push(`type = $${params.length}`);
         }
 
-        sql += ' ORDER BY priority DESC, created_at DESC';
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(LOWER(name) LIKE $${params.length} OR LOWER(description) LIKE $${params.length})`);
+        }
 
-        const result = await query(sql, params);
-        res.json(result.rows);
+        const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        // Count
+        const countRes = await query(`SELECT COUNT(*) ${sql} ${whereStr}`, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        // Data
+        const result = await query(`
+            SELECT * ${sql} 
+            ${whereStr} 
+            ORDER BY priority DESC, created_at DESC
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `, [...params, limit, offset]);
+
+        res.json({
+            data: result.rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: 'Failed to fetch rules' });

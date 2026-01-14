@@ -3,11 +3,42 @@ import { query } from '../db-postgres';
 import { Driver, Vehicle, Expense, Trip } from '../types';
 
 // --- Drivers ---
+// --- Drivers ---
 export const getDrivers = async (req: Request, res: Response) => {
     try {
-        // Professional Join: Unify Identity (Users) and Logistics Metadata (Drivers)
-        // Respects "Entity Uniqueness": linked records appear once, legacy records are preserved.
-        const driversRes = await query(`
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+        const search = (req.query.search as string || '').toLowerCase();
+        const status = req.query.status as string;
+
+        let whereClauses = ["(d.id IS NOT NULL OR u.roleid IN ('R-DRIVER', 'driver'))"];
+        let params: any[] = [];
+
+        if (status && status !== 'ALL') {
+            params.push(status);
+            whereClauses.push(`COALESCE(d.status, 'IDLE') = $${params.length}`);
+        }
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(LOWER(COALESCE(u.name, d.name)) LIKE $${params.length} OR LOWER(COALESCE(d.phone, '')) LIKE $${params.length})`);
+        }
+
+        const whereStr = `WHERE ${whereClauses.join(' AND ')}`;
+
+        // Count query
+        const countRes = await query(`
+            SELECT COUNT(*) 
+            FROM drivers d
+            FULL OUTER JOIN users u ON d.id = u.id
+            ${whereStr}
+        `, params);
+
+        const total = parseInt(countRes.rows[0].count);
+
+        // Data query
+        const dataRes = await query(`
             SELECT 
                 COALESCE(u.id, d.id) as id,
                 COALESCE(u.name, d.name) as name,
@@ -16,10 +47,18 @@ export const getDrivers = async (req: Request, res: Response) => {
                 COALESCE(d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url
             FROM drivers d
             FULL OUTER JOIN users u ON d.id = u.id
-            WHERE d.id IS NOT NULL OR u.roleid IN ('R-DRIVER', 'driver')
-        `);
+            ${whereStr}
+            ORDER BY COALESCE(u.name, d.name) ASC
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `, [...params, limit, offset]);
 
-        res.json(driversRes.rows);
+        res.json({
+            data: dataRes.rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (e) {
         console.error('Error fetching drivers:', e);
         res.status(500).json({ error: 'Failed to fetch drivers' });
@@ -73,8 +112,37 @@ export const deleteDriver = async (req: Request, res: Response) => {
 // --- Vehicles ---
 export const getVehicles = async (req: Request, res: Response) => {
     try {
-        // Unify Vehicles: Join vehicles table with users (in case vehicles have user accounts/IoT identity)
-        const result = await query(`
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+        const search = (req.query.search as string || '').toLowerCase();
+        const status = req.query.status as string;
+
+        let whereClauses = ["(v.id IS NOT NULL OR u.roleid = 'R-VEHICLE')"];
+        let params: any[] = [];
+
+        if (status && status !== 'ALL') {
+            params.push(status);
+            whereClauses.push(`COALESCE(v.status, u.status, 'IDLE') = $${params.length}`);
+        }
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(LOWER(COALESCE(v.plate, u.name)) LIKE $${params.length} OR LOWER(COALESCE(v.model, '')) LIKE $${params.length})`);
+        }
+
+        const whereStr = `WHERE ${whereClauses.join(' AND ')}`;
+
+        const countRes = await query(`
+            SELECT COUNT(*)
+            FROM vehicles v
+            FULL OUTER JOIN users u ON v.id = u.id
+            ${whereStr}
+        `, params);
+
+        const total = parseInt(countRes.rows[0].count);
+
+        const dataRes = await query(`
             SELECT 
                 COALESCE(v.id, u.id) as id,
                 COALESCE(v.plate, u.name) as plate,
@@ -83,9 +151,18 @@ export const getVehicles = async (req: Request, res: Response) => {
                 COALESCE(v.status, u.status, 'IDLE') as status
             FROM vehicles v
             FULL OUTER JOIN users u ON v.id = u.id
-            WHERE v.id IS NOT NULL OR u.roleid = 'R-VEHICLE'
-        `);
-        res.json(result.rows);
+            ${whereStr}
+            ORDER BY plate ASC
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `, [...params, limit, offset]);
+
+        res.json({
+            data: dataRes.rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (e) {
         console.error('Error fetching vehicles:', e);
         res.status(500).json({ error: 'Failed to fetch vehicles' });
@@ -139,8 +216,38 @@ export const deleteVehicle = async (req: Request, res: Response) => {
 // --- Expenses ---
 export const getExpenses = async (req: Request, res: Response) => {
     try {
-        const result = await query('SELECT * FROM expenses');
-        res.json(result.rows);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+        const search = (req.query.search as string || '').toLowerCase();
+
+        let params: any[] = [];
+        let whereClauses: string[] = [];
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(LOWER(category) LIKE $${params.length} OR LOWER(status) LIKE $${params.length})`);
+        }
+
+        const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        const countRes = await query(`SELECT COUNT(*) FROM expenses ${whereStr}`, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        const dataRes = await query(`
+            SELECT * FROM expenses 
+            ${whereStr} 
+            ORDER BY date DESC
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `, [...params, limit, offset]);
+
+        res.json({
+            data: dataRes.rows,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (e) {
         res.status(500).json({ error: 'Failed to fetch expenses' });
     }

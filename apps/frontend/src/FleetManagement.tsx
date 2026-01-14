@@ -1,18 +1,29 @@
 
+
 import { useEffect, useState } from 'react';
-import { Truck, User, DollarSign, Plus, Calendar, MoreHorizontal, Edit } from 'lucide-react';
+import { Truck, User, DollarSign, Plus, Calendar, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
 import { useDialog } from './context/DialogContext';
+import { Pagination } from './components/Pagination';
+import { useAuth } from './context/AuthContext';
+import { Trash2 } from 'lucide-react';
 
 export const FleetManagement = () => {
     const { t } = useTranslation();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'drivers' | 'vehicles' | 'expenses' | 'schedule'>('drivers');
     const [data, setData] = useState<any>({ drivers: [], vehicles: [], expenses: [] });
     const { alert } = useDialog();
 
     const [trips, setTrips] = useState<any[]>([]);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
 
     const fetchData = async () => {
         const API_URL = API_BASE_URL;
@@ -22,39 +33,74 @@ export const FleetManagement = () => {
             'Content-Type': 'application/json'
         };
 
+        const queryParams = new URLSearchParams({
+            page: String(currentPage),
+            limit: String(pageSize),
+            // Add search parameter here if needed later
+        });
+
         try {
-            const [driversRes, vehiclesRes, expensesRes, tripsRes] = await Promise.all([
-                fetch(`${API_URL}/drivers`, { headers }),
-                fetch(`${API_URL}/vehicles`, { headers }),
-                fetch(`${API_URL}/expenses`, { headers }),
-                fetch(`${API_URL}/trips`, { headers })
-            ]);
+            if (activeTab === 'schedule') {
+                const [driversRes, tripsRes] = await Promise.all([
+                    fetch(`${API_URL}/drivers`, { headers }), // Fetch all drivers for schedule (pagination might act differently here vs list) - for now assuming schedule view needs all or specific handling. 
+                    // To keep schedule working as expected with the new backend changes which now paginate by default, 
+                    // we might need to request a larger limit or handle it differently.
+                    // For now, let's request a large limit for schedule view's drivers to replicate previous behavior
+                    fetch(`${API_URL}/trips`, { headers })
+                ]);
 
-            const drivers = driversRes.ok ? await driversRes.json() : [];
-            const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : [];
-            const expenses = expensesRes.ok ? await expensesRes.json() : [];
-            const trips = tripsRes.ok ? await tripsRes.json() : [];
+                // For schedule, we probably want all drivers. 
+                // Since the backend now paginates, we might need a specific param or loop. 
+                // Or simply use the paginated endpoint with a high limit for now.
+                const driversData = driversRes.ok ? await driversRes.json() : [];
+                // Handle new paginated response structure if applicable (driversRes now returns { data: [], ... } )
+                const driversList = Array.isArray(driversData) ? driversData : (driversData.data || []);
 
-            setData({
-                drivers: Array.isArray(drivers) ? drivers : [],
-                vehicles: Array.isArray(vehicles) ? vehicles : [],
-                expenses: Array.isArray(expenses) ? expenses : []
-            });
-            setTrips(Array.isArray(trips) ? trips : []);
+                const trips = tripsRes.ok ? await tripsRes.json() : [];
+
+                setData((prev: any) => ({ ...prev, drivers: driversList }));
+                setTrips(Array.isArray(trips) ? trips : []);
+
+            } else {
+                // Fetch only for active tab
+                const res = await fetch(`${API_URL}/${activeTab}?${queryParams.toString()}`, { headers });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    // New backend structure: { data: [], total, page, limit, totalPages }
+                    // Fallback for endpoints not yet updated or different structure if any
+                    const items = result.data || (Array.isArray(result) ? result : []);
+                    const total = result.total || items.length;
+                    const pages = result.totalPages || 1;
+
+                    setData((prev: any) => ({
+                        ...prev,
+                        [activeTab]: items
+                    }));
+                    setTotalItems(total);
+                    setTotalPages(pages);
+                } else {
+                    setData((prev: any) => ({ ...prev, [activeTab]: [] }));
+                }
+            }
         } catch (e) {
             console.error("Failed to fetch fleet data", e);
-            setData({ drivers: [], vehicles: [], expenses: [] });
-            setTrips([]);
+            // Don't wipe all data, just current tab could fail
         }
     };
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [activeTab, currentPage]); // Re-fetch on tab or page change
+
+    const handleTabChange = (tab: 'drivers' | 'vehicles' | 'expenses' | 'schedule') => {
+        setActiveTab(tab);
+        setCurrentPage(1); // Reset to first page
+    };
 
     const TabButton = ({ id, label, icon: Icon }: any) => (
         <button
-            onClick={() => setActiveTab(id)}
+            onClick={() => handleTabChange(id)}
             style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '10px 24px',
@@ -189,6 +235,33 @@ export const FleetManagement = () => {
             console.error(error);
         }
     };
+
+    const handleDelete = async (id: string, type: 'drivers' | 'vehicles') => {
+        const confirmed = window.confirm(t('common.deleteConfirm') || 'Are you sure you want to delete this item?');
+        if (!confirmed) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/${type}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                await fetchData();
+            } else {
+                alert(t('messages.saveFailed'), t('common.error'));
+            }
+        } catch (error) {
+            console.error(error);
+            alert(t('messages.connectionError'), t('common.error'));
+        }
+    };
+
+    const ALLOWED_DELETE_ROLES = ['R-ADMIN', 'ADMIN', 'R-DISPATCHER', 'R-FLEET-MANAGER', 'R-GENERAL-MANAGER'];
+    const canDelete = user && (ALLOWED_DELETE_ROLES.includes(user.roleId) || user.roleId === 'admin');
 
     return (
         <div style={{ animation: 'fadeIn 0.5s ease-out', paddingBottom: '40px' }}>
@@ -415,9 +488,19 @@ export const FleetManagement = () => {
                                                 <button onClick={() => { setNewEntry(item); setIsModalOpen(true); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
                                                     <Edit size={16} />
                                                 </button>
-                                                <button className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
+                                                {canDelete && (activeTab === 'drivers' || activeTab === 'vehicles') && (
+                                                    <button
+                                                        onClick={() => handleDelete(item.id, activeTab)}
+                                                        className="btn-secondary"
+                                                        style={{ padding: '8px', borderRadius: '10px', color: '#EF4444', borderColor: '#EF4444' }}
+                                                        title={t('common.delete')}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                                {/* <button className="btn-secondary" style={{ padding: '8px', borderRadius: '10px' }}>
                                                     <MoreHorizontal size={16} />
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </td>
                                     </tr>
@@ -427,6 +510,17 @@ export const FleetManagement = () => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination for list tabs */}
+            {activeTab !== 'schedule' && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    pageSize={pageSize}
+                    onPageChange={setCurrentPage}
+                />
+            )}
 
             <Modal
                 isOpen={isModalOpen}

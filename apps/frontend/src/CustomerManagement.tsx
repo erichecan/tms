@@ -1,10 +1,12 @@
 
+
 import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Building2, Mail, Phone as PhoneIcon, MapPin, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
 import { useDialog } from './context/DialogContext';
+import { Pagination } from './components/Pagination';
 
 interface Customer {
     id: string;
@@ -25,15 +27,35 @@ export const CustomerManagement = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { confirm } = useDialog();
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
+
     const fetchCustomers = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/customers`, {
+            const queryParams = new URLSearchParams({
+                page: String(currentPage),
+                limit: String(pageSize),
+            });
+
+            const res = await fetch(`${API_BASE_URL}/customers?${queryParams.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                const data = await res.json();
-                setCustomers(data);
+                const result = await res.json();
+                // Check if result is paginated (object with data array) or legacy array
+                if (Array.isArray(result)) {
+                    setCustomers(result);
+                    setTotalItems(result.length);
+                    setTotalPages(1);
+                } else {
+                    setCustomers(result.data || []);
+                    setTotalItems(result.total || 0);
+                    setTotalPages(result.totalPages || 1);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch customers', error);
@@ -42,7 +64,7 @@ export const CustomerManagement = () => {
 
     useEffect(() => {
         fetchCustomers();
-    }, []);
+    }, [currentPage]); // Re-fetch on page change
 
     const handleAddClick = () => {
         setEditingCustomer({ status: 'ACTIVE' });
@@ -194,6 +216,14 @@ export const CustomerManagement = () => {
                     </tbody>
                 </table>
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+            />
 
             <Modal
                 isOpen={isModalOpen}

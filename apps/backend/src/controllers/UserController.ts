@@ -7,16 +7,48 @@ import * as bcrypt from 'bcrypt';
 const SALT_ROUNDS = 10;
 
 // --- Users ---
+// --- Users ---
 export const getUsers = async (req: Request, res: Response) => {
     try {
-        const result = await query('SELECT * FROM users');
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+        const search = (req.query.search as string || '').toLowerCase();
+
+        let params: any[] = [];
+        let whereClauses: string[] = [];
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(LOWER(name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length} OR LOWER(username) LIKE $${params.length})`);
+        }
+
+        const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        const countRes = await query(`SELECT COUNT(*) FROM users ${whereStr}`, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        const result = await query(`
+            SELECT * FROM users 
+            ${whereStr} 
+            ORDER BY created_at DESC 
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `, [...params, limit, offset]);
+
         // Filter out sensitive data
         const safeUsers = result.rows.map(u => ({
             ...u,
             password: undefined,
             roleId: u.roleid // normalizing for frontend
         }));
-        res.json(safeUsers);
+
+        res.json({
+            data: safeUsers,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (e) {
         res.status(500).json({ error: 'Failed to fetch users' });
     }

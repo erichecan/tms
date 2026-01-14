@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText } from 'lucide-react';
 import { WaybillActionMenu } from './components/WaybillActionMenu';
+import { Pagination } from './components/Pagination';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from './apiConfig';
 
@@ -242,46 +243,13 @@ export const WaybillsList = () => {
                     </table>
                 </div>
 
-                {/* Pagination */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '32px', padding: '0 8px' }}>
-                    <div style={{ color: 'var(--slate-500)', fontSize: '13px', fontWeight: 600 }}>
-                        {t('common.pagination.showing', { start: (currentPage - 1) * pageSize + 1, end: Math.min(currentPage * pageSize, totalItems), total: totalItems })}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className={`btn-secondary ${currentPage === 1 ? 'opacity-50 pointer-events-none' : ''}`}
-                            style={{ padding: '8px 16px', fontSize: '13px' }}
-                        >
-                            {t('common.pagination.previous')}
-                        </button>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                            {[...Array(totalPages)].map((_, i) => (
-                                <button
-                                    key={i + 1}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    style={{
-                                        width: '36px', height: '36px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-                                        background: currentPage === i + 1 ? 'var(--primary-grad)' : 'var(--slate-100)',
-                                        color: currentPage === i + 1 ? 'white' : 'var(--slate-600)',
-                                        fontWeight: 700, fontSize: '13px', transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
-                        </div>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className={`btn-secondary ${currentPage === totalPages ? 'opacity-50 pointer-events-none' : ''}`}
-                            style={{ padding: '8px 16px', fontSize: '13px' }}
-                        >
-                            {t('common.pagination.next')}
-                        </button>
-                    </div>
-                </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    pageSize={pageSize}
+                    onPageChange={setCurrentPage}
+                />
             </div>
 
             {/* Assignment Modal */}
