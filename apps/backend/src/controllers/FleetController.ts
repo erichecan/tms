@@ -13,7 +13,7 @@ export const getDrivers = async (req: Request, res: Response) => {
                 COALESCE(u.name, d.name) as name,
                 COALESCE(d.phone, '') as phone,
                 COALESCE(d.status, 'IDLE') as status,
-                COALESCE(u.avatar_url, d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url
+                COALESCE(d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url
             FROM drivers d
             FULL OUTER JOIN users u ON d.id = u.id
             WHERE d.id IS NOT NULL OR u.roleid IN ('R-DRIVER', 'driver')
