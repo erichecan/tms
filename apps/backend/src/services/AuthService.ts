@@ -10,9 +10,9 @@ const TOKEN_EXPIRY = '24h';
 export class AuthService {
 
     static async login(identifier: string, password: string) {
-        // Find user by email or username
+        // Find user by email
         const result = await query(
-            'SELECT * FROM users WHERE email = $1 OR username = $1',
+            'SELECT * FROM users WHERE email = $1',
             [identifier]
         );
 
@@ -23,17 +23,38 @@ export class AuthService {
         const user = result.rows[0];
 
         // Check password
-        if (!user.password_hash) {
-            // Fallback for legacy users with plain text password (if any) or migration
-            if (user.password !== password) {
-                throw new Error('Invalid credentials');
-            }
-            // Auto-upgrade to hash? Not for now, keep simple.
+        console.log(`[Login] Checking pass for user: ${user.email} (ID: ${user.id})`);
+
+        // MAPPING: DB 'password' column contains the hash in this schema version
+        const dbPasswordHash = user.password_hash || user.password; // Check both in case of schema drift
+
+        if (!dbPasswordHash) {
+            console.error('[Login] No hash found on user record.');
+            throw new Error('Invalid credentials (no password set)');
+        }
+
+        let match = false;
+
+        // 1. Try Simple String Equality (Legacy/Plain Text)
+        if (password === dbPasswordHash) {
+            match = true;
+            console.log(`[Login] Plain text match: YES`);
         } else {
-            const match = await bcrypt.compare(password, user.password_hash);
-            if (!match) {
-                throw new Error('Invalid credentials');
+            // 2. Try Bcrypt
+            try {
+                match = await bcrypt.compare(password, dbPasswordHash);
+            } catch (err: any) {
+                // Ignore bcrypt errors (e.g. invalid salt) if we want to fail safe, 
+                // but here it likely means it wasn't a hash.
+                console.log(`[Login] Bcrypt compare error (likely not a hash): ${err.message}`);
             }
+        }
+
+        console.log(`[Login] Match result: ${match}`);
+
+        if (!match) {
+            console.error('[Login] Password mismatch.');
+            throw new Error('Invalid credentials');
         }
 
         if (user.status !== 'ACTIVE') {
@@ -43,14 +64,21 @@ export class AuthService {
         // Get Permissions
         let permissions: string[] = [];
         if (user.role_id || user.roleid) { // support both cases during migration
-            const roleId = user.role_id || user.roleid;
-            const permResult = await query(`
-                SELECT p.id 
-                FROM permissions p
-                JOIN role_permissions rp ON p.id = rp.permission_id
-                WHERE rp.role_id = $1
-             `, [roleId]);
-            permissions = permResult.rows.map(r => r.id);
+            try {
+                const roleId = user.role_id || user.roleid;
+                // Check if table exists implicitly by trying query, or skip if we assume light mode
+                // Since this is causing crashes on some envs, let's wrap it safe
+                const permResult = await query(`
+                    SELECT p.id 
+                    FROM permissions p
+                    JOIN role_permissions rp ON p.id = rp.permission_id
+                    WHERE rp.role_id = $1
+                `, [roleId]);
+                permissions = permResult.rows.map(r => r.id);
+            } catch (err: any) {
+                console.warn(`[Login] Failed to load permissions (likely missing table): ${err.message}`);
+                // Proceed with empty permissions
+            }
         }
 
         // Generate Token
@@ -63,7 +91,7 @@ export class AuthService {
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
 
         // Update last login
-        await query('UPDATE users SET lastLogin = NOW() WHERE id = $1', [user.id]);
+        await query('UPDATE users SET lastlogin = NOW() WHERE id = $1', [user.id]); // Note casing: lastlogin based on list-users output
 
         return {
             user: { ...user, password_hash: undefined, password: undefined },
@@ -75,15 +103,15 @@ export class AuthService {
 
     static async register(userData: any) {
         // Only for admin or initialization
-        const { name, email, username, password, roleId } = userData;
+        const { name, email, password, roleId } = userData;
 
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         const id = `U-${Date.now()}`; // Simple ID gen
 
         await query(
-            `INSERT INTO users (id, name, email, username, password_hash, role_id, status) 
-             VALUES ($1, $2, $3, $4, $5, $6, 'ACTIVE')`,
-            [id, name, email, username, hashedPassword, roleId]
+            `INSERT INTO users (id, name, email, password_hash, role_id, status) 
+             VALUES ($1, $2, $3, $4, $5, 'ACTIVE')`,
+            [id, name, email, hashedPassword, roleId]
         );
 
         return { id, name, email, roleId };

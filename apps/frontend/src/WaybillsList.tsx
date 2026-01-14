@@ -125,7 +125,7 @@ export const WaybillsList = () => {
                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
                             >
-                                {status === 'ALL' ? 'ALL' : status.replace('_', ' ')}
+                                {t(`status.${status}`)}
                             </button>
                         ))}
                     </div>
@@ -172,7 +172,7 @@ export const WaybillsList = () => {
                                     </td>
                                     <td style={{ padding: '20px', fontWeight: 900, fontSize: '15px' }}>${wb.price_estimated}</td>
                                     <td style={{ padding: '20px' }}>
-                                        <span className={`badge ${getStatusColor(wb.status)}`} style={{ fontSize: '11px', fontWeight: 800 }}>{wb.status}</span>
+                                        <span className={`badge ${getStatusColor(wb.status)}`} style={{ fontSize: '11px', fontWeight: 800 }}>{t(`status.${wb.status}`)}</span>
                                     </td>
                                     <td style={{ padding: '20px', color: 'var(--slate-500)', fontSize: '13px', fontWeight: 600 }}>
                                         {new Date(wb.created_at).toLocaleDateString()}
@@ -196,7 +196,7 @@ export const WaybillsList = () => {
                 {/* Pagination */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '32px', padding: '0 8px' }}>
                     <div style={{ color: 'var(--slate-500)', fontSize: '13px', fontWeight: 600 }}>
-                        Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} waybills
+                        {t('common.pagination.showing', { start: (currentPage - 1) * pageSize + 1, end: Math.min(currentPage * pageSize, totalItems), total: totalItems })}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
@@ -205,7 +205,7 @@ export const WaybillsList = () => {
                             className={`btn-secondary ${currentPage === 1 ? 'opacity-50 pointer-events-none' : ''}`}
                             style={{ padding: '8px 16px', fontSize: '13px' }}
                         >
-                            Previous
+                            {t('common.pagination.previous')}
                         </button>
                         <div style={{ display: 'flex', gap: '4px' }}>
                             {[...Array(totalPages)].map((_, i) => (
@@ -229,7 +229,7 @@ export const WaybillsList = () => {
                             className={`btn-secondary ${currentPage === totalPages ? 'opacity-50 pointer-events-none' : ''}`}
                             style={{ padding: '8px 16px', fontSize: '13px' }}
                         >
-                            Next
+                            {t('common.pagination.next')}
                         </button>
                     </div>
                 </div>

@@ -28,7 +28,7 @@ export const Settings = () => {
         e.preventDefault();
         setPasswordStatus(null);
         if (newPassword !== confirmPassword) {
-            setPasswordStatus({ type: 'error', message: 'New passwords do not match' });
+            setPasswordStatus({ type: 'error', message: t('settings.security.mismatch') });
             return;
         }
 
@@ -48,7 +48,7 @@ export const Settings = () => {
                 throw new Error(data.error || 'Failed to change password');
             }
 
-            setPasswordStatus({ type: 'success', message: 'Password changed successfully' });
+            setPasswordStatus({ type: 'success', message: t('settings.security.success') });
             setOldPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -59,7 +59,7 @@ export const Settings = () => {
 
     const renderProfile = () => (
         <div className="glass-card" style={{ animation: 'fadeIn 0.3s' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 24px', paddingBottom: '16px', borderBottom: '1px solid var(--glass-border)' }}>Profile Information</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 24px', paddingBottom: '16px', borderBottom: '1px solid var(--glass-border)' }}>{t('settings.profile.title')}</h2>
 
             <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', marginBottom: '32px' }}>
                 <div style={{ width: '96px', height: '96px', borderRadius: '24px', background: 'var(--slate-50)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-start)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
@@ -68,15 +68,15 @@ export const Settings = () => {
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Full Name</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('settings.profile.fullName')}</label>
                             <input defaultValue={user?.name} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Role</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('settings.profile.role')}</label>
                             <input disabled defaultValue={user?.roleId} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-100)', color: 'var(--slate-500)', fontWeight: 600 }} />
                         </div>
                         <div style={{ gridColumn: 'span 2' }}>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Email Address</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('settings.profile.email')}</label>
                             <input defaultValue={user?.email} disabled style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-100)', color: 'var(--slate-500)', fontWeight: 600 }} />
                         </div>
                     </div>
@@ -85,18 +85,18 @@ export const Settings = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '24px', borderTop: '1px solid var(--glass-border)' }}>
                 <button className="btn-primary" style={{ padding: '12px 32px' }}>
-                    <Save size={18} /> Save Profile Changes
+                    <Save size={18} /> {t('settings.profile.save')}
                 </button>
             </div>
 
-            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '32px 0 24px', paddingBottom: '16px', borderBottom: '1px solid var(--glass-border)' }}>Company Management</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '32px 0 24px', paddingBottom: '16px', borderBottom: '1px solid var(--glass-border)' }}>{t('settings.company.title')}</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Company Legal Name</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('settings.company.legalName')}</label>
                     <input defaultValue="Apony Group" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>Registered Address</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('settings.company.address')}</label>
                     <textarea defaultValue="123 Logistics Way, Toronto, ON" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} rows={3} />
                 </div>
             </div>
@@ -110,8 +110,8 @@ export const Settings = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '12px', background: 'var(--slate-50)', border: '1px solid var(--glass-border)' }}>
                     <div>
-                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>Order Updates via Email</div>
-                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>Receive emails when waybill status changes.</div>
+                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{t('settings.notifications.emailOrder')}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{t('settings.notifications.emailOrderDesc')}</div>
                     </div>
                     <label className="switch">
                         <input type="checkbox" checked={notifPreferences.emailOrderUpdates} onChange={e => setNotifPreferences({ ...notifPreferences, emailOrderUpdates: e.target.checked })} />
@@ -121,8 +121,8 @@ export const Settings = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '12px', background: 'var(--slate-50)', border: '1px solid var(--glass-border)' }}>
                     <div>
-                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>Marketing Emails</div>
-                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>Receive news and feature updates.</div>
+                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{t('settings.notifications.emailMarketing')}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{t('settings.notifications.emailMarketingDesc')}</div>
                     </div>
                     <label className="switch">
                         <input type="checkbox" checked={notifPreferences.emailMarketing} onChange={e => setNotifPreferences({ ...notifPreferences, emailMarketing: e.target.checked })} />
@@ -132,8 +132,8 @@ export const Settings = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '12px', background: 'var(--slate-50)', border: '1px solid var(--glass-border)' }}>
                     <div>
-                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>SMS Delivery Alerts</div>
-                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>Get text messages for critical deliveries.</div>
+                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{t('settings.notifications.smsDelivery')}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{t('settings.notifications.smsDeliveryDesc')}</div>
                     </div>
                     <label className="switch">
                         <input type="checkbox" checked={notifPreferences.smsDelivery} onChange={e => setNotifPreferences({ ...notifPreferences, smsDelivery: e.target.checked })} />
@@ -143,8 +143,8 @@ export const Settings = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '12px', background: 'var(--slate-50)', border: '1px solid var(--glass-border)' }}>
                     <div>
-                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>Security Alerts (SMS)</div>
-                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>Get notified of suspicious login attempts.</div>
+                        <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{t('settings.notifications.smsSecurity')}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{t('settings.notifications.smsSecurityDesc')}</div>
                     </div>
                     <label className="switch">
                         <input type="checkbox" checked={notifPreferences.smsSecurity} onChange={e => setNotifPreferences({ ...notifPreferences, smsSecurity: e.target.checked })} />
@@ -154,7 +154,7 @@ export const Settings = () => {
             </div>
 
             <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn-primary" style={{ padding: '10px 24px' }} onClick={() => alert('Preferences Saved!')}>Save Preferences</button>
+                <button className="btn-primary" style={{ padding: '10px 24px' }} onClick={() => alert(t('settings.notifications.saved'))}>{t('settings.notifications.save')}</button>
             </div>
         </div>
     );
@@ -164,7 +164,7 @@ export const Settings = () => {
             <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 24px', paddingBottom: '16px', borderBottom: '1px solid var(--glass-border)' }}>{t('settings.security')}</h2>
 
             <form onSubmit={handlePasswordChange} style={{ maxWidth: '500px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--slate-700)', marginBottom: '16px' }}>Change Password</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--slate-700)', marginBottom: '16px' }}>{t('settings.security.changePassword')}</h3>
 
                 {passwordStatus && (
                     <div style={{
@@ -180,25 +180,25 @@ export const Settings = () => {
                 )}
 
                 <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Current Password</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('settings.security.currentPassword')}</label>
                     <input type="password" required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }}
                         value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>New Password</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('settings.security.newPassword')}</label>
                     <input type="password" required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }}
                         value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                 </div>
 
                 <div style={{ marginBottom: '24px' }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Confirm New Password</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('settings.security.confirmPassword')}</label>
                     <input type="password" required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }}
                         value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <button type="submit" className="btn-primary" style={{ padding: '10px 24px' }}>Update Password</button>
+                    <button type="submit" className="btn-primary" style={{ padding: '10px 24px' }}>{t('settings.security.update')}</button>
                 </div>
             </form>
         </div>
@@ -249,17 +249,17 @@ export const Settings = () => {
 
     return (
         <div style={{ paddingBottom: '40px', animation: 'fadeIn 0.5s ease-out' }}>
-            <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>Settings</h1>
-            <p style={{ margin: '0 0 32px', color: 'var(--slate-500)', fontSize: '14px' }}>Manage your account and preferences with secure global configurations.</p>
+            <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>{t('settings.title')}</h1>
+            <p style={{ margin: '0 0 32px', color: 'var(--slate-500)', fontSize: '14px' }}>{t('settings.subtitle')}</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '32px' }}>
                 {/* Sidebar Navigation */}
                 <div className="glass" style={{ padding: '12px', height: 'fit-content' }}>
                     {[
-                        { id: 'Profile', icon: User, label: 'Profile Information' },
-                        { id: 'Notifications', icon: Bell, label: 'Notifications' },
-                        { id: 'Security', icon: Shield, label: 'Security & Access' },
-                        { id: 'Language', icon: Globe, label: 'Localization' }
+                        { id: 'Profile', icon: User, label: t('settings.tabs.profile') },
+                        { id: 'Notifications', icon: Bell, label: t('settings.tabs.notifications') },
+                        { id: 'Security', icon: Shield, label: t('settings.tabs.security') },
+                        { id: 'Language', icon: Globe, label: t('settings.tabs.language') }
                     ].map((item) => {
                         const isActive = activeTab === item.id;
                         return (

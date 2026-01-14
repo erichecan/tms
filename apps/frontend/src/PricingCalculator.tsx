@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Calculator,
     MapPin,
@@ -15,6 +16,7 @@ import { calculatePrice, type PricingResult } from './services/pricingService';
 import { createPlacesAutocomplete } from './services/mapsService';
 
 export const PricingCalculator: React.FC = () => {
+    const { t } = useTranslation();
     const [pickup, setPickup] = useState<any>(null);
     const [delivery, setDelivery] = useState<any>(null);
     const [businessType, setBusinessType] = useState('STANDARD');
@@ -57,7 +59,7 @@ export const PricingCalculator: React.FC = () => {
 
     const handleCalculate = async () => {
         if (!pickup || !delivery) {
-            setError('Please select both pickup and delivery addresses');
+            setError(t('pricing.errors.missingAddress'));
             return;
         }
         setLoading(true);
@@ -71,7 +73,7 @@ export const PricingCalculator: React.FC = () => {
             });
             setResult(res);
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Pricing Engine Timeout. Check your API configuration.');
+            setError(err.response?.data?.error || t('pricing.errors.timeout'));
         } finally {
             setLoading(false);
         }
@@ -81,10 +83,10 @@ export const PricingCalculator: React.FC = () => {
         <div style={{ paddingBottom: '40px', animation: 'fadeIn 0.5s ease-out' }}>
             <div style={{ marginBottom: '32px' }}>
                 <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>
-                    Intelligent Price Calculator
+                    {t('pricing.title')}
                 </h1>
                 <p style={{ margin: 0, color: 'var(--slate-500)', fontSize: '14px' }}>
-                    Real-time logistics cost estimation powered by Global Rule Engine.
+                    {t('pricing.subtitle')}
                 </p>
             </div>
 
@@ -94,20 +96,20 @@ export const PricingCalculator: React.FC = () => {
                 <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
                         <Navigation size={20} color="var(--primary-start)" />
-                        <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Route Parameters</h2>
+                        <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('pricing.routeParams')}</h2>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div>
                             <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                Pickup Location
+                                {t('pricing.pickup')}
                             </label>
                             <div style={{ position: 'relative' }}>
                                 <MapPin size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-start)' }} />
                                 <input
                                     ref={pickupInputRef}
                                     className="glass"
-                                    placeholder="Enter origin address..."
+                                    placeholder={t('pricing.pickupPlaceholder')}
                                     style={{ width: '100%', padding: '14px 14px 14px 40px', borderRadius: '14px', border: '1px solid var(--glass-border)', fontWeight: 600, fontSize: '14px' }}
                                 />
                             </div>
@@ -115,14 +117,14 @@ export const PricingCalculator: React.FC = () => {
 
                         <div>
                             <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                Delivery Destination
+                                {t('pricing.delivery')}
                             </label>
                             <div style={{ position: 'relative' }}>
                                 <ArrowRight size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#10b981' }} />
                                 <input
                                     ref={deliveryInputRef}
                                     className="glass"
-                                    placeholder="Enter destination address..."
+                                    placeholder={t('pricing.deliveryPlaceholder')}
                                     style={{ width: '100%', padding: '14px 14px 14px 40px', borderRadius: '14px', border: '1px solid var(--glass-border)', fontWeight: 600, fontSize: '14px' }}
                                 />
                             </div>
@@ -131,7 +133,7 @@ export const PricingCalculator: React.FC = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                    Business Type
+                                    {t('pricing.businessType')}
                                 </label>
                                 <select
                                     value={businessType}
@@ -139,14 +141,14 @@ export const PricingCalculator: React.FC = () => {
                                     className="glass"
                                     style={{ width: '100%', padding: '14px', borderRadius: '14px', border: '1px solid var(--glass-border)', fontWeight: 600, fontSize: '14px', outline: 'none' }}
                                 >
-                                    <option value="STANDARD">Standard Delivery</option>
-                                    <option value="WASTE_COLLECTION">Waste Collection</option>
-                                    <option value="WAREHOUSE_TRANSFER">Warehouse Transfer</option>
+                                    <option value="STANDARD">{t('pricing.types.standard')}</option>
+                                    <option value="WASTE_COLLECTION">{t('pricing.types.waste')}</option>
+                                    <option value="WAREHOUSE_TRANSFER">{t('pricing.types.warehouse')}</option>
                                 </select>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                    Waiting Window (min)
+                                    {t('pricing.waiting')}
                                 </label>
                                 <div style={{ position: 'relative' }}>
                                     <Clock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
@@ -176,13 +178,13 @@ export const PricingCalculator: React.FC = () => {
                         style={{ width: '100%', padding: '16px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontSize: '16px' }}
                     >
                         {loading ? <div className="spinner-small"></div> : <Calculator size={20} />}
-                        {loading ? 'Analyzing Market Rates...' : 'Calculate Quote'}
+                        {loading ? t('pricing.analyzing') : t('pricing.calculate')}
                     </button>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                         <Info size={14} color="var(--slate-400)" />
                         <span style={{ fontSize: '12px', color: 'var(--slate-400)', fontWeight: 500 }}>
-                            Estimates include distance surcharges and current fuel levels.
+                            {t('pricing.disclaimer')}
                         </span>
                     </div>
                 </div>
@@ -201,7 +203,7 @@ export const PricingCalculator: React.FC = () => {
                         textAlign: 'center'
                     }}>
                         <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.1em', marginBottom: '8px' }}>
-                            Estimated Shipment Total
+                            {t('pricing.estimatedTotal')}
                         </span>
                         <div style={{ fontSize: '48px', fontWeight: 900, marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                             {result ? (
@@ -229,7 +231,7 @@ export const PricingCalculator: React.FC = () => {
 
                     <div className="glass-card" style={{ flex: 1 }}>
                         <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '20px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px' }}>
-                            Cost Breakdown
+                            {t('pricing.breakdown')}
                         </h3>
 
                         {result ? (
@@ -259,7 +261,7 @@ export const PricingCalculator: React.FC = () => {
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px 0', color: 'var(--slate-300)', gap: '12px' }}>
                                 <DollarSign size={40} opacity={0.2} />
-                                <p style={{ fontSize: '14px', fontWeight: 600 }}>Awaiting parameters...</p>
+                                <p style={{ fontSize: '14px', fontWeight: 600 }}>{t('pricing.awaiting')}</p>
                             </div>
                         )}
                     </div>

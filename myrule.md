@@ -71,3 +71,10 @@ description: TMS 项目配置经验和调试规则
     - 方法2: 本地连接生产数据库执行 SQL
     - 方法3: 在 Cloud Build 中启用迁移步骤并配置正确的权限
     - **警告**: 未运行迁移会导致 API 查询失败（表或列不存在）
+
+## 4. Root Cause Analysis & Prevention
+### The "Column 'username' does not exist" Incident
+**Context**: Login failed with 500/401 because the code queried `username` but the DB only had `email`.
+**Cause**: Developer assumed a standard schema (username/email) without checking the actual live database structure.
+**Fix**: Updated `AuthService` to query only by `email`.
+**Rule**: **Schema Verification First**. Before writing any SELECT/INSERT statement, **must RUN a query** (like `SELECT * FROM table LIMIT 1`) or check schema docs to confirm exact column names. Do not guess. Do not assume `username` exists. `email` is the preferred unique identifier.

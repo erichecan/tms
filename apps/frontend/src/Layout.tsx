@@ -57,18 +57,18 @@ export const Layout = () => {
 
     // Role name mapping
     const getRoleName = (roleId: string | undefined): string => {
-        if (!roleId) return 'User';
+        if (!roleId) return t('roles.user');
         const roleMap: Record<string, string> = {
-            'R-ADMIN': 'Administrator',
-            'ADMIN': 'Administrator',
-            'R-DISPATCHER': 'Dispatcher',
-            'DISPATCHER': 'Dispatcher',
-            'R-DRIVER': 'Driver',
-            'DRIVER': 'Driver',
-            'R-FINANCE': 'Finance Manager',
-            'FINANCE': 'Finance Manager',
-            'GENERAL_MANAGER': 'General Manager',
-            'FLEET_MANAGER': 'Fleet Manager'
+            'R-ADMIN': t('roles.admin'),
+            'ADMIN': t('roles.admin'),
+            'R-DISPATCHER': t('roles.dispatcher'),
+            'DISPATCHER': t('roles.dispatcher'),
+            'R-DRIVER': t('roles.driver'),
+            'DRIVER': t('roles.driver'),
+            'R-FINANCE': t('roles.finance'),
+            'FINANCE': t('roles.finance'),
+            'GENERAL_MANAGER': t('roles.generalManager'),
+            'FLEET_MANAGER': t('roles.fleetManager')
         };
         return roleMap[roleId] || roleId;
     };
@@ -88,26 +88,26 @@ export const Layout = () => {
 
                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.operations')}</div>
 
-                    {canViewCustomers && <SidebarItem to="/customers" icon={Users} label="Customers" />}
+                    {canViewCustomers && <SidebarItem to="/customers" icon={Users} label={t('sidebar.customers')} />}
                     {canViewWaybills && <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />}
                     {canViewFleet && <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />}
                     <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
 
                     {canViewFinance && (
                         <>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
-                            <SidebarItem to="/finance" icon={DollarSign} label="Financial Overview" />
-                            <SidebarItem to="/finance/receivables" icon={FileText} label="Receivables" />
-                            <SidebarItem to="/finance/payables" icon={FileText} label="Payables" />
-                            <SidebarItem to="/pricing" icon={DollarSign} label="Price Calculator" />
-                            <SidebarItem to="/rules" icon={ShieldCheck} label="Universal Rules" />
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.finance')}</div>
+                            <SidebarItem to="/finance" icon={DollarSign} label={t('sidebar.financialOverview')} />
+                            <SidebarItem to="/finance/receivables" icon={FileText} label={t('sidebar.receivables')} />
+                            <SidebarItem to="/finance/payables" icon={FileText} label={t('sidebar.payables')} />
+                            <SidebarItem to="/pricing" icon={DollarSign} label={t('sidebar.priceCalculator')} />
+                            <SidebarItem to="/rules" icon={ShieldCheck} label={t('sidebar.universalRules')} />
                         </>
                     )}
                 </nav>
 
                 <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px', marginTop: '24px' }}>
-                    {canViewUsers && <SidebarItem to="/users" icon={Users} label="User Management" />}
-                    {isAdmin && <SidebarItem to="/roles" icon={ShieldCheck} label="Role Management" />}
+                    {canViewUsers && <SidebarItem to="/users" icon={Users} label={t('sidebar.userManagement')} />}
+                    {isAdmin && <SidebarItem to="/roles" icon={ShieldCheck} label={t('sidebar.roleManagement')} />}
                     <SidebarItem to="/settings" icon={Settings} label={t('sidebar.settings')} />
                     <div onClick={handleLogout} style={{
                         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
@@ -115,7 +115,7 @@ export const Layout = () => {
                         cursor: 'pointer', borderRadius: '12px', transition: 'all 0.2s'
                     }} className="table-row-hover">
                         <LogOut size={18} />
-                        <span>Sign Out</span>
+                        <span>{t('common.signOut')}</span>
                     </div>
                 </div>
             </aside>
@@ -129,7 +129,7 @@ export const Layout = () => {
                 }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>
-                            {isDashboard ? t('dashboard.welcome', { name: user?.name || 'User' }) : 'Control Center'}
+                            {isDashboard ? t('dashboard.welcome', { name: user?.name || t('common.user') }) : t('dashboard.controlCenter')}
                         </h1>
                         {isDashboard && <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('dashboard.subtitle')}</p>}
                     </div>
@@ -137,7 +137,7 @@ export const Layout = () => {
                     <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                         <div className="glass" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px', width: '280px' }}>
                             <Search size={16} color="var(--slate-400)" />
-                            <input placeholder="Search records..." style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--slate-900)', fontSize: '14px', width: '100%' }} />
+                            <input placeholder={t('common.searchPlaceholder')} style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--slate-900)', fontSize: '14px', width: '100%' }} />
                         </div>
                         <div className="glass" style={{ width: 40, height: 40, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                             <Bell size={18} color="var(--slate-500)" />
@@ -145,7 +145,7 @@ export const Layout = () => {
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ textAlign: 'right' }}>
-                                <div style={{ color: 'var(--slate-900)', fontSize: '14px', fontWeight: 700 }}>{user?.name || 'User'}</div>
+                                <div style={{ color: 'var(--slate-900)', fontSize: '14px', fontWeight: 700 }}>{user?.name || t('common.user')}</div>
                                 <div style={{ color: 'var(--primary-start)', fontSize: '10px', fontWeight: 800 }}>{getRoleName(user?.roleId)}</div>
                             </div>
                             <div style={{ width: 44, height: 44, borderRadius: '14px', background: 'white', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

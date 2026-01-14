@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
 import { useDialog } from './context/DialogContext';
@@ -14,6 +15,7 @@ interface FinancialRecord {
 }
 
 export const FinanceReceivables = () => {
+    const { t } = useTranslation();
     const { alert } = useDialog();
     const [records, setRecords] = useState<FinancialRecord[]>([]);
     const [loading, setLoading] = useState(false);
@@ -34,13 +36,13 @@ export const FinanceReceivables = () => {
     return (
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Accounts Receivable</h2>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{t('finance.receivable.title')}</h2>
                 <button
-                    onClick={() => alert('Feature coming soon: Generate Statement', 'Coming Soon')}
+                    onClick={() => alert(t('common.comingSoon', { feature: t('common.generateStatement') }), 'Coming Soon')}
                     className="btn-secondary"
                     style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                    <Plus size={18} /> Generate Statement
+                    <Plus size={18} /> {t('common.generateStatement')}
                 </button>
             </div>
 
@@ -48,19 +50,19 @@ export const FinanceReceivables = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
                         <tr>
-                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>ID</th>
-                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>CUSTOMER</th>
-                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>AMOUNT</th>
-                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>STATUS</th>
-                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>DATE</th>
-                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>ACTION</th>
+                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>{t('finance.table.id')}</th>
+                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>{t('finance.table.customer')}</th>
+                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>{t('finance.table.amount')}</th>
+                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>{t('finance.table.status')}</th>
+                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>{t('finance.table.date')}</th>
+                            <th style={{ padding: '16px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>{t('finance.table.action')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF' }}>Loading...</td></tr>
+                            <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF' }}>{t('common.loading')}</td></tr>
                         ) : records.length === 0 ? (
-                            <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF' }}>No records found</td></tr>
+                            <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF' }}>{t('common.noRecords')}</td></tr>
                         ) : (
                             records.map(record => (
                                 <tr key={record.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
@@ -83,7 +85,7 @@ export const FinanceReceivables = () => {
                                     </td>
                                     <td style={{ padding: '16px' }}>
                                         <button style={{ color: '#2563EB', background: 'none', border: 'none', fontWeight: 500, cursor: 'pointer' }}>
-                                            View
+                                            {t('menu.view')}
                                         </button>
                                     </td>
                                 </tr>

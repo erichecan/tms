@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import Modal from '../../components/Modal/Modal';
 import { API_BASE_URL } from '../../apiConfig';
@@ -18,6 +19,7 @@ interface Permission {
 }
 
 export const RoleManagement = () => {
+    const { t } = useTranslation();
     const [roles, setRoles] = useState<Role[]>([]);
     const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,10 +76,10 @@ export const RoleManagement = () => {
 
     const handleDelete = async (_id: string) => {
         // Deleting roles is dangerous if users assigned. Should check first.
-        const ok = await confirm('Deleting a role might invalid permissions for assigned users. Continue?', 'Delete Role');
+        const ok = await confirm(t('rolePage.deleteConfirm'), t('rolePage.deleteTitle'));
         if (!ok) return;
         // API not implemented in this demo for delete role, but easy to add.
-        alert("Delete not implemented for safety in this demo.");
+        alert(t('rolePage.deleteNotImpl'));
     };
 
     const modules = Array.from(new Set(allPermissions.map(p => p.module)));
@@ -86,15 +88,15 @@ export const RoleManagement = () => {
         <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>Role & Permissions</h1>
-                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Define access levels and granular controls.</p>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>{t('rolePage.title')}</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('rolePage.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => { setEditingRole({ permissionIds: [] }); setIsModalOpen(true); }}
                     className="btn-primary"
                     style={{ padding: '12px 24px' }}
                 >
-                    <Plus size={20} /> Create Role
+                    <Plus size={20} /> {t('rolePage.create')}
                 </button>
             </div>
 
@@ -102,10 +104,10 @@ export const RoleManagement = () => {
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0' }}>
                     <thead>
                         <tr style={{ background: 'var(--slate-50)' }}>
-                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Role Name</th>
-                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Description</th>
-                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Permissions Count</th>
-                            <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Actions</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t('rolePage.table.name')}</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t('rolePage.table.desc')}</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t('rolePage.table.count')}</th>
+                            <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t('rolePage.table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -114,7 +116,7 @@ export const RoleManagement = () => {
                                 <td style={{ padding: '20px 24px', fontWeight: 700, color: 'var(--slate-900)' }}>{r.name}</td>
                                 <td style={{ padding: '20px 24px', color: 'var(--slate-500)', fontSize: '13px' }}>{r.description}</td>
                                 <td style={{ padding: '20px 24px' }}>
-                                    <span className="badge-blue">{r.permissions?.length || 0} Access Points</span>
+                                    <span className="badge-blue">{t('rolePage.accessPoints', { count: r.permissions?.length || 0 })}</span>
                                 </td>
                                 <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -138,19 +140,19 @@ export const RoleManagement = () => {
                 </table>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingRole.id ? 'Edit Role' : 'Create Role'}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingRole.id ? t('rolePage.modal.edit') : t('rolePage.modal.create')}>
                 <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Role Name</label>
-                        <input required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingRole.name || ''} onChange={e => setEditingRole({ ...editingRole, name: e.target.value })} placeholder="e.g. Flight Dispatcher" />
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('rolePage.modal.roleName')}</label>
+                        <input required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingRole.name || ''} onChange={e => setEditingRole({ ...editingRole, name: e.target.value })} placeholder={t('rolePage.modal.placeholderName')} />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Description</label>
-                        <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingRole.description || ''} onChange={e => setEditingRole({ ...editingRole, description: e.target.value })} placeholder="Role responsibilities..." />
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('rolePage.modal.desc')}</label>
+                        <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }} value={editingRole.description || ''} onChange={e => setEditingRole({ ...editingRole, description: e.target.value })} placeholder={t('rolePage.modal.placeholderDesc')} />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', marginBottom: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Permissions Configuration</label>
+                        <label style={{ display: 'block', marginBottom: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('rolePage.modal.permissions')}</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             {modules.map(mod => (
                                 <div key={mod} style={{ background: 'var(--slate-50)', padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
@@ -180,8 +182,8 @@ export const RoleManagement = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                        <button type="submit" className="btn-primary" style={{ flex: 1 }}>Save Configuration</button>
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ flex: 1 }}>{t('common.cancel')}</button>
+                        <button type="submit" className="btn-primary" style={{ flex: 1 }}>{t('rolePage.modal.save')}</button>
                     </div>
                 </form>
             </Modal>

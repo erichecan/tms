@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, Eye, Edit, FileText, Download, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../apiConfig';
 import { useDialog } from '../context/DialogContext';
 
@@ -16,7 +17,9 @@ export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProp
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const navigate = useNavigate();
+
     const { confirm } = useDialog();
+    const { t } = useTranslation();
 
     const toggleMenu = () => {
         if (!isOpen && buttonRef.current) {
@@ -54,7 +57,7 @@ export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProp
                 window.open(`${API_BASE_URL}/waybills/${waybillId}/bol`, '_blank');
                 break;
             case 'delete':
-                confirm('Are you sure you want to permanently delete this waybill? This action cannot be undone.', 'Delete Waybill').then(ok => {
+                confirm(t('waybill.menu.deleteConfirm'), t('waybill.menu.deleteTitle')).then(ok => {
                     if (ok) onDelete?.();
                 });
                 break;
@@ -84,11 +87,11 @@ export const WaybillActionMenu = ({ waybillId, onDelete }: WaybillActionMenuProp
                         : '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                     zIndex: 100, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '4px'
                 }}>
-                    <MenuOption icon={<Eye size={16} />} label="View Details" onClick={() => handleAction('view')} />
-                    <MenuOption icon={<Edit size={16} />} label="Edit Waybill" onClick={() => handleAction('edit')} />
-                    <MenuOption icon={<Download size={16} />} label="Download PDF" onClick={() => handleAction('pdf')} />
-                    <MenuOption icon={<FileText size={16} />} label="Generate BOL" onClick={() => handleAction('bol')} />
-                    {onDelete && <MenuOption icon={<Trash size={16} />} label="Delete" color="#ef4444" onClick={() => handleAction('delete')} />}
+                    <MenuOption icon={<Eye size={16} />} label={t('waybill.menu.view')} onClick={() => handleAction('view')} />
+                    <MenuOption icon={<Edit size={16} />} label={t('waybill.menu.edit')} onClick={() => handleAction('edit')} />
+                    <MenuOption icon={<Download size={16} />} label={t('waybill.menu.pdf')} onClick={() => handleAction('pdf')} />
+                    <MenuOption icon={<FileText size={16} />} label={t('waybill.menu.bol')} onClick={() => handleAction('bol')} />
+                    {onDelete && <MenuOption icon={<Trash size={16} />} label={t('waybill.menu.delete')} color="#ef4444" onClick={() => handleAction('delete')} />}
                 </div>
             )}
         </div>

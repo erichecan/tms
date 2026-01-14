@@ -20,7 +20,7 @@ echo "🚀 Starting Parallel Deployment for TMS V2 on PROJECT: $PROJECT_ID..."
 
 # 1. Build and Push Backend
 echo "🏗️ Building Backend Image..."
-docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG -f legacy_ref/docker/backend/Dockerfile .
+docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG -f docker/backend/Dockerfile .
 echo "📤 Pushing Backend Image..."
 docker push gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG
 
@@ -47,8 +47,9 @@ echo "✅ New Backend URL: $BACKEND_URL"
 echo "🏗️ Building Frontend Image..."
 docker build --platform linux/amd64 \
     --build-arg VITE_API_BASE_URL=$BACKEND_URL \
+    --build-arg VITE_GOOGLE_MAPS_API_KEY=AIzaSyD26kTVaKAlJu3Rc6_bqP9VjLh-HEDmBRs \
     -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG \
-    -f legacy_ref/docker/frontend/Dockerfile .
+    -f docker/frontend/Dockerfile .
 echo "📤 Pushing Frontend Image..."
 docker push gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG
 

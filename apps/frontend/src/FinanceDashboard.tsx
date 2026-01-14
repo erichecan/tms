@@ -1,9 +1,11 @@
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DollarSign, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
 
 export const FinanceDashboard = () => {
+    const { t } = useTranslation();
     const [metrics, setMetrics] = useState<any>(null);
 
     useEffect(() => {
@@ -27,29 +29,29 @@ export const FinanceDashboard = () => {
 
     return (
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 'bold' }}>Financial Overview</h2>
+            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 'bold' }}>{t('finance.title')}</h2>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
                 <MetricCard
-                    title="Total Revenue"
+                    title={t('finance.metrics.revenue')}
                     value={metrics?.totalRevenue}
                     icon={DollarSign}
                     color="#10B981"
                 />
                 <MetricCard
-                    title="Total Expenses"
+                    title={t('finance.metrics.expenses')}
                     value={metrics?.totalExpenses}
                     icon={TrendingDown}
                     color="#EF4444"
                 />
                 <MetricCard
-                    title="Net Profit"
+                    title={t('finance.metrics.profit')}
                     value={metrics?.profit}
                     icon={TrendingUp}
                     color={metrics?.profit >= 0 ? '#10B981' : '#EF4444'}
                 />
                 <MetricCard
-                    title="Overdue Receivables"
+                    title={t('finance.metrics.overdue')}
                     value={metrics?.overdueReceivables}
                     icon={AlertCircle}
                     color="#F59E0B"
@@ -58,13 +60,13 @@ export const FinanceDashboard = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E5E7EB', padding: '24px', height: '300px' }}>
-                    <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>Recent Transactions</h3>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>{t('finance.dashboard.recent')}</h3>
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}>
                         Chart Placeholder
                     </div>
                 </div>
                 <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E5E7EB', padding: '24px', height: '300px' }}>
-                    <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>Outstanding Statements</h3>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>{t('finance.dashboard.outstanding')}</h3>
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}>
                         List Placeholder
                     </div>

@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Building2, Mail, Phone as PhoneIcon, MapPin, DollarSign } from 'lucide-react';
-// import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
 import { useDialog } from './context/DialogContext';
@@ -18,7 +18,7 @@ interface Customer {
 }
 
 export const CustomerManagement = () => {
-    // const { t } = useTranslation(); // Removed unused t
+    const { t } = useTranslation();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Partial<Customer>>({});
@@ -52,7 +52,7 @@ export const CustomerManagement = () => {
     };
 
     const handleDeleteClick = async (id: string) => {
-        const ok = await confirm('Archive this customer account? This will restrict their access to new waybill creation.', 'Archive Customer Account');
+        const ok = await confirm(t('customers.archiveConfirm'), t('customers.archiveTitle'));
         if (!ok) return;
         try {
             await fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' });
@@ -94,8 +94,8 @@ export const CustomerManagement = () => {
         <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>Customer Management</h1>
-                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Maintain a high-fidelity database of your corporate customers and individual clients.</p>
+                    <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>{t('customers.title')}</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('customers.subtitle')}</p>
                 </div>
                 <button
                     onClick={handleAddClick}
@@ -103,7 +103,7 @@ export const CustomerManagement = () => {
                     style={{ padding: '12px 24px' }}
                 >
                     <Plus size={20} />
-                    Onboard New Customer
+                    {t('customers.onboard')}
                 </button>
             </div>
 
@@ -111,11 +111,11 @@ export const CustomerManagement = () => {
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ background: 'var(--slate-50)' }}>
-                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>account entity</th>
-                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>contact secure</th>
-                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>logistic hub</th>
-                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>credit health</th>
-                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Status</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('customers.table.entity')}</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('customers.table.contact')}</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('customers.table.hub')}</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('customers.table.credit')}</th>
+                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('customers.table.status')}</th>
                             <th style={{ padding: '20px 24px', textAlign: 'right' }}></th>
                         </tr>
                     </thead>
@@ -129,7 +129,7 @@ export const CustomerManagement = () => {
                                         </div>
                                         <div>
                                             <div style={{ fontWeight: 800, color: 'var(--slate-900)', fontSize: '15px' }}>{customer.company}</div>
-                                            <div style={{ fontSize: '13px', color: 'var(--slate-500)', fontWeight: 600 }}>Rep: {customer.name}</div>
+                                            <div style={{ fontSize: '13px', color: 'var(--slate-500)', fontWeight: 600 }}>{t('customers.rep')}: {customer.name}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -154,11 +154,11 @@ export const CustomerManagement = () => {
                                         <DollarSign size={16} />
                                         {customer.creditLimit?.toLocaleString()}
                                     </div>
-                                    <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginTop: '4px' }}>Approved Limit</div>
+                                    <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginTop: '4px' }}>{t('customers.approvedLimit')}</div>
                                 </td>
                                 <td style={{ padding: '20px 24px' }}>
                                     <span className={customer.status === 'ACTIVE' ? 'badge-green' : 'badge-yellow'} style={{ fontSize: '11px', fontWeight: 800 }}>
-                                        {customer.status}
+                                        {customer.status === 'ACTIVE' ? t('customers.modal.statusActive') : t('customers.modal.statusInactive')}
                                     </span>
                                 </td>
                                 <td style={{ padding: '20px 24px', textAlign: 'right' }}>
@@ -176,7 +176,7 @@ export const CustomerManagement = () => {
                         {customers.length === 0 && (
                             <tr>
                                 <td colSpan={6} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>
-                                    The customer roster is currently empty.
+                                    {t('customers.empty')}
                                 </td>
                             </tr>
                         )}
@@ -187,7 +187,7 @@ export const CustomerManagement = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editingCustomer.id ? 'Edit Account Details' : 'Add Customer Account'}
+                title={editingCustomer.id ? t('customers.modal.editTitle') : t('customers.modal.addTitle')}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '600px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -196,7 +196,7 @@ export const CustomerManagement = () => {
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.name || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                                placeholder="Full Name"
+                                placeholder={t('customers.modal.name')}
                             />
                         </div>
                         <div>
@@ -204,7 +204,7 @@ export const CustomerManagement = () => {
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.company || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, company: e.target.value })}
-                                placeholder="Company Name"
+                                placeholder={t('customers.modal.company')}
                             />
                         </div>
                     </div>
@@ -215,11 +215,11 @@ export const CustomerManagement = () => {
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                                 value={editingCustomer.phone || ''}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
-                                placeholder="+1 (000) 000-0000"
+                                placeholder={t('customers.modal.phone')}
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Email Address</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('customers.modal.email')}</label>
                             <input
                                 type="email"
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
@@ -231,18 +231,18 @@ export const CustomerManagement = () => {
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>HQ / Logistics Node Address</label>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('customers.modal.address')}</label>
                         <input
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={editingCustomer.address || ''}
                             onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
-                            placeholder="Full Address"
+                            placeholder={t('customers.modal.address')}
                         />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Credit Allocation ($)</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('customers.modal.credit')}</label>
                             <input
                                 type="number"
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 900, color: 'var(--primary-start)' }}
@@ -251,14 +251,14 @@ export const CustomerManagement = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Account Standing</label>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('customers.modal.standing')}</label>
                             <select
                                 style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                 value={editingCustomer.status || 'ACTIVE'}
                                 onChange={(e) => setEditingCustomer({ ...editingCustomer, status: e.target.value as any })}
                             >
-                                <option value="ACTIVE">ACTIVE CUSTOMER</option>
-                                <option value="INACTIVE">SUSPENDED / DORMANT</option>
+                                <option value="ACTIVE">{t('customers.modal.statusActive')}</option>
+                                <option value="INACTIVE">{t('customers.modal.statusInactive')}</option>
                             </select>
                         </div>
                     </div>
@@ -270,7 +270,7 @@ export const CustomerManagement = () => {
                             className="btn-secondary"
                             style={{ flex: 1 }}
                         >
-                            Cancel
+                            {t('customers.modal.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -278,7 +278,7 @@ export const CustomerManagement = () => {
                             className="btn-primary"
                             style={{ flex: 1 }}
                         >
-                            {isLoading ? 'Processing...' : (editingCustomer.id ? 'Save Changes' : 'Create Account')}
+                            {isLoading ? t('customers.modal.process') : (editingCustomer.id ? t('customers.modal.save') : t('customers.modal.create'))}
                         </button>
                     </div>
                 </form>

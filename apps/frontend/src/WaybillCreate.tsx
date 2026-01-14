@@ -325,15 +325,15 @@ export const WaybillCreate = () => {
             });
             if (res.ok) {
                 if (isEditMode) {
-                    await alert('The waybill has been successfully updated in the system.', 'Update Successful');
+                    await alert(t('messages.updateSuccess'), t('messages.updateSuccessTitle'));
                 }
                 navigate('/waybills');
             } else {
-                await alert('The system encountered an error while attempting to save the waybill. Please try again.', 'Save Failed');
+                await alert(t('messages.saveFailed'), t('messages.saveFailedTitle'));
             }
         } catch (err) {
             console.error(err);
-            await alert('A connection error occurred. Please verify your network and try again.', 'Connection Error');
+            await alert(t('messages.connectionError'), t('messages.connectionErrorTitle'));
         }
     };
 
@@ -356,13 +356,13 @@ export const WaybillCreate = () => {
                             onClick={() => setTemplateType('DEFAULT')}
                             style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'DEFAULT' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'DEFAULT' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
                         >
-                            Default
+                            {t('waybill.default')}
                         </button>
                         <button
                             onClick={() => setTemplateType('AMAZON')}
                             style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'AMAZON' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'AMAZON' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
                         >
-                            Amazon
+                            {t('waybill.amazon')}
                         </button>
                     </div>
                 )}
@@ -370,8 +370,8 @@ export const WaybillCreate = () => {
 
             <div className="glass-card" style={{ padding: '48px', pointerEvents: isViewMode ? 'none' : 'auto', opacity: isViewMode ? 0.9 : 1 }}>
 
-                {isEditMode && <div className="badge-yellow" style={{ marginBottom: '20px', textAlign: 'center' }}>EDIT MODE</div>}
-                {isViewMode && <div className="badge-blue" style={{ marginBottom: '20px', textAlign: 'center' }}>VIEW ONLY MODE</div>}
+                {isEditMode && <div className="badge-yellow" style={{ marginBottom: '20px', textAlign: 'center' }}>{t('waybill.editMode')}</div>}
+                {isViewMode && <div className="badge-blue" style={{ marginBottom: '20px', textAlign: 'center' }}>{t('waybill.viewMode')}</div>}
 
                 {/* Branding Block */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px' }}>
@@ -379,7 +379,7 @@ export const WaybillCreate = () => {
                         <img src={logo} alt="Apony Group" style={{ height: '56px', objectFit: 'contain' }} />
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '12px', color: 'var(--slate-500)', fontWeight: 600 }}>Tel: 437 202 8888 | Fax: 437 202 8888</div>
+                        <div style={{ fontSize: '12px', color: 'var(--slate-500)', fontWeight: 600 }}>{t('fleet.tel')}: 437 202 8888 | {t('fleet.fax')}: 437 202 8888</div>
                         <div style={{ fontSize: '12px', color: 'var(--primary-start)', fontWeight: 700 }}>delivery@aponygroup.com</div>
                         <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
                             <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--slate-900)' }}>{t('waybill.waybillNo')} :</span>
@@ -397,23 +397,23 @@ export const WaybillCreate = () => {
                 {templateType === 'AMAZON' ? (
                     <div style={{ marginBottom: '40px' }}>
                         <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
-                            <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>ISA / Barcode</h4></div>
+                            <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.isaBarcode')}</h4></div>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div onPaste={(e) => handlePaste(e, setIsaImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {isaImage ? <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} /> : <span>Paste ISA Here</span>}
+                                    {isaImage ? <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} /> : <span>{t('waybill.pasteIsa')}</span>}
                                 </div>
                                 <div onPaste={(e) => handlePaste(e, setBarcodeImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {barcodeImage ? <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} /> : <span>Paste Barcode Here</span>}
+                                    {barcodeImage ? <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} /> : <span>{t('waybill.pasteBarcode')}</span>}
                                 </div>
                             </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                             <div>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>Fulfillment Center Code</label>
+                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>{t('waybill.fcCode')}</label>
                                 <input name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '100%' }} />
                             </div>
                             <div>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>Delivery Date</label>
+                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>{t('waybill.deliveryDate')}</label>
                                 <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '100%' }} />
                             </div>
                         </div>
@@ -422,19 +422,19 @@ export const WaybillCreate = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
                         {/* Pick Up */}
                         <div className="glass" style={{ padding: '24px' }}>
-                            <div style={{ marginBottom: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><Globe size={16} /> PICK UP AT (Shipper)</div>
-                            <input value={shipFrom.company} onChange={e => setShipFrom({ ...shipFrom, company: e.target.value })} placeholder="Company Name" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input value={shipFrom.contact} onChange={e => setShipFrom({ ...shipFrom, contact: e.target.value })} placeholder="Contact Person" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input value={shipFrom.phone} onChange={e => setShipFrom({ ...shipFrom, phone: e.target.value })} placeholder="Phone" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input ref={shipFromRef} value={shipFrom.address} onChange={e => setShipFrom({ ...shipFrom, address: e.target.value })} placeholder="Address" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
+                            <div style={{ marginBottom: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><Globe size={16} /> {t('waybill.pickupAt')}</div>
+                            <input value={shipFrom.company} onChange={e => setShipFrom({ ...shipFrom, company: e.target.value })} placeholder={t('fleet.companyName')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipFrom.contact} onChange={e => setShipFrom({ ...shipFrom, contact: e.target.value })} placeholder={t('fleet.contactPerson')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipFrom.phone} onChange={e => setShipFrom({ ...shipFrom, phone: e.target.value })} placeholder={t('fleet.phone')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input ref={shipFromRef} value={shipFrom.address} onChange={e => setShipFrom({ ...shipFrom, address: e.target.value })} placeholder={t('fleet.address')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
                         </div>
                         {/* Deliver To */}
                         <div className="glass" style={{ padding: '24px' }}>
-                            <div style={{ marginBottom: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><Target size={16} /> DELIVER TO (Consignee)</div>
-                            <input value={shipTo.company} onChange={e => setShipTo({ ...shipTo, company: e.target.value })} placeholder="Company Name" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input value={shipTo.contact} onChange={e => setShipTo({ ...shipTo, contact: e.target.value })} placeholder="Contact Person" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input value={shipTo.phone} onChange={e => setShipTo({ ...shipTo, phone: e.target.value })} placeholder="Phone" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input ref={shipToRef} value={shipTo.address} onChange={e => setShipTo({ ...shipTo, address: e.target.value })} placeholder="Address" style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
+                            <div style={{ marginBottom: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><Target size={16} /> {t('waybill.deliverTo')}</div>
+                            <input value={shipTo.company} onChange={e => setShipTo({ ...shipTo, company: e.target.value })} placeholder={t('fleet.companyName')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipTo.contact} onChange={e => setShipTo({ ...shipTo, contact: e.target.value })} placeholder={t('fleet.contactPerson')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input value={shipTo.phone} onChange={e => setShipTo({ ...shipTo, phone: e.target.value })} placeholder={t('fleet.phone')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
+                            <input ref={shipToRef} value={shipTo.address} onChange={e => setShipTo({ ...shipTo, address: e.target.value })} placeholder={t('fleet.address')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
                         </div>
                     </div>
                 )}
@@ -443,17 +443,17 @@ export const WaybillCreate = () => {
                 <div style={{ marginBottom: '40px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                         <Package size={20} color="var(--slate-900)" />
-                        <h4 style={{ fontWeight: 800, margin: 0 }}>Cargo Manifest & PO Tracking</h4>
+                        <h4 style={{ fontWeight: 800, margin: 0 }}>{t('waybill.cargoManifest')}</h4>
                     </div>
                     <div className="glass" style={{ padding: '0', overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--glass-border)' }}>
                                     <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>#</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>PALLETS</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>ITEMS</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>PRO # / DESCRIPTION</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>PO LIST</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.pallets')}</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.items')}</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.proDesc')}</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.poList')}</th>
                                     <th style={{ padding: '16px' }}></th>
                                 </tr>
                             </thead>
@@ -471,7 +471,7 @@ export const WaybillCreate = () => {
                             </tbody>
                         </table>
                         {!isViewMode && <div style={{ padding: '16px' }}>
-                            <button onClick={addLine} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}><Plus size={16} /> Add Goods Line</button>
+                            <button onClick={addLine} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}><Plus size={16} /> {t('waybill.addGoodsLine')}</button>
                         </div>}
                     </div>
                 </div>
@@ -485,24 +485,24 @@ export const WaybillCreate = () => {
                                     <Calculator size={24} />
                                 </div>
                                 <div>
-                                    <h4 style={{ margin: 0, fontWeight: 800 }}>Real-time Logistics Engine</h4>
+                                    <h4 style={{ margin: 0, fontWeight: 800 }}>{t('waybill.logisticsEngine')}</h4>
                                 </div>
                             </div>
                         </div>
                         {pricingResult ? (
                             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
                                 <div>
-                                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-500)' }}>ESTIMATED</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-500)' }}>{t('fleet.estimated')}</div>
                                     <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--primary-start)' }}>${pricingResult.totalRevenue.toFixed(2)}</div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '16px', fontWeight: 800 }}>{pricingResult.distance.toFixed(1)} KM</div>
-                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>~{pricingResult.duration.toFixed(0)} MIN</div>
+                                    <div style={{ fontSize: '16px', fontWeight: 800 }}>{pricingResult.distance.toFixed(1)} {t('fleet.km')}</div>
+                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>~{pricingResult.duration.toFixed(0)} {t('fleet.min')}</div>
                                 </div>
                             </div>
                         ) : (
                             <div style={{ fontSize: '14px', fontStyle: 'italic', color: 'var(--slate-500)' }}>
-                                {isViewMode ? `Recorded Price: $${footerInfo.price}` : 'Enter addresses to calculate...'}
+                                {isViewMode ? `${t('waybill.recordedPrice')}: $${footerInfo.price}` : t('waybill.enterAddressToCalc')}
                             </div>
                         )}
                     </div>
@@ -520,17 +520,17 @@ export const WaybillCreate = () => {
                     <div className="glass" style={{ padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
                         <div style={{ display: 'flex', gap: '40px' }}>
                             <div>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>BILL TO (Customer)</div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.billTo')}</div>
                                 <select name="client_name" value={footerInfo.client_name} onChange={handleFooterChange} style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }}>
-                                    <option value="">Select Customer</option>
+                                    <option value="">{t('waybill.selectCustomer')}</option>
                                     {customers.length > 0 ? customers.map((c: any) => (
                                         <option key={c.id} value={c.name}>{c.name}</option>
-                                    )) : <option value="Ad Hoc">Ad Hoc Client</option>}
+                                    )) : <option value="Ad Hoc">{t('waybill.adHocClient')}</option>}
                                 </select>
                             </div>
                         </div>
                         <button onClick={handleSubmit} className="btn-primary" style={{ padding: '16px 48px', fontSize: '18px' }}>
-                            {isEditMode ? 'Update Waybill' : 'Create & Finish Waybill'}
+                            {isEditMode ? t('waybill.updateWaybill') : t('waybill.createFinish')}
                         </button>
                     </div>
                 )}

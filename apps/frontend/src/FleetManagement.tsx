@@ -138,7 +138,7 @@ export const FleetManagement = () => {
         e.preventDefault();
         const endpoint = activeTab;
         if (endpoint === 'schedule') {
-            await alert(t('common.comingSoon'), 'Feature Coming Soon');
+            await alert(t('common.comingSoon'), t('common.comingSoon'));
             setIsModalOpen(false);
             return;
         }
@@ -187,7 +187,7 @@ export const FleetManagement = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
                     <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)' }}>{t('fleet.title')}</h1>
-                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>Real-time coordination and management of your global fleet assets.</p>
+                    <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('fleet.subtitle')}</p>
                 </div>
                 <button
                     className="btn-primary"
@@ -195,7 +195,7 @@ export const FleetManagement = () => {
                     style={{ padding: '12px 24px' }}
                 >
                     <Plus size={20} />
-                    {t('common.add')} {activeTab === 'expenses' ? t('fleet.expense') : activeTab === 'schedule' ? 'Task' : activeTab === 'drivers' ? t('fleet.driver') : t('fleet.vehicle')}
+                    {t('common.add')} {activeTab === 'expenses' ? t('fleet.expense') : activeTab === 'schedule' ? t('fleet.scheduleTab.mission') : activeTab === 'drivers' ? t('fleet.driver') : t('fleet.vehicle')}
                 </button>
             </div>
 
@@ -204,7 +204,7 @@ export const FleetManagement = () => {
                 <TabButton id="drivers" label={t('fleet.drivers')} icon={User} />
                 <TabButton id="vehicles" label={t('fleet.vehicles')} icon={Truck} />
                 <TabButton id="expenses" label={t('fleet.expenses')} icon={DollarSign} />
-                <TabButton id="schedule" label="Schedule" icon={Calendar} />
+                <TabButton id="schedule" label={t('fleet.schedule')} icon={Calendar} />
             </div>
 
             {/* Content Container */}
@@ -214,7 +214,7 @@ export const FleetManagement = () => {
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0' }}>
                             <thead>
                                 <tr style={{ background: 'var(--slate-50)' }}>
-                                    <th style={{ width: '200px', padding: '20px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderRight: '1px solid var(--glass-border)' }}>Operations Team</th>
+                                    <th style={{ width: '200px', padding: '20px 24px', textAlign: 'left', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderRight: '1px solid var(--glass-border)' }}>{t('fleet.scheduleTab.opsTeam')}</th>
                                     {DAYS.map(day => (
                                         <th key={day} style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: '120px' }}>{day}</th>
                                     ))}
@@ -222,7 +222,7 @@ export const FleetManagement = () => {
                             </thead>
                             <tbody>
                                 {data.drivers.length === 0 ? (
-                                    <tr><td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>No drivers assigned to the current roster.</td></tr>
+                                    <tr><td colSpan={8} style={{ padding: '60px', textAlign: 'center', color: 'var(--slate-400)', fontWeight: 600 }}>{t('fleet.scheduleTab.empty')}</td></tr>
                                 ) : data.drivers.map((driver: any, idx: number) => (
                                     <tr key={driver.id || `driver-${idx}`} style={{ borderBottom: '1px solid var(--glass-border)' }}>
                                         <td style={{ padding: '20px 24px', borderRight: '1px solid var(--glass-border)', background: 'var(--slate-50)' }}>
@@ -271,7 +271,7 @@ export const FleetManagement = () => {
                                                                 position: 'relative'
                                                             }}
                                                         >
-                                                            Mission {tripInCell.id.split('-')[1]}
+                                                            {t('fleet.scheduleTab.mission')} {tripInCell.id.split('-')[1]}
                                                         </div>
                                                     )}
                                                 </td>
@@ -373,13 +373,13 @@ export const FleetManagement = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={newEntry.id ? `Update ${activeTab.slice(0, -1)} Registry` : `Register New ${activeTab.slice(0, -1)}`}
+                title={newEntry.id ? t('fleet.modal.updateRegistry') : t('fleet.modal.registerNew') + ' ' + (activeTab === 'drivers' ? t('fleet.driver') : activeTab === 'vehicles' ? t('fleet.vehicle') : t('fleet.expense'))}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {activeTab === 'drivers' && (
                         <div style={{ display: 'grid', gap: '20px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Driver Full Name</label>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.driverName')}</label>
                                 <input
                                     required
                                     style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
@@ -389,7 +389,7 @@ export const FleetManagement = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Contact Number</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.contactNumber')}</label>
                                     <input
                                         required
                                         style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
@@ -398,14 +398,14 @@ export const FleetManagement = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Operational Status</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.operationalStatus')}</label>
                                     <select
                                         style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.status || 'IDLE'}
                                         onChange={e => handleInputChange('status', e.target.value)}
                                     >
-                                        <option value="IDLE">IDLE / STANDBY</option>
-                                        <option value="ON_DUTY">ACTIVE DUTY</option>
+                                        <option value="IDLE">{t('fleet.modal.statusOptions.idle')}</option>
+                                        <option value="ON_DUTY">{t('fleet.modal.statusOptions.onDuty')}</option>
                                     </select>
                                 </div>
                             </div>
@@ -416,46 +416,48 @@ export const FleetManagement = () => {
                         <div style={{ display: 'grid', gap: '20px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>License Plate</label>
-                                    <input
-                                        required
-                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
-                                        value={newEntry.plate || ''}
-                                        onChange={e => handleInputChange('plate', e.target.value)}
-                                    />
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.licensePlate')}</label>
+                                        <input
+                                            required
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                            value={newEntry.plate || ''}
+                                            onChange={e => handleInputChange('plate', e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.vehicleModel')}</label>
+                                        <input
+                                            required
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                            value={newEntry.model || ''}
+                                            onChange={e => handleInputChange('model', e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Vehicle Model</label>
-                                    <input
-                                        required
-                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
-                                        value={newEntry.model || ''}
-                                        onChange={e => handleInputChange('model', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Payload Capacity (T)</label>
-                                    <input
-                                        required
-                                        type="number"
-                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
-                                        value={newEntry.capacity || ''}
-                                        onChange={e => handleInputChange('capacity', e.target.value)}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Status</label>
-                                    <select
-                                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
-                                        value={newEntry.status || 'IDLE'}
-                                        onChange={e => handleInputChange('status', e.target.value)}
-                                    >
-                                        <option value="IDLE">IDLE</option>
-                                        <option value="IN_TRANSIT">IN TRANSIT</option>
-                                        <option value="MAINTENANCE">UNDER SERVICE</option>
-                                    </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.payloadCapacity')}</label>
+                                        <input
+                                            required
+                                            type="number"
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                                            value={newEntry.capacity || ''}
+                                            onChange={e => handleInputChange('capacity', e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('common.status')}</label>
+                                        <select
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
+                                            value={newEntry.status || 'IDLE'}
+                                            onChange={e => handleInputChange('status', e.target.value)}
+                                        >
+                                            <option value="IDLE">{t('fleet.modal.statusOptions.idle')}</option>
+                                            <option value="IN_TRANSIT">{t('fleet.modal.statusOptions.inTransit')}</option>
+                                            <option value="MAINTENANCE">{t('fleet.modal.statusOptions.maintenance')}</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -465,21 +467,21 @@ export const FleetManagement = () => {
                         <div style={{ display: 'grid', gap: '20px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Expense Category</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.expenseCategory')}</label>
                                     <select
                                         style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.category || 'Fuel'}
                                         onChange={e => handleInputChange('category', e.target.value)}
                                     >
-                                        <option value="Fuel">Fuel / Diesel</option>
-                                        <option value="Maintenance">Mechanical Repair</option>
-                                        <option value="Toll">Road Tolls</option>
-                                        <option value="Insurance">Fleet Insurance</option>
-                                        <option value="Other">Miscellaneous</option>
+                                        <option value="Fuel">{t('fleet.modal.expenseCategories.fuel')}</option>
+                                        <option value="Maintenance">{t('fleet.modal.expenseCategories.maintenance')}</option>
+                                        <option value="Toll">{t('fleet.modal.expenseCategories.toll')}</option>
+                                        <option value="Insurance">{t('fleet.modal.expenseCategories.insurance')}</option>
+                                        <option value="Other">{t('fleet.modal.expenseCategories.other')}</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Transaction Amount ($)</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.transactionAmount')}</label>
                                     <input
                                         required
                                         type="number"
@@ -492,7 +494,7 @@ export const FleetManagement = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Transaction Date</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.transactionDate')}</label>
                                     <input
                                         required
                                         type="date"
@@ -502,14 +504,14 @@ export const FleetManagement = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Payment Status</label>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.paymentStatus')}</label>
                                     <select
                                         style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
                                         value={newEntry.status || 'PENDING'}
                                         onChange={e => handleInputChange('status', e.target.value)}
                                     >
-                                        <option value="PENDING">SETTLEMENT PENDING</option>
-                                        <option value="PAID">COMPLETED / PAID</option>
+                                        <option value="PENDING">{t('fleet.modal.statusOptions.pending')}</option>
+                                        <option value="PAID">{t('fleet.modal.statusOptions.paid')}</option>
                                     </select>
                                 </div>
                             </div>
@@ -523,14 +525,14 @@ export const FleetManagement = () => {
                             className="btn-secondary"
                             style={{ flex: 1 }}
                         >
-                            Dismiss
+                            {t('fleet.modal.dismiss')}
                         </button>
                         <button
                             type="submit"
                             className="btn-primary"
                             style={{ flex: 1 }}
                         >
-                            {newEntry.id ? 'Save Updates' : 'Confirm Registration'}
+                            {newEntry.id ? t('fleet.modal.saveUpdates') : t('fleet.modal.confirmRegistration')}
                         </button>
                     </div>
                 </form>
