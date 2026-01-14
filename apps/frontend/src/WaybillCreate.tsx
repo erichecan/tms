@@ -63,6 +63,8 @@ export const WaybillCreate = () => {
     // Image Placeholders
     const [isaImage, setIsaImage] = useState<string | null>(null);
     const [barcodeImage, setBarcodeImage] = useState<string | null>(null);
+    const [isDraggingIsa, setIsDraggingIsa] = useState(false);
+    const [isDraggingBarcode, setIsDraggingBarcode] = useState(false);
 
     // Pricing Integration State
     const [businessType] = useState('STANDARD');
@@ -294,6 +296,71 @@ export const WaybillCreate = () => {
         }
     };
 
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+
+    const validateAndProcessFile = async (file: File, setImage: (s: string) => void) => {
+        if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) {
+            await alert(t('waybill.invalidFileType'), t('common.error'));
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            await alert(t('waybill.fileTooLarge'), t('common.error'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) setImage(event.target.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleDrop = (e: React.DragEvent, setImage: (s: string) => void, setDragging: (b: boolean) => void) => {
+        if (isViewMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(false);
+
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            validateAndProcessFile(files[0], setImage);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        if (isViewMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDragEnter = (e: React.DragEvent, setDragging: (b: boolean) => void) => {
+        if (isViewMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent, setDragging: (b: boolean) => void) => {
+        if (isViewMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        // Only set dragging to false if we're leaving the drop zone itself
+        if (e.currentTarget === e.target) {
+            setDragging(false);
+        }
+    };
+
+    const handleDeleteImage = async (setImage: (s: string | null) => void) => {
+        if (isViewMode) return;
+        const confirmed = await alert(
+            t('waybill.deleteImageConfirm'),
+            t('waybill.deleteImageTitle')
+        );
+        if (confirmed) {
+            setImage(null);
+        }
+    };
+
     const handleSubmit = async () => {
         if (isViewMode) return;
 
@@ -414,13 +481,118 @@ export const WaybillCreate = () => {
                 {templateType === 'AMAZON' ? (
                     <div style={{ marginBottom: '40px' }}>
                         <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
-                            <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.isaBarcode')}</h4></div>
+                            <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.shipmentAppointment')}</h4></div>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div onPaste={(e) => handlePaste(e, setIsaImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {isaImage ? <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} /> : <span>{t('waybill.pasteIsa')}</span>}
+                                {/* ISA Image Upload */}
+                                <div
+                                    onPaste={(e) => handlePaste(e, setIsaImage)}
+                                    onDrop={(e) => handleDrop(e, setIsaImage, setIsDraggingIsa)}
+                                    onDragOver={handleDragOver}
+                                    onDragEnter={(e) => handleDragEnter(e, setIsDraggingIsa)}
+                                    onDragLeave={(e) => handleDragLeave(e, setIsDraggingIsa)}
+                                    style={{
+                                        position: 'relative',
+                                        height: '100px',
+                                        border: isDraggingIsa ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        background: isDraggingIsa ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                        transition: 'all 0.2s ease',
+                                        cursor: isViewMode ? 'default' : 'pointer'
+                                    }}
+                                >
+                                    {isaImage ? (
+                                        <>
+                                            <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} />
+                                            {!isViewMode && (
+                                                <button
+                                                    onClick={() => handleDeleteImage(setIsaImage)}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '8px',
+                                                        right: '8px',
+                                                        background: 'rgba(239, 68, 68, 0.9)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        padding: '6px 12px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        opacity: 0.8,
+                                                        transition: 'opacity 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                >
+                                                    {t('waybill.deleteImage')}
+                                                </button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span style={{ color: isDraggingIsa ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingIsa ? 600 : 400 }}>
+                                            {isDraggingIsa ? t('waybill.dropToUpload') : t('waybill.pasteIsa')}
+                                        </span>
+                                    )}
                                 </div>
-                                <div onPaste={(e) => handlePaste(e, setBarcodeImage)} style={{ height: '100px', border: '2px dashed var(--glass-border)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {barcodeImage ? <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} /> : <span>{t('waybill.pasteBarcode')}</span>}
+
+                                {/* Barcode Image Upload */}
+                                <div
+                                    onPaste={(e) => handlePaste(e, setBarcodeImage)}
+                                    onDrop={(e) => handleDrop(e, setBarcodeImage, setIsDraggingBarcode)}
+                                    onDragOver={handleDragOver}
+                                    onDragEnter={(e) => handleDragEnter(e, setIsDraggingBarcode)}
+                                    onDragLeave={(e) => handleDragLeave(e, setIsDraggingBarcode)}
+                                    style={{
+                                        position: 'relative',
+                                        height: '100px',
+                                        border: isDraggingBarcode ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        background: isDraggingBarcode ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                        transition: 'all 0.2s ease',
+                                        cursor: isViewMode ? 'default' : 'pointer'
+                                    }}
+                                >
+                                    {barcodeImage ? (
+                                        <>
+                                            <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} />
+                                            {!isViewMode && (
+                                                <button
+                                                    onClick={() => handleDeleteImage(setBarcodeImage)}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '8px',
+                                                        right: '8px',
+                                                        background: 'rgba(239, 68, 68, 0.9)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        padding: '6px 12px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        opacity: 0.8,
+                                                        transition: 'opacity 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                >
+                                                    {t('waybill.deleteImage')}
+                                                </button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span style={{ color: isDraggingBarcode ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingBarcode ? 600 : 400 }}>
+                                            {isDraggingBarcode ? t('waybill.dropToUpload') : t('waybill.pasteBarcode')}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
