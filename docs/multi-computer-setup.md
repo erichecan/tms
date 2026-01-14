@@ -1,8 +1,34 @@
 # TMS 多电脑开发环境配置指南
 
+## ⚠️ 核心原则
+
+**所有环境（本地开发、生产部署）必须使用同一个远程数据库**
+
+这确保：
+- ✅ **数据一致性**：所有开发者和生产环境看到相同的数据
+- ✅ **简化管理**：只需维护一个数据库
+- ✅ **避免错误**：消除"本地能用，生产不能用"的问题
+- ✅ **真实测试**：本地开发直接使用生产数据进行测试
+
+## 统一数据库配置
+
+### 生产数据库（唯一数据库）
+
+**连接字符串**:
+```
+postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
+```
+
+**主机标识**: `ep-round-math-ahvyvkcx-pooler`
+
+**用途**:
+- ✅ 本地开发环境
+- ✅ GCP Cloud Run 生产部署
+- ✅ 所有团队成员的开发机器
+
 ## 问题说明
 
-如果您在不同电脑上启动本地服务器时看到的数据不一样，原因是 **每台电脑的数据库配置不同**。
+如果您在不同电脑上启动本地服务器时看到的数据不一样，原因是 **`.env` 文件配置不一致**。
 
 ## 根本原因
 
@@ -11,10 +37,9 @@
    - 已在 `.gitignore` 中排除，不会通过 Git 提交和同步
    - 每台电脑需要手动配置
 
-2. **数据库连接配置不一致**
-   - 如果某台电脑的 `.env` 配置了本地数据库，就会看到本地数据
-   - 如果配置了远程数据库，就会看到远程数据
-   - 如果没有 `.env` 文件，可能使用默认配置或报错
+2. **配置不一致导致的问题**
+   - 如果某台电脑配置了错误的数据库，就会看到不同的数据
+   - 如果没有 `.env` 文件，服务可能无法启动
 
 ## 解决方案
 
@@ -38,13 +63,14 @@ cp apps/backend/.env.example apps/backend/.env
 # 或者手动创建 .env 文件，内容如下：
 ```
 
-**标准配置内容：**
+**标准配置内容（所有电脑必须一致）：**
 
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_a0t9YKjwEkWP@ep-spring-lake-ahagh2w6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+# ⚠️ 生产环境数据库 - 所有环境统一使用
+DATABASE_URL="postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 PORT=3001
 GOOGLE_MAPS_API_KEY=AIzaSyDWyRo10INN_p2op7PB9rUE-yTjB-LlxT0
-JWT_SECRET=your-secret-key-here
+JWT_SECRET=tms-production-secret-key-2026
 CORS_ORIGIN=*
 ```
 
@@ -53,11 +79,11 @@ CORS_ORIGIN=*
 运行以下命令验证是否连接到正确的数据库：
 
 ```bash
-# 检查数据库连接
-echo "SELECT current_database(), current_user;" | psql "postgresql://neondb_owner:npg_a0t9YKjwEkWP@ep-spring-lake-ahagh2w6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+# 检查数据库连接（应该显示 ep-round-math-ahvyvkcx-pooler）
+echo "SELECT current_database(), current_user, inet_server_addr();" | psql "postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
-# 检查数据量（应该看到相同的数字）
-echo "SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM waybills;" | psql "postgresql://neondb_owner:npg_a0t9YKjwEkWP@ep-spring-lake-ahagh2w6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+# 检查数据量（所有电脑应该看到相同的数字）
+echo "SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM waybills;" | psql "postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 ```
 
 **当前远程数据库数据量：**

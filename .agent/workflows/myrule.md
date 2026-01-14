@@ -28,15 +28,37 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localho
 
 ## 2. 数据库配置
 
+### ⚠️ 重要原则
+**所有环境（本地开发、生产部署）必须使用同一个远程数据库**，确保数据一致性。
+
 ### 关键配置
 - **位置**: `apps/backend/.env`
 - **变量**: `DATABASE_URL`
-- **格式**: `postgresql://user:password@host/dbname?sslmode=require&channel_binding=require`
+- **统一数据库**: `postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require`
+
+### 标准配置内容
+```env
+# 生产环境数据库（所有环境统一使用）
+DATABASE_URL="postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+PORT=3001
+GOOGLE_MAPS_API_KEY=AIzaSyDWyRo10INN_p2op7PB9rUE-yTjB-LlxT0
+JWT_SECRET=tms-production-secret-key-2026
+CORS_ORIGIN=*
+```
 
 ### 切换数据库后
 修改 `.env` 后需重启后端服务器：
 - 如果使用 nodemon，输入 `rs` 重启
 - 或者重新运行 `npm run dev`
+
+### 验证数据库连接
+```bash
+# 检查是否连接到正确的数据库
+echo "SELECT current_database(), current_user, COUNT(*) as user_count FROM users;" | psql "$DATABASE_URL"
+
+# 应该显示连接到生产数据库
+# 主机: ep-round-math-ahvyvkcx-pooler
+```
 
 ---
 
@@ -136,8 +158,14 @@ Role Management 页面显示为空，即使 User Management 中的用户都有�
 
 ## 9. 环境配置文件管理 (.env)
 
+### ⚠️ 核心原则
+**所有环境（本地、生产）必须使用同一个远程数据库**，确保：
+- ✅ 数据一致性：所有开发者看到相同的数据
+- ✅ 简化管理：无需同步多个数据库
+- ✅ 避免错误：消除"本地能用，生产不能用"的问题
+
 ### 问题
-在不同电脑上启动本地服务器时，看到的数据不一样。
+在不同电脑上启动本地服务器时，如果 `.env` 配置不一致，会导致数据不同步。
 
 ### 根因
 `.env` 文件包含敏感信息（数据库密码、API密钥），已在 `.gitignore` 中排除，不会通过 Git 同步。每台电脑需要手动创建和配置 `.env` 文件。
@@ -147,10 +175,10 @@ Role Management 页面显示为空，即使 User Management 中的用户都有�
 - **配置模板**: `apps/backend/.env.example` (提交到 Git)
 - **配置文档**: `docs/multi-computer-setup.md`
 
-### 标准配置内容
+### 标准配置内容（统一使用）
 ```env
-# 数据库连接 (Neon PostgreSQL)
-DATABASE_URL="postgresql://neondb_owner:npg_a0t9YKjwEkWP@ep-spring-lake-ahagh2w6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+# ⚠️ 生产环境数据库 - 所有环境统一使用此配置
+DATABASE_URL="postgresql://neondb_owner:npg_lZq2bWeJT8tO@ep-round-math-ahvyvkcx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 # 后端端口
 PORT=3001
@@ -158,8 +186,8 @@ PORT=3001
 # Google Maps API 密钥
 GOOGLE_MAPS_API_KEY=AIzaSyDWyRo10INN_p2op7PB9rUE-yTjB-LlxT0
 
-# JWT 密钥
-JWT_SECRET=your-secret-key-here
+# JWT 密钥（生产环境密钥）
+JWT_SECRET=tms-production-secret-key-2026
 
 # CORS 配置
 CORS_ORIGIN=*
@@ -169,15 +197,15 @@ CORS_ORIGIN=*
 1. **克隆代码**: `git clone <repository-url> && cd TMS2.0`
 2. **安装依赖**: `npm install`
 3. **复制配置**: `cp apps/backend/.env.example apps/backend/.env`
-4. **验证配置**: 确认 `DATABASE_URL` 指向正确的数据库
+4. **验证配置**: 确认 `DATABASE_URL` 指向生产数据库（ep-round-math-ahvyvkcx-pooler）
 5. **启动服务**: `cd apps/backend && npm run dev`
 
 ### 验证数据库连接
 ```bash
-# 检查连接的数据库
-echo "SELECT current_database(), current_user;" | psql "$DATABASE_URL"
+# 检查连接的数据库（应该显示 ep-round-math-ahvyvkcx-pooler）
+echo "SELECT current_database(), current_user, inet_server_addr();" | psql "$DATABASE_URL"
 
-# 检查数据量（应该在所有电脑上一致）
+# 检查数据量（所有电脑应该显示相同的数字）
 echo "SELECT COUNT(*) FROM users;" | psql "$DATABASE_URL"
 ```
 
@@ -185,7 +213,8 @@ echo "SELECT COUNT(*) FROM users;" | psql "$DATABASE_URL"
 1. **修改 `.env` 后必须重启**: 环境变量只在服务启动时加载，修改后需重启后端服务。
 2. **不要提交 `.env` 到 Git**: 确保 `.gitignore` 包含 `.env`。
 3. **使用 `.env.example` 作为模板**: 团队成员可以参考此文件配置本地环境。
-4. **统一数据库配置**: 开发环境推荐所有电脑连接同一远程数据库，确保数据一致。
+4. **统一数据库配置**: ⚠️ **所有电脑必须连接同一远程数据库（生产数据库）**，不要使用本地数据库。
+5. **谨慎操作**: 因为所有环境共享同一数据库，删除或修改数据时要特别小心。
 
 ---
 
