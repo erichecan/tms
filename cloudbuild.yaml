@@ -29,7 +29,7 @@ steps:
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
         docker build \
           -t gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest \
-          --build-arg VITE_API_BASE_URL=https://tms-backend-275911787144.us-central1.run.app/api \
+          --build-arg VITE_API_BASE_URL=https://tms-v2-backend-275911787144.us-central1.run.app/api \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
           --build-arg BUILD_VERSION=tmsv2-latest \
           --build-arg BUILD_TIME=$$BUILD_TIME \
@@ -62,7 +62,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'tms-backend'
+      - 'tms-v2-backend'
       - '--image=gcr.io/$PROJECT_ID/tms-backend:tmsv2-latest'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
@@ -83,11 +83,11 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'tms-frontend'
+      - 'tms-v2-frontend'
       - '--image=gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest'
       - '--region=us-central1' # 2025-11-24T16:35:00Z Updated by Assistant: use always-free region
       - '--platform=managed'
-      - '--set-env-vars=VITE_API_BASE_URL=https://tms-backend-${PROJECT_ID}.us-central1.run.app' # 2025-11-24T16:35:00Z Updated by Assistant: use dynamic backend URL
+      - '--set-env-vars=VITE_API_BASE_URL=https://tms-v2-backend-${PROJECT_ID}.us-central1.run.app' # 2025-11-24T16:35:00Z Updated by Assistant: use dynamic backend URL
       - '--memory=256Mi'
       - '--cpu=1' # 2025-12-04 Fixed: CPU must be >= 1 when concurrency > 1
       - '--concurrency=150' # 2025-11-24T15:45:10Z Added by Assistant: leverage Cloud Run concurrency
