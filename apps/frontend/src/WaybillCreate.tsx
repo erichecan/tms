@@ -41,6 +41,7 @@ export const WaybillCreate = () => {
         fc_alias: 'Y001',
         fc_address: '',
         delivery_date: '',
+        delivery_time: '09:00', // New field for time
         reference_code: ''
     });
 
@@ -150,7 +151,8 @@ export const WaybillCreate = () => {
                         setBaseInfo({
                             fc_alias: loadedBase.fc_alias || found.fulfillment_center || 'Y001',
                             fc_address: loadedBase.fc_address || '',
-                            delivery_date: loadedBase.delivery_date || found.delivery_date || '',
+                            delivery_date: loadedBase.delivery_date || (found.delivery_date ? found.delivery_date.split(' ')[0] : ''),
+                            delivery_time: loadedBase.delivery_time || (found.delivery_date && found.delivery_date.includes(' ') ? found.delivery_date.split(' ')[1] : '09:00'),
                             reference_code: loadedBase.reference_code || recoveredRef || found.reference_code || ''
                         });
 
@@ -384,7 +386,9 @@ export const WaybillCreate = () => {
             fulfillment_center: isAmazon ? baseInfo.fc_alias : 'N/A',
             cargo_desc: `Target: ${baseInfo.reference_code || ''}, Items: ${goodsLines.length}, ShipFrom: ${shipFrom.company}, ShipTo: ${shipTo.company}`,
             price_estimated: Number(footerInfo.price) || 0,
-            delivery_date: baseInfo.delivery_date,
+            delivery_date: isAmazon && baseInfo.delivery_date && baseInfo.delivery_time
+                ? `${baseInfo.delivery_date} ${baseInfo.delivery_time}`
+                : baseInfo.delivery_date,
             status: 'NEW',
             signature_url: signatureUrl,
             signed_at: signatureUrl ? new Date().toISOString() : undefined,
@@ -603,7 +607,10 @@ export const WaybillCreate = () => {
                             </div>
                             <div>
                                 <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>{t('waybill.deliveryDate')}</label>
-                                <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '100%' }} />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', flex: 1 }} />
+                                    <input type="time" name="delivery_time" value={baseInfo.delivery_time} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '120px' }} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -634,27 +641,41 @@ export const WaybillCreate = () => {
                         <Package size={20} color="var(--slate-900)" />
                         <h4 style={{ fontWeight: 800, margin: 0 }}>{t('waybill.cargoManifest')}</h4>
                     </div>
-                    <div className="glass" style={{ padding: '0', overflowX: 'auto' }}>
+                    <div className="glass" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--glass-border)' }}>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>#</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.pallets')}</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.items')}</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.proDesc')}</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 700 }}>{t('waybill.poList')}</th>
-                                    <th style={{ padding: '16px' }}></th>
+                                <tr style={{ background: 'var(--slate-50)', borderBottom: '2px solid var(--slate-100)' }}>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '40px' }}>#</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '100px' }}>{t('waybill.pallets')}</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '100px' }}>{t('waybill.items')}</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '180px' }}>{t('waybill.proDesc')}</th>
+                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>{t('waybill.poList')}</th>
+                                    <th style={{ padding: '16px', width: '50px' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {goodsLines.map((line, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                        <td style={{ padding: '16px' }}>{idx + 1}</td>
-                                        <td style={{ padding: '16px' }}><input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
-                                        <td style={{ padding: '16px' }}><input value={line.item_count} onChange={e => handleLineChange(idx, 'item_count', e.target.value)} style={{ width: '80px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
-                                        <td style={{ padding: '16px' }}><input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} style={{ width: '140px', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
-                                        <td style={{ padding: '16px' }}><input value={line.po_list} onChange={e => handleLineChange(idx, 'po_list', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} /></td>
-                                        <td style={{ padding: '16px' }}>{!isViewMode && <button onClick={() => removeLine(idx)} style={{ color: '#EF4444', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={18} /></button>}</td>
+                                    <tr key={idx} style={{ borderBottom: '1px solid var(--slate-100)', transition: 'background 0.2s' }}>
+                                        <td style={{ padding: '16px', color: 'var(--slate-400)', fontWeight: 700 }}>{idx + 1}</td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                            <input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                        </td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                            <input value={line.item_count} onChange={e => handleLineChange(idx, 'item_count', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                        </td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                            <input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                        </td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                            <input value={line.po_list} onChange={handleLineChange ? (e => handleLineChange(idx, 'po_list', e.target.value)) : undefined} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                        </td>
+                                        <td style={{ padding: '16px', textAlign: 'center' }}>
+                                            {!isViewMode && goodsLines.length > 1 && (
+                                                <button onClick={() => removeLine(idx)} style={{ color: '#EF4444', border: 'none', background: 'var(--slate-50)', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

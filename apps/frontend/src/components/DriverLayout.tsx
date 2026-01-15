@@ -4,11 +4,13 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Home, MessageSquare, User, LogOut, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useGPS } from '../hooks/useGPS';
 
 export const DriverLayout: React.FC = () => {
     const { t } = useTranslation();
     const { logout, user } = useAuth();
     const navigate = useNavigate();
+    const gpsLocation = useGPS(!!user); // Active if user is logged in
 
     const handleLogout = () => {
         logout();
@@ -56,6 +58,22 @@ export const DriverLayout: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {gpsLocation && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        padding: '4px 8px',
+                        borderRadius: '100px',
+                        animation: 'pulse 2s infinite'
+                    }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></div>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: '#10B981', textTransform: 'uppercase' }}>GPS Active</span>
+                    </div>
+                )}
+
                 <button
                     onClick={handleLogout}
                     style={{
@@ -124,6 +142,11 @@ export const DriverLayout: React.FC = () => {
                     font-weight: 700;
                     text-transform: uppercase;
                     letter-spacing: 0.02em;
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.05); opacity: 0.8; }
+                    100% { transform: scale(1); opacity: 1; }
                 }
             `}</style>
         </div>

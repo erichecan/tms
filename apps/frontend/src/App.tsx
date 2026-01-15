@@ -23,6 +23,8 @@ import { Login } from './pages/Login/Login';
 import { RoleManagement } from './pages/Settings/RoleManagement';
 import { DriverLayout } from './components/DriverLayout';
 import { DriverHome } from './pages/Driver/DriverHome';
+import { DriverWaybillDetail } from './pages/Driver/DriverWaybillDetail';
+import { DriverSettings } from './pages/Driver/DriverSettings';
 
 const router = createBrowserRouter([
   {
@@ -33,6 +35,28 @@ const router = createBrowserRouter([
     path: '/',
     element: <ProtectedRoute />, // All routes below are protected
     children: [
+      {
+        path: '/driver',
+        element: <DriverLayout />,
+        children: [
+          {
+            index: true,
+            element: <DriverHome />,
+          },
+          {
+            path: 'messages',
+            element: <Messages />,
+          },
+          {
+            path: 'settings',
+            element: <DriverSettings />,
+          },
+          {
+            path: 'waybill/:id',
+            element: <DriverWaybillDetail />,
+          }
+        ]
+      },
       {
         path: '/',
         element: <Layout />,
@@ -103,28 +127,6 @@ const router = createBrowserRouter([
           },
         ],
       },
-      {
-        path: '/driver',
-        element: <DriverLayout />,
-        children: [
-          {
-            index: true,
-            element: <DriverHome />,
-          },
-          {
-            path: 'messages',
-            element: <Messages />, // Reusing for now, will optimize later
-          },
-          {
-            path: 'settings',
-            element: <Settings />, // Reusing for now
-          },
-          {
-            path: 'waybill/:id',
-            element: <div style={{ padding: '20px' }}>Waybill Detail coming soon...</div>,
-          }
-        ]
-      }
     ]
   },
 ]);

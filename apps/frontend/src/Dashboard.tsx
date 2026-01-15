@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Clock, FileText, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Truck, Clock, FileText, CheckCircle2, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from './apiConfig';
 
@@ -73,8 +73,8 @@ export const Dashboard = () => {
             fetch(`${API_URL}/vehicles`, { headers }).then(res => res.json())
         ]);
         setResources({
-            drivers: Array.isArray(drivers) ? drivers.filter((d: any) => d.status === 'IDLE') : [],
-            vehicles: Array.isArray(vehicles) ? vehicles.filter((v: any) => v.status === 'IDLE') : []
+            drivers: Array.isArray(drivers.data) ? drivers.data.filter((d: any) => d.status === 'IDLE') : [],
+            vehicles: Array.isArray(vehicles.data) ? vehicles.data.filter((v: any) => v.status === 'IDLE') : []
         });
         setIsModalOpen(true);
     };
@@ -189,7 +189,12 @@ export const Dashboard = () => {
             {isModalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.3s ease-out' }}>
                     <div className="glass-card" style={{ width: '480px', padding: '40px', background: 'white' }}>
-                        <h3 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px', color: 'var(--slate-900)' }}>{t('dashboard.modal.title')}</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <h3 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--slate-900)' }}>{t('dashboard.modal.title')}</h3>
+                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--slate-400)', padding: '4px' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
                         <p style={{ color: 'var(--slate-500)', fontSize: '14px', marginBottom: '32px', fontWeight: 500 }}>{t('dashboard.modal.subtitle')}</p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '40px' }}>
@@ -209,8 +214,7 @@ export const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '16px' }}>
-                            <button onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ flex: 1 }}>{t('dashboard.modal.cancel')}</button>
+                        <div style={{ display: 'flex' }}>
                             <button onClick={handleAssign} className="btn-primary" style={{ flex: 1 }}>{t('dashboard.modal.confirm')}</button>
                         </div>
                     </div>

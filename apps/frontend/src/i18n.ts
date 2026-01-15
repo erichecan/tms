@@ -98,12 +98,12 @@ const resources = {
                 "modal": {
                     "title": "Resource Deployment",
                     "subtitle": "Select the optimal driver and vehicle asset for this specific logistical mission.",
-                    "driverLabel": "Operational Pilot",
-                    "driverPlaceholder": "Select Available Pilot",
+                    "driverLabel": "Operational Driver",
+                    "driverPlaceholder": "Select Available Driver",
                     "vehicleLabel": "Logistical Asset",
                     "vehiclePlaceholder": "Select Operational Vehicle",
-                    "cancel": "Abort Mission",
-                    "confirm": "Authorize Deployment"
+                    "cancel": "Cancel",
+                    "confirm": "Assign"
                 }
             },
             "waybill": {
@@ -571,14 +571,14 @@ const resources = {
                     "track": "追踪监控"
                 },
                 "modal": {
-                    "title": "资源部署",
+                    "title": "资源分配",
                     "subtitle": "为该特定物流任务选择最佳司机与车辆资产。",
                     "driverLabel": "运营驾驶员",
                     "driverPlaceholder": "选择可用驾驶员",
                     "vehicleLabel": "物流资产",
                     "vehiclePlaceholder": "选择运营车辆",
-                    "cancel": "中止任务",
-                    "confirm": "授权部署"
+                    "cancel": "取消",
+                    "confirm": "分配"
                 }
             },
             "waybill": {

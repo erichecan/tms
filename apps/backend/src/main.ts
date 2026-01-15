@@ -97,6 +97,7 @@ app.get('/api/waybills/:id', async (req, res) => {
 app.get('/api/waybills', async (req, res) => {
   const status = req.query.status as string;
   const search = (req.query.search as string || '').toLowerCase();
+  const driverId = req.query.driver_id as string; // New: filter by driver
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
   const offset = (page - 1) * limit;
@@ -107,7 +108,12 @@ app.get('/api/waybills', async (req, res) => {
 
     if (status && status !== 'ALL') {
       params.push(status);
-      whereClauses.push(`status = $${params.length}`);
+      whereClauses.push(`w.status = $${params.length}`);
+    }
+
+    if (driverId) {
+      params.push(driverId);
+      whereClauses.push(`t.driver_id = $${params.length}`);
     }
 
     if (search) {
@@ -121,13 +127,20 @@ app.get('/api/waybills', async (req, res) => {
 
     const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    const countResult = await query(`SELECT COUNT(*) FROM waybills ${whereStr}`, params);
+    const countResult = await query(`
+      SELECT COUNT(*) 
+      FROM waybills w
+      LEFT JOIN trips t ON w.trip_id = t.id
+      ${whereStr}
+    `, params);
     const total = parseInt(countResult.rows[0].count);
 
     const queryStr = `
-      SELECT * FROM waybills 
+      SELECT w.*, t.driver_id 
+      FROM waybills w
+      LEFT JOIN trips t ON w.trip_id = t.id
       ${whereStr} 
-      ORDER BY created_at DESC 
+      ORDER BY w.created_at DESC 
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
     const result = await query(queryStr, [...params, limit, offset]);
@@ -465,6 +478,23 @@ app.post('/api/trips/:id/messages', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Message failed' });
+  }
+});
+
+app.post('/api/trips/:id/events', async (req, res) => {
+  const { id } = req.params;
+  const { status, description } = req.body;
+  const time = new Date().toISOString();
+
+  try {
+    await query(
+      'INSERT INTO trip_events (trip_id, status, time, description) VALUES ($1, $2, $3, $4)',
+      [id, status, time, description]
+    );
+    res.json({ success: true, event: { trip_id: id, status, time, description } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to record trip event' });
   }
 });
 

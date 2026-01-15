@@ -78,6 +78,15 @@ h4 {
   border-radius: var(--radius-card);
 }
 
+.glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-card);
+}
+
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);

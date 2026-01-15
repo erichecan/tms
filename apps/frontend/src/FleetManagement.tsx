@@ -47,10 +47,10 @@ export const FleetManagement = () => {
                     fetch(`${API_URL}/trips`, { headers })
                 ]);
 
-                const driversData = driversRes.ok ? await driversRes.json() : [];
-                const driversList = Array.isArray(driversData) ? driversData : (driversData.data || []);
-                const vehiclesData = vehiclesRes.ok ? await vehiclesRes.json() : [];
-                const vehiclesList = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData.data || []);
+                const driversData = driversRes.ok ? await driversRes.json() : { data: [] };
+                const driversList = driversData.data || (Array.isArray(driversData) ? driversData : []);
+                const vehiclesData = vehiclesRes.ok ? await vehiclesRes.json() : { data: [] };
+                const vehiclesList = vehiclesData.data || (Array.isArray(vehiclesData) ? vehiclesData : []);
 
                 const trips = tripsRes.ok ? await tripsRes.json() : [];
 

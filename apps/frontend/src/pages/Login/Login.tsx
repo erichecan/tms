@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../apiConfig';
 import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
@@ -12,6 +12,9 @@ export const Login = () => {
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const from = location.state?.from?.pathname || null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,7 +41,17 @@ export const Login = () => {
             };
 
             login(data.token, userWithPerms);
-            navigate('/');
+
+            // Redirect based on role
+            const isDriver = userWithPerms.roleId === 'R-DRIVER' || userWithPerms.roleId === 'DRIVER';
+
+            if (from) {
+                navigate(from, { replace: true });
+            } else if (isDriver) {
+                navigate('/driver');
+            } else {
+                navigate('/');
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
