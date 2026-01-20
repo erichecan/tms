@@ -33,10 +33,10 @@ const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <ProtectedRoute />, // All routes below are protected
+    element: <ProtectedRoute />,
     children: [
       {
-        path: '/driver',
+        path: 'driver',
         element: <DriverLayout />,
         children: [
           {
@@ -58,7 +58,7 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: '/',
+        path: '',
         element: <Layout />,
         children: [
           {
