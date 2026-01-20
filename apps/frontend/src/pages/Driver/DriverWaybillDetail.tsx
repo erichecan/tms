@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Clock, Camera, CheckCircle, AlertTriangle, ChevronLeft, Send } from 'lucide-react';
 import { SignaturePad } from '../../components/SignaturePad';
@@ -28,6 +28,7 @@ export const DriverWaybillDetail: React.FC = () => {
     const [exceptionType, setExceptionType] = useState('TRAFFIC');
     const [exceptionDesc, setExceptionDesc] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         // Mocking API call for now
@@ -97,6 +98,44 @@ export const DriverWaybillDetail: React.FC = () => {
             alert('Failed to report exception. Please try again.', 'Error');
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Compress or just convert to base64 for now
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64String = reader.result as string;
+            await uploadPhoto(base64String);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const uploadPhoto = async (base64Data: string) => {
+        setIsUpdating(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/waybills/${waybill?.id}/photos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    photo: base64Data,
+                    type: 'POD'
+                })
+            });
+
+            if (res.ok) {
+                alert('Photo uploaded and attached to waybill.', 'Upload Success');
+            } else {
+                throw new Error('Upload failed');
+            }
+        } catch (err) {
+            alert('Failed to upload photo. Please try again.', 'Error');
+        } finally {
+            setIsUpdating(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -226,11 +265,22 @@ export const DriverWaybillDetail: React.FC = () => {
                 )}
 
                 <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUpdating}
                     className="btn-secondary"
                     style={{ padding: '18px', borderRadius: '20px', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
                 >
-                    <Camera size={20} /> Upload Photo
+                    <Camera size={20} /> {isUpdating ? 'Uploading...' : 'Upload Photo'}
                 </button>
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                />
             </div>
 
             {/* Signature Modal */}

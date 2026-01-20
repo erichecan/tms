@@ -42,7 +42,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -461,6 +462,40 @@ app.get('/api/trips/:id/messages', async (req, res) => {
     const result = await query('SELECT * FROM messages WHERE trip_id = $1 ORDER BY timestamp ASC', [id]);
     res.json(result.rows);
   } catch (e) { res.status(500).json([]); }
+});
+
+app.post('/api/waybills/:id/photos', async (req, res) => {
+  const { id } = req.params;
+  const { photo, type } = req.body; // base64 string and type (e.g., 'POD', 'DAMAGE')
+
+  if (!photo) {
+    return res.status(400).json({ error: 'No photo data provided' });
+  }
+
+  try {
+    // Get current details
+    const currentRes = await query('SELECT details FROM waybills WHERE id = $1', [id]);
+    if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Waybill not found' });
+
+    const details = currentRes.rows[0].details || {};
+    const photos = details.photos || [];
+
+    // Add new photo with timestamp
+    photos.push({
+      url: photo, // Storing base64 as URL for now
+      type: type || 'POD',
+      captured_at: new Date().toISOString()
+    });
+
+    details.photos = photos;
+
+    await query('UPDATE waybills SET details = $1 WHERE id = $2', [JSON.stringify(details), id]);
+
+    res.json({ success: true, message: 'Photo uploaded successfully' });
+  } catch (e) {
+    console.error('Photo upload error:', e);
+    res.status(500).json({ error: 'Failed to upload photo' });
+  }
 });
 
 app.post('/api/trips/:id/messages', async (req, res) => {
