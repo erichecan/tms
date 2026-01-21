@@ -5,6 +5,8 @@ import { WaybillActionMenu } from './components/WaybillActionMenu';
 import { Pagination } from './components/Pagination';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from './apiConfig';
+import { DriverForm } from './components/FleetForm/DriverForm';
+import { VehicleForm } from './components/FleetForm/VehicleForm';
 
 interface Waybill {
     id: string;
@@ -34,6 +36,7 @@ export const WaybillsList = () => {
     const [selectedWaybill, setSelectedWaybill] = useState<string | null>(null);
     const [resources, setResources] = useState<{ drivers: any[], vehicles: any[] }>({ drivers: [], vehicles: [] });
     const [assignData, setAssignData] = useState({ driver_id: '', vehicle_id: '' });
+    const [addingResource, setAddingResource] = useState<'driver' | 'vehicle' | null>(null);
 
     // Use a debounced search term for API calls
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -105,11 +108,27 @@ export const WaybillsList = () => {
             if (res.ok) {
                 setIsAssignModalOpen(false);
                 setAssignData({ driver_id: '', vehicle_id: '' });
+                setAddingResource(null);
                 fetchWaybills();
             }
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const refreshResources = async () => {
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const [drivers, vehicles] = await Promise.all([
+            fetch(`${API_BASE_URL}/drivers`, { headers }).then(res => res.json()),
+            fetch(`${API_BASE_URL}/vehicles`, { headers }).then(res => res.json())
+        ]);
+        setResources({
+            drivers: Array.isArray(drivers.data) ? drivers.data.filter((d: any) => d.status === 'IDLE') : [],
+            vehicles: Array.isArray(vehicles.data) ? vehicles.data.filter((v: any) => v.status === 'IDLE') : []
+        });
     };
 
     useEffect(() => {
@@ -255,35 +274,79 @@ export const WaybillsList = () => {
             {/* Assignment Modal */}
             {isAssignModalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'fadeIn 0.3s ease-out' }}>
-                    <div className="glass-card" style={{ width: '480px', padding: '40px', background: 'white' }}>
+                    <div className="glass-card" style={{ width: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '40px', background: 'white' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <h3 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--slate-900)' }}>{t('dashboard.modal.title')}</h3>
-                            <button onClick={() => setIsAssignModalOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--slate-400)', padding: '4px' }}>
+                            <h3 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--slate-900)' }}>
+                                {addingResource === 'driver' ? t('fleet.modal.registerNew') + ' ' + t('fleet.driver') :
+                                    addingResource === 'vehicle' ? t('fleet.modal.registerNew') + ' ' + t('fleet.vehicle') :
+                                        t('dashboard.modal.title')}
+                            </h3>
+                            <button onClick={() => { setIsAssignModalOpen(false); setAddingResource(null); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--slate-400)', padding: '4px' }}>
                                 <X size={24} />
                             </button>
                         </div>
-                        <p style={{ color: 'var(--slate-500)', fontSize: '14px', marginBottom: '32px', fontWeight: 500 }}>{t('dashboard.modal.subtitle')}</p>
+                        <p style={{ color: 'var(--slate-500)', fontSize: '14px', marginBottom: '32px', fontWeight: 500 }}>
+                            {addingResource ? t('fleet.subtitle') : t('dashboard.modal.subtitle')}
+                        </p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '40px' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('dashboard.modal.driverLabel')}</label>
-                                <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, driver_id: e.target.value })} value={assignData.driver_id}>
-                                    <option value="">{t('dashboard.modal.driverPlaceholder')}</option>
-                                    {resources.drivers.map(d => <option key={d.id} value={d.id}>{d.name} (READY)</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('dashboard.modal.vehicleLabel')}</label>
-                                <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, vehicle_id: e.target.value })} value={assignData.vehicle_id}>
-                                    <option value="">{t('dashboard.modal.vehiclePlaceholder')}</option>
-                                    {resources.vehicles.map(v => <option key={v.id} value={v.id}>{v.plate} • {v.model}</option>)}
-                                </select>
-                            </div>
-                        </div>
+                        {addingResource === 'driver' ? (
+                            <DriverForm
+                                onSuccess={(newDriver) => {
+                                    refreshResources();
+                                    setAssignData(prev => ({ ...prev, driver_id: newDriver.id }));
+                                    setAddingResource(null);
+                                }}
+                                onCancel={() => setAddingResource(null)}
+                            />
+                        ) : addingResource === 'vehicle' ? (
+                            <VehicleForm
+                                onSuccess={(newVehicle) => {
+                                    refreshResources();
+                                    setAssignData(prev => ({ ...prev, vehicle_id: newVehicle.id }));
+                                    setAddingResource(null);
+                                }}
+                                onCancel={() => setAddingResource(null)}
+                            />
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '40px' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('dashboard.modal.driverLabel')}</label>
+                                            <button
+                                                onClick={() => setAddingResource('driver')}
+                                                style={{ border: 'none', background: 'transparent', color: 'var(--primary-start)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                            >
+                                                <Plus size={14} /> {t('common.add')}
+                                            </button>
+                                        </div>
+                                        <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, driver_id: e.target.value })} value={assignData.driver_id}>
+                                            <option value="">{t('dashboard.modal.driverPlaceholder')}</option>
+                                            {resources.drivers.map(d => <option key={d.id} value={d.id}>{d.name} (READY)</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>{t('dashboard.modal.vehicleLabel')}</label>
+                                            <button
+                                                onClick={() => setAddingResource('vehicle')}
+                                                style={{ border: 'none', background: 'transparent', color: 'var(--primary-start)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                            >
+                                                <Plus size={14} /> {t('common.add')}
+                                            </button>
+                                        </div>
+                                        <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, vehicle_id: e.target.value })} value={assignData.vehicle_id}>
+                                            <option value="">{t('dashboard.modal.vehiclePlaceholder')}</option>
+                                            {resources.vehicles.map(v => <option key={v.id} value={v.id}>{v.plate} • {v.model}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
 
-                        <div style={{ display: 'flex' }}>
-                            <button onClick={handleAssign} className="btn-primary" style={{ flex: 1 }}>{t('dashboard.modal.confirm')}</button>
-                        </div>
+                                <div style={{ display: 'flex' }}>
+                                    <button onClick={handleAssign} className="btn-primary" style={{ flex: 1 }}>{t('dashboard.modal.confirm')}</button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
