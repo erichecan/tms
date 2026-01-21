@@ -205,6 +205,29 @@ export const TrackingPage = () => {
                             >
                                 <div style={{ fontWeight: 800, fontSize: '14px' }}>{trip.vehicle_id}</div>
                                 <div style={{ fontSize: '12px', color: trip.id === tripId ? 'rgba(255,255,255,0.8)' : 'var(--slate-500)', marginTop: '2px' }}>Driver: {trip.driver_id}</div>
+
+                                {/* Waybill numbers under the trip */}
+                                {trip.waybills && trip.waybills.length > 0 && (
+                                    <div style={{
+                                        marginTop: '12px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '4px',
+                                        borderTop: `1px solid ${trip.id === tripId ? 'rgba(255,255,255,0.2)' : 'var(--glass-border)'}`,
+                                        paddingTop: '8px'
+                                    }}>
+                                        {trip.waybills.map((w: any) => (
+                                            <div key={w.id} style={{
+                                                fontSize: '11px',
+                                                color: trip.id === tripId ? 'rgba(255,255,255,0.7)' : 'var(--slate-400)',
+                                                fontWeight: 600
+                                            }}>
+                                                # {w.waybill_no}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
                                 {trip.id === tripId && <div style={{ fontSize: '10px', fontWeight: 800, marginTop: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>• Tracking Active</div>}
                             </div>
                         ))

@@ -146,6 +146,18 @@ const resources = {
                 "viewMode": "VIEW ONLY MODE",
                 "default": "Default",
                 "amazon": "Amazon",
+                "billingType": "Billing Type",
+                "byDistance": "By Distance",
+                "byTime": "By Time",
+                "amazonManifest": {
+                    "proCarrierRef": "PRO/Carrier Reference Number",
+                    "bolVendorRefList": "BOL/Vendor or Seller Reference Number List",
+                    "vendorName": "Vendor Name",
+                    "cartonCount": "Carton Count",
+                    "unitCount": "Unit Count",
+                    "poList": "PO List",
+                    "separatorHint": "(use , as separator)"
+                },
                 "form": {
                     "shipper": "Shipper",
                     "consignee": "Consignee",
@@ -621,6 +633,18 @@ const resources = {
                 "viewMode": "仅查看模式",
                 "default": "默认",
                 "amazon": "亚马逊",
+                "billingType": "计费方式",
+                "byDistance": "按里程计费",
+                "byTime": "按时间计费",
+                "amazonManifest": {
+                    "proCarrierRef": "PRO/承运人参考号",
+                    "bolVendorRefList": "BOL/供应商或卖家参考号列表",
+                    "vendorName": "供应商名称",
+                    "cartonCount": "箱数",
+                    "unitCount": "件数",
+                    "poList": "PO 列表",
+                    "separatorHint": "(使用逗号隔开)"
+                },
                 "form": {
                     "shipper": "发货人",
                     "consignee": "收货人",

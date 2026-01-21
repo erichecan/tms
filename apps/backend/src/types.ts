@@ -187,6 +187,7 @@ export interface LogisticsRouteRequest {
     pickupAddress: AddressInfo;
     deliveryAddress: AddressInfo;
     businessType?: string;
+    billingType?: 'DISTANCE' | 'TIME';
     cargoInfo?: any;
     waitingTimeLimit?: number;
 }

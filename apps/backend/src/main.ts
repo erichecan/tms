@@ -15,6 +15,22 @@ import ruleRoutes from './routes/ruleRoutes';
 import searchRoutes from './routes/searchRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import { verifyToken } from './middleware/AuthMiddleware';
+import { FinanceController } from './controllers/FinanceController';
+
+function calculateDurationMinutes(timeIn: string, timeOut: string): number {
+  if (!timeIn || !timeOut) return 0;
+  try {
+    const [h1, m1] = timeIn.split(':').map(Number);
+    const [h2, m2] = timeOut.split(':').map(Number);
+    if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+    let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    // Handle overnight if applicable, but usually same day for local
+    if (diff < 0) diff += 24 * 60;
+    return diff;
+  } catch (e) {
+    return 0;
+  }
+}
 
 
 const app = express();
@@ -166,6 +182,7 @@ app.post('/api/waybills', async (req, res) => {
     fulfillment_center, // Use fulfillment_center consistently
     pallet_count,
     distance,
+    billing_type,
     signature_url,
     signed_at,
     signed_by,
@@ -181,8 +198,8 @@ app.post('/api/waybills', async (req, res) => {
       `INSERT INTO waybills (
                 id, waybill_no, customer_id, origin, destination, cargo_desc, status, 
                 price_estimated, created_at, fulfillment_center, delivery_date, reference_code, 
-                pallet_count, distance, signature_url, signed_at, signed_by, details
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
+                pallet_count, distance, billing_type, signature_url, signed_at, signed_by, details
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
         id, waybill_no, customer_id, origin, destination, cargo_desc, status,
         price_estimated ? parseFloat(price_estimated) : 0,
@@ -192,6 +209,7 @@ app.post('/api/waybills', async (req, res) => {
         reference_code || null,
         pallet_count ? parseInt(pallet_count) : 0,
         distance ? parseFloat(distance) : 0,
+        billing_type || 'DISTANCE',
         signature_url || null,
         signed_at || null,
         signed_by || null,
@@ -212,8 +230,9 @@ app.put('/api/waybills/:id', async (req, res) => {
     waybill_no, customer_id, origin, destination,
     cargo_desc, price_estimated, status,
     fulfillment_center, delivery_date, reference_code, pallet_count,
-    distance, // Added distance
-    signature_url, signed_at, signed_by, details
+    distance, billing_type,
+    signature_url, signed_at, signed_by, details,
+    time_in, time_out
   } = req.body;
 
   try {
@@ -244,12 +263,14 @@ app.put('/api/waybills/:id', async (req, res) => {
                 waybill_no = $1, customer_id = $2, origin = $3, destination = $4, 
                 cargo_desc = $5, price_estimated = $6, status = COALESCE($7, status),
                 fulfillment_center = $8, delivery_date = $9, reference_code = $10, 
-                pallet_count = $11, distance = $12,
-                signature_url = COALESCE($13, signature_url), 
-                signed_at = COALESCE($14, signed_at), 
-                signed_by = COALESCE($15, signed_by),
-                details = COALESCE($16, details)
-             WHERE id = $17 RETURNING *`,
+                pallet_count = $11, distance = $12, billing_type = $13,
+                signature_url = COALESCE($14, signature_url), 
+                signed_at = COALESCE($15, signed_at), 
+                signed_by = COALESCE($16, signed_by),
+                details = COALESCE($17, details),
+                time_in = COALESCE($18, time_in),
+                time_out = COALESCE($19, time_out)
+             WHERE id = $20 RETURNING *`,
       [
         waybill_no, customer_id, origin, destination,
         cargo_desc, price_estimated ? parseFloat(price_estimated) : 0, status,
@@ -258,8 +279,11 @@ app.put('/api/waybills/:id', async (req, res) => {
         reference_code || null,
         pallet_count ? parseInt(pallet_count) : 0,
         distance ? parseFloat(distance) : 0,
+        billing_type,
         signature_url, signed_at, signed_by,
         details,
+        time_in || null,
+        time_out || null,
         id
       ]
     );
@@ -276,6 +300,41 @@ app.put('/api/waybills/:id', async (req, res) => {
         [recordId, 'DEFAULT_TENANT', updatedWaybill.id, 'receivable', updatedWaybill.customer_id, amount, 'CAD', 'PENDING']
       );
       console.log(`Financial record ${recordId} created for delivered waybill ${updatedWaybill.id}`);
+
+      // New: Driver Payroll Creation
+      if (updatedWaybill.trip_id) {
+        const tripRes = await query('SELECT driver_id FROM trips WHERE id = $1', [updatedWaybill.trip_id]);
+        if (tripRes.rows.length > 0) {
+          const driverId = tripRes.rows[0].driver_id;
+          const duration = calculateDurationMinutes(updatedWaybill.time_in, updatedWaybill.time_out);
+
+          // Fetch BusinessType from customer
+          const custRes = await query('SELECT businessType FROM customers WHERE id = $1', [updatedWaybill.customer_id]);
+          const businessType = custRes.rows[0]?.businesstype || 'STANDARD';
+
+          const payContext = {
+            distance: parseFloat(updatedWaybill.distance || 0),
+            billingType: updatedWaybill.billing_type || 'DISTANCE',
+            duration: duration,
+            businessType: businessType,
+            cargoInfo: updatedWaybill.cargo_desc,
+            totalRevenue: updatedWaybill.price_estimated
+          };
+
+          try {
+            const payResult = await ruleEngineService.calculateDriverPay(payContext);
+            const payrollId = `FP-${Date.now()}`;
+            await query(
+              `INSERT INTO financial_records (id, tenant_id, shipment_id, type, reference_id, amount, currency, status)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              [payrollId, 'DEFAULT_TENANT', updatedWaybill.id, 'payable', driverId, payResult.totalPay, 'CAD', 'PENDING']
+            );
+            console.log(`Driver payroll record ${payrollId} created for waybill ${updatedWaybill.id}`);
+          } catch (payError) {
+            console.error('Failed to calculate/create driver payroll record', payError);
+          }
+        }
+      }
     }
 
     res.json({ message: 'Waybill updated successfully', waybill: updatedWaybill });
@@ -342,6 +401,8 @@ app.post('/api/waybills/:id/assign', async (req, res) => {
     // Calculate Driver Pay
     const payContext = {
       distance: parseFloat(waybill.distance || 0),
+      billingType: waybill.billing_type || 'DISTANCE',
+      duration: waybill.details?.duration || 60, // Fallback to 60m if missing
       businessType: businessType,
       cargoInfo: waybill.cargo_desc
     };

@@ -46,7 +46,7 @@ echo "✅ New Backend URL: $BACKEND_URL"
 # 4. Build and Push Frontend (shipped with new Backend URL)
 echo "🏗️ Building Frontend Image..."
 docker build --platform linux/amd64 \
-    --build-arg VITE_API_BASE_URL=$BACKEND_URL \
+    --build-arg VITE_API_BASE_URL=${BACKEND_URL}/api \
     --build-arg VITE_GOOGLE_MAPS_API_KEY=AIzaSyD26kTVaKAlJu3Rc6_bqP9VjLh-HEDmBRs \
     -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG \
     -f docker/frontend/Dockerfile .
@@ -60,9 +60,9 @@ gcloud run deploy $FRONTEND_SERVICE \
     --region=$REGION \
     --platform=managed \
     --allow-unauthenticated \
-    --set-env-vars=VITE_API_BASE_URL=$BACKEND_URL \
+    --set-env-vars=VITE_API_BASE_URL=${BACKEND_URL}/api \
     --memory=512Mi \
-    --cpu=0.5 \
+    --cpu=1 \
     --min-instances=0 \
     --max-instances=2 \
     --timeout=120

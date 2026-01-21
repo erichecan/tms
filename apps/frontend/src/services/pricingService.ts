@@ -16,6 +16,7 @@ export interface PricingRequest {
         longitude: number;
     };
     businessType: string;
+    billingType?: 'DISTANCE' | 'TIME';
     waitingTimeLimit?: number;
 }
 

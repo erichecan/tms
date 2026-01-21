@@ -120,6 +120,20 @@ export class RuleEngineService {
                         inputValues: { totalBefore: total + discount, percentage },
                         sequence: breakdown.length + 1
                     });
+                } else if (action.type === 'calculateByTime') {
+                    const rate = parseFloat(action.params.ratePerHour || 0);
+                    const durationInHours = parseFloat(context.duration || 0) / 60; // Assuming duration is in minutes
+                    const amount = durationInHours * rate;
+                    total += amount;
+                    breakdown.push({
+                        componentCode: `RULE_${event.params.ruleId}_TIME`,
+                        componentName: `${event.params.name}`,
+                        amount: amount,
+                        currency,
+                        formula: `Action: ${durationInHours.toFixed(2)} hrs * ${rate}/hr`,
+                        inputValues: { durationInMinutes: context.duration, ratePerHour: rate },
+                        sequence: breakdown.length + 1
+                    });
                 }
             });
         });
@@ -271,6 +285,21 @@ export class RuleEngineService {
                         ruleId: selectedRuleEvent.params.ruleId
                     });
                 }
+            } else if (action.type === 'calculateByTime') {
+                const rate = parseFloat(action.params.ratePerHour || 0);
+                const durationInHours = parseFloat(context.duration || 0) / 60;
+                const amount = durationInHours * rate;
+                basePay += amount;
+                breakdown.push({
+                    componentCode: `PAY_RULE_${selectedRuleEvent.params.ruleId}_TIME`,
+                    componentName: `${selectedRuleEvent.params.name}`,
+                    amount: amount,
+                    currency,
+                    formula: `Action: ${durationInHours.toFixed(2)} hrs * ${rate}/hr`,
+                    inputValues: { durationInMinutes: context.duration, ratePerHour: rate },
+                    sequence: breakdown.length + 1,
+                    ruleId: selectedRuleEvent.params.ruleId
+                });
             }
         });
 

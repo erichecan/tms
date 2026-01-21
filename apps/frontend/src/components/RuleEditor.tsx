@@ -118,6 +118,8 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
 
     const factOptions = [
         { value: 'distance', label: 'Distance (km)' },
+        { value: 'duration', label: 'Duration (min)' },
+        { value: 'billingType', label: 'Billing Type (DISTANCE/TIME)' },
         { value: 'weight', label: 'Weight (kg)' },
         { value: 'customerLevel', label: 'Customer Level' },
         { value: 'isHazardous', label: 'Is Hazardous' },
@@ -139,6 +141,9 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel }) => {
         { value: 'addFee', label: 'Add Fixed Fee', paramKey: 'amount', unit: 'CAD' },
         { value: 'applyDiscount', label: 'Apply Discount', paramKey: 'percentage', unit: '%' },
         { value: 'calculateBaseFee', label: 'Calculate Base Fee', paramKey: 'ratePerKm', unit: 'CAD/km' },
+        { value: 'calculateByTime', label: 'Calculate by Time', paramKey: 'ratePerHour', unit: 'CAD/hr' },
+        { value: 'calculateBasePay', label: 'Driver: Base Pay (Fixed + Km)', paramKey: 'ratePerKm', unit: 'CAD/km' },
+        { value: 'addPercentage', label: 'Driver: % of Revenue', paramKey: 'percentage', unit: '%' },
         { value: 'setDriverCommission', label: 'Set Driver Commission', paramKey: 'percentage', unit: '%' }
     ];
 

@@ -132,6 +132,9 @@ const migrate = async () => {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='details') THEN
               ALTER TABLE waybills ADD COLUMN details JSONB;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='billing_type') THEN
+              ALTER TABLE waybills ADD COLUMN billing_type VARCHAR(20) DEFAULT 'DISTANCE';
+          END IF;
       END $$;
 
       CREATE TABLE IF NOT EXISTS expenses (
@@ -355,7 +358,13 @@ const migrate = async () => {
         '[{"type": "addFee", "params": {"amount": 180}}]', 'ACTIVE'),
       ('RULE-ZONE-002', 'Over Radius Surcharge', 'PRD v2.0: $5/km extra beyond 25km', 'pricing', 9,
         '[{"fact": "distance", "operator": "greaterThan", "value": 25}]',
-        '[{"type": "calculateBaseFee", "params": {"ratePerKm": 5, "baseFee": 180, "subtractDistance": 25}}]', 'ACTIVE')
+        '[{"type": "calculateBaseFee", "params": {"ratePerKm": 5, "baseFee": 180, "subtractDistance": 25}}]', 'ACTIVE'),
+      ('RULE-TIME-001', 'Hourly Rate ($80/hr)', 'Standard time-based billing for local moves', 'pricing', 5,
+        '[{"fact": "billingType", "operator": "equal", "value": "TIME"}]',
+        '[{"type": "calculateByTime", "params": {"ratePerHour": 80}}]', 'ACTIVE'),
+      ('RULE-PAY-TIME-001', 'Driver Hourly Pay ($30/hr)', 'Standard hourly pay for drivers', 'payroll', 10,
+        '[{"fact": "billingType", "operator": "equal", "value": "TIME"}]',
+        '[{"type": "calculateByTime", "params": {"ratePerHour": 30}}]', 'ACTIVE')
       ON CONFLICT(id) DO NOTHING;
     `);
 

@@ -18,6 +18,7 @@ export class PricingEngineService {
                 distance: routeResult.distance,
                 duration: routeResult.duration,
                 businessType: request.businessType,
+                billingType: request.billingType || 'DISTANCE',
                 waitingTime: request.waitingTimeLimit || 0,
                 cargoInfo: request.cargoInfo
             };

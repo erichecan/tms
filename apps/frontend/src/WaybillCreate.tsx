@@ -12,9 +12,14 @@ import { useDialog } from './context/DialogContext';
 
 interface GoodsLine {
     pallet_count: string;
-    item_count: string;
+    item_count: string; // Used for Default template
     pro: string;
     po_list: string;
+    // Amazon specific fields
+    bol_vendor_ref?: string;
+    vendor_name?: string;
+    carton_count?: string;
+    unit_count?: string;
 }
 
 export const WaybillCreate = () => {
@@ -30,10 +35,19 @@ export const WaybillCreate = () => {
     const [templateType, setTemplateType] = useState<'DEFAULT' | 'AMAZON'>('DEFAULT');
 
     // Common State
-    const [waybillNo, setWaybillNo] = useState(`Y${new Date().getFullYear().toString().substr(-2)}01-XXXX`);
+    const [waybillNo, setWaybillNo] = useState(() => {
+        if (id) return ''; // Will be set by fetch useEffect
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2);
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const hours = now.getHours().toString().padStart(2, '0');
+        const mins = now.getMinutes().toString().padStart(2, '0');
+        return `Y${year}${month}-${day}${hours}${mins}`;
+    });
 
     // Default Template State
-    const [shipFrom, setShipFrom] = useState({ company: '', contact: '', phone: '', address: '' });
+    const [shipFrom, setShipFrom] = useState({ company: 'Apony Group', contact: '', phone: '', address: '1399 Kennedy road' });
     const [shipTo, setShipTo] = useState({ company: '', contact: '', phone: '', address: '' });
 
     // Amazon Template State
@@ -47,9 +61,10 @@ export const WaybillCreate = () => {
 
     // Goods & Footer State
     const [goodsLines, setGoodsLines] = useState<GoodsLine[]>([
-        { pallet_count: '0', item_count: '0', pro: '', po_list: '' },
-        { pallet_count: '0', item_count: '0', pro: '', po_list: '' }
+        { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' },
+        { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' }
     ]);
+
     const [footerInfo, setFooterInfo] = useState({
         time_in: '',
         time_out: '',
@@ -58,8 +73,11 @@ export const WaybillCreate = () => {
         price: '0'
     });
 
+    // Note: useEffect was removed here and replaced by lazy initializer above
+
     // Signature
     const [signatureUrl, setSignatureUrl] = useState<string>('');
+    const [billingType, setBillingType] = useState<'DISTANCE' | 'TIME'>('DISTANCE');
 
     // Image Placeholders
     const [isaImage, setIsaImage] = useState<string | null>(null);
@@ -85,7 +103,17 @@ export const WaybillCreate = () => {
         const token = localStorage.getItem('token');
         const headers: HeadersInit = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        fetch(`${API_BASE_URL}/customers`, { headers }).then(res => res.json()).then(setCustomers).catch(() => { });
+        // Increase limit to 1000 for dropdown selection and handle paginated response
+        fetch(`${API_BASE_URL}/customers?limit=1000`, { headers })
+            .then(res => res.json())
+            .then(result => {
+                if (result && result.data) {
+                    setCustomers(result.data);
+                } else if (Array.isArray(result)) {
+                    setCustomers(result);
+                }
+            })
+            .catch(() => { });
     }, []);
 
     // Fetch Data on Edit/View
@@ -161,7 +189,11 @@ export const WaybillCreate = () => {
                                 pallet_count: l.pallet_count || '0',
                                 item_count: l.item_count || '0',
                                 pro: l.pro || '',
-                                po_list: l.po_list || ''
+                                po_list: l.po_list || '',
+                                bol_vendor_ref: l.bol_vendor_ref || '',
+                                vendor_name: l.vendor_name || '',
+                                carton_count: l.carton_count || '0',
+                                unit_count: l.unit_count || '0'
                             })));
                         } else if (recoveredLines.length > 0) {
                             setGoodsLines(recoveredLines);
@@ -179,6 +211,7 @@ export const WaybillCreate = () => {
                         });
 
                         if (found.signature_url) setSignatureUrl(found.signature_url);
+                        if (found.billing_type) setBillingType(found.billing_type);
                     }
                 });
         }
@@ -233,6 +266,7 @@ export const WaybillCreate = () => {
                             longitude: deliveryCoords.lng
                         },
                         businessType,
+                        billingType,
                         waitingTimeLimit: waitingTime
                     });
                     // setPricingResult(result);
@@ -271,7 +305,16 @@ export const WaybillCreate = () => {
 
     const addLine = () => {
         if (isViewMode) return;
-        setGoodsLines([...goodsLines, { pallet_count: '0', item_count: '0', pro: '', po_list: '' }]);
+        setGoodsLines([...goodsLines, {
+            pallet_count: '0',
+            item_count: '0',
+            pro: '',
+            po_list: '',
+            bol_vendor_ref: '',
+            vendor_name: '',
+            carton_count: '0',
+            unit_count: '0'
+        }]);
     };
 
     const removeLine = (index: number) => {
@@ -381,7 +424,7 @@ export const WaybillCreate = () => {
         const payload = {
             waybill_no: waybillNo,
             customer_id: footerInfo.client_name || '',
-            origin: isAmazon ? 'Unknown' : shipFrom.address,
+            origin: shipFrom.address || 'Unknown',
             destination: isAmazon ? (baseInfo.fc_address || baseInfo.fc_alias) : shipTo.address,
             fulfillment_center: isAmazon ? baseInfo.fc_alias : 'N/A',
             cargo_desc: `Target: ${baseInfo.reference_code || ''}, Items: ${goodsLines.length}, ShipFrom: ${shipFrom.company}, ShipTo: ${shipTo.company}`,
@@ -389,6 +432,7 @@ export const WaybillCreate = () => {
             delivery_date: isAmazon && baseInfo.delivery_date && baseInfo.delivery_time
                 ? `${baseInfo.delivery_date} ${baseInfo.delivery_time}`
                 : baseInfo.delivery_date,
+            billing_type: billingType,
             status: 'NEW',
             signature_url: signatureUrl,
             signed_at: signatureUrl ? new Date().toISOString() : undefined,
@@ -484,133 +528,33 @@ export const WaybillCreate = () => {
                 {/* Templates */}
                 {templateType === 'AMAZON' ? (
                     <div style={{ marginBottom: '40px' }}>
-                        <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
-                            <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.shipmentAppointment')}</h4></div>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {/* ISA Image Upload */}
-                                <div
-                                    onPaste={(e) => handlePaste(e, setIsaImage)}
-                                    onDrop={(e) => handleDrop(e, setIsaImage, setIsDraggingIsa)}
-                                    onDragOver={handleDragOver}
-                                    onDragEnter={(e) => handleDragEnter(e, setIsDraggingIsa)}
-                                    onDragLeave={(e) => handleDragLeave(e, setIsDraggingIsa)}
-                                    style={{
-                                        position: 'relative',
-                                        height: '100px',
-                                        border: isDraggingIsa ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
-                                        borderRadius: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        background: isDraggingIsa ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                        transition: 'all 0.2s ease',
-                                        cursor: isViewMode ? 'default' : 'pointer'
-                                    }}
-                                >
-                                    {isaImage ? (
-                                        <>
-                                            <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} />
-                                            {!isViewMode && (
-                                                <button
-                                                    onClick={() => handleDeleteImage(setIsaImage)}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '8px',
-                                                        right: '8px',
-                                                        background: 'rgba(239, 68, 68, 0.9)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        padding: '6px 12px',
-                                                        fontSize: '12px',
-                                                        fontWeight: 600,
-                                                        cursor: 'pointer',
-                                                        opacity: 0.8,
-                                                        transition: 'opacity 0.2s'
-                                                    }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
-                                                >
-                                                    {t('waybill.deleteImage')}
-                                                </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <span style={{ color: isDraggingIsa ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingIsa ? 600 : 400 }}>
-                                            {isDraggingIsa ? t('waybill.dropToUpload') : t('waybill.pasteIsa')}
-                                        </span>
-                                    )}
+                        <div className="glass" style={{ padding: '24px' }}>
+                            <div style={{ marginBottom: '16px', fontWeight: 800, fontSize: '14px', color: 'var(--slate-900)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {t('waybill.form.baseInfo')}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('waybill.form.fulfillmentCenter')}</div>
+                                    <input name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} placeholder="e.g. Y001" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
                                 </div>
-
-                                {/* Barcode Image Upload */}
-                                <div
-                                    onPaste={(e) => handlePaste(e, setBarcodeImage)}
-                                    onDrop={(e) => handleDrop(e, setBarcodeImage, setIsDraggingBarcode)}
-                                    onDragOver={handleDragOver}
-                                    onDragEnter={(e) => handleDragEnter(e, setIsDraggingBarcode)}
-                                    onDragLeave={(e) => handleDragLeave(e, setIsDraggingBarcode)}
-                                    style={{
-                                        position: 'relative',
-                                        height: '100px',
-                                        border: isDraggingBarcode ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
-                                        borderRadius: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        background: isDraggingBarcode ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                        transition: 'all 0.2s ease',
-                                        cursor: isViewMode ? 'default' : 'pointer'
-                                    }}
-                                >
-                                    {barcodeImage ? (
-                                        <>
-                                            <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} />
-                                            {!isViewMode && (
-                                                <button
-                                                    onClick={() => handleDeleteImage(setBarcodeImage)}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '8px',
-                                                        right: '8px',
-                                                        background: 'rgba(239, 68, 68, 0.9)',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        padding: '6px 12px',
-                                                        fontSize: '12px',
-                                                        fontWeight: 600,
-                                                        cursor: 'pointer',
-                                                        opacity: 0.8,
-                                                        transition: 'opacity 0.2s'
-                                                    }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
-                                                >
-                                                    {t('waybill.deleteImage')}
-                                                </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <span style={{ color: isDraggingBarcode ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingBarcode ? 600 : 400 }}>
-                                            {isDraggingBarcode ? t('waybill.dropToUpload') : t('waybill.pasteBarcode')}
-                                        </span>
-                                    )}
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('waybill.form.referenceCode')}</div>
+                                    <input name="reference_code" value={baseInfo.reference_code} onChange={handleBaseChange} placeholder="Appointment ID / Ref" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ flex: 2 }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('waybill.form.deliveryDate')}</div>
+                                        <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('common.time')}</div>
+                                        <input type="time" name="delivery_time" value={baseInfo.delivery_time} onChange={handleBaseChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                            <div>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>{t('waybill.fcCode')}</label>
-                                <input name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '100%' }} />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-400)', display: 'block', marginBottom: '8px' }}>{t('waybill.deliveryDate')}</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', flex: 1 }} />
-                                    <input type="time" name="delivery_time" value={baseInfo.delivery_time} onChange={handleBaseChange} readOnly={isViewMode} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', width: '120px' }} />
-                                </div>
+                            <div style={{ marginTop: '20px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('fleet.address')} (FC)</div>
+                                <input name="fc_address" value={baseInfo.fc_address} onChange={handleBaseChange} placeholder="Full Delivery Address" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
                             </div>
                         </div>
                     </div>
@@ -635,64 +579,253 @@ export const WaybillCreate = () => {
                     </div>
                 )}
 
-                {/* Items Manifest */}
+                {/* Cargo Manifest */}
                 <div style={{ marginBottom: '40px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                         <Package size={20} color="var(--slate-900)" />
                         <h4 style={{ fontWeight: 800, margin: 0 }}>{t('waybill.cargoManifest')}</h4>
                     </div>
-                    <div className="glass" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ background: 'var(--slate-50)', borderBottom: '2px solid var(--slate-100)' }}>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '40px' }}>#</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '100px' }}>{t('waybill.pallets')}</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '100px' }}>{t('waybill.items')}</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '180px' }}>{t('waybill.proDesc')}</th>
-                                    <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>{t('waybill.poList')}</th>
-                                    <th style={{ padding: '16px', width: '50px' }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {goodsLines.map((line, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid var(--slate-100)', transition: 'background 0.2s' }}>
-                                        <td style={{ padding: '16px', color: 'var(--slate-400)', fontWeight: 700 }}>{idx + 1}</td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <input value={line.item_count} onChange={e => handleLineChange(idx, 'item_count', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <input value={line.po_list} onChange={handleLineChange ? (e => handleLineChange(idx, 'po_list', e.target.value)) : undefined} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
-                                        </td>
-                                        <td style={{ padding: '16px', textAlign: 'center' }}>
-                                            {!isViewMode && goodsLines.length > 1 && (
-                                                <button onClick={() => removeLine(idx)} style={{ color: '#EF4444', border: 'none', background: 'var(--slate-50)', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </td>
+
+                    {templateType === 'AMAZON' ? (
+                        <div className="glass" style={{ padding: '0', overflowX: 'auto', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                                <thead>
+                                    <tr style={{ background: 'var(--slate-50)', borderBottom: '2px solid var(--slate-100)' }}>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>
+                                            {t('waybill.amazonManifest.proCarrierRef')}
+                                        </th>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>
+                                            {t('waybill.amazonManifest.bolVendorRefList')} <span style={{ textTransform: 'none', fontWeight: 500, opacity: 0.7 }}>{t('waybill.amazonManifest.separatorHint')}</span>
+                                        </th>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>
+                                            {t('waybill.amazonManifest.vendorName')}
+                                        </th>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '80px' }}>
+                                            {t('waybill.pallets')}
+                                        </th>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '80px' }}>
+                                            {t('waybill.amazonManifest.cartonCount')}
+                                        </th>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '80px' }}>
+                                            {t('waybill.amazonManifest.unitCount')}
+                                        </th>
+                                        <th style={{ padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>
+                                            {t('waybill.amazonManifest.poList')} <span style={{ textTransform: 'none', fontWeight: 500, opacity: 0.7 }}>{t('waybill.amazonManifest.separatorHint')}</span>
+                                        </th>
+                                        {!isViewMode && <th style={{ width: '40px' }}></th>}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {!isViewMode && <div style={{ padding: '16px' }}>
-                            <button onClick={addLine} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}><Plus size={16} /> {t('waybill.addGoodsLine')}</button>
-                        </div>}
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {goodsLines.map((line, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid var(--slate-100)' }}>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.bol_vendor_ref} onChange={e => handleLineChange(idx, 'bol_vendor_ref', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.vendor_name} onChange={e => handleLineChange(idx, 'vendor_name', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.carton_count} onChange={e => handleLineChange(idx, 'carton_count', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.unit_count} onChange={e => handleLineChange(idx, 'unit_count', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                                <input value={line.po_list} onChange={e => handleLineChange(idx, 'po_list', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--slate-200)', fontSize: '13px' }} readOnly={isViewMode} />
+                                            </td>
+                                            {!isViewMode && (
+                                                <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                    {goodsLines.length > 1 && (
+                                                        <button onClick={() => removeLine(idx)} style={{ color: '#EF4444', border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="glass" style={{ padding: '0', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: 'var(--slate-50)', borderBottom: '2px solid var(--slate-100)' }}>
+                                        <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '40px' }}>#</th>
+                                        <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '100px' }}>{t('waybill.pallets')}</th>
+                                        <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '100px' }}>{t('waybill.items')}</th>
+                                        <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left', width: '180px' }}>{t('waybill.proDesc')}</th>
+                                        <th style={{ padding: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase', textAlign: 'left' }}>{t('waybill.poList')}</th>
+                                        {!isViewMode && <th style={{ padding: '16px', width: '50px' }}></th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {goodsLines.map((line, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid var(--slate-100)' }}>
+                                            <td style={{ padding: '16px', color: 'var(--slate-400)', fontWeight: 700 }}>{idx + 1}</td>
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <input value={line.pallet_count} onChange={e => handleLineChange(idx, 'pallet_count', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <input value={line.item_count} onChange={e => handleLineChange(idx, 'item_count', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <input value={line.pro} onChange={e => handleLineChange(idx, 'pro', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                            </td>
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <input value={line.po_list} onChange={e => handleLineChange(idx, 'po_list', e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--slate-200)', fontSize: '14px', fontWeight: 600 }} readOnly={isViewMode} />
+                                            </td>
+                                            {!isViewMode && (
+                                                <td style={{ padding: '16px', textAlign: 'center' }}>
+                                                    {goodsLines.length > 1 && (
+                                                        <button onClick={() => removeLine(idx)} style={{ color: '#EF4444', border: 'none', background: 'var(--slate-50)', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {!isViewMode && (
+                        <div style={{ marginTop: '16px' }}>
+                            <button onClick={addLine} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}>
+                                <Plus size={16} /> {t('waybill.addGoodsLine')}
+                            </button>
+                        </div>
+                    )}
                 </div>
 
 
                 {/* Signature Pad */}
-                <div style={{ marginBottom: '40px' }}>
-                    <div style={{ pointerEvents: isViewMode ? 'none' : 'auto' }}>
-                        <SignaturePad onSave={handleSignatureSave} initialUrl={signatureUrl} />
+                {((isEditMode || isViewMode) && signatureUrl) && (
+                    <div style={{ marginBottom: '40px' }}>
+                        <div style={{ pointerEvents: 'none' }}>
+                            <SignaturePad onSave={handleSignatureSave} initialUrl={signatureUrl} />
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* Template Specific Header Content for Amazon */}
+                {templateType === 'AMAZON' && !isViewMode && (
+                    <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
+                        <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.shipmentAppointment')}</h4></div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'row', gap: '16px' }}>
+                            {/* ISA Image Upload */}
+                            <div
+                                onPaste={(e) => handlePaste(e, setIsaImage)}
+                                onDrop={(e) => handleDrop(e, setIsaImage, setIsDraggingIsa)}
+                                onDragOver={handleDragOver}
+                                onDragEnter={(e) => handleDragEnter(e, setIsDraggingIsa)}
+                                onDragLeave={(e) => handleDragLeave(e, setIsDraggingIsa)}
+                                style={{
+                                    position: 'relative',
+                                    height: '100px',
+                                    flex: 1,
+                                    border: isDraggingIsa ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
+                                    borderRadius: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    overflow: 'hidden',
+                                    background: isDraggingIsa ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {isaImage ? (
+                                    <>
+                                        <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} />
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteImage(setIsaImage); }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '8px',
+                                                right: '8px',
+                                                background: 'rgba(239, 68, 68, 0.9)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '4px 8px',
+                                                fontSize: '10px',
+                                                fontWeight: 600,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {t('waybill.deleteImage')}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span style={{ color: isDraggingIsa ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingIsa ? 600 : 400, fontSize: '12px' }}>
+                                        {isDraggingIsa ? t('waybill.dropToUpload') : t('waybill.pasteIsa')}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Barcode Image Upload */}
+                            <div
+                                onPaste={(e) => handlePaste(e, setBarcodeImage)}
+                                onDrop={(e) => handleDrop(e, setBarcodeImage, setIsDraggingBarcode)}
+                                onDragOver={handleDragOver}
+                                onDragEnter={(e) => handleDragEnter(e, setIsDraggingBarcode)}
+                                onDragLeave={(e) => handleDragLeave(e, setIsDraggingBarcode)}
+                                style={{
+                                    position: 'relative',
+                                    height: '100px',
+                                    flex: 1,
+                                    border: isDraggingBarcode ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
+                                    borderRadius: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    overflow: 'hidden',
+                                    background: isDraggingBarcode ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {barcodeImage ? (
+                                    <>
+                                        <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} />
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteImage(setBarcodeImage); }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '8px',
+                                                right: '8px',
+                                                background: 'rgba(239, 68, 68, 0.9)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '4px 8px',
+                                                fontSize: '10px',
+                                                fontWeight: 600,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {t('waybill.deleteImage')}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span style={{ color: isDraggingBarcode ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingBarcode ? 600 : 400, fontSize: '12px' }}>
+                                        {isDraggingBarcode ? t('waybill.dropToUpload') : t('waybill.pasteBarcode')}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Final Submission Controls */}
                 {!isViewMode && (
@@ -708,17 +841,35 @@ export const WaybillCreate = () => {
                                 </select>
                             </div>
                             <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.billingType')}</div>
+                                <select
+                                    value={billingType}
+                                    onChange={e => setBillingType(e.target.value as 'DISTANCE' | 'TIME')}
+                                    style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }}
+                                >
+                                    <option value="DISTANCE">{t('waybill.byDistance')}</option>
+                                    <option value="TIME">{t('waybill.byTime')}</option>
+                                </select>
+                            </div>
+                            <div>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.price')}</div>
                                 <input name="price" value={footerInfo.price} onChange={handleFooterChange} placeholder="0.00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '120px' }} />
                             </div>
                             <div>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.distance')}</div>
-                                <input name="distance" value={footerInfo.distance} onChange={handleFooterChange} placeholder="0" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '100px' }} />
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.timeIn')}</div>
+                                <input name="time_in" value={footerInfo.time_in} onChange={handleFooterChange} placeholder="00:00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '100px' }} />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.timeOut')}</div>
+                                <input name="time_out" value={footerInfo.time_out} onChange={handleFooterChange} placeholder="00:00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '100px' }} />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('pricing.calculate')}</div>
+                                <button className="btn-secondary" onClick={handleSubmit} style={{ padding: '12px 24px', borderRadius: '12px' }}>
+                                    {isEditMode ? t('waybill.updateWaybill') : t('waybill.createFinish')}
+                                </button>
                             </div>
                         </div>
-                        <button onClick={handleSubmit} className="btn-primary" style={{ padding: '16px 48px', fontSize: '18px' }}>
-                            {isEditMode ? t('waybill.updateWaybill') : t('waybill.createFinish')}
-                        </button>
                     </div>
                 )}
             </div>

@@ -15,6 +15,7 @@ interface Waybill {
     customer_id: string;
     created_at: string;
     trip_id?: string;
+    details?: any;
 }
 
 export const DriverWaybillDetail: React.FC = () => {
@@ -53,19 +54,70 @@ export const DriverWaybillDetail: React.FC = () => {
         if (!ok) return;
 
         setIsUpdating(true);
-        // Simulate API call
-        setTimeout(() => {
-            setWaybill(prev => prev ? { ...prev, status: newStatus } : null);
+        try {
+            const res = await fetch(`${API_BASE_URL}/waybills/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...waybill,
+                    status: newStatus
+                })
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setWaybill(updated.waybill);
+                alert(`Status updated to ${newStatus}`, 'Success');
+            } else {
+                throw new Error('Update failed');
+            }
+        } catch (err) {
+            alert('Failed to update status', 'Error');
+        } finally {
             setIsUpdating(false);
-            alert(`Status updated to ${newStatus}`, 'Success');
-        }, 1000);
+        }
     };
 
-    const handleSignatureSave = (signatureData: string) => {
-        console.log("Signature saved:", signatureData);
-        setWaybill(prev => prev ? { ...prev, status: 'DELIVERED' } : null);
-        setShowSignature(false);
-        alert('Delivery confirmed with signature', 'Waybill Delivered');
+    const handleSignatureSave = async (signatureData: string) => {
+        setIsUpdating(true);
+        try {
+            const now = new Date();
+            const timeOut = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            const updatedDetails = {
+                ...(waybill?.details || {}),
+                footerInfo: {
+                    ...(waybill?.details?.footerInfo || {}),
+                    time_out: timeOut
+                }
+            };
+
+            const res = await fetch(`${API_BASE_URL}/waybills/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...waybill,
+                    status: 'DELIVERED',
+                    signature_url: signatureData,
+                    signed_at: now.toISOString(),
+                    signed_by: waybill?.customer_id || 'RECIPIENT',
+                    details: updatedDetails
+                })
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setWaybill(updated.waybill);
+                setShowSignature(false);
+                alert('Delivery confirmed with signature', 'Waybill Delivered');
+            } else {
+                throw new Error('Delivery confirmation failed');
+            }
+        } catch (err) {
+            alert('Failed to confirm delivery', 'Error');
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
     const handleReportException = async () => {

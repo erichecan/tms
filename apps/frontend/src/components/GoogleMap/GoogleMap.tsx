@@ -65,7 +65,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                         center,
                         zoom,
                         mapTypeId: 'roadmap',
-                        mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
+                        disableDefaultUI: false, // Ensure UI elements are visible if needed
                         styles: [
                             {
                                 featureType: 'poi',
