@@ -528,6 +528,115 @@ export const WaybillCreate = () => {
                 {/* Templates */}
                 {templateType === 'AMAZON' ? (
                     <div style={{ marginBottom: '40px' }}>
+                        {/* ISA Image Upload Section - MOVED TO TOP */}
+                        {!isViewMode && (
+                            <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
+                                <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.shipmentAppointment')}</h4></div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'row', gap: '16px' }}>
+                                    {/* ISA Image Upload */}
+                                    <div
+                                        onPaste={(e) => handlePaste(e, setIsaImage)}
+                                        onDrop={(e) => handleDrop(e, setIsaImage, setIsDraggingIsa)}
+                                        onDragOver={handleDragOver}
+                                        onDragEnter={(e) => handleDragEnter(e, setIsDraggingIsa)}
+                                        onDragLeave={(e) => handleDragLeave(e, setIsDraggingIsa)}
+                                        style={{
+                                            position: 'relative',
+                                            height: '100px',
+                                            flex: 1,
+                                            border: isDraggingIsa ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
+                                            borderRadius: '12px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            background: isDraggingIsa ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                            transition: 'all 0.2s ease',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {isaImage ? (
+                                            <>
+                                                <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} />
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(setIsaImage); }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '8px',
+                                                        right: '8px',
+                                                        background: 'rgba(239, 68, 68, 0.9)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        padding: '4px 8px',
+                                                        fontSize: '10px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {t('waybill.deleteImage')}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <span style={{ color: isDraggingIsa ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingIsa ? 600 : 400, fontSize: '12px' }}>
+                                                {isDraggingIsa ? t('waybill.dropToUpload') : t('waybill.pasteIsa')}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Barcode Image Upload */}
+                                    <div
+                                        onPaste={(e) => handlePaste(e, setBarcodeImage)}
+                                        onDrop={(e) => handleDrop(e, setBarcodeImage, setIsDraggingBarcode)}
+                                        onDragOver={handleDragOver}
+                                        onDragEnter={(e) => handleDragEnter(e, setIsDraggingBarcode)}
+                                        onDragLeave={(e) => handleDragLeave(e, setIsDraggingBarcode)}
+                                        style={{
+                                            position: 'relative',
+                                            height: '100px',
+                                            flex: 1,
+                                            border: isDraggingBarcode ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
+                                            borderRadius: '12px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            background: isDraggingBarcode ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                            transition: 'all 0.2s ease',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {barcodeImage ? (
+                                            <>
+                                                <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} />
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(setBarcodeImage); }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '8px',
+                                                        right: '8px',
+                                                        background: 'rgba(239, 68, 68, 0.9)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        padding: '4px 8px',
+                                                        fontSize: '10px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {t('waybill.deleteImage')}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <span style={{ color: isDraggingBarcode ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingBarcode ? 600 : 400, fontSize: '12px' }}>
+                                                {isDraggingBarcode ? t('waybill.dropToUpload') : t('waybill.pasteBarcode')}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="glass" style={{ padding: '24px' }}>
                             <div style={{ marginBottom: '16px', fontWeight: 800, fontSize: '14px', color: 'var(--slate-900)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 {t('waybill.form.baseInfo')}
@@ -717,120 +826,19 @@ export const WaybillCreate = () => {
                     </div>
                 )}
 
-                {/* Template Specific Header Content for Amazon */}
-                {templateType === 'AMAZON' && !isViewMode && (
-                    <div className="glass" style={{ padding: '24px', marginBottom: '32px', display: 'flex', gap: '32px' }}>
-                        <div style={{ width: '180px' }}><h4 style={{ margin: 0 }}>{t('waybill.shipmentAppointment')}</h4></div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'row', gap: '16px' }}>
-                            {/* ISA Image Upload */}
-                            <div
-                                onPaste={(e) => handlePaste(e, setIsaImage)}
-                                onDrop={(e) => handleDrop(e, setIsaImage, setIsDraggingIsa)}
-                                onDragOver={handleDragOver}
-                                onDragEnter={(e) => handleDragEnter(e, setIsDraggingIsa)}
-                                onDragLeave={(e) => handleDragLeave(e, setIsDraggingIsa)}
-                                style={{
-                                    position: 'relative',
-                                    height: '100px',
-                                    flex: 1,
-                                    border: isDraggingIsa ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
-                                    borderRadius: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden',
-                                    background: isDraggingIsa ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {isaImage ? (
-                                    <>
-                                        <img src={isaImage} alt="ISA" style={{ height: '100%', objectFit: 'contain' }} />
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteImage(setIsaImage); }}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '8px',
-                                                right: '8px',
-                                                background: 'rgba(239, 68, 68, 0.9)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                padding: '4px 8px',
-                                                fontSize: '10px',
-                                                fontWeight: 600,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            {t('waybill.deleteImage')}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <span style={{ color: isDraggingIsa ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingIsa ? 600 : 400, fontSize: '12px' }}>
-                                        {isDraggingIsa ? t('waybill.dropToUpload') : t('waybill.pasteIsa')}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Barcode Image Upload */}
-                            <div
-                                onPaste={(e) => handlePaste(e, setBarcodeImage)}
-                                onDrop={(e) => handleDrop(e, setBarcodeImage, setIsDraggingBarcode)}
-                                onDragOver={handleDragOver}
-                                onDragEnter={(e) => handleDragEnter(e, setIsDraggingBarcode)}
-                                onDragLeave={(e) => handleDragLeave(e, setIsDraggingBarcode)}
-                                style={{
-                                    position: 'relative',
-                                    height: '100px',
-                                    flex: 1,
-                                    border: isDraggingBarcode ? '2px solid #3B82F6' : '2px dashed var(--glass-border)',
-                                    borderRadius: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden',
-                                    background: isDraggingBarcode ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {barcodeImage ? (
-                                    <>
-                                        <img src={barcodeImage} alt="Barcode" style={{ height: '100%', objectFit: 'contain' }} />
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteImage(setBarcodeImage); }}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '8px',
-                                                right: '8px',
-                                                background: 'rgba(239, 68, 68, 0.9)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                padding: '4px 8px',
-                                                fontSize: '10px',
-                                                fontWeight: 600,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            {t('waybill.deleteImage')}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <span style={{ color: isDraggingBarcode ? '#3B82F6' : 'var(--slate-500)', fontWeight: isDraggingBarcode ? 600 : 400, fontSize: '12px' }}>
-                                        {isDraggingBarcode ? t('waybill.dropToUpload') : t('waybill.pasteBarcode')}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* Template Specific Header Content for Amazon (ISA) - MOVED TO TOP as per request */}
+                {/* Note: In code logic, this block was previously below signature pad, but user requested it at top of template. 
+                    However, your request said "Move ... to the top". 
+                    I see there is already a "Template Specific Header Content" block at lines 721-828.
+                    Wait, looking at the code, lines 721-828 ARE the ISA block. 
+                    It is currently located AFTER the goods lines and signature pad (lines 529-718).
+                    I will move this entire block (721-828) to go BEFORE the Template container start or inside it at the top. 
+                */}
 
                 {/* Final Submission Controls */}
                 {!isViewMode && (
                     <div className="glass" style={{ padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
-                        <div style={{ display: 'flex', gap: '40px' }}>
+                        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', width: '100%' }}>
                             <div>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.billTo')}</div>
                                 <select name="client_name" value={footerInfo.client_name} onChange={handleFooterChange} style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }}>
@@ -857,15 +865,15 @@ export const WaybillCreate = () => {
                             </div>
                             <div>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.timeIn')}</div>
-                                <input name="time_in" value={footerInfo.time_in} onChange={handleFooterChange} placeholder="00:00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '100px' }} />
+                                <input type="time" name="time_in" value={footerInfo.time_in} onChange={handleFooterChange} style={{ padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '110px' }} />
                             </div>
                             <div>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.timeOut')}</div>
-                                <input name="time_out" value={footerInfo.time_out} onChange={handleFooterChange} placeholder="00:00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '100px' }} />
+                                <input type="time" name="time_out" value={footerInfo.time_out} onChange={handleFooterChange} style={{ padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '110px' }} />
                             </div>
-                            <div>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('pricing.calculate')}</div>
-                                <button className="btn-secondary" onClick={handleSubmit} style={{ padding: '12px 24px', borderRadius: '12px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-end', flex: 1 }}>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase', visibility: 'hidden' }}>{t('pricing.calculate')}</div>
+                                <button className="btn-secondary" onClick={handleSubmit} style={{ padding: '12px 24px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
                                     {isEditMode ? t('waybill.updateWaybill') : t('waybill.createFinish')}
                                 </button>
                             </div>
