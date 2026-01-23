@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Users, Wallet, ChevronRight, FileText, Search, Filter, Warehouse } from 'lucide-react';
+import { Plus, Wallet, ChevronRight, FileText, Search, Filter, Warehouse } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
 import StatementGenerator from './components/Finance/StatementGenerator';
 
@@ -317,7 +317,7 @@ export const FinanceReceivables = () => {
                 isOpen={isGeneratorOpen}
                 onClose={() => setIsGeneratorOpen(false)}
                 type="customer"
-                onSuccess={fetchRecords}
+                onSuccess={fetchData}
             />
 
             <style>{`

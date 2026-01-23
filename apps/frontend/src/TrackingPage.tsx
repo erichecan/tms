@@ -253,8 +253,6 @@ export const TrackingPage = () => {
                 </div>
 
                 <div className="glass" style={{ height: '400px', padding: '12px', position: 'relative', overflow: 'hidden' }}>
-                    {/* Debug Log */}
-                    <div style={{ display: 'none' }}>{console.log('🚚 [TrackingPage] Render Map', { center: mapCenter, directions, markersLength: markers.length })}</div>
                     <GoogleMap center={mapCenter} zoom={12} markers={markers} directions={directions} height="100%" />
                 </div>
 
