@@ -232,8 +232,6 @@ export const FleetManagement = () => {
 
         try {
             const payload = { ...newEntry };
-            if (activeTab === 'drivers') payload.status = payload.status || 'IDLE';
-            if (activeTab === 'vehicles') payload.status = payload.status || 'IDLE';
             if (activeTab === 'expenses') {
                 payload.status = payload.status || 'PENDING';
                 payload.date = payload.date || new Date().toISOString();

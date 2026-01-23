@@ -39,6 +39,14 @@ const migrate = async () => {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='created_at') THEN
               ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
           END IF;
+          -- Fix: Ensure 'name' column exists (migration failure fix)
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='name') THEN
+              ALTER TABLE users ADD COLUMN name VARCHAR(100);
+              -- Try to backfill if first/last exists
+              IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='first_name') THEN
+                  UPDATE users SET name = TRIM(BOTH ' ' FROM COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''));
+              END IF;
+          END IF;
       END $$;
 
       CREATE TABLE IF NOT EXISTS customers (
@@ -134,6 +142,12 @@ const migrate = async () => {
           END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='billing_type') THEN
               ALTER TABLE waybills ADD COLUMN billing_type VARCHAR(20) DEFAULT 'DISTANCE';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='time_in') THEN
+              ALTER TABLE waybills ADD COLUMN time_in VARCHAR(20);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='waybills' AND column_name='time_out') THEN
+              ALTER TABLE waybills ADD COLUMN time_out VARCHAR(20);
           END IF;
       END $$;
 
@@ -326,12 +340,14 @@ const migrate = async () => {
     `);
 
     // Users
+    /* 
     await client.query(`
       INSERT INTO users(id, name, email, password, roleId, status) VALUES
       ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
       ('U-02', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
       ON CONFLICT(id) DO NOTHING;
     `);
+    */
 
     // Notifications
     await client.query(`

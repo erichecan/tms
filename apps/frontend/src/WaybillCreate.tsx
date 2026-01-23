@@ -62,6 +62,9 @@ export const WaybillCreate = () => {
     // Goods & Footer State
     const [goodsLines, setGoodsLines] = useState<GoodsLine[]>([
         { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' },
+        { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' },
+        { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' },
+        { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' },
         { pallet_count: '0', item_count: '0', pro: '', po_list: '', bol_vendor_ref: '', vendor_name: '', carton_count: '0', unit_count: '0' }
     ]);
 
@@ -442,6 +445,9 @@ export const WaybillCreate = () => {
             details: fullDetails // Persist ALL state
         };
 
+        // Clean waybill_no (remove whitespace)
+        payload.waybill_no = payload.waybill_no.trim();
+
         const url = isEditMode ? `${API_BASE_URL}/waybills/${id}` : `${API_BASE_URL}/waybills`;
         const method = isEditMode ? 'PUT' : 'POST';
 
@@ -817,7 +823,7 @@ export const WaybillCreate = () => {
                 </div>
 
 
-                {/* Signature Pad */}
+                {/* Signature Pad - Hidden during creation, shown if exists or manually in other flows */}
                 {((isEditMode || isViewMode) && signatureUrl) && (
                     <div style={{ marginBottom: '40px' }}>
                         <div style={{ pointerEvents: 'none' }}>
@@ -873,7 +879,7 @@ export const WaybillCreate = () => {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-end', flex: 1 }}>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase', visibility: 'hidden' }}>{t('pricing.calculate')}</div>
-                                <button className="btn-secondary" onClick={handleSubmit} style={{ padding: '12px 24px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                <button className="btn-primary" onClick={handleSubmit} style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 600 }}>
                                     {isEditMode ? t('waybill.updateWaybill') : t('waybill.createFinish')}
                                 </button>
                             </div>

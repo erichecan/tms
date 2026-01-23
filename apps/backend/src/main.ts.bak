@@ -177,7 +177,7 @@ app.get('/api/waybills', async (req, res) => {
 
 app.post('/api/waybills', async (req, res) => {
   const {
-    waybill_no: providedWaybillNo, customer_id, origin, destination,
+    waybill_no, customer_id, origin, destination,
     cargo_desc, price_estimated, delivery_date, reference_code,
     fulfillment_center, // Use fulfillment_center consistently
     pallet_count,
@@ -190,18 +190,6 @@ app.post('/api/waybills', async (req, res) => {
   } = req.body;
 
   const id = `WB-${Date.now()}`;
-
-  // Auto-generate waybill_no if not provided, using same format as frontend: Y[YYMM]-[DDHHmmss]
-  let waybill_no = providedWaybillNo;
-  if (!waybill_no) {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const hours = now.getHours().toString().padStart(2, '0');
-    const mins = now.getMinutes().toString().padStart(2, '0');
-    waybill_no = `Y${year}${month}-${day}${hours}${mins}`;
-  }
   const status = WaybillStatus.NEW;
   const created_at = new Date().toISOString();
 

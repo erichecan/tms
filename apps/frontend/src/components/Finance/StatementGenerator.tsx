@@ -48,7 +48,8 @@ const StatementGenerator: React.FC<StatementGeneratorProps> = ({ isOpen, onClose
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.ok ? await res.json() : [];
-            setReferences(Array.isArray(data) ? data : []);
+            const list = Array.isArray(data) ? data : (data.data || []);
+            setReferences(list);
         } catch (e) {
             console.error("Failed to fetch references", e);
         } finally {

@@ -25,6 +25,9 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }
             onSave(data);
         } else if (preview && onSave) {
             onSave(preview);
+        } else {
+            // Feedback for empty signature
+            window.alert('Please sign before confirming.');
         }
     };
 
@@ -38,7 +41,8 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }
                 background: 'white',
                 height: '180px',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                touchAction: 'none' // Important for mobile drawing
             }}>
                 {preview ? (
                     <img src={preview} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -46,7 +50,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }
                     <SignatureCanvas
                         ref={sigCanvas}
                         canvasProps={{
-                            style: { width: '100%', height: '100%' },
+                            style: { width: '100%', height: '100%', touchAction: 'none' }, // Ensure touch events work
                             className: 'sigCanvas'
                         }}
                     />

@@ -177,6 +177,10 @@ export const TrackingPage = () => {
         }
     };
 
+    const directions = (tripData.waybills && tripData.waybills.length > 0)
+        ? { origin: tripData.waybills[0].origin, destination: tripData.waybills[0].destination }
+        : undefined;
+
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 340px', gap: '24px', height: 'calc(100vh - 120px)', animation: 'fadeIn 0.5s ease-out' }}>
 
@@ -204,7 +208,7 @@ export const TrackingPage = () => {
                                 }}
                             >
                                 <div style={{ fontWeight: 800, fontSize: '14px' }}>{trip.vehicle_id}</div>
-                                <div style={{ fontSize: '12px', color: trip.id === tripId ? 'rgba(255,255,255,0.8)' : 'var(--slate-500)', marginTop: '2px' }}>Driver: {trip.driver_id}</div>
+                                <div style={{ fontSize: '12px', color: trip.id === tripId ? 'rgba(255,255,255,0.8)' : 'var(--slate-500)', marginTop: '2px' }}>Driver: {trip.driver_name || trip.driver_id}</div>
 
                                 {/* Waybill numbers under the trip */}
                                 {trip.waybills && trip.waybills.length > 0 && (
@@ -222,7 +226,7 @@ export const TrackingPage = () => {
                                                 color: trip.id === tripId ? 'rgba(255,255,255,0.7)' : 'var(--slate-400)',
                                                 fontWeight: 600
                                             }}>
-                                                # {w.waybill_no}
+                                                # {w.waybill_no} {w.client_name ? `- ${w.client_name}` : ''}
                                             </div>
                                         ))}
                                     </div>
@@ -249,7 +253,9 @@ export const TrackingPage = () => {
                 </div>
 
                 <div className="glass" style={{ height: '400px', padding: '12px', position: 'relative', overflow: 'hidden' }}>
-                    <GoogleMap center={mapCenter} zoom={12} markers={markers} height="100%" />
+                    {/* Debug Log */}
+                    <div style={{ display: 'none' }}>{console.log('🚚 [TrackingPage] Render Map', { center: mapCenter, directions, markersLength: markers.length })}</div>
+                    <GoogleMap center={mapCenter} zoom={12} markers={markers} directions={directions} height="100%" />
                 </div>
 
                 <div className="glass-card" style={{ padding: '32px' }}>

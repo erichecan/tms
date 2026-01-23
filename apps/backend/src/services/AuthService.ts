@@ -63,18 +63,25 @@ export class AuthService {
 
         // Get Permissions
         let permissions: string[] = [];
-        if (user.role_id || user.roleid) { // support both cases during migration
+        // Support 'role' (DB schema) vs 'role_id'/'roleid' (Legacy/Migration)
+        const userRole = user.role || user.role_id || user.roleid;
+
+        if (userRole) {
             try {
-                const roleId = user.role_id || user.roleid;
                 // Check if table exists implicitly by trying query, or skip if we assume light mode
                 // Since this is causing crashes on some envs, let's wrap it safe
-                const permResult = await query(`
-                    SELECT p.id 
-                    FROM permissions p
-                    JOIN role_permissions rp ON p.id = rp.permissionid
-                    WHERE rp.roleid = $1
-                `, [roleId]);
-                permissions = permResult.rows.map(r => r.id);
+                // Note: If using 'role' enum (ADMIN/DRIVER), permissions might need mapping or direct usage
+                if (userRole.startsWith('R-') || userRole.length > 10) {
+                    const permResult = await query(`
+                        SELECT p.id 
+                        FROM permissions p
+                        JOIN role_permissions rp ON p.id = rp.permissionid
+                        WHERE rp.roleid = $1
+                    `, [userRole]);
+                    permissions = permResult.rows.map(r => r.id);
+                } else {
+                    // Simple role map if needed, or empty
+                }
             } catch (err: any) {
                 console.warn(`[Login] Failed to load permissions (likely missing table): ${err.message}`);
                 // Proceed with empty permissions
@@ -84,18 +91,18 @@ export class AuthService {
         // Generate Token
         const tokenPayload = {
             id: user.id,
-            roleId: user.role_id || user.roleid,
+            roleId: userRole,
             permissions
         };
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
 
         // Update last login
-        await query('UPDATE users SET lastlogin = NOW() WHERE id = $1', [user.id]); // Note casing: lastlogin based on list-users output
+        await query('UPDATE users SET lastlogin = NOW() WHERE id = $1', [user.id]);
 
         return {
             user: { ...user, password_hash: undefined, password: undefined },
-            role: user.role_id || user.roleid,
+            role: userRole,
             permissions,
             token
         };

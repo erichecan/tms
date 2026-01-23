@@ -343,18 +343,23 @@ export const getTrips = async (req: Request, res: Response) => {
         const result = await query(`
             SELECT 
                 t.*,
+                COALESCE(u.name, d.name, t.driver_id) as driver_name,
                 (
                     SELECT json_agg(json_build_object(
                         'id', w.id,
                         'waybill_no', w.waybill_no,
                         'origin', w.origin,
                         'destination', w.destination,
-                        'pallet_count', w.pallet_count
+                        'pallet_count', w.pallet_count,
+                        'client_name', COALESCE(c.company, c.name, w.customer_id)
                     ))
                     FROM waybills w
+                    LEFT JOIN customers c ON w.customer_id = c.id
                     WHERE w.trip_id = t.id
                 ) as waybills
             FROM trips t
+            LEFT JOIN users u ON t.driver_id = u.id
+            LEFT JOIN drivers d ON t.driver_id = d.id
         `);
         res.json(result.rows);
     } catch (e) {

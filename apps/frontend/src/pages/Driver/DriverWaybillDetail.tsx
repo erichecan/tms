@@ -32,21 +32,26 @@ export const DriverWaybillDetail: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // Mocking API call for now
-        setTimeout(() => {
-            setWaybill({
-                id: id || 'WB-001',
-                waybill_no: 'WB-20260114-001',
-                origin: 'Omaha, NE',
-                destination: 'Chicago, IL',
-                status: 'ASSIGNED',
-                cargo_desc: 'Pork Bellies - 20 Pallets',
-                customer_id: 'ABC Retail',
-                created_at: '2026-01-14T10:00:00Z',
-                trip_id: 'T-1001'
-            });
-            setLoading(false);
-        }, 800);
+        if (!id) return;
+
+        const fetchWaybill = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch(`${API_BASE_URL}/waybills/${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setWaybill(data);
+                } else {
+                    console.error("Waybill not found");
+                }
+            } catch (err) {
+                console.error("Failed to fetch waybill", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchWaybill();
     }, [id]);
 
     const handleUpdateStatus = async (newStatus: string) => {

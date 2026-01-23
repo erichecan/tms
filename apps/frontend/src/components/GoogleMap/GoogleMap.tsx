@@ -29,6 +29,10 @@ interface GoogleMapProps {
         to: { lat: number; lng: number };
         color?: string;
     }>;
+    directions?: {
+        origin: string;
+        destination: string;
+    };
     height?: string;
     onMarkerClick?: (markerId: string) => void;
 }
@@ -38,6 +42,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     zoom = 10,
     markers = [],
     routes = [],
+    directions,
     height = '400px',
     onMarkerClick,
 }) => {
@@ -47,6 +52,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     const [error, setError] = useState<string | null>(null);
     const markersRef = useRef<any[]>([]);
     const routesRef = useRef<any[]>([]);
+    const directionsRendererRef = useRef<any>(null);
 
     useEffect(() => {
         const initMap = async () => {
@@ -56,9 +62,11 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
                 const { loadGoogleMaps, importLibrary } = await import('../../lib/googleMapsLoader');
                 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+                console.log('🗺️ [GoogleMap] Init with Key length:', API_KEY.length);
 
                 await loadGoogleMaps(API_KEY);
                 const { Map } = await importLibrary('maps');
+                console.log('🗺️ [GoogleMap] Maps Library loaded');
 
                 if (mapRef.current) {
                     const mapInstance = new Map(mapRef.current, {
@@ -76,6 +84,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                     });
 
                     setMap(mapInstance);
+                    console.log('🗺️ [GoogleMap] Map Instance created', mapInstance);
+                } else {
+                    console.error('🗺️ [GoogleMap] mapRef is null!');
                 }
             } catch (err: any) {
                 console.error('❌ [GoogleMap Component] Google Maps failed to load:', err);
@@ -85,8 +96,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             }
         };
 
-        initMap();
-    }, []);
+        if (!map) {
+            initMap();
+        }
+    }, [map]); // Add map dependency to prevent re-init if already exists
 
     // Update markers
     useEffect(() => {
@@ -127,7 +140,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         updateMarkers();
     }, [map, markers, onMarkerClick]);
 
-    // Update routes
+    // Update manual routes (polylines)
     useEffect(() => {
         if (!map) return;
 
@@ -157,28 +170,99 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         updateRoutes();
     }, [map, routes]);
 
+    // Handle Directions (Projected Route)
+    useEffect(() => {
+        console.log('🗺️ [GoogleMap] Directions Effect triggered', { map: !!map, directions });
+        if (!map || !directions || !directions.origin || !directions.destination) {
+            if (map && (!directions || !directions.origin)) console.warn('🗺️ [GoogleMap] Missing directions data', directions);
+            return;
+        }
+
+        const renderDirections = async () => {
+            console.log('🗺️ [GoogleMap] Rendering Directions function start...');
+            try {
+                const { importLibrary } = await import('../../lib/googleMapsLoader');
+                const { DirectionsService, DirectionsRenderer } = await importLibrary('routes') as any;
+
+                if (!directionsRendererRef.current) {
+                    directionsRendererRef.current = new DirectionsRenderer({
+                        map,
+                        suppressMarkers: false, // Let it show A/B markers
+                        polylineOptions: {
+                            strokeColor: '#0080FF', // Primary Blue
+                            strokeWeight: 5,
+                            strokeOpacity: 0.8
+                        }
+                    });
+                }
+
+                const directionsService = new DirectionsService();
+                console.log('🗺️ [GoogleMap] Requesting Route:', directions);
+
+                directionsService.route(
+                    {
+                        origin: directions.origin,
+                        destination: directions.destination,
+                        travelMode: 'DRIVING',
+                    },
+                    (result: any, status: any) => {
+                        console.log('🗺️ [GoogleMap] Directions Response:', status, result);
+                        if (status === 'OK') {
+                            directionsRendererRef.current.setDirections(result);
+                        } else {
+                            console.error(`Directions request failed due to ${status}`);
+                            setError(`Route failed: ${status}`);
+                        }
+                    }
+                );
+
+            } catch (e) {
+                console.error("Failed to load routes library or render directions", e);
+            }
+        };
+
+        renderDirections();
+
+    }, [map, directions]);
+
+
     // Update center/zoom
     useEffect(() => {
-        if (map) {
+        if (map && !directions) { // Only manually set center if directions aren't controlling the view
             map.setCenter(center);
             map.setZoom(zoom);
         }
-    }, [map, center, zoom]);
+    }, [map, center, zoom, directions]);
+
+    // Timeout for loading to prevent infinite spinner
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (loading && !error) {
+                setLoading(false);
+                setError('Map loading timed out. Check API Key or Network.');
+            }
+        }, 10000); // 10s timeout
+        return () => clearTimeout(timer);
+    }, [loading, error]);
 
     if (loading) {
         return (
-            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '8px' }}>
-                <div>Loading Map...</div>
+            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 24, height: 24, border: '3px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: 8 }}></div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>Loading Map...</div>
+                </div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '8px' }}>
-                <div style={{ textAlign: 'center', color: 'red' }}>
-                    <div>Error loading map</div>
-                    <div style={{ fontSize: '12px' }}>{error}</div>
+            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '16px' }}>
+                <div style={{ textAlign: 'center', color: '#EF4444', padding: '12px' }}>
+                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>Map Error</div>
+                    <div style={{ fontSize: '11px', opacity: 0.8 }}>{error}</div>
                 </div>
             </div>
         );
@@ -190,8 +274,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             style={{
                 width: '100%',
                 height,
-                borderRadius: '16px', // Match TrackingPage style
-                border: '1px solid #d9d9d9',
+                borderRadius: '16px',
+                border: '1px solid var(--glass-border, #e2e8f0)',
+                position: 'relative', // Ensure map controls are positioned correctly
+                overflow: 'hidden'
             }}
         />
     );

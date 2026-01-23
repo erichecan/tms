@@ -1,6 +1,6 @@
 #!/bin/bash
-# TMS V2 Parallel Deployment Script (Staging/Preview)
-# Purpose: Deploy to GCP under new service names to avoid affecting production.
+# TMS Production Deployment Script
+# Purpose: Deploy fully tested refinements to the main production environment.
 
 set -e
 
@@ -9,14 +9,14 @@ PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project)}"
 REGION="us-central1"
 BACKEND_SERVICE="tms-backend"
 FRONTEND_SERVICE="tms-frontend"
-IMAGE_TAG="v2-latest"
+IMAGE_TAG="latest"
 
 if [ -z "$PROJECT_ID" ]; then
     echo "❌ Error: PROJECT_ID is not set. Please run 'gcloud config set project PROJECT_ID' or set PROJECT_ID env var."
     exit 1
 fi
 
-echo "🚀 Starting Parallel Deployment for TMS V2 on PROJECT: $PROJECT_ID..."
+echo "🚀 Starting PRODUCTION Deployment for TMS on PROJECT: $PROJECT_ID..."
 
 # 1. Build and Push Backend
 echo "🏗️ Building Backend Image..."
@@ -24,7 +24,7 @@ docker build --platform linux/amd64 -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAG
 echo "📤 Pushing Backend Image..."
 docker push gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG
 
-# 2. Deploy Backend to Cloud Run (to get unique URL)
+# 2. Deploy Backend to Cloud Run
 echo "🚀 Deploying Backend Service: $BACKEND_SERVICE..."
 gcloud run deploy $BACKEND_SERVICE \
     --image=gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG \
@@ -39,11 +39,11 @@ gcloud run deploy $BACKEND_SERVICE \
     --max-instances=2 \
     --timeout=180
 
-# 3. Get New Backend URL
+# 3. Get Backend URL
 BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --region=$REGION --format="value(status.url)")
-echo "✅ New Backend URL: $BACKEND_URL"
+echo "✅ Backend URL: $BACKEND_URL"
 
-# 4. Build and Push Frontend (shipped with new Backend URL)
+# 4. Build and Push Frontend (shipped with Backend URL)
 echo "🏗️ Building Frontend Image..."
 docker build --platform linux/amd64 \
     --build-arg VITE_API_BASE_URL=${BACKEND_URL}/api \
@@ -70,8 +70,7 @@ gcloud run deploy $FRONTEND_SERVICE \
 # 6. Final Result
 FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region=$REGION --format="value(status.url)")
 echo "------------------------------------------------"
-echo "🎉 TMS V2 DEPLOYMENT COMPLETE!"
-echo "📍 V2 Frontend Link: $FRONTEND_URL"
-echo "📍 V2 Backend Link:  $BACKEND_URL"
+echo "🎉 TMS PRODUCTION DEPLOYMENT COMPLETE!"
+echo "📍 Production Frontend: $FRONTEND_URL"
+echo "📍 Production Backend:  $BACKEND_URL"
 echo "------------------------------------------------"
-echo "Note: This version is isolated by Service Name. It shares the same database secrets."
