@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Truck, Clock, Send, MessageSquare, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -114,6 +114,21 @@ export const TrackingPage = () => {
         }
     };
 
+    const directions = useMemo(() => {
+        return (tripData?.waybills && tripData.waybills.length > 0)
+            ? { origin: tripData.waybills[0].origin, destination: tripData.waybills[0].destination }
+            : undefined;
+    }, [tripData]);
+
+    const displayTime = (time: any) => {
+        if (!time) return 'Pending...';
+        try {
+            return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            return '---';
+        }
+    };
+
     if (error) {
         return (
             <div style={{ padding: '80px', textAlign: 'center', animation: 'fadeIn 0.5s ease-out' }}>
@@ -168,18 +183,7 @@ export const TrackingPage = () => {
         }
     });
 
-    const displayTime = (time: any) => {
-        if (!time) return 'Pending...';
-        try {
-            return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-            return '---';
-        }
-    };
 
-    const directions = (tripData.waybills && tripData.waybills.length > 0)
-        ? { origin: tripData.waybills[0].origin, destination: tripData.waybills[0].destination }
-        : undefined;
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 340px', gap: '24px', height: 'calc(100vh - 120px)', animation: 'fadeIn 0.5s ease-out' }}>

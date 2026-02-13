@@ -1,6 +1,6 @@
 import * as express from 'express';
 import {
-    getDrivers, createDriver, updateDriver, deleteDriver,
+    getDrivers, createDriver, updateDriver, deleteDriver, getDriverAvailability,
     getVehicles, createVehicle, updateVehicle, deleteVehicle,
     getExpenses, createExpense, updateExpense, deleteExpense,
     getTrips, createTrip, updateTrip
@@ -11,6 +11,7 @@ const router = express.Router();
 router.get('/drivers', getDrivers);
 router.post('/drivers', createDriver);
 router.put('/drivers/:id', updateDriver);
+router.get('/drivers/:id/availability', getDriverAvailability);
 router.delete('/drivers/:id', deleteDriver);
 
 router.get('/vehicles', getVehicles);

@@ -86,7 +86,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                     setMap(mapInstance);
                     console.log('🗺️ [GoogleMap] Map Instance created', mapInstance);
                 } else {
-                    console.error('🗺️ [GoogleMap] mapRef is null!');
+                    console.error('🗺️ [GoogleMap] mapRef is null - Component likely unmounted or race condition');
                 }
             } catch (err: any) {
                 console.error('❌ [GoogleMap Component] Google Maps failed to load:', err);
@@ -245,41 +245,50 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         return () => clearTimeout(timer);
     }, [loading, error]);
 
-    if (loading) {
-        return (
-            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: 24, height: 24, border: '3px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: 8 }}></div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>Loading Map...</div>
-                </div>
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '16px' }}>
-                <div style={{ textAlign: 'center', color: '#EF4444', padding: '12px' }}>
-                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>Map Error</div>
-                    <div style={{ fontSize: '11px', opacity: 0.8 }}>{error}</div>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div
-            ref={mapRef}
-            style={{
-                width: '100%',
-                height,
-                borderRadius: '16px',
-                border: '1px solid var(--glass-border, #e2e8f0)',
-                position: 'relative', // Ensure map controls are positioned correctly
-                overflow: 'hidden'
-            }}
-        />
+        <div style={{ position: 'relative', width: '100%', height }}>
+            {/* Map Container - Always Rendered */}
+            <div
+                ref={mapRef}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '16px',
+                    border: '1px solid var(--glass-border, #e2e8f0)',
+                    overflow: 'hidden'
+                }}
+            />
+
+            {/* Loading Overlay */}
+            {loading && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: '#f0f0f0', borderRadius: '16px', zIndex: 10
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ width: 24, height: 24, border: '3px solid #ccc', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: 8 }}></div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>Loading Map...</div>
+                    </div>
+                </div>
+            )}
+
+            {/* Error Overlay */}
+            {error && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: '#f0f0f0', borderRadius: '16px', zIndex: 10
+                }}>
+                    <div style={{ textAlign: 'center', color: '#EF4444', padding: '12px' }}>
+                        <div style={{ fontWeight: 600, marginBottom: '4px' }}>Map Error</div>
+                        <div style={{ fontSize: '11px', opacity: 0.8 }}>{error}</div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
     );
 };
 

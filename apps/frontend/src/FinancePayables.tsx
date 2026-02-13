@@ -1,9 +1,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Users, Wallet, ChevronRight, FileText, Search, Filter } from 'lucide-react';
+import { Users, Wallet, ChevronRight, FileText, Search, Filter, Download } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
-import StatementGenerator from './components/Finance/StatementGenerator';
 
 interface FinancialRecord {
     id: string;
@@ -12,6 +11,7 @@ interface FinancialRecord {
     status: string;
     created_at: string;
     reference_id: string; // Driver ID
+    shipment_id?: string; // Waybill/Shipment ID
 }
 
 interface Driver {
@@ -25,7 +25,6 @@ export const FinancePayables = () => {
     const [records, setRecords] = useState<FinancialRecord[]>([]);
     const [drivers, setDrivers] = useState<Driver[]>([]);
     const [loading, setLoading] = useState(false);
-    const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
     const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -90,6 +89,41 @@ export const FinancePayables = () => {
         })).sort((a, b) => b.total - a.total);
     }, [groupedRecords]);
 
+    const handleExportCSV = () => {
+        if (!selectedDriverId || !groupedRecords[selectedDriverId]) return;
+
+        const { driverName, records } = groupedRecords[selectedDriverId];
+
+        // Define CSV Headers
+        const headers = ["Record ID", "Waybill/Ref", "Amount", "Status", "Date"];
+
+        // Map records to rows
+        const rows = records.map(r => [
+            r.id,
+            r.shipment_id || r.reference_id,
+            r.amount.toFixed(2),
+            r.status,
+            new Date(r.created_at).toLocaleDateString()
+        ]);
+
+        // Combine into CSV string
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+
+        // Trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Payroll_${driverName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div style={{ padding: '32px', minHeight: '100vh', background: 'var(--slate-50)' }}>
             {/* Header Section */}
@@ -136,21 +170,6 @@ export const FinancePayables = () => {
                             }}
                         />
                     </div>
-                    <button
-                        onClick={() => setIsGeneratorOpen(true)}
-                        className="btn-primary"
-                        style={{
-                            padding: '12px 24px',
-                            borderRadius: '14px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            fontWeight: 700
-                        }}
-                    >
-                        <Plus size={20} />
-                        Process Settlement
-                    </button>
                 </div>
             </div>
 
@@ -258,9 +277,30 @@ export const FinancePayables = () => {
                 {/* Detail View */}
                 {selectedDriverId && (
                     <div className="glass card" style={{ padding: '0', overflow: 'hidden', animation: 'fadeIn 0.3s ease-out' }}>
-                        <div style={{ padding: '20px', borderBottom: '1px solid var(--slate-100)', background: 'var(--slate-50)' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '4px' }}>Detail Breakdown</div>
-                            <h3 style={{ margin: 0, fontWeight: 800 }}>{groupedRecords[selectedDriverId]?.driverName}</h3>
+                        <div style={{ padding: '20px', borderBottom: '1px solid var(--slate-100)', background: 'var(--slate-50)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '4px' }}>Detail Breakdown</div>
+                                <h3 style={{ margin: 0, fontWeight: 800 }}>{groupedRecords[selectedDriverId]?.driverName}</h3>
+                            </div>
+                            <button
+                                onClick={handleExportCSV}
+                                className="btn-secondary"
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    border: '1px solid var(--slate-200)',
+                                    background: 'white',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <Download size={16} />
+                                Export CSV
+                            </button>
                         </div>
                         <div style={{ maxHeight: '550px', overflowY: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -275,7 +315,9 @@ export const FinancePayables = () => {
                                     {groupedRecords[selectedDriverId]?.records.map(record => (
                                         <tr key={record.id} style={{ borderBottom: '1px solid var(--slate-50)' }}>
                                             <td style={{ padding: '16px 20px' }}>
-                                                <div style={{ fontWeight: 700, color: 'var(--slate-700)', fontSize: '13px' }}>{record.id}</div>
+                                                <div style={{ fontWeight: 700, color: 'var(--slate-700)', fontSize: '13px' }}>
+                                                    {record.shipment_id || record.id}
+                                                </div>
                                                 <div style={{ fontSize: '11px', color: 'var(--slate-400)' }}>{new Date(record.created_at).toLocaleDateString()}</div>
                                             </td>
                                             <td style={{ padding: '16px 20px', textAlign: 'right', fontWeight: 800, color: 'var(--slate-900)' }}>
@@ -296,25 +338,9 @@ export const FinancePayables = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div style={{ padding: '20px', background: 'var(--slate-50)', borderTop: '1px solid var(--slate-100)' }}>
-                            <button
-                                className="btn-primary"
-                                style={{ width: '100%', padding: '12px', borderRadius: '12px' }}
-                                onClick={() => setIsGeneratorOpen(true)}
-                            >
-                                Generate Statement
-                            </button>
-                        </div>
                     </div>
                 )}
             </div>
-
-            <StatementGenerator
-                isOpen={isGeneratorOpen}
-                onClose={() => setIsGeneratorOpen(false)}
-                type="driver"
-                onSuccess={fetchData}
-            />
 
             <style>{`
                 .glass {

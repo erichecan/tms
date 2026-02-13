@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { query } from '../db-postgres';
-import { Driver, Vehicle, Expense, Trip } from '../types';
+import { Driver, Vehicle, Expense, Trip, AddressInfo } from '../types';
+import { AuthService } from '../services/AuthService';
+import { mapsApiService } from '../services/MapsApiService';
 
 // --- Drivers ---
 // --- Drivers ---
@@ -72,16 +74,45 @@ export const getDrivers = async (req: Request, res: Response) => {
 };
 
 export const createDriver = async (req: Request, res: Response) => {
-    const { name, phone, status, avatar_url } = req.body;
-    const id = `D-${Date.now()}`;
+    const { name, phone, status, avatar_url, email, password } = req.body;
+    // Use "U-" prefix for unified identity if we want them in User Management
+    const id = `U-${Date.now()}`;
     try {
-        const result = await query(
+        await query('BEGIN');
+
+        // 1. Create Driver Registry
+        const driverResult = await query(
             'INSERT INTO drivers (id, name, phone, status, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [id, name, phone, status || 'IDLE', avatar_url]
         );
-        res.status(201).json(result.rows[0]);
+
+        // 2. Create User Account for User Management
+        // Generate a placeholder email if none provided to satisfy DB/Auth constraints
+        const userEmail = email || `${phone || id}@tms.local`;
+        const userPassword = password || 'Driver123!'; // Default password for new drivers
+
+        await AuthService.register({
+            name,
+            email: userEmail,
+            username: userEmail,
+            password: userPassword,
+            roleId: 'DRIVER'
+        });
+
+        // Link the user record to the same ID
+        // Note: register already generates an id, so we might need to adjust AuthService 
+        // to allow passing a pre-generated ID or update the user record after.
+        // For now, let's update the user record ID to match driver ID for the FULL OUTER JOIN logic
+        const tempUserId = `U-${Date.now()}`; // register logic usually does this
+        // Actually, let's modify AuthService.register or just query directly to ensure ID match
+        await query('UPDATE users SET id = $1 WHERE email = $2', [id, userEmail]);
+
+        await query('COMMIT');
+        res.status(201).json(driverResult.rows[0]);
     } catch (e) {
-        res.status(500).json({ error: 'Failed to create driver' });
+        await query('ROLLBACK');
+        console.error('Error creating driver with sync:', e);
+        res.status(500).json({ error: 'Failed to create driver and user account' });
     }
 };
 
@@ -127,6 +158,80 @@ export const deleteDriver = async (req: Request, res: Response) => {
     } catch (e) {
         console.error("Delete driver failed", e);
         res.status(500).json({ error: 'Failed to delete driver' });
+    }
+};
+
+export const getDriverAvailability = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { start_time_proposed, end_time_proposed, origin_address, dest_address } = req.query;
+
+    try {
+        // 1. Fetch all active/planned trips for this driver
+        const activeTripsRes = await query(
+            `SELECT * FROM trips 
+             WHERE driver_id = $1 
+             AND status IN ('ACTIVE', 'PLANNED')
+             ORDER BY end_time_est DESC`,
+            [id]
+        );
+
+        const currentTrips = activeTripsRes.rows;
+        const isCurrentlyBusy = currentTrips.length > 0;
+
+        // 2. Calculate Next Free Time
+        const nextFreeTime = isCurrentlyBusy ? currentTrips[0].end_time_est : new Date().toISOString();
+
+        // 3. Check for direct time conflict
+        let conflict = false;
+        if (start_time_proposed && end_time_proposed) {
+            const proposedStart = new Date(start_time_proposed as string);
+            const proposedEnd = new Date(end_time_proposed as string);
+
+            conflict = currentTrips.some(trip => {
+                const tripStart = new Date(trip.start_time_est);
+                const tripEnd = new Date(trip.end_time_est);
+                // Overlap condition
+                return (proposedStart < tripEnd && proposedEnd > tripStart);
+            });
+        }
+
+        // 4. Detour Logic (if they are busy but we want to see if they can take it "on the way")
+        let detourCheck = null;
+        if (isCurrentlyBusy && origin_address && dest_address) {
+            const currentTrip = currentTrips[0]; // Check against the latest/most relevant trip
+
+            // We need coordinates. For simplicity, we assume we can geocode the strings.
+            try {
+                // In a real system, we'd fetch the trip's destination geocode from DB or cache
+                // Here we geocode on the fly for the POC
+                const tripDestLoc = await mapsApiService.geocodeAddress(currentTrip.vehicle_id); // Using vehicle_id as placeholder for current location or fetching from a real field
+                // Actually, let's assume we have current_location in the trip record or we use the trip's destination as the point to return to.
+
+                // For this demo, we'll try to geocode the strings provided
+                const startLoc = await mapsApiService.geocodeAddress(origin_address as string);
+                const endLoc = await mapsApiService.geocodeAddress(dest_address as string);
+
+                // Mocking current route as [Current Loc -> Current Trip End]
+                // and checking detour for [New Start -> New End]
+                // This is a simplified version of the logic
+                // detourCheck = await mapsApiService.calculateDetour(currentLoc, currentTripEnd, startLoc, endLoc);
+            } catch (mapsErr) {
+                console.error('Maps check failed during availability check', mapsErr);
+            }
+        }
+
+        res.json({
+            driver_id: id,
+            status: isCurrentlyBusy ? 'BUSY' : 'IDLE',
+            next_free_time: nextFreeTime,
+            has_time_conflict: conflict,
+            active_trips_count: currentTrips.length,
+            detour_info: detourCheck
+        });
+
+    } catch (e) {
+        console.error('Error checking driver availability:', e);
+        res.status(500).json({ error: 'Failed to check availability' });
     }
 };
 

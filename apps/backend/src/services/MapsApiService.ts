@@ -99,6 +99,29 @@ export class MapsApiService {
         }
     }
 
+    async calculateDetour(currentOrigin: AddressInfo, currentDestination: AddressInfo, waybillOrigin: AddressInfo, waybillDestination: AddressInfo): Promise<{ detourKm: number; isFeasible: boolean }> {
+        // detour = (dist(A, C) + dist(C, D) + dist(D, B)) - dist(A, B)
+        // A=currentOrigin, B=currentDestination, C=waybillOrigin, D=waybillDestination
+
+        try {
+            const originalPath = await this.getDistance(currentOrigin, currentDestination);
+            const segment1 = await this.getDistance(currentOrigin, waybillOrigin);
+            const segment2 = await this.getDistance(waybillOrigin, waybillDestination);
+            const segment3 = await this.getDistance(waybillDestination, currentDestination);
+
+            const totalNewDist = segment1.distance + segment2.distance + segment3.distance;
+            const detourKm = totalNewDist - originalPath.distance;
+
+            return {
+                detourKm: Math.max(0, parseFloat(detourKm.toFixed(2))),
+                isFeasible: detourKm <= 15
+            };
+        } catch (error) {
+            console.error('Detour calculation failed', error);
+            throw error;
+        }
+    }
+
     clearCache() {
         this.cache.clear();
     }
