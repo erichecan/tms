@@ -19,10 +19,18 @@ fi
 echo "🚀 Starting Parallel Deployment for TMS V2 on PROJECT: $PROJECT_ID..."
 
 # 1. Build and Push Backend
-echo "🏗️ Building Backend Image..."
-docker build --no-cache --platform linux/amd64 -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG -f docker/backend/Dockerfile .
-echo "📤 Pushing Backend Image..."
-docker push gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG
+echo "🏗️ Building Backend Image via Cloud Build..."
+# Create temporary cloudbuild for backend
+cat <<EOF > cloudbuild-backend.tmp.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG', '-f', 'docker/backend/Dockerfile', '.']
+images:
+- 'gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$IMAGE_TAG'
+EOF
+
+gcloud builds submit --config cloudbuild-backend.tmp.yaml .
+rm cloudbuild-backend.tmp.yaml
 
 # 2. Deploy Backend to Cloud Run (to get unique URL)
 echo "🚀 Deploying Backend Service: $BACKEND_SERVICE..."
@@ -44,14 +52,25 @@ BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --region=$REGION --f
 echo "✅ New Backend URL: $BACKEND_URL"
 
 # 4. Build and Push Frontend (shipped with new Backend URL)
-echo "🏗️ Building Frontend Image..."
-docker build --no-cache --platform linux/amd64 \
-    --build-arg VITE_API_BASE_URL=${BACKEND_URL}/api \
-    --build-arg VITE_GOOGLE_MAPS_API_KEY=AIzaSyD26kTVaKAlJu3Rc6_bqP9VjLh-HEDmBRs \
-    -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG \
-    -f docker/frontend/Dockerfile .
-echo "📤 Pushing Frontend Image..."
-docker push gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG
+echo "🏗️ Building Frontend Image via Cloud Build..."
+# Create temporary cloudbuild for frontend
+cat <<EOF > cloudbuild-frontend.tmp.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build', 
+    '-t', 'gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG', 
+    '-f', 'docker/frontend/Dockerfile', 
+    '--build-arg', 'VITE_API_BASE_URL=${BACKEND_URL}/api',
+    '--build-arg', 'VITE_GOOGLE_MAPS_API_KEY=AIzaSyD26kTVaKAlJu3Rc6_bqP9VjLh-HEDmBRs',
+    '.'
+  ]
+images:
+- 'gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG'
+EOF
+
+gcloud builds submit --config cloudbuild-frontend.tmp.yaml .
+rm cloudbuild-frontend.tmp.yaml
 
 # 5. Deploy Frontend to Cloud Run
 echo "🚀 Deploying Frontend Service: $FRONTEND_SERVICE..."

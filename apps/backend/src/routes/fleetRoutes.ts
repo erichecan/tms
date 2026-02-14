@@ -1,7 +1,7 @@
 import * as express from 'express';
 import {
     getDrivers, createDriver, updateDriver, deleteDriver, getDriverAvailability,
-    getVehicles, createVehicle, updateVehicle, deleteVehicle,
+    getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleAvailability,
     getExpenses, createExpense, updateExpense, deleteExpense,
     getTrips, createTrip, updateTrip
 } from '../controllers/FleetController';
@@ -17,6 +17,7 @@ router.delete('/drivers/:id', deleteDriver);
 router.get('/vehicles', getVehicles);
 router.post('/vehicles', createVehicle);
 router.put('/vehicles/:id', updateVehicle);
+router.get('/vehicles/:id/availability', getVehicleAvailability);
 router.delete('/vehicles/:id', deleteVehicle);
 
 router.get('/expenses', getExpenses);

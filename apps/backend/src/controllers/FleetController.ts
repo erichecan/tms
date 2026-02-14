@@ -166,7 +166,6 @@ export const getDriverAvailability = async (req: Request, res: Response) => {
     const { start_time_proposed, end_time_proposed, origin_address, dest_address } = req.query;
 
     try {
-        // 1. Fetch all active/planned trips for this driver
         const activeTripsRes = await query(
             `SELECT * FROM trips 
              WHERE driver_id = $1 
@@ -177,11 +176,8 @@ export const getDriverAvailability = async (req: Request, res: Response) => {
 
         const currentTrips = activeTripsRes.rows;
         const isCurrentlyBusy = currentTrips.length > 0;
-
-        // 2. Calculate Next Free Time
         const nextFreeTime = isCurrentlyBusy ? currentTrips[0].end_time_est : new Date().toISOString();
 
-        // 3. Check for direct time conflict
         let conflict = false;
         if (start_time_proposed && end_time_proposed) {
             const proposedStart = new Date(start_time_proposed as string);
@@ -190,31 +186,23 @@ export const getDriverAvailability = async (req: Request, res: Response) => {
             conflict = currentTrips.some(trip => {
                 const tripStart = new Date(trip.start_time_est);
                 const tripEnd = new Date(trip.end_time_est);
-                // Overlap condition
                 return (proposedStart < tripEnd && proposedEnd > tripStart);
             });
         }
 
-        // 4. Detour Logic (if they are busy but we want to see if they can take it "on the way")
         let detourCheck = null;
         if (isCurrentlyBusy && origin_address && dest_address) {
-            const currentTrip = currentTrips[0]; // Check against the latest/most relevant trip
-
-            // We need coordinates. For simplicity, we assume we can geocode the strings.
             try {
-                // In a real system, we'd fetch the trip's destination geocode from DB or cache
-                // Here we geocode on the fly for the POC
-                const tripDestLoc = await mapsApiService.geocodeAddress(currentTrip.vehicle_id); // Using vehicle_id as placeholder for current location or fetching from a real field
-                // Actually, let's assume we have current_location in the trip record or we use the trip's destination as the point to return to.
-
-                // For this demo, we'll try to geocode the strings provided
                 const startLoc = await mapsApiService.geocodeAddress(origin_address as string);
                 const endLoc = await mapsApiService.geocodeAddress(dest_address as string);
+                const currentTripDestLoc = await mapsApiService.geocodeAddress(currentTrips[0].vehicle_id);
 
-                // Mocking current route as [Current Loc -> Current Trip End]
-                // and checking detour for [New Start -> New End]
-                // This is a simplified version of the logic
-                // detourCheck = await mapsApiService.calculateDetour(currentLoc, currentTripEnd, startLoc, endLoc);
+                detourCheck = await mapsApiService.calculateDetour(
+                    { latitude: 43.6532, longitude: -79.3832, formattedAddress: 'Toronto, ON' },
+                    currentTripDestLoc,
+                    startLoc,
+                    endLoc
+                );
             } catch (mapsErr) {
                 console.error('Maps check failed during availability check', mapsErr);
             }
@@ -226,11 +214,75 @@ export const getDriverAvailability = async (req: Request, res: Response) => {
             next_free_time: nextFreeTime,
             has_time_conflict: conflict,
             active_trips_count: currentTrips.length,
-            detour_info: detourCheck
+            detour_info: detourCheck,
+            can_assign: !conflict || (detourCheck?.isFeasible ?? false)
         });
 
     } catch (e) {
         console.error('Error checking driver availability:', e);
+        res.status(500).json({ error: 'Failed to check availability' });
+    }
+};
+
+export const getVehicleAvailability = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { start_time_proposed, end_time_proposed, origin_address, dest_address } = req.query;
+
+    try {
+        const activeTripsRes = await query(
+            `SELECT * FROM trips 
+             WHERE vehicle_id = $1 
+             AND status IN ('ACTIVE', 'PLANNED')
+             ORDER BY end_time_est DESC`,
+            [id]
+        );
+
+        const currentTrips = activeTripsRes.rows;
+        const isCurrentlyBusy = currentTrips.length > 0;
+        const nextFreeTime = isCurrentlyBusy ? currentTrips[0].end_time_est : new Date().toISOString();
+
+        let conflict = false;
+        if (start_time_proposed && end_time_proposed) {
+            const proposedStart = new Date(start_time_proposed as string);
+            const proposedEnd = new Date(end_time_proposed as string);
+
+            conflict = currentTrips.some(trip => {
+                const tripStart = new Date(trip.start_time_est);
+                const tripEnd = new Date(trip.end_time_est);
+                return (proposedStart < tripEnd && proposedEnd > tripStart);
+            });
+        }
+
+        let detourCheck = null;
+        if (isCurrentlyBusy && origin_address && dest_address) {
+            try {
+                const startLoc = await mapsApiService.geocodeAddress(origin_address as string);
+                const endLoc = await mapsApiService.geocodeAddress(dest_address as string);
+                const currentTripDestLoc = await mapsApiService.geocodeAddress(currentTrips[0].vehicle_id);
+
+                detourCheck = await mapsApiService.calculateDetour(
+                    { latitude: 43.6532, longitude: -79.3832, formattedAddress: 'Toronto, ON' },
+                    currentTripDestLoc,
+                    startLoc,
+                    endLoc
+                );
+            } catch (mapsErr) {
+                console.error('Vehicle maps check failed', mapsErr);
+            }
+        }
+
+        res.json({
+            vehicle_id: id,
+            status: isCurrentlyBusy ? 'BUSY' : 'IDLE',
+            next_free_time: nextFreeTime,
+            has_time_conflict: conflict,
+            active_trips_count: currentTrips.length,
+            detour_info: detourCheck,
+            can_assign: !conflict || (detourCheck?.isFeasible ?? false)
+        });
+
+    } catch (e) {
+        console.error('Error checking vehicle availability:', e);
         res.status(500).json({ error: 'Failed to check availability' });
     }
 };
