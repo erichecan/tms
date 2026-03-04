@@ -320,7 +320,7 @@ export const WaybillsList = () => {
                                                 <Plus size={14} /> {t('common.add')}
                                             </button>
                                         </div>
-                                        <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, driver_id: e.target.value })} value={assignData.driver_id}>
+                                        <select data-testid="assign-driver-select" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, driver_id: e.target.value })} value={assignData.driver_id}>
                                             <option value="">{t('dashboard.modal.driverPlaceholder')}</option>
                                             {resources.drivers.map(d => <option key={d.id} value={d.id}>{d.name} (READY)</option>)}
                                         </select>
@@ -335,7 +335,7 @@ export const WaybillsList = () => {
                                                 <Plus size={14} /> {t('common.add')}
                                             </button>
                                         </div>
-                                        <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, vehicle_id: e.target.value })} value={assignData.vehicle_id}>
+                                        <select data-testid="assign-vehicle-select" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px' }} onChange={e => setAssignData({ ...assignData, vehicle_id: e.target.value })} value={assignData.vehicle_id}>
                                             <option value="">{t('dashboard.modal.vehiclePlaceholder')}</option>
                                             {resources.vehicles.map(v => <option key={v.id} value={v.id}>{v.plate} • {v.model}</option>)}
                                         </select>
@@ -343,7 +343,7 @@ export const WaybillsList = () => {
                                 </div>
 
                                 <div style={{ display: 'flex' }}>
-                                    <button onClick={handleAssign} className="btn-primary" style={{ flex: 1 }}>{t('dashboard.modal.confirm')}</button>
+                                    <button data-testid="assign-confirm-btn" onClick={handleAssign} className="btn-primary" style={{ flex: 1 }}>{t('dashboard.modal.confirm')}</button>
                                 </div>
                             </>
                         )}

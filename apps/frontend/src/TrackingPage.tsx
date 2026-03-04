@@ -323,6 +323,7 @@ export const TrackingPage = () => {
 
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <input
+                            data-testid="chat-input"
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
@@ -330,6 +331,7 @@ export const TrackingPage = () => {
                             style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600, fontSize: '13px' }}
                         />
                         <button
+                            data-testid="send-message-btn"
                             onClick={handleSendMessage}
                             className="btn-primary"
                             style={{ width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}

@@ -68,6 +68,7 @@ export const WaybillActionMenu = ({ waybillId, onDelete, onAssign }: WaybillActi
     return (
         <div style={{ position: 'relative' }} ref={menuRef}>
             <button
+                data-testid="waybill-row-menu-btn"
                 ref={buttonRef}
                 className="btn-secondary"
                 style={{ padding: '8px', borderRadius: '10px', cursor: 'pointer' }}
@@ -90,7 +91,7 @@ export const WaybillActionMenu = ({ waybillId, onDelete, onAssign }: WaybillActi
                 }}>
                     <MenuOption icon={<Eye size={16} />} label={t('waybill.menu.view')} onClick={() => handleAction('view')} />
                     <MenuOption icon={<Edit size={16} />} label={t('waybill.menu.edit')} onClick={() => handleAction('edit')} />
-                    {onAssign && <MenuOption icon={<UserPlus size={16} />} label={t('dashboard.table.dispatch')} onClick={() => { setIsOpen(false); onAssign(); }} />}
+                    {onAssign && <MenuOption dataTestId="assign-waybill-btn" icon={<UserPlus size={16} />} label={t('dashboard.table.dispatch')} onClick={() => { setIsOpen(false); onAssign(); }} />}
                     <MenuOption icon={<Download size={16} />} label={t('waybill.menu.pdf')} onClick={() => handleAction('pdf')} />
                     <MenuOption icon={<FileText size={16} />} label={t('waybill.menu.bol')} onClick={() => handleAction('bol')} />
                     {onDelete && <MenuOption icon={<Trash size={16} />} label={t('waybill.menu.delete')} color="#ef4444" onClick={() => handleAction('delete')} />}
@@ -100,8 +101,9 @@ export const WaybillActionMenu = ({ waybillId, onDelete, onAssign }: WaybillActi
     );
 };
 
-const MenuOption = ({ icon, label, onClick, color = 'var(--slate-700)' }: any) => (
+const MenuOption = ({ icon, label, onClick, color = 'var(--slate-700)', dataTestId }: { icon: React.ReactNode; label: string; onClick: () => void; color?: string; dataTestId?: string }) => (
     <button
+        data-testid={dataTestId}
         onClick={onClick}
         style={{
             display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',

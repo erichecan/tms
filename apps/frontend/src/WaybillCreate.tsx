@@ -491,12 +491,14 @@ export const WaybillCreate = () => {
                 {!isViewMode && (
                     <div className="glass" style={{ padding: '6px', display: 'flex', gap: '4px' }}>
                         <button
+                            data-testid="template-default"
                             onClick={() => setTemplateType('DEFAULT')}
                             style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'DEFAULT' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'DEFAULT' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
                         >
                             {t('waybill.default')}
                         </button>
                         <button
+                            data-testid="template-amazon"
                             onClick={() => setTemplateType('AMAZON')}
                             style={{ padding: '8px 24px', borderRadius: '10px', border: 'none', background: templateType === 'AMAZON' ? 'var(--primary-grad)' : 'transparent', color: templateType === 'AMAZON' ? 'white' : 'var(--slate-500)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s' }}
                         >
@@ -650,7 +652,7 @@ export const WaybillCreate = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
                                 <div>
                                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('waybill.form.fulfillmentCenter')}</div>
-                                    <input name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} placeholder="e.g. Y001" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
+                                    <input data-testid="fc-alias-input" name="fc_alias" value={baseInfo.fc_alias} onChange={handleBaseChange} placeholder="e.g. Y001" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('waybill.form.referenceCode')}</div>
@@ -659,7 +661,7 @@ export const WaybillCreate = () => {
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <div style={{ flex: 2 }}>
                                         <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('waybill.form.deliveryDate')}</div>
-                                        <input type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
+                                        <input data-testid="delivery-date-input" type="date" name="delivery_date" value={baseInfo.delivery_date} onChange={handleBaseChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('common.time')}</div>
@@ -669,7 +671,7 @@ export const WaybillCreate = () => {
                             </div>
                             <div style={{ marginTop: '20px' }}>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '6px', textTransform: 'uppercase' }}>{t('fleet.address')} (FC)</div>
-                                <input name="fc_address" value={baseInfo.fc_address} onChange={handleBaseChange} placeholder="Full Delivery Address" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
+                                <input data-testid="fc-address-input" name="fc_address" value={baseInfo.fc_address} onChange={handleBaseChange} placeholder="Full Delivery Address" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 600 }} readOnly={isViewMode} />
                             </div>
                         </div>
                     </div>
@@ -681,7 +683,7 @@ export const WaybillCreate = () => {
                             <input value={shipFrom.company} onChange={e => setShipFrom({ ...shipFrom, company: e.target.value })} placeholder={t('fleet.companyName')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
                             <input value={shipFrom.contact} onChange={e => setShipFrom({ ...shipFrom, contact: e.target.value })} placeholder={t('fleet.contactPerson')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
                             <input value={shipFrom.phone} onChange={e => setShipFrom({ ...shipFrom, phone: e.target.value })} placeholder={t('fleet.phone')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input ref={shipFromRef} value={shipFrom.address} onChange={e => setShipFrom({ ...shipFrom, address: e.target.value })} placeholder={t('fleet.address')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
+                            <input data-testid="ship-from-address" ref={shipFromRef} value={shipFrom.address} onChange={e => setShipFrom({ ...shipFrom, address: e.target.value })} placeholder={t('fleet.address')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
                         </div>
                         {/* Deliver To */}
                         <div className="glass" style={{ padding: '24px' }}>
@@ -689,7 +691,7 @@ export const WaybillCreate = () => {
                             <input value={shipTo.company} onChange={e => setShipTo({ ...shipTo, company: e.target.value })} placeholder={t('fleet.companyName')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
                             <input value={shipTo.contact} onChange={e => setShipTo({ ...shipTo, contact: e.target.value })} placeholder={t('fleet.contactPerson')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
                             <input value={shipTo.phone} onChange={e => setShipTo({ ...shipTo, phone: e.target.value })} placeholder={t('fleet.phone')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }} readOnly={isViewMode} />
-                            <input ref={shipToRef} value={shipTo.address} onChange={e => setShipTo({ ...shipTo, address: e.target.value })} placeholder={t('fleet.address')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
+                            <input data-testid="ship-to-address" ref={shipToRef} value={shipTo.address} onChange={e => setShipTo({ ...shipTo, address: e.target.value })} placeholder={t('fleet.address')} style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)' }} readOnly={isViewMode} />
                         </div>
                     </div>
                 )}
@@ -867,7 +869,7 @@ export const WaybillCreate = () => {
                             </div>
                             <div>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.price')}</div>
-                                <input name="price" value={footerInfo.price} onChange={handleFooterChange} placeholder="0.00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '120px' }} />
+                                <input data-testid="price-input" name="price" value={footerInfo.price} onChange={handleFooterChange} placeholder="0.00" style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700, fontSize: '14px', width: '120px' }} />
                             </div>
                             <div>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase' }}>{t('waybill.form.timeIn')}</div>
@@ -879,7 +881,7 @@ export const WaybillCreate = () => {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-end', flex: 1 }}>
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '8px', textTransform: 'uppercase', visibility: 'hidden' }}>{t('pricing.calculate')}</div>
-                                <button className="btn-primary" onClick={handleSubmit} style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 600 }}>
+                                <button data-testid="submit-waybill-btn" className="btn-primary" onClick={handleSubmit} style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 600 }}>
                                     {isEditMode ? t('waybill.updateWaybill') : t('waybill.createFinish')}
                                 </button>
                             </div>
