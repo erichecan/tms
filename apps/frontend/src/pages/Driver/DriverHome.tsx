@@ -27,8 +27,11 @@ export const DriverHome: React.FC = () => {
 
         const fetchWaybills = async () => {
             try {
-                // Now using the newly implemented backend driver_id filter
-                const res = await fetch(`${API_BASE_URL}/waybills?driver_id=${user.id}`);
+                // 后端按 trip.driver_id 筛选；司机账号 id 需与指派时使用的 driver id 一致（如 D-002）
+                const token = localStorage.getItem('token');
+                const headers: HeadersInit = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                const res = await fetch(`${API_BASE_URL}/waybills?driver_id=${user.id}`, { headers });
                 const data = await res.json();
 
                 // If backend isn't ready with driver_id param, we show mock data for eriche

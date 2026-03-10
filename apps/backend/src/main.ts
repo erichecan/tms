@@ -66,6 +66,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 集成测试用：将司机/车辆重置为 IDLE（仅非 production 环境） 2026-03-04
+app.post('/api/test/reset-fleet-idle', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not available' });
+  }
+  try {
+    await query('UPDATE drivers SET status = $1', ['IDLE']);
+    await query('UPDATE vehicles SET status = $1', ['IDLE']);
+    res.json({ ok: true, message: 'drivers and vehicles set to IDLE' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Reset failed' });
+  }
+});
+
 // --- Dashboard APIs ---
 
 app.get('/api/dashboard/metrics', async (req, res) => {

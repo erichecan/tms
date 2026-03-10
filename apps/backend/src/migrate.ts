@@ -321,33 +321,41 @@ const migrate = async () => {
       ON CONFLICT(roleid, permissionid) DO NOTHING;
     `);
 
-    // Drivers
+    // Drivers（至少 4 个 IDLE 供集成测试：§3.1 指派 + P0 多组并发）
     await client.query(`
       INSERT INTO drivers(id, name, phone, status, avatar_url) VALUES
       ('D-001', 'James Holloway', '555-0101', 'BUSY', 'https://i.pravatar.cc/150?u=D-001'),
       ('D-002', 'Robert McAllister', '555-0102', 'IDLE', 'https://i.pravatar.cc/150?u=D-002'),
-      ('D-003', 'Michael Davidson', '555-0103', 'BUSY', 'https://i.pravatar.cc/150?u=D-003')
+      ('D-003', 'Michael Davidson', '555-0103', 'IDLE', 'https://i.pravatar.cc/150?u=D-003'),
+      ('D-004', 'William Park', '555-0104', 'IDLE', 'https://i.pravatar.cc/150?u=D-004'),
+      ('D-005', 'David Lee', '555-0105', 'IDLE', 'https://i.pravatar.cc/150?u=D-005')
       ON CONFLICT(id) DO NOTHING;
     `);
 
-    // Vehicles
+    // Vehicles（至少 4 个 IDLE 供集成测试）
     await client.query(`
       INSERT INTO vehicles(id, plate, model, capacity, status) VALUES
       ('V-101', 'TX-101', 'Volvo VNL', '53ft', 'BUSY'),
       ('V-102', 'TX-102', 'Peterbilt 579', '53ft', 'IDLE'),
-      ('V-103', 'TX-103', 'Kenworth T680', '53ft', 'BUSY')
+      ('V-103', 'TX-103', 'Kenworth T680', '53ft', 'IDLE'),
+      ('V-104', 'TX-104', 'Freightliner Cascadia', '53ft', 'IDLE'),
+      ('V-105', 'TX-105', 'International LT', '53ft', 'IDLE')
       ON CONFLICT(id) DO NOTHING;
     `);
 
-    // Users
-    /* 
+    // Users（调度员 U-01；司机 Jerry 使用 D-002 与 drivers.id 一致，登录后 waybills?driver_id=D-002 可见自己的任务）
     await client.query(`
       INSERT INTO users(id, name, email, password, roleId, status) VALUES
       ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
-      ('U-02', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
+      ('D-002', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
       ON CONFLICT(id) DO NOTHING;
     `);
-    */
+    // 一次性迁移：原司机账号 U-02 改为使用 D-002（与 drivers.id 一致），司机登录后可见自己任务
+    const u02 = await client.query('SELECT 1 FROM users WHERE id = $1', ['U-02']);
+    if (u02.rows.length > 0) {
+      await client.query("UPDATE notifications SET user_id = 'D-002' WHERE user_id = 'U-02'");
+      await client.query("DELETE FROM users WHERE id = 'U-02'");
+    }
 
     // Notifications
     await client.query(`

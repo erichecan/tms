@@ -37,7 +37,10 @@ export const DriverWaybillDetail: React.FC = () => {
         const fetchWaybill = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`${API_BASE_URL}/waybills/${id}`);
+                const token = localStorage.getItem('token');
+                const headers: HeadersInit = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                const res = await fetch(`${API_BASE_URL}/waybills/${id}`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     setWaybill(data);
@@ -60,9 +63,12 @@ export const DriverWaybillDetail: React.FC = () => {
 
         setIsUpdating(true);
         try {
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
             const res = await fetch(`${API_BASE_URL}/waybills/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     ...waybill,
                     status: newStatus
@@ -97,9 +103,12 @@ export const DriverWaybillDetail: React.FC = () => {
                 }
             };
 
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
             const res = await fetch(`${API_BASE_URL}/waybills/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     ...waybill,
                     status: 'DELIVERED',

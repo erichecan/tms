@@ -20,6 +20,14 @@ interface Driver {
     phone?: string;
 }
 
+const defaultPeriodStart = () => {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 10);
+};
+const defaultPeriodEnd = () => new Date().toISOString().slice(0, 10);
+
 export const FinancePayables = () => {
     const { } = useTranslation();
     const [records, setRecords] = useState<FinancialRecord[]>([]);
@@ -27,6 +35,8 @@ export const FinancePayables = () => {
     const [loading, setLoading] = useState(false);
     const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
+    const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
 
     const fetchData = async () => {
         setLoading(true);
@@ -35,10 +45,13 @@ export const FinancePayables = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         };
+        const recordParams = new URLSearchParams({ type: 'payable' });
+        recordParams.set('periodStart', periodStart + 'T00:00:00.000Z');
+        recordParams.set('periodEnd', periodEnd + 'T23:59:59.999Z');
 
         try {
             const [recordsRes, driversRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/finance/records?type=payable`, { headers }),
+                fetch(`${API_BASE_URL}/finance/records?${recordParams.toString()}`, { headers }),
                 fetch(`${API_BASE_URL}/drivers`, { headers })
             ]);
 
@@ -58,7 +71,7 @@ export const FinancePayables = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [periodStart, periodEnd]);
 
     const groupedRecords = useMemo(() => {
         const groups: Record<string, { total: number, records: FinancialRecord[], driverName: string }> = {};
@@ -153,7 +166,7 @@ export const FinancePayables = () => {
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <div className="glass" style={{ display: 'flex', alignItems: 'center', padding: '6px 16px', borderRadius: '14px', gap: '12px' }}>
                         <Search size={18} color="var(--slate-400)" />
                         <input
@@ -168,6 +181,22 @@ export const FinancePayables = () => {
                                 width: '200px',
                                 fontWeight: 500
                             }}
+                        />
+                    </div>
+                    <div className="glass" style={{ display: 'flex', alignItems: 'center', padding: '6px 16px', borderRadius: '14px', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-500)' }}>From</span>
+                        <input
+                            type="date"
+                            value={periodStart}
+                            onChange={(e) => setPeriodStart(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600 }}
+                        />
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-500)' }}>To</span>
+                        <input
+                            type="date"
+                            value={periodEnd}
+                            onChange={(e) => setPeriodEnd(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600 }}
                         />
                     </div>
                 </div>

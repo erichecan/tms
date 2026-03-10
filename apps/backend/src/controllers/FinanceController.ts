@@ -47,7 +47,7 @@ export class FinanceController {
     }
 
     static async getFinancialRecords(req: Request, res: Response) {
-        const { type, status, referenceId } = req.query;
+        const { type, status, referenceId, periodStart, periodEnd } = req.query;
         let sql = `SELECT * FROM financial_records WHERE 1=1`;
         const params: any[] = [];
         let paramIdx = 1;
@@ -63,6 +63,14 @@ export class FinanceController {
         if (referenceId) {
             sql += ` AND reference_id = $${paramIdx++}`;
             params.push(referenceId);
+        }
+        if (periodStart) {
+            sql += ` AND created_at >= $${paramIdx++}`;
+            params.push(periodStart);
+        }
+        if (periodEnd) {
+            sql += ` AND created_at <= $${paramIdx++}`;
+            params.push(periodEnd);
         }
 
         sql += ` ORDER BY created_at DESC`;
