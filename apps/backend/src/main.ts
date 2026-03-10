@@ -706,14 +706,15 @@ app.use('/api/search', verifyToken, searchRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
 
 
-app.listen(port, () => {
-  console.log(`Backend primary engine running at http://localhost:${port}`);
+// Cloud Run 要求监听 0.0.0.0 且使用 PORT 环境变量 (默认 8080) — 2026-03-04
+app.listen(Number(port), '0.0.0.0', () => {
+  console.log(`Backend primary engine running at http://0.0.0.0:${port}`);
 });
 
 // Complementary port to resolve legacy/environment friction (as requested by user)
 // Using .on('error') to prevent process crash if 8000 is occupied by workspace proxy
 if (Number(port) !== 8000) {
-  const secondaryServer = app.listen(8000, () => {
+  const secondaryServer = app.listen(8000, '0.0.0.0', () => {
     console.log('Backend compatibility layer running at http://localhost:8000');
   });
 
