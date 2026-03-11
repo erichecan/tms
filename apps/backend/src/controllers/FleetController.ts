@@ -52,7 +52,10 @@ export const getDrivers = async (req: Request, res: Response) => {
                 COALESCE(d.status, 'IDLE') as status,
                 COALESCE(d.avatar_url, 'https://ui-avatars.com/api/?name=' || COALESCE(u.name, d.name) || '&background=random') as avatar_url,
                 u.roleid,
-                u.email
+                u.email,
+                d.code as driver_code,
+                d.hourly_rate,
+                d.default_vehicle_id
             FROM drivers d
             FULL OUTER JOIN users u ON d.id = u.id
             ${whereStr}
@@ -74,7 +77,7 @@ export const getDrivers = async (req: Request, res: Response) => {
 };
 
 export const createDriver = async (req: Request, res: Response) => {
-    const { name, phone, status, avatar_url, email, password } = req.body;
+    const { name, phone, status, avatar_url, email, password, code, hourly_rate, default_vehicle_id } = req.body;
     // Use "U-" prefix for unified identity if we want them in User Management
     const id = `U-${Date.now()}`;
     try {
@@ -82,8 +85,8 @@ export const createDriver = async (req: Request, res: Response) => {
 
         // 1. Create Driver Registry
         const driverResult = await query(
-            'INSERT INTO drivers (id, name, phone, status, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [id, name, phone, status || 'IDLE', avatar_url]
+            'INSERT INTO drivers (id, name, phone, status, avatar_url, code, hourly_rate, default_vehicle_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [id, name, phone, status || 'IDLE', avatar_url, code || null, hourly_rate ? parseFloat(hourly_rate) : null, default_vehicle_id || null]
         );
 
         // 2. Create User Account for User Management
@@ -118,16 +121,19 @@ export const createDriver = async (req: Request, res: Response) => {
 
 export const updateDriver = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, phone, status, avatar_url } = req.body;
+    const { name, phone, status, avatar_url, code, hourly_rate, default_vehicle_id } = req.body;
     try {
         const result = await query(
             `UPDATE drivers SET 
                 name = COALESCE($1, name), 
                 phone = COALESCE($2, phone), 
                 status = COALESCE($3, status), 
-                avatar_url = COALESCE($4, avatar_url) 
-             WHERE id = $5 RETURNING *`,
-            [name, phone, status, avatar_url, id]
+                avatar_url = COALESCE($4, avatar_url),
+                code = COALESCE($5, code),
+                hourly_rate = COALESCE($6, hourly_rate),
+                default_vehicle_id = COALESCE($7, default_vehicle_id)
+             WHERE id = $8 RETURNING *`,
+            [name, phone, status, avatar_url, code, hourly_rate ? parseFloat(hourly_rate) : null, default_vehicle_id, id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Driver not found' });
         res.json(result.rows[0]);
@@ -329,7 +335,9 @@ export const getVehicles = async (req: Request, res: Response) => {
                 COALESCE(v.plate, u.name) as plate,
                 COALESCE(v.model, 'Asset') as model,
                 COALESCE(v.capacity, 'Standard') as capacity,
-                COALESCE(v.status, u.status, 'IDLE') as status
+                COALESCE(v.status, u.status, 'IDLE') as status,
+                v.vehicle_type,
+                v.max_pallets
             FROM vehicles v
             FULL OUTER JOIN users u ON v.id = u.id
             ${whereStr}
@@ -351,12 +359,12 @@ export const getVehicles = async (req: Request, res: Response) => {
 };
 
 export const createVehicle = async (req: Request, res: Response) => {
-    const { plate, model, capacity, status } = req.body;
+    const { plate, model, capacity, status, vehicle_type, max_pallets } = req.body;
     const id = `V-${Date.now()}`;
     try {
         const result = await query(
-            'INSERT INTO vehicles (id, plate, model, capacity, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [id, plate, model, capacity, status || 'IDLE']
+            'INSERT INTO vehicles (id, plate, model, capacity, status, vehicle_type, max_pallets) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [id, plate, model, capacity, status || 'IDLE', vehicle_type || 'STRAIGHT_26', max_pallets ? parseInt(max_pallets) : 13]
         );
         res.status(201).json(result.rows[0]);
     } catch (e) {
@@ -366,16 +374,18 @@ export const createVehicle = async (req: Request, res: Response) => {
 
 export const updateVehicle = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { plate, model, capacity, status } = req.body;
+    const { plate, model, capacity, status, vehicle_type, max_pallets } = req.body;
     try {
         const result = await query(
             `UPDATE vehicles SET 
                 plate = COALESCE($1, plate), 
                 model = COALESCE($2, model), 
                 capacity = COALESCE($3, capacity), 
-                status = COALESCE($4, status) 
-             WHERE id = $5 RETURNING *`,
-            [plate, model, capacity, status, id]
+                status = COALESCE($4, status),
+                vehicle_type = COALESCE($5, vehicle_type),
+                max_pallets = COALESCE($6, max_pallets)
+             WHERE id = $7 RETURNING *`,
+            [plate, model, capacity, status, vehicle_type, max_pallets ? parseInt(max_pallets) : null, id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Vehicle not found' });
         res.json(result.rows[0]);

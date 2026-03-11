@@ -37,6 +37,12 @@ export interface Waybill {
     signed_at?: string;
     signed_by?: string;
     details?: any; // Full JSON state
+    // Phase 1: Integration fields
+    container_item_id?: string;
+    pricing_matrix_id?: string;
+    addon_services?: AddonServiceLineItem[];
+    driver_cost?: number;
+    gross_margin?: number;
 }
 
 export enum TripStatus {
@@ -64,6 +70,16 @@ export interface Driver {
     phone: string;
     avatar_url?: string;
     status: 'IDLE' | 'BUSY';
+    // Phase 1: New fields
+    code?: string;              // Short code: 'LH', 'AD', 'AF'
+    hourly_rate?: number;
+    default_vehicle_id?: string;
+}
+
+export enum VehicleType {
+    STRAIGHT_26 = 'STRAIGHT_26',
+    STRAIGHT_28 = 'STRAIGHT_28',
+    TRAILER_53 = 'TRAILER_53',
 }
 
 export interface Vehicle {
@@ -72,6 +88,9 @@ export interface Vehicle {
     model: string; // e.g., "Freightliner Cascadia"
     capacity: string; // e.g., "40 Ton"
     status: 'IDLE' | 'BUSY';
+    // Phase 1: New fields
+    vehicle_type?: VehicleType;
+    max_pallets?: number;
 }
 
 
@@ -313,5 +332,209 @@ export interface Rule {
     status: RuleStatus;
     conditions: RuleCondition[];
     actions: RuleAction[];
+    created_at: string;
+}
+
+// ============================================================
+// Phase 1: TMS Integration Types
+// ============================================================
+
+// --- Container / Transit Management ---
+
+export enum ContainerStatus {
+    NEW = 'NEW',
+    UNLOADING = 'UNLOADING',
+    SORTING = 'SORTING',
+    DELIVERING = 'DELIVERING',
+    COMPLETED = 'COMPLETED',
+}
+
+export enum AppointmentStatus {
+    SCHEDULED = 'SCHEDULED',
+    CONFIRMED = 'CONFIRMED',
+    REJECTED = 'REJECTED',
+    COMPLETED = 'COMPLETED',
+}
+
+export interface Container {
+    id: string;
+    container_no: string;
+    warehouse_id?: string;
+    entry_method?: string;
+    arrival_date?: string;
+    unload_status?: string;
+    customer_id?: string;
+    total_cbm?: number;
+    total_pieces?: number;
+    status: ContainerStatus;
+    billing_amount?: number;
+    billing_status?: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+    // Joined
+    items?: ContainerItem[];
+}
+
+export interface ContainerItem {
+    id: string;
+    container_id: string;
+    sku?: string;
+    fba_shipment_id?: string;
+    po_list?: string;
+    piece_count: number;
+    cbm?: number;
+    dest_warehouse?: string;
+    delivery_address?: string;
+    pallet_count?: string;
+    pallet_count_num?: number;
+    notes?: string;
+    waybill_id?: string;
+    status: string;
+    created_at: string;
+    // Joined
+    appointments?: DeliveryAppointment[];
+}
+
+export interface DeliveryAppointment {
+    id: string;
+    container_item_id: string;
+    appointment_time?: string;
+    operator_code?: string;
+    attempt_number: number;
+    status: AppointmentStatus;
+    rejection_reason?: string;
+    notes?: string;
+    created_at: string;
+}
+
+// --- Pricing Management ---
+
+export interface FcDestination {
+    code: string;
+    name?: string;
+    type?: string;
+    address?: string;
+    city?: string;
+    province?: string;
+    postal_code?: string;
+    region?: string;
+    notes?: string;
+}
+
+export interface PricingMatrixEntry {
+    id: string;
+    customer_id: string;
+    destination_code: string;
+    vehicle_type: string;
+    pallet_tier: string; // '1-4', '5-13', '14-28', 'LOOSE'
+    base_price?: number;
+    per_pallet_price?: number;
+    effective_date?: string;
+    expiry_date?: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AddonService {
+    id: string;
+    code: string;
+    name: string;
+    name_en?: string;
+    unit: string; // 'PER_PIECE', 'PER_PALLET', 'PER_TICKET', 'PER_USE', 'PER_BOX', 'PERCENTAGE'
+    default_price: number;
+    description?: string;
+    status: string;
+}
+
+export interface AddonServiceLineItem {
+    code: string;
+    qty: number;
+    unit_price: number;
+    total: number;
+}
+
+export interface CustomerAddonRate {
+    id: string;
+    customer_id: string;
+    service_id: string;
+    custom_price: number;
+    conditions?: any;
+}
+
+export interface ContainerAllin {
+    id: string;
+    customer_id: string;
+    dest_group: string;
+    container_type?: string;
+    price: number;
+    includes?: any;
+    notes?: string;
+    effective_date?: string;
+    status: string;
+}
+
+export interface DriverCostBaseline {
+    id: string;
+    destination_code: string;
+    vehicle_type: string;
+    driver_pay: number;
+    fuel_cost?: number;
+    waiting_free_hours?: number;
+    waiting_rate_hourly?: number;
+    total_cost?: number;
+    notes?: string;
+}
+
+export interface MarketBenchmark {
+    id: string;
+    destination_code: string;
+    vehicle_type?: string;
+    pallet_tier?: string;
+    min_price?: number;
+    max_price?: number;
+    avg_price?: number;
+    source?: string;
+    collected_at: string;
+    expires_at?: string;
+}
+
+export interface QuoteRequest {
+    customer_id: string;
+    destination_code: string;
+    vehicle_type: string;
+    pallet_count: number;
+    addons?: { code: string; qty: number }[];
+}
+
+export interface QuoteResult {
+    base_price: number;
+    pallet_surcharge: number;
+    addon_total: number;
+    addon_breakdown: AddonServiceLineItem[];
+    grand_total: number;
+    driver_cost: number;
+    gross_margin: number;
+    margin_rate: string;
+    pricing_matrix_id?: string;
+}
+
+export interface QuoteRecord {
+    id: string;
+    customer_id?: string;
+    quoted_by?: string;
+    destination_code?: string;
+    vehicle_type?: string;
+    pallet_count?: number;
+    base_amount?: number;
+    addon_amount?: number;
+    total_amount?: number;
+    driver_cost?: number;
+    margin_amount?: number;
+    margin_rate?: number;
+    pricing_snapshot?: any;
+    status: string;
+    expires_at?: string;
     created_at: string;
 }

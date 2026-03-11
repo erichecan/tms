@@ -82,14 +82,45 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ initialData = {}, onSu
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.payloadCapacity')}</label>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Vehicle Type</label>
+                        <select
+                            required
+                            disabled={loading}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
+                            value={formData.vehicle_type || '53FT'}
+                            onChange={e => handleInputChange('vehicle_type', e.target.value)}
+                        >
+                            <option value="53FT">53FT</option>
+                            <option value="53FT_REEFER">53FT Reefer</option>
+                            <option value="26FT">26FT</option>
+                            <option value="SPRINTER">Sprinter</option>
+                            <option value="CARGO_VAN">Cargo Van</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Max Pallets</label>
                         <input
                             required
                             disabled={loading}
                             type="number"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                            value={formData.max_pallets || ''}
+                            onChange={e => handleInputChange('max_pallets', parseInt(e.target.value, 10))}
+                            placeholder="e.g. 26"
+                        />
+                    </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.payloadCapacity')} (Tons)</label>
+                        <input
+                            required
+                            disabled={loading}
+                            type="number"
+                            step="0.1"
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.capacity || ''}
-                            onChange={e => handleInputChange('capacity', e.target.value)}
+                            onChange={e => handleInputChange('capacity', parseFloat(e.target.value))}
                         />
                     </div>
                     <div>

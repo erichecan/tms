@@ -446,6 +446,7 @@ export const FleetManagement = () => {
                                     {activeTab === 'drivers' && (
                                         <>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.name')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Code / Rate</th>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.phone')}</th>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('common.status')}</th>
                                         </>
@@ -454,6 +455,7 @@ export const FleetManagement = () => {
                                         <>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.plateId')}</th>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.model')}</th>
+                                            <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Type</th>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('fleet.capacity')}</th>
                                             <th style={{ padding: '20px 24px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t('common.status')}</th>
                                         </>
@@ -482,6 +484,12 @@ export const FleetManagement = () => {
                                                         <span style={{ fontWeight: 800, color: 'var(--slate-900)' }}>{item.name}</span>
                                                     </div>
                                                 </td>
+                                                <td style={{ padding: '20px 24px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{item.code || '-'}</span>
+                                                        <span style={{ fontSize: '12px', color: 'var(--slate-500)', fontWeight: 600 }}>${item.hourly_rate || '0.00'}/hr</span>
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--slate-600)' }}>{item.phone}</td>
                                                 <td style={{ padding: '20px 24px' }}>
                                                     <span className={`badge ${item.status === 'IDLE' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
@@ -492,7 +500,13 @@ export const FleetManagement = () => {
                                             <>
                                                 <td style={{ padding: '20px 24px', fontWeight: 800, color: 'var(--slate-900)' }}>{item.plate}</td>
                                                 <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--slate-700)' }}>{item.model}</td>
-                                                <td style={{ padding: '20px 24px', fontWeight: 700 }}>{item.capacity} Tons</td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--slate-700)' }}>{item.vehicle_type || '53FT'}</td>
+                                                <td style={{ padding: '20px 24px', fontWeight: 700 }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span>{item.capacity} Tons</span>
+                                                        {item.max_pallets && <span style={{ fontSize: '12px', color: 'var(--slate-500)' }}>{item.max_pallets} Plts</span>}
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '20px 24px' }}>
                                                     <span className={`badge ${item.status === 'IDLE' ? 'badge-green' : 'badge-yellow'}`}>{item.status}</span>
                                                 </td>
@@ -555,6 +569,7 @@ export const FleetManagement = () => {
                 {activeTab === 'drivers' ? (
                     <DriverForm
                         initialData={newEntry}
+                        vehicles={[]} // Let DriverForm fetch vehicles
                         onSuccess={() => {
                             setIsModalOpen(false);
                             setNewEntry({});

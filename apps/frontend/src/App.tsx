@@ -15,6 +15,8 @@ import { CustomerManagement } from './CustomerManagement';
 import RuleManagement from './RuleManagement';
 import { UserManagement } from './UserManagement';
 import { PricingCalculator } from './PricingCalculator';
+import { ContainerManagement } from './ContainerManagement';
+import { PricingManagement } from './PricingManagement';
 import './index.css';
 
 import { AuthProvider } from './context/AuthContext';
@@ -94,6 +96,10 @@ const router = createBrowserRouter([
             element: <TrackingPage />,
           },
           {
+            path: 'containers',
+            element: <ContainerManagement />,
+          },
+          {
             path: 'messages',
             element: <Messages />,
           },
@@ -116,6 +122,10 @@ const router = createBrowserRouter([
           {
             path: 'pricing',
             element: <PricingCalculator />,
+          },
+          {
+            path: 'pricing-mgmt',
+            element: <PricingManagement />,
           },
           {
             path: 'users',

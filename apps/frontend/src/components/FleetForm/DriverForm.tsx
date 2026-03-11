@@ -1,19 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../apiConfig';
 import { useDialog } from '../../context/DialogContext';
 
 interface DriverFormProps {
     initialData?: any;
+    vehicles?: any[];
     onSuccess: (driver: any) => void;
     onCancel: () => void;
 }
 
-export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, onSuccess, onCancel }) => {
+export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, vehicles: initVehicles = [], onSuccess, onCancel }) => {
     const { t } = useTranslation();
     const { alert } = useDialog();
     const [formData, setFormData] = useState<any>(initialData);
     const [loading, setLoading] = useState(false);
+    const [vehicles, setVehicles] = useState<any[]>(initVehicles);
+
+    useEffect(() => {
+        // Fetch vehicles if not provided so they are available for the default_vehicle select
+        if (vehicles.length === 0) {
+            const token = localStorage.getItem('token');
+            fetch(`${API_BASE_URL}/vehicles?limit=1000`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.data) setVehicles(data.data);
+                    else if (Array.isArray(data)) setVehicles(data);
+                })
+                .catch(err => console.error(err));
+        }
+    }, [vehicles.length]);
 
     const handleInputChange = (field: string, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -80,6 +98,32 @@ export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, onSucc
                         />
                     </div>
                     <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Driver Code</label>
+                        <input
+                            required
+                            disabled={loading}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                            value={formData.code || ''}
+                            onChange={e => handleInputChange('code', e.target.value)}
+                            placeholder="e.g. D001"
+                        />
+                    </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Hourly Rate ($)</label>
+                        <input
+                            required
+                            type="number"
+                            step="0.01"
+                            disabled={loading}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
+                            value={formData.hourly_rate || ''}
+                            onChange={e => handleInputChange('hourly_rate', parseFloat(e.target.value))}
+                            placeholder="25.00"
+                        />
+                    </div>
+                    <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>{t('fleet.modal.operationalStatus')}</label>
                         <select
                             disabled={loading}
@@ -91,6 +135,20 @@ export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, onSucc
                             <option value="ON_DUTY">{t('fleet.modal.statusOptions.onDuty')}</option>
                         </select>
                     </div>
+                </div>
+                <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: '8px' }}>Default Vehicle</label>
+                    <select
+                        disabled={loading}
+                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 800 }}
+                        value={formData.default_vehicle_id || ''}
+                        onChange={e => handleInputChange('default_vehicle_id', e.target.value || null)}
+                    >
+                        <option value="">None</option>
+                        {vehicles.map((v: any) => (
+                            <option key={v.id} value={v.id}>{v.plate} - {v.model}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

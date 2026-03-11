@@ -14,6 +14,7 @@ import userRoutes from './routes/userRoutes';
 import ruleRoutes from './routes/ruleRoutes';
 import searchRoutes from './routes/searchRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import containerRoutes from './routes/containerRoutes';
 import { verifyToken } from './middleware/AuthMiddleware';
 import { FinanceController } from './controllers/FinanceController';
 import { mapsApiService } from './services/MapsApiService';
@@ -202,7 +203,8 @@ app.post('/api/waybills', async (req, res) => {
     signature_url,
     signed_at,
     signed_by,
-    details
+    details,
+    container_item_id // Phase 4: link to container item
   } = req.body;
 
   const id = `WB-${Date.now()}`;
@@ -222,18 +224,64 @@ app.post('/api/waybills', async (req, res) => {
   const created_at = new Date().toISOString();
 
   try {
+    // --- Phase 4: Auto-pricing lookup ---
+    let pricing_matrix_id: string | null = null;
+    let auto_price = price_estimated ? parseFloat(price_estimated) : 0;
+    let driver_cost = 0;
+    let gross_margin = 0;
+
+    if (customer_id && fulfillment_center) {
+      // Determine pallet tier
+      const pallets = parseInt(pallet_count) || 0;
+      let tier = '1-4';
+      if (pallets >= 14) tier = '14-28';
+      else if (pallets >= 5) tier = '5-13';
+
+      // Look up pricing matrix
+      const pmRes = await query(`
+        SELECT id, base_price, per_pallet_price FROM pricing_matrices
+        WHERE customer_id = $1 AND destination_code = $2
+          AND pallet_tier = $3 AND status = 'ACTIVE'
+        ORDER BY effective_date DESC NULLS LAST LIMIT 1
+      `, [customer_id, fulfillment_center, tier]);
+
+      if (pmRes.rows.length > 0) {
+        const pm = pmRes.rows[0];
+        pricing_matrix_id = pm.id;
+        auto_price = parseFloat(pm.base_price) || 0;
+        if (pm.per_pallet_price && pallets > 0) {
+          auto_price += parseFloat(pm.per_pallet_price) * pallets;
+        }
+      }
+
+      // Look up driver cost baseline
+      const dcRes = await query(`
+        SELECT total_cost FROM driver_cost_baselines
+        WHERE destination_code = $1 LIMIT 1
+      `, [fulfillment_center]);
+
+      if (dcRes.rows.length > 0) {
+        driver_cost = parseFloat(dcRes.rows[0].total_cost) || 0;
+        gross_margin = auto_price - driver_cost;
+      }
+    }
+
+    // Use auto_price if no manual price was provided
+    const finalPrice = price_estimated ? parseFloat(price_estimated) : auto_price;
+
     await query(
       `INSERT INTO waybills (
                 id, waybill_no, customer_id, origin, destination, cargo_desc, status, 
                 price_estimated, created_at, fulfillment_center, delivery_date, reference_code, 
-                pallet_count, distance, billing_type, signature_url, signed_at, signed_by, details
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
+                pallet_count, distance, billing_type, signature_url, signed_at, signed_by, details,
+                container_item_id, pricing_matrix_id, driver_cost, gross_margin
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) RETURNING *`,
       [
         id, waybill_no, customer_id, origin, destination, cargo_desc, status,
-        price_estimated ? parseFloat(price_estimated) : 0,
+        finalPrice,
         created_at,
         fulfillment_center,
-        delivery_date || null, // Handle empty string as null for DATE
+        delivery_date || null,
         reference_code || null,
         pallet_count ? parseInt(pallet_count) : 0,
         distance ? parseFloat(distance) : 0,
@@ -241,11 +289,15 @@ app.post('/api/waybills', async (req, res) => {
         signature_url || null,
         signed_at || null,
         signed_by || null,
-        details || null
+        details || null,
+        container_item_id || null,
+        pricing_matrix_id,
+        driver_cost,
+        gross_margin
       ]
     );
 
-    res.json({ id, waybill_no, status, ...req.body });
+    res.json({ id, waybill_no, status, price_estimated: finalPrice, pricing_matrix_id, driver_cost, gross_margin, ...req.body });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to create waybill' });
@@ -509,7 +561,48 @@ app.post('/api/waybills/:id/assign', async (req, res) => {
     if (vehicleConflict) return res.status(400).json(vehicleConflict);
 
     try {
-      driverPay = await ruleEngineService.calculateDriverPay(payContext);
+      // Phase 4: Calculate from Driver Cost Baselines OR Driver's Hourly Rate
+      // 1. Get driver info
+      const driverRes = await client.query('SELECT hourly_rate FROM drivers WHERE id = $1', [driver_id]);
+      const hourlyRate = driverRes.rows[0]?.hourly_rate;
+
+      // 2. Get vehicle info to know vehicle type
+      const vehicleRes = await client.query('SELECT vehicle_type FROM vehicles WHERE id = $1', [vehicle_id]);
+      const vehicleType = vehicleRes.rows[0]?.vehicle_type || 'STRAIGHT_26';
+
+      let calculatedPay = 0;
+      let breakdown = [];
+
+      if (hourlyRate && hourlyRate > 0) {
+        // Option A: Driver is paid hourly
+        const durationHours = (payContext.duration || 60) / 60;
+        calculatedPay = hourlyRate * durationHours;
+        breakdown.push({ type: 'HOURLY', description: `${hourlyRate}/hr for ${durationHours.toFixed(1)} hrs`, amount: calculatedPay });
+      } else if (waybill.fulfillment_center) {
+        // Option B: Flat rate based on destination and vehicle type
+        const baselineRes = await client.query(
+          `SELECT total_cost FROM driver_cost_baselines WHERE destination_code = $1 AND vehicle_type = $2 LIMIT 1`,
+          [waybill.fulfillment_center, vehicleType]
+        );
+        if (baselineRes.rows.length > 0) {
+          calculatedPay = parseFloat(baselineRes.rows[0].total_cost);
+          breakdown.push({ type: 'FLAT_RATE', description: `Standard route pay to ${waybill.fulfillment_center}`, amount: calculatedPay });
+        } else {
+          // Fallback to old rule engine if no baseline found
+          driverPay = await ruleEngineService.calculateDriverPay(payContext);
+          calculatedPay = driverPay.basePay;
+        }
+      } else {
+        // Fallback to old rule engine
+        driverPay = await ruleEngineService.calculateDriverPay(payContext);
+        calculatedPay = driverPay.basePay;
+      }
+
+      if (breakdown.length > 0) {
+        driverPay.basePay = calculatedPay;
+        driverPay.totalPay = calculatedPay;
+        driverPay.breakdown = breakdown;
+      }
     } catch (calcError) {
       console.error("Failed to calculate driver pay", calcError);
     }
@@ -704,6 +797,7 @@ app.use('/api', verifyToken, fleetRoutes);
 app.use('/api', verifyToken, userRoutes);
 app.use('/api/search', verifyToken, searchRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
+app.use('/api/containers', verifyToken, containerRoutes);
 
 
 // Cloud Run 要求监听 0.0.0.0 且使用 PORT 环境变量 (默认 8080) — 2026-03-04

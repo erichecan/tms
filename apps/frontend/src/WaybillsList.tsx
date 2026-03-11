@@ -17,6 +17,8 @@ interface Waybill {
     status: string;
     price_estimated: number;
     created_at: string;
+    gross_margin?: number;
+    driver_cost?: number;
 }
 
 export const WaybillsList = () => {
@@ -208,7 +210,7 @@ export const WaybillsList = () => {
                                 <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '12px 0 0 0' }}>{t('waybill.waybillNo')}</th>
                                 <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.customer')}</th>
                                 <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.route')}</th>
-                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.estPrice')}</th>
+                                <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue / Margin</th>
                                 <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('common.status')}</th>
                                 <th style={{ padding: '16px 20px', color: 'var(--slate-400)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('waybill.created')}</th>
                                 <th style={{ padding: '16px 20px', textAlign: 'right', borderRadius: '0 12px 0 0' }}></th>
@@ -239,7 +241,18 @@ export const WaybillsList = () => {
                                             <span style={{ fontWeight: 700, fontSize: '14px' }}>{wb.destination}</span>
                                         </div>
                                     </td>
-                                    <td style={{ padding: '20px', fontWeight: 900, fontSize: '15px' }}>${wb.price_estimated}</td>
+                                    <td style={{ padding: '20px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: 900, fontSize: '15px', color: 'var(--slate-900)' }}>${wb.price_estimated}</span>
+                                            {wb.driver_cost !== undefined && wb.driver_cost > 0 ? (
+                                                <span style={{ fontSize: '12px', color: wb.gross_margin !== undefined && wb.gross_margin > 0 ? '#10B981' : '#EF4444', fontWeight: 700 }}>
+                                                    Cost: ${Number(wb.driver_cost).toFixed(2)} | {Number(wb.gross_margin).toFixed(1)}%
+                                                </span>
+                                            ) : (
+                                                <span style={{ fontSize: '12px', color: 'var(--slate-400)' }}>Cost: N/A</span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td style={{ padding: '20px' }}>
                                         <span className={`badge ${getStatusColor(wb.status)}`} style={{ fontSize: '11px', fontWeight: 800 }}>{t(`status.${wb.status}`)}</span>
                                     </td>

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut, X, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut, X, CheckCircle, AlertTriangle, Info, Container, Calculator } from 'lucide-react';
 import { searchService } from './services/searchService';
 import { notificationService, type Notification } from './services/notificationService';
 import { useTranslation } from 'react-i18next';
@@ -153,6 +153,7 @@ export const Layout = () => {
 
                     {canViewCustomers && <SidebarItem to="/customers" icon={Users} label={t('sidebar.customers')} />}
                     {canViewWaybills && <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />}
+                    <SidebarItem to="/containers" icon={Container} label="转运管理" />
                     {canViewFleet && <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />}
                     <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
 
@@ -163,6 +164,7 @@ export const Layout = () => {
                             <SidebarItem to="/finance/receivables" icon={FileText} label={t('sidebar.receivables')} indent={20} />
                             <SidebarItem to="/finance/payables" icon={FileText} label={t('sidebar.payables')} indent={20} />
                             <SidebarItem to="/pricing" icon={DollarSign} label={t('sidebar.priceCalculator')} />
+                            <SidebarItem to="/pricing-mgmt" icon={Calculator} label="报价管理" />
                             <SidebarItem to="/rules" icon={ShieldCheck} label={t('sidebar.universalRules')} />
                         </>
                     )}
