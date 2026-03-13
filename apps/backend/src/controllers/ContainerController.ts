@@ -337,6 +337,26 @@ export const generateWaybills = async (req: Request, res: Response) => {
 
     const generatedWaybills: any[] = [];
 
+    // 2026-03-13 21:05:00: 预加载 FC 目的地与仓库地址，用于标准化 origin/destination 展示
+    const destCodes = Array.from(new Set(itemsRes.rows.map(i => i.dest_warehouse).filter(Boolean)));
+    const fcMap: Record<string, any> = {};
+    if (destCodes.length > 0) {
+      const fcRes = await query('SELECT * FROM fc_destinations WHERE code = ANY($1)', [destCodes]);
+      for (const fc of fcRes.rows) {
+        fcMap[fc.code] = fc;
+      }
+    }
+    let originAddress = container.warehouse_id || 'Warehouse';
+    if (container.warehouse_id) {
+      const whRes = await query('SELECT * FROM fc_destinations WHERE code = $1', [container.warehouse_id]);
+      if (whRes.rows.length > 0) {
+        const wh = whRes.rows[0];
+        originAddress = wh.address
+          ? `${wh.address}${wh.city ? ', ' + wh.city : ''}${wh.province ? ', ' + wh.province : ''}`
+          : wh.code;
+      }
+    }
+
     for (const item of itemsRes.rows) {
       const waybillId = `WB-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
       const now = new Date();
@@ -348,6 +368,7 @@ export const generateWaybills = async (req: Request, res: Response) => {
       // Try to get price from pricing matrix
       let priceEstimated = 0;
       let pricingMatrixId: string | null = null;
+      let hasPricing = false;
 
       if (container.customer_id && item.dest_warehouse) {
         const palletTier = palletCount <= 4 ? '1-4' : palletCount <= 13 ? '5-13' : '14-28';
@@ -366,8 +387,16 @@ export const generateWaybills = async (req: Request, res: Response) => {
           if (palletTier === '5-13' && pm.per_pallet_price && palletCount > 4) {
             priceEstimated += (palletCount - 4) * parseFloat(pm.per_pallet_price);
           }
+          hasPricing = true;
         }
       }
+
+      const fc = item.dest_warehouse ? fcMap[item.dest_warehouse] : null;
+      const destinationAddress = fc
+        ? (fc.address
+            ? `${fc.address}${fc.city ? ', ' + fc.city : ''}${fc.province ? ', ' + fc.province : ''}`
+            : fc.code)
+        : (item.delivery_address || item.dest_warehouse || '');
 
       await query(`
         INSERT INTO waybills (id, waybill_no, customer_id, origin, destination, cargo_desc,
@@ -376,7 +405,7 @@ export const generateWaybills = async (req: Request, res: Response) => {
         VALUES ($1, $2, $3, $4, $5, $6, 'NEW', $7, $8, $9, $10, $11, $12)
       `, [
         waybillId, waybillNo, container.customer_id,
-        container.warehouse_id || 'Warehouse', item.dest_warehouse || item.delivery_address || '',
+        originAddress, destinationAddress,
         `FBA: ${item.fba_shipment_id || item.sku || 'N/A'} | ${item.piece_count}pcs`,
         priceEstimated, now.toISOString(), item.dest_warehouse,
         palletCount, item.id, pricingMatrixId
@@ -386,7 +415,13 @@ export const generateWaybills = async (req: Request, res: Response) => {
       await query("UPDATE container_items SET waybill_id = $1, status = 'DISPATCHED' WHERE id = $2",
         [waybillId, item.id]);
 
-      generatedWaybills.push({ waybillId, waybillNo, destination: item.dest_warehouse, priceEstimated });
+      generatedWaybills.push({
+        waybillId,
+        waybillNo,
+        destination: item.dest_warehouse,
+        priceEstimated,
+        pricingMissing: !hasPricing,
+      });
     }
 
     // Update container status

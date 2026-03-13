@@ -325,9 +325,11 @@ const migrate = async () => {
       ('R-DISPATCHER', 'P-WAYBILL-EDIT'),
       ('R-DISPATCHER', 'P-FLEET-VIEW'),
       ('R-DISPATCHER', 'P-CUSTOMER-VIEW'),
-      -- 2026-03-13 PRD Pricing: R-DISPATCHER 可查看报价与使用快速报价，不可管理
+      -- 2026-03-13 PRD Pricing: R-DISPATCHER 可查看报价与使用快速报价
       ('R-DISPATCHER', 'P-PRICING-VIEW'),
       ('R-DISPATCHER', 'P-QUOTE-CALC'),
+      -- 2026-03-13 PRD Pricing: 应业务要求，调度员也可管理报价（编辑/归档/新增）
+      ('R-DISPATCHER', 'P-PRICING-MANAGE'),
       ('R-DRIVER', 'P-WAYBILL-VIEW')
       ON CONFLICT(roleid, permissionid) DO NOTHING;
     `);

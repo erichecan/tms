@@ -118,7 +118,14 @@ export const ContainerManagement = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(`成功生成 ${data.waybills?.length || 0} 张运单`);
+        const count = data.waybills?.length || 0;
+        const noPricing = (data.waybills || []).filter((w: any) => w.pricingMissing);
+        if (noPricing.length > 0) {
+          const destList = Array.from(new Set(noPricing.map((w: any) => w.destination || '未知目的仓'))).join(', ');
+          alert(`成功生成 ${count} 张运单，但以下目的仓缺少报价配置：${destList}。请前往「报价管理 → 费率矩阵」为对应 客户+目的仓 配置规则后再检查。`);
+        } else {
+          alert(`成功生成 ${count} 张运单`);
+        }
         fetchDetail(selected.id);
         fetchContainers();
       } else {
