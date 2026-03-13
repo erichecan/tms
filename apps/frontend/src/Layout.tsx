@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut, X, CheckCircle, AlertTriangle, Info, Container, Calculator } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut, X, CheckCircle, AlertTriangle, Info, Container, Calculator, ClipboardList } from 'lucide-react';
 import { searchService } from './services/searchService';
 import { notificationService, type Notification } from './services/notificationService';
 import { useTranslation } from 'react-i18next';
@@ -154,6 +154,8 @@ export const Layout = () => {
                     {canViewCustomers && <SidebarItem to="/customers" icon={Users} label={t('sidebar.customers')} />}
                     {canViewWaybills && <SidebarItem to="/waybills" icon={FileText} label={t('sidebar.waybills')} />}
                     <SidebarItem to="/containers" icon={Container} label="转运管理" />
+                    {/* 转运管理 → 转运单 v0.1 2026-03-13 */}
+                    <SidebarItem to="/transfer-orders" icon={ClipboardList} label="转运单" indent={20} />
                     {canViewFleet && <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />}
                     <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
 

@@ -17,6 +17,9 @@ import { UserManagement } from './UserManagement';
 import { PricingCalculator } from './PricingCalculator';
 import { ContainerManagement } from './ContainerManagement';
 import { PricingManagement } from './PricingManagement';
+/* 转运单 v0.1 路由 2026-03-13 */
+import { TransferOrdersList } from './TransferOrdersList';
+import { TransferOrderDetail } from './TransferOrderDetail';
 import './index.css';
 
 import { AuthProvider } from './context/AuthContext';
@@ -98,6 +101,18 @@ const router = createBrowserRouter([
           {
             path: 'containers',
             element: <ContainerManagement />,
+          },
+          {
+            path: 'transfer-orders',
+            element: <TransferOrdersList />,
+          },
+          {
+            path: 'transfer-orders/create',
+            element: <TransferOrderDetail />,
+          },
+          {
+            path: 'transfer-orders/:id',
+            element: <TransferOrderDetail />,
           },
           {
             path: 'messages',
