@@ -54,8 +54,10 @@ echo -e "${GREEN}✅ Backend Deployed: $BACKEND_URL${NC}"
 echo -e "\n${BLUE}👉 [4/4] Building Frontend (Linked to Backend)...${NC}"
 # Note: Google Maps Key should ideally be a secret, but for build args in Vite it needs to be explicit or mapped.
 # We use the known key here for the build.
+# 2026-03-13: 同时传入 VITE_API_URL，否则 ContainerManagement/PricingManagement 等会回退到 localhost 导致报错
 docker build --no-cache --platform linux/amd64 \
   --build-arg VITE_API_BASE_URL=$BACKEND_URL/api \
+  --build-arg VITE_API_URL=$BACKEND_URL \
   --build-arg VITE_GOOGLE_MAPS_API_KEY=AIzaSyD26kTVaKAlJu3Rc6_bqP9VjLh-HEDmBRs \
   -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$IMAGE_TAG \
   -f docker/frontend/Dockerfile .
@@ -69,7 +71,7 @@ gcloud run deploy $FRONTEND_SERVICE \
   --region $REGION \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars="VITE_API_BASE_URL=$BACKEND_URL/api" \
+  --set-env-vars="VITE_API_BASE_URL=$BACKEND_URL/api,VITE_API_URL=$BACKEND_URL" \
   --memory=512Mi \
   --cpu=1 \
   --timeout=120

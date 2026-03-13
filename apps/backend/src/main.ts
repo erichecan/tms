@@ -801,17 +801,17 @@ app.use('/api/containers', verifyToken, containerRoutes);
 
 
 // Cloud Run 要求监听 0.0.0.0 且使用 PORT 环境变量 (默认 8080) — 2026-03-04
+// 2026-03-13: 生产环境(PORT=8080)仅监听主端口，避免 Cloud Run 启动超时
 app.listen(Number(port), '0.0.0.0', () => {
   console.log(`Backend primary engine running at http://0.0.0.0:${port}`);
 });
 
-// Complementary port to resolve legacy/environment friction (as requested by user)
-// Using .on('error') to prevent process crash if 8000 is occupied by workspace proxy
-if (Number(port) !== 8000) {
+// Complementary port 仅本地开发时启用，Cloud Run 只暴露 PORT
+const isCloudRun = process.env.K_SERVICE != null || Number(port) === 8080;
+if (!isCloudRun && Number(port) !== 8000) {
   const secondaryServer = app.listen(8000, '0.0.0.0', () => {
     console.log('Backend compatibility layer running at http://localhost:8000');
   });
-
   secondaryServer.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
       console.log('⚠️ Port 8000 is busy (likely workspace proxy). Primary engine is safe on 3001.');

@@ -258,7 +258,8 @@ const AddonsTab = ({ headers }: { headers: any }) => {
 };
 
 // ===== Driver Costs Tab =====
-const DriverCostsTab = ({ headers, fcs }: { headers: any; fcs: any[] }) => {
+// 2026-03-13: fcs 保留于接口，用 _ 前缀避免 TS6133 未使用变量
+const DriverCostsTab = ({ headers, fcs: _fcs }: { headers: any; fcs: any[] }) => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const [costs, setCosts] = useState<any[]>([]);
   useEffect(() => {
@@ -308,7 +309,8 @@ const DriverCostsTab = ({ headers, fcs }: { headers: any; fcs: any[] }) => {
 };
 
 // ===== Allins Tab =====
-const AllinsTab = ({ headers, customers }: { headers: any; customers: any[] }) => {
+// 2026-03-13: customers 保留于接口，用 _ 前缀避免 TS6133 未使用变量
+const AllinsTab = ({ headers, customers: _customers }: { headers: any; customers: any[] }) => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const [allins, setAllins] = useState<any[]>([]);
   useEffect(() => {
@@ -465,7 +467,8 @@ const QuoteTab = ({ headers, customers, fcs }: { headers: any; customers: any[];
 };
 
 // ===== FC Destinations Tab =====
-const FcTab = ({ headers, fcs, onRefresh }: { headers: any; fcs: any[]; onRefresh: () => void }) => {
+// 2026-03-13: headers/onRefresh 保留于接口，用 _ 前缀避免 TS6133 未使用变量
+const FcTab = ({ headers: _headers, fcs, onRefresh: _onRefresh }: { headers: any; fcs: any[]; onRefresh: () => void }) => {
   return (
     <div className="glass" style={{ padding: '24px', borderRadius: '16px' }}>
       <h4 style={{ margin: '0 0 16px', fontWeight: 700 }}>FC 目的地字典</h4>

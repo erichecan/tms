@@ -10,10 +10,10 @@ const TOKEN_EXPIRY = '24h';
 export class AuthService {
 
     static async login(identifier: string, password: string) {
-        // Find user by email
+        // 2026-03-13: 支持邮箱或用户名登录，与前端「Email or Username」一致，避免 401
         const result = await query(
-            'SELECT * FROM users WHERE email = $1',
-            [identifier]
+            `SELECT * FROM users WHERE email = $1 OR username = $1 LIMIT 1`,
+            [identifier.trim()]
         );
 
         if (result.rows.length === 0) {

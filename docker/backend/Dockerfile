@@ -34,5 +34,5 @@ ENV PORT=8080
 # 暴露端口
 EXPOSE 8080
 
-# 启动应用（tsc 输出为 dist/src/ 结构）— 2026-03-04
+# 启动应用：rootDir=. 时输出为 dist/src/main.js，所有依赖在 dist/src/ 下 — 2026-03-13
 CMD ["node", "dist/src/main.js"]

@@ -350,6 +350,10 @@ const migrate = async () => {
       ('D-002', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
       ON CONFLICT(id) DO NOTHING;
     `);
+    // 2026-03-13: 为已有用户回填 username（邮箱 @ 前部分），便于「邮箱或用户名」登录
+    await client.query(`
+      UPDATE users SET username = split_part(email, '@', 1) WHERE (username IS NULL OR username = '') AND email IS NOT NULL
+    `);
     // 一次性迁移：原司机账号 U-02 改为使用 D-002（与 drivers.id 一致），司机登录后可见自己任务
     const u02 = await client.query('SELECT 1 FROM users WHERE id = $1', ['U-02']);
     if (u02.rows.length > 0) {
