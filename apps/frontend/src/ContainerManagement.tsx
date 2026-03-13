@@ -54,10 +54,6 @@ export const ContainerManagement = () => {
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemForm, setItemForm] = useState({ fba_shipment_id: '', sku: '', piece_count: 0, cbm: 0, dest_warehouse: '', pallet_count: '', notes: '' });
 
-  // Appointment modal
-  const [showAppt, setShowAppt] = useState<string | null>(null);
-  const [apptForm, setApptForm] = useState({ appointment_time: '', operator_code: '' });
-
   // Customers & FC list for dropdowns
   const [customers, setCustomers] = useState<any[]>([]);
   const [fcs, setFcs] = useState<any[]>([]);
@@ -114,15 +110,6 @@ export const ContainerManagement = () => {
     } catch (e) { console.error(e); }
   };
 
-  const handleCreateAppt = async (itemId: string) => {
-    try {
-      const res = await fetch(`${API}/api/containers/items/${itemId}/appointments`, {
-        method: 'POST', headers, body: JSON.stringify(apptForm)
-      });
-      if (res.ok) { setShowAppt(null); setApptForm({ appointment_time: '', operator_code: '' }); if (selected) fetchDetail(selected.id); }
-    } catch (e) { console.error(e); }
-  };
-
   const handleGenerateWaybills = async () => {
     if (!selected) return;
     try {
@@ -154,10 +141,7 @@ export const ContainerManagement = () => {
       <div style={{ flex: selected ? '0 0 420px' : 1, transition: 'all 0.3s' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>📦 转运管理</h2>
-          <button onClick={() => setShowCreate(true)} className="glass" style={{
-            padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px',
-            background: 'var(--primary-grad)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '13px'
-          }}><Plus size={16} /> 新增集装箱</button>
+          {/* 2026-03-13 20:45:00: 取消「新增集装箱」入口，由运营通过其他入口维护集装箱数据 */}
         </div>
 
         {/* Filters */}
@@ -239,10 +223,11 @@ export const ContainerManagement = () => {
           </div>
 
           {/* Stats */}
+          {/* 2026-03-13 20:40:00: 兼容 total_cbm 可能为字符串/undefined 的情况，统一用 Number(...) 再 toFixed，避免运行时 toFixed 报错 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
             {[
               { label: '总件数', value: selected.total_pieces || 0, icon: '📦' },
-              { label: '总方数', value: (selected.total_cbm || 0).toFixed(2), icon: '📐' },
+              { label: '总方数', value: Number(selected.total_cbm || 0).toFixed(2), icon: '📐' },
               { label: '货物条数', value: selected.items?.length || 0, icon: '📋' },
               { label: '状态', value: selected.status, icon: '🔄' },
             ].map((s, i) => (
@@ -274,12 +259,7 @@ export const ContainerManagement = () => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {item.waybill_id ? (
                       <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>✅ 已生成运单</span>
-                    ) : (
-                      <button onClick={() => { setShowAppt(item.id); setApptForm({ appointment_time: '', operator_code: '' }); }}
-                        className="glass" style={{ padding: '4px 10px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-                        📅 排预约
-                      </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '11px', color: 'var(--slate-500)' }}>
@@ -375,26 +355,7 @@ export const ContainerManagement = () => {
         </div>
       )}
 
-      {/* Appointment Modal */}
-      {showAppt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '400px', padding: '32px', borderRadius: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 800 }}>排派送预约</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <input type="datetime-local" value={apptForm.appointment_time}
-                onChange={e => setApptForm({ ...apptForm, appointment_time: e.target.value })}
-                className="glass" style={{ padding: '10px 14px', border: 'none', borderRadius: '10px', fontSize: '14px' }} />
-              <input value={apptForm.operator_code}
-                onChange={e => setApptForm({ ...apptForm, operator_code: e.target.value })}
-                placeholder="司机代码 (LH/AD/AF)" className="glass" style={{ padding: '10px 14px', border: 'none', borderRadius: '10px', fontSize: '14px' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
-              <button onClick={() => setShowAppt(null)} className="glass" style={{ padding: '8px 20px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px' }}>取消</button>
-              <button onClick={() => handleCreateAppt(showAppt)} style={{ padding: '8px 20px', background: 'var(--primary-grad)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '13px' }}>确认预约</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 2026-03-13 20:50:00: 移除独立排预约弹窗，预约信息后续由司机/车辆指派流程自动生成 */}
     </div>
   );
 };

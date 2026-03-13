@@ -198,6 +198,16 @@ export async function generateWaybills(orderId: string, payload: GenerateWaybill
   return res.json();
 }
 
+/** DELETE /transfer-orders/:id */
+// 2026-03-13 20:52:00: 提供转运单删除接口（带确认对话框的前端调用），用于误建/作废整张转运单
+export async function deleteTransferOrder(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/transfer-orders/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await res.text().catch(() => 'Delete transfer order failed'));
+}
+
 /** POST /pricing/transfer/preview — optional; graceful failure */
 export async function previewTransferPricing(line: Partial<UpsertLinePayload>): Promise<{ customer_price?: number; cost_price?: number; rule_id?: string } | null> {
   try {

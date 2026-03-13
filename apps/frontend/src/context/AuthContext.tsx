@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
+// 2026-03-13: 报价管理权限 — user.permissions 来自 /api/auth/login 或 /me；R-ADMIN 视为拥有所有权限
 
 interface User {
     id: string;
@@ -62,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Redirect logic usually handled by protected routes
     };
 
+    // R-ADMIN/ADMIN 视为拥有所有权限（含 P-PRICING-VIEW / P-PRICING-MANAGE）
     const hasPermission = (permission: string) => {
         if (!user) return false;
         if (user.roleId === 'R-ADMIN' || user.roleId === 'ADMIN') return true;

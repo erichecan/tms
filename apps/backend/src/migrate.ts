@@ -292,7 +292,11 @@ const migrate = async () => {
       ('P-FINANCE-MANAGE', 'Manage Finance', 'Finance', 'Manage receivables and payables'),
       ('P-USER-VIEW', 'View Users', 'Users', 'View user list'),
       ('P-USER-MANAGE', 'Manage Users', 'Users', 'Create and edit users'),
-      ('P-ROLE-MANAGE', 'Manage Roles', 'Roles', 'Create and edit roles and permissions')
+      ('P-ROLE-MANAGE', 'Manage Roles', 'Roles', 'Create and edit roles and permissions'),
+      -- 2026-03-13 PRD Pricing: 报价查看/管理/快速报价权限
+      ('P-PRICING-VIEW', 'View Pricing', 'Pricing', 'View pricing matrices, allins, addons, FC, driver costs'),
+      ('P-PRICING-MANAGE', 'Manage Pricing', 'Pricing', 'Create, edit, delete/archive all pricing data'),
+      ('P-QUOTE-CALC', 'Use Quote Calculator', 'Pricing', 'Use quick quote API')
       ON CONFLICT(id) DO NOTHING;
     `);
 
@@ -312,11 +316,18 @@ const migrate = async () => {
       ('R-ADMIN', 'P-USER-VIEW'),
       ('R-ADMIN', 'P-USER-MANAGE'),
       ('R-ADMIN', 'P-ROLE-MANAGE'),
+      -- 2026-03-13 PRD Pricing: R-ADMIN 拥有全部报价权限
+      ('R-ADMIN', 'P-PRICING-VIEW'),
+      ('R-ADMIN', 'P-PRICING-MANAGE'),
+      ('R-ADMIN', 'P-QUOTE-CALC'),
       ('R-DISPATCHER', 'P-WAYBILL-VIEW'),
       ('R-DISPATCHER', 'P-WAYBILL-CREATE'),
       ('R-DISPATCHER', 'P-WAYBILL-EDIT'),
       ('R-DISPATCHER', 'P-FLEET-VIEW'),
       ('R-DISPATCHER', 'P-CUSTOMER-VIEW'),
+      -- 2026-03-13 PRD Pricing: R-DISPATCHER 可查看报价与使用快速报价，不可管理
+      ('R-DISPATCHER', 'P-PRICING-VIEW'),
+      ('R-DISPATCHER', 'P-QUOTE-CALC'),
       ('R-DRIVER', 'P-WAYBILL-VIEW')
       ON CONFLICT(roleid, permissionid) DO NOTHING;
     `);

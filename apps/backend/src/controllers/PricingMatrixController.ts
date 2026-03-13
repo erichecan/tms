@@ -7,11 +7,15 @@ import { QuoteEngine } from '../services/QuoteEngine';
 export const getMatricesByCustomer = async (req: Request, res: Response) => {
   try {
     const { customerId } = req.params;
+    // 2026-03-13: 费率矩阵「显示已归档」支持 — includeArchived=true 时返回 ACTIVE + ARCHIVED
+    const includeArchived = req.query.includeArchived === 'true';
+    const statusCondition = includeArchived ? `IN ('ACTIVE','ARCHIVED')` : `= 'ACTIVE'`;
+
     const result = await query(`
       SELECT pm.*, fc.name as dest_name, fc.region
       FROM pricing_matrices pm
       LEFT JOIN fc_destinations fc ON pm.destination_code = fc.code
-      WHERE pm.customer_id = $1 AND pm.status = 'ACTIVE'
+      WHERE pm.customer_id = $1 AND pm.status ${statusCondition}
       ORDER BY pm.destination_code, pm.vehicle_type, pm.pallet_tier
     `, [customerId]);
     res.json(result.rows);

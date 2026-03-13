@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Lock, Unlock, Copy, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Lock, Unlock, Copy, FileText, Trash2 } from 'lucide-react';
 import { API_BASE_URL } from './apiConfig';
 import {
   getTransferOrder,
@@ -52,6 +52,7 @@ export const TransferOrderDetail = () => {
   const [lines, setLines] = useState<(TransferOrderLine & { _dirty?: boolean })[]>([]);
   const [selectedLineIds, setSelectedLineIds] = useState<Set<string>>(new Set());
   const [generateWaybillsLoading, setGenerateWaybillsLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     if (!id) return;
@@ -221,6 +222,30 @@ export const TransferOrderDetail = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!id) {
+      // 2026-03-13 20:53:00: 新建未保存的转运单，删除等价于放弃本页编辑并返回列表
+      if (window.confirm('确定要放弃当前新建的转运单吗？本页未保存的内容将丢失。')) {
+        navigate('/transfer-orders');
+      }
+      return;
+    }
+    if (!window.confirm('确定要删除这张转运单吗？此操作不可恢复，已生成的运单不会被删除。')) {
+      return;
+    }
+    try {
+      setDeleting(true);
+      const { deleteTransferOrder } = await import('./services/transferOrderService');
+      await deleteTransferOrder(id);
+      navigate('/transfer-orders');
+    } catch (e) {
+      console.error(e);
+      alert('删除转运单失败，请稍后再试。');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const updateLine = (lineId: string, patch: Partial<TransferOrderLine>) => {
     setLines((prev) =>
       prev.map((l) => (l.id === lineId ? { ...l, ...patch, _dirty: true } as TransferOrderLine & { _dirty?: boolean } : l))
@@ -345,6 +370,26 @@ export const TransferOrderDetail = () => {
             }}
           >
             <Save size={18} /> {saving ? '保存中...' : '保存草稿'}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="glass"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              borderRadius: '12px',
+              border: 'none',
+              cursor: deleting ? 'not-allowed' : 'pointer',
+              background: '#FEE2E2',
+              color: '#B91C1C',
+              fontWeight: 700,
+              fontSize: '14px',
+            }}
+          >
+            <Trash2 size={18} /> {isCreate ? '放弃新建' : '删除转运单'}
           </button>
         </div>
       </div>
@@ -620,9 +665,18 @@ export const TransferOrderDetail = () => {
                       onClick={() => splitLine(line)}
                       title="拆分明细"
                       className="glass"
-                      style={{ padding: '4px 8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                      style={{ padding: '4px 8px', marginRight: '4px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
                     >
                       <Copy size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLines((prev) => prev.filter((l) => l.id !== line.id))}
+                      title="删除该行"
+                      className="glass"
+                      style={{ padding: '4px 8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', color: '#B91C1C' }}
+                    >
+                      删除
                     </button>
                   </td>
                 </tr>

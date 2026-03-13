@@ -34,10 +34,11 @@ export const Login = () => {
                 throw new Error(data.error || 'Login failed');
             }
 
+            // 2026-03-13: 登录响应需包含 permissions（来自 /api/auth/login），供 hasPermission 使用
             const userWithPerms = {
                 ...data.user,
                 roleId: data.role || data.user.roleid || data.user.role_id,
-                permissions: data.permissions
+                permissions: data.permissions ?? []
             };
 
             login(data.token, userWithPerms);

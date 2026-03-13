@@ -37,7 +37,7 @@ const SidebarItem = ({ to, icon: Icon, label, indent = 0 }: { to: string; icon: 
 export const Layout = () => {
     const { t } = useTranslation();
     const location = useLocation();
-    const { user, logout, hasRole } = useAuth();
+    const { user, logout, hasRole, hasPermission } = useAuth();
     const navigate = useNavigate();
     const isDashboard = location.pathname === '/';
 
@@ -111,12 +111,14 @@ export const Layout = () => {
     // const isDispatcher = hasRole('R-DISPATCHER') || hasRole('DISPATCHER') || isAdmin;
     // const isManager = hasRole('GENERAL_MANAGER') || hasRole('FLEET_MANAGER') || isAdmin;
 
-    // Permission-based visibility (Configurable via Role Management)    
+    // Permission-based visibility (Configurable via Role Management)
     const canViewWaybills = user?.permissions?.includes('P-WAYBILL-VIEW') || isAdmin; // Fallback to admin if perms not loaded
     const canViewFleet = user?.permissions?.includes('P-FLEET-VIEW') || isAdmin;
     const canViewCustomers = user?.permissions?.includes('P-CUSTOMER-VIEW') || isAdmin;
     const canViewFinance = user?.permissions?.includes('P-FINANCE-VIEW') || isAdmin;
     const canViewUsers = user?.permissions?.includes('P-USER-VIEW') || isAdmin;
+    // 2026-03-13: 报价管理 — 仅 P-PRICING-VIEW 时显示「报价管理」「价格计算」菜单
+    const canViewPricing = hasPermission('P-PRICING-VIEW');
 
     // Role name mapping
     const getRoleName = (roleId: string | undefined): string => {
@@ -159,15 +161,23 @@ export const Layout = () => {
                     {canViewFleet && <SidebarItem to="/fleet" icon={Truck} label={t('sidebar.fleetExpenses')} />}
                     <SidebarItem to="/messages" icon={MessageSquare} label={t('sidebar.messages')} />
 
-                    {canViewFinance && (
+                    {(canViewFinance || canViewPricing) && (
                         <>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', marginBottom: '12px', marginTop: '24px', paddingLeft: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('sidebar.finance')}</div>
-                            <SidebarItem to="/finance" icon={DollarSign} label={t('sidebar.financialOverview')} />
-                            <SidebarItem to="/finance/receivables" icon={FileText} label={t('sidebar.receivables')} indent={20} />
-                            <SidebarItem to="/finance/payables" icon={FileText} label={t('sidebar.payables')} indent={20} />
-                            <SidebarItem to="/pricing" icon={DollarSign} label={t('sidebar.priceCalculator')} />
-                            <SidebarItem to="/pricing-mgmt" icon={Calculator} label="报价管理" />
-                            <SidebarItem to="/rules" icon={ShieldCheck} label={t('sidebar.universalRules')} />
+                            {canViewFinance && (
+                                <>
+                                    <SidebarItem to="/finance" icon={DollarSign} label={t('sidebar.financialOverview')} />
+                                    <SidebarItem to="/finance/receivables" icon={FileText} label={t('sidebar.receivables')} indent={20} />
+                                    <SidebarItem to="/finance/payables" icon={FileText} label={t('sidebar.payables')} indent={20} />
+                                    <SidebarItem to="/rules" icon={ShieldCheck} label={t('sidebar.universalRules')} />
+                                </>
+                            )}
+                            {canViewPricing && (
+                                <>
+                                    <SidebarItem to="/pricing" icon={DollarSign} label={t('sidebar.priceCalculator')} />
+                                    <SidebarItem to="/pricing-mgmt" icon={Calculator} label="报价管理" />
+                                </>
+                            )}
                         </>
                     )}
                 </nav>

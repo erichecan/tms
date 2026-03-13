@@ -1,7 +1,8 @@
-
+// 2026-03-13: CR-2/CR-3 客户与报价入口整合（PRD_Pricing_Management_Full.md）
 
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Building2, Mail, Phone as PhoneIcon, MapPin, DollarSign } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Edit, Trash2, Building2, Mail, Phone as PhoneIcon, MapPin, DollarSign, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Modal from './components/Modal/Modal';
 import { API_BASE_URL } from './apiConfig';
@@ -21,11 +22,14 @@ interface Customer {
 
 export const CustomerManagement = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Partial<Customer>>({});
     const [isLoading, setIsLoading] = useState(false);
     const { confirm } = useDialog();
+    // 2026-03-13 CR-3: 新建客户成功后展示「去配置报价」入口用
+    const [lastCreatedCustomerId, setLastCreatedCustomerId] = useState<string | null>(null);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -67,6 +71,7 @@ export const CustomerManagement = () => {
     }, [currentPage]); // Re-fetch on page change
 
     const handleAddClick = () => {
+        setLastCreatedCustomerId(null);
         setEditingCustomer({ status: 'ACTIVE' });
         setIsModalOpen(true);
     };
@@ -113,6 +118,13 @@ export const CustomerManagement = () => {
             });
 
             if (res.ok) {
+                const data = await res.json();
+                const isCreate = !isEdit;
+                if (isCreate && data?.id) {
+                    setLastCreatedCustomerId(data.id);
+                } else {
+                    setLastCreatedCustomerId(null);
+                }
                 setIsModalOpen(false);
                 fetchCustomers();
             }
@@ -195,7 +207,18 @@ export const CustomerManagement = () => {
                                     </span>
                                 </td>
                                 <td style={{ padding: '20px 24px', textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                        {/* 2026-03-13 CR-2: 该客户报价入口，跳转报价管理并带 customerId */}
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/pricing-mgmt?customerId=${customer.id}`)}
+                                            className="btn-secondary"
+                                            style={{ padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            title={t('customers.viewPricing')}
+                                        >
+                                            <Calculator size={18} />
+                                            <span style={{ fontSize: '12px', fontWeight: 700 }}>{t('customers.viewPricing')}</span>
+                                        </button>
                                         <button onClick={() => handleEditClick(customer)} className="btn-secondary" style={{ padding: '10px', borderRadius: '12px' }}>
                                             <Edit size={18} />
                                         </button>
@@ -216,6 +239,22 @@ export const CustomerManagement = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* 2026-03-13 CR-3: 新建客户成功后的「去配置报价」入口 */}
+            {lastCreatedCustomerId && (
+                <div className="glass" style={{ marginTop: '16px', padding: '16px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--slate-700)' }}>{t('customers.createdGoToPricing')}</span>
+                    <button
+                        type="button"
+                        onClick={() => navigate(`/pricing-mgmt?customerId=${lastCreatedCustomerId}`)}
+                        className="btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+                    >
+                        <Calculator size={18} />
+                        {t('customers.goToConfigurePricing')}
+                    </button>
+                </div>
+            )}
 
             <Pagination
                 currentPage={currentPage}

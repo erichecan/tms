@@ -1,6 +1,7 @@
-
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+// 2026-03-13: 报价管理路由 — 仅 P-PRICING-VIEW 可访问 /pricing、/pricing-mgmt；无权限重定向首页
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { Layout } from './Layout';
+import { useAuth } from './context/AuthContext';
 import { Dashboard } from './Dashboard';
 import { WaybillCreate } from './WaybillCreate';
 import { WaybillsList } from './WaybillsList';
@@ -30,6 +31,14 @@ import { DriverLayout } from './components/DriverLayout';
 import { DriverHome } from './pages/Driver/DriverHome';
 import { DriverWaybillDetail } from './pages/Driver/DriverWaybillDetail';
 import { DriverSettings } from './pages/Driver/DriverSettings';
+import type { ReactNode } from 'react';
+
+/** 仅 P-PRICING-VIEW 可访问报价相关页；无权限重定向至首页 */
+function PricingViewGuard({ children }: { children: ReactNode }) {
+  const { hasPermission } = useAuth();
+  if (!hasPermission('P-PRICING-VIEW')) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
 
 const router = createBrowserRouter([
   {
@@ -136,11 +145,11 @@ const router = createBrowserRouter([
           },
           {
             path: 'pricing',
-            element: <PricingCalculator />,
+            element: <PricingViewGuard><PricingCalculator /></PricingViewGuard>,
           },
           {
             path: 'pricing-mgmt',
-            element: <PricingManagement />,
+            element: <PricingViewGuard><PricingManagement /></PricingViewGuard>,
           },
           {
             path: 'users',

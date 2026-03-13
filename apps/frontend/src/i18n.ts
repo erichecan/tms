@@ -470,6 +470,9 @@ const resources = {
                     "credit": "CREDIT HEALTH",
                     "status": "STATUS"
                 },
+                "viewPricing": "Pricing for this customer",
+                "goToConfigurePricing": "Configure pricing",
+                "createdGoToPricing": "Customer created. You can now configure pricing for this customer.",
                 "empty": "The customer roster is currently empty.",
                 "archiveConfirm": "Archive this customer account? This will restrict their access to new waybill creation.",
                 "archiveTitle": "Archive Customer Account",
@@ -955,6 +958,9 @@ const resources = {
                     "credit": "信用状况",
                     "status": "状态"
                 },
+                "viewPricing": "该客户报价",
+                "goToConfigurePricing": "去配置报价",
+                "createdGoToPricing": "客户已创建，可为该客户配置报价。",
                 "empty": "客户列表目前为空。",
                 "archiveConfirm": "归档此客户账户？这将限制其创建新运单的权限。",
                 "archiveTitle": "归档客户账户",

@@ -45,3 +45,20 @@ export const requirePermission = (requiredPermission: string) => {
         next();
     };
 };
+
+/** 2026-03-13: PRD Pricing - 满足任一权限即可通过，用于 POST /quote (P-QUOTE-CALC 或 P-PRICING-VIEW) */
+export const requireAnyPermission = (allowedPermissions: string[]) => {
+    return (req: AuthRequest, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (req.user.roleId === 'R-ADMIN' || req.user.roleId === 'ADMIN') {
+            return next();
+        }
+        const perms = req.user.permissions as string[] | undefined;
+        if (perms && allowedPermissions.some(p => perms.includes(p))) {
+            return next();
+        }
+        return res.status(403).json({ error: `Access denied: Requires one of [${allowedPermissions.join(', ')}]` });
+    };
+};
