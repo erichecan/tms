@@ -235,6 +235,31 @@ const RatesTab = ({ headers, customers, fcs, canManage, initialCustomerId }: { h
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-400)' }}>加载中...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Customer Images Display */}
+          {(() => {
+            const customerObj = customers.find(c => c.id === selectedCustomer);
+            const images = customerObj?.details?.images || [];
+            if (images.length === 0) return null;
+            return (
+              <div className="glass" style={{ padding: '16px', borderRadius: '16px', marginBottom: '8px' }}>
+                <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px', color: 'var(--slate-700)' }}>📁 报价单/原始图片 ({images.length})</div>
+                <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'thin' }}>
+                  {images.map((img: string, idx: number) => (
+                    <div key={idx} style={{ flexShrink: 0, position: 'relative' }}>
+                      <img 
+                        src={img} 
+                        alt={`Quote ${idx + 1}`} 
+                        className="glass"
+                        style={{ height: '140px', borderRadius: '10px', cursor: 'pointer', objectFit: 'cover' }}
+                        onClick={() => window.open(img)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {Object.entries(grouped).map(([dest, rates]: [string, any]) => (
             <div key={dest} className="glass" style={{ padding: '16px', borderRadius: '12px' }}>
               <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>

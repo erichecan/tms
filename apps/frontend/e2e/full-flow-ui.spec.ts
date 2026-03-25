@@ -6,6 +6,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { humanFill } from './support/humanInteraction';
 
 const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173';
 const USE_REAL_API = process.env.TMS_E2E_REAL_API === '1';
@@ -32,12 +33,30 @@ const MOCK_FINANCE_RECORDS: any[] = [
   { id: 'FR-2', type: 'receivable', reference_id: 'C-01', amount: 500, status: 'PENDING', created_at: new Date().toISOString(), shipment_id: 'WB-1' },
 ];
 
+/** 真实 API 下指派弹窗：选第一个非空 driver/vehicle 选项（与种子 ID 解耦）— 2026-03-23T03:18:00 */
+async function pickFirstDriverAndVehicleForAssign(page: import('@playwright/test').Page) {
+  const dSel = page.getByTestId('assign-driver-select');
+  const dVal = await dSel.evaluate((el: HTMLSelectElement) => {
+    const o = Array.from(el.options).find((x) => x.value);
+    return o?.value ?? '';
+  });
+  expect(dVal).toBeTruthy();
+  await dSel.selectOption(dVal);
+  const vSel = page.getByTestId('assign-vehicle-select');
+  const vVal = await vSel.evaluate((el: HTMLSelectElement) => {
+    const o = Array.from(el.options).find((x) => x.value);
+    return o?.value ?? '';
+  });
+  expect(vVal).toBeTruthy();
+  await vSel.selectOption(vVal);
+}
+
 /** 管理员登录（Mock 或真实） */
 async function loginAsAdmin(page: import('@playwright/test').Page) {
   if (USE_REAL_API) {
     await page.goto(`${BASE_URL}/login`);
-    await page.getByPlaceholder(/Email|Username/i).fill('tom@tms.com');
-    await page.getByPlaceholder(/password/i).fill('dispatcher123');
+    await humanFill(page.getByPlaceholder(/Email|Username/i), 'tom@tms.com');
+    await humanFill(page.getByPlaceholder(/password/i), 'dispatcher123');
     await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
     await expect(page).toHaveURL(/\/(?!login)/, { timeout: 15000 });
     return;
@@ -54,8 +73,8 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
     });
   });
   await page.goto(`${BASE_URL}/login`);
-  await page.getByPlaceholder(/Email|Username/i).fill('admin@tms.test');
-  await page.getByPlaceholder(/password/i).fill('pass');
+  await humanFill(page.getByPlaceholder(/Email|Username/i), 'admin@tms.test');
+  await humanFill(page.getByPlaceholder(/password/i), 'pass');
   await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
   await expect(page).toHaveURL(/\/(?!login)/, { timeout: 10000 });
 }
@@ -153,8 +172,8 @@ test.describe('1. 认证与权限', () => {
   test('1.3 司机登录后进入司机端', async ({ page }) => {
     if (USE_REAL_API) {
       await page.goto(`${BASE_URL}/login`);
-      await page.getByPlaceholder(/Email|Username/i).fill('jerry@tms.com');
-      await page.getByPlaceholder(/password/i).fill('driver123');
+      await humanFill(page.getByPlaceholder(/Email|Username/i), 'jerry@tms.com');
+      await humanFill(page.getByPlaceholder(/password/i), 'driver123');
       await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
       await expect(page).toHaveURL(/\/driver/, { timeout: 10000 });
       return;
@@ -164,8 +183,8 @@ test.describe('1. 认证与权限', () => {
     );
     await page.route('**/api/waybills*', (route) => route.fulfill({ status: 200, body: JSON.stringify({ data: [], total: 0 }) }));
     await page.goto(`${BASE_URL}/login`);
-    await page.getByPlaceholder(/Email|Username/i).fill('jerry@tms.com');
-    await page.getByPlaceholder(/password/i).fill('driver123');
+    await humanFill(page.getByPlaceholder(/Email|Username/i), 'jerry@tms.com');
+    await humanFill(page.getByPlaceholder(/password/i), 'driver123');
     await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
     await expect(page).toHaveURL(/\/driver/, { timeout: 10000 });
   });
@@ -181,11 +200,13 @@ test.describe('2. 工作台与导航', () => {
   test('2.1 工作台显示核心指标与快捷入口', async ({ page }) => {
     await expect(page.locator('body')).toContainText(/Welcome|Control Center|Pending|Waybill|Fleet/i);
     await expect(page.getByRole('link', { name: /Dashboard|仪表盘/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Waybills|运单/i })).toBeVisible();
+    // 2026-03-23T02:56:00 — 侧栏「转运单」可匹配 /运单/，改用 href 避免 strict mode 双匹配
+    await expect(page.locator('aside a[href="/waybills"]')).toBeVisible();
   });
 
   test('2.2 侧栏导航：运单 / 追踪 / 财务 / 车队 / 客户', async ({ page }) => {
-    await page.getByRole('link', { name: /Waybills|运单/i }).first().click();
+    // 2026-03-23T02:56:00 — 同上，精确进入运单列表而非转运单
+    await page.locator('aside a[href="/waybills"]').click();
     await expect(page).toHaveURL(/\/waybills/);
     await page.getByRole('link', { name: /Tracking Loop|追踪/i }).first().click();
     await expect(page).toHaveURL(/\/tracking/);
@@ -205,35 +226,63 @@ test.describe('3. 运单管理', () => {
   test.beforeEach(async ({ page }) => {
     installCommonMocks(page);
     await loginAsAdmin(page);
-    await page.getByRole('link', { name: /Waybills|运单/i }).first().click();
+    // 2026-03-23T02:56:00 — 避免「转运单」与运单导航歧义
+    await page.locator('aside a[href="/waybills"]').click();
     await expect(page).toHaveURL(/\/waybills/);
   });
 
   test('3.1 运单列表加载与状态筛选', async ({ page }) => {
-    await expect(page.getByTestId('waybill-row')).toHaveCount(MOCK_WAYBILLS.length);
-    await page.getByTestId('filter-NEW').click();
-    await page.waitForTimeout(400);
-    await expect(page.getByTestId('waybill-row')).toHaveCount(1);
-    await expect(page.getByText('Y2603-001')).toBeVisible();
-    await page.getByTestId('filter-ALL').click();
-    await page.waitForTimeout(300);
-    await expect(page.getByTestId('waybill-row')).toHaveCount(MOCK_WAYBILLS.length);
+    const rows = page.getByTestId('waybill-row');
+    if (USE_REAL_API) {
+      // 2026-03-23T03:18:00 — 真实库条数与 Mock 不一致，只验证筛选行为
+      await expect(rows.first()).toBeVisible({ timeout: 15000 });
+      const total = await rows.count();
+      expect(total).toBeGreaterThan(0);
+      await page.getByTestId('filter-NEW').click();
+      await page.waitForTimeout(500);
+      const newCount = await rows.count();
+      expect(newCount).toBeGreaterThan(0);
+      await page.getByTestId('filter-ALL').click();
+      await page.waitForTimeout(400);
+      expect(await rows.count()).toBe(total);
+    } else {
+      await expect(rows).toHaveCount(MOCK_WAYBILLS.length);
+      await page.getByTestId('filter-NEW').click();
+      await page.waitForTimeout(400);
+      await expect(rows).toHaveCount(1);
+      await expect(page.getByText('Y2603-001')).toBeVisible();
+      await page.getByTestId('filter-ALL').click();
+      await page.waitForTimeout(300);
+      await expect(rows).toHaveCount(MOCK_WAYBILLS.length);
+    }
   });
 
   test('3.2 运单搜索', async ({ page }) => {
-    await page.getByTestId('waybill-search-input').fill('Y2603-002');
-    await page.waitForTimeout(600);
-    await expect(page.getByTestId('waybill-row')).toHaveCount(1);
-    await expect(page.getByText('Y2603-002')).toBeVisible();
+    if (USE_REAL_API) {
+      // 2026-03-23T03:18:00 — 用当前页第一条运单号搜索，避免硬编码 Y2603-002
+      const firstRow = page.getByTestId('waybill-row').first();
+      await expect(firstRow).toBeVisible({ timeout: 15000 });
+      const waybillNo = (await firstRow.locator('td').first().innerText()).replace(/\s+/g, ' ').trim();
+      const token = waybillNo.split(/\s+/).find((p) => /Y\d{2}|^Y/i.test(p)) ?? waybillNo;
+      await humanFill(page.getByTestId('waybill-search-input'), token);
+      await page.waitForTimeout(800);
+      await expect(page.getByTestId('waybill-row').first()).toBeVisible();
+      expect(await page.getByTestId('waybill-row').count()).toBeGreaterThanOrEqual(1);
+    } else {
+      await humanFill(page.getByTestId('waybill-search-input'), 'Y2603-002');
+      await page.waitForTimeout(600);
+      await expect(page.getByTestId('waybill-row')).toHaveCount(1);
+      await expect(page.getByText('Y2603-002')).toBeVisible();
+    }
   });
 
   test('3.3 创建运单 - Default 模板', async ({ page }) => {
     await page.getByTestId('create-waybill-btn').click();
     await expect(page).toHaveURL(/\/waybills\/create/);
     await expect(page.getByTestId('template-default')).toBeVisible();
-    await page.getByTestId('ship-from-address').fill('100 King St, Toronto');
-    await page.getByTestId('ship-to-address').fill('200 Hurontario St, Mississauga');
-    await page.getByTestId('price-input').fill('550');
+    await humanFill(page.getByTestId('ship-from-address'), '100 King St, Toronto');
+    await humanFill(page.getByTestId('ship-to-address'), '200 Hurontario St, Mississauga');
+    await humanFill(page.getByTestId('price-input'), '550');
     await page.getByTestId('submit-waybill-btn').click();
     await expect(page).toHaveURL(/\/waybills$/);
   });
@@ -243,23 +292,31 @@ test.describe('3. 运单管理', () => {
     await expect(page).toHaveURL(/\/waybills\/create/);
     await page.getByTestId('template-amazon').click();
     await expect(page.getByTestId('fc-alias-input')).toBeVisible();
-    await page.getByTestId('fc-alias-input').fill('YYZ9');
-    await page.getByTestId('delivery-date-input').fill('2026-03-15');
-    await page.getByTestId('fc-address-input').fill('500 Airport Rd');
-    await page.getByTestId('price-input').fill('200');
+    await humanFill(page.getByTestId('fc-alias-input'), 'YYZ9');
+    await humanFill(page.getByTestId('delivery-date-input'), '2026-03-15');
+    await humanFill(page.getByTestId('fc-address-input'), '500 Airport Rd');
+    await humanFill(page.getByTestId('price-input'), '200');
     await page.getByTestId('submit-waybill-btn').click();
     await expect(page).toHaveURL(/\/waybills$/);
   });
 
   test('3.5 指派运单 - 弹窗选择司机与车辆并确认', async ({ page }) => {
+    if (USE_REAL_API) {
+      await page.getByTestId('filter-NEW').click();
+      await page.waitForTimeout(400);
+    }
     await page.getByTestId('waybill-row-menu-btn').first().click();
     await page.getByTestId('assign-waybill-btn').click();
     await expect(page.getByTestId('assign-driver-select')).toBeVisible();
     await expect(page.getByTestId('assign-vehicle-select')).toBeVisible();
     await page.waitForTimeout(800);
-    await page.getByTestId('assign-driver-select').selectOption('D-002');
-    await page.getByTestId('assign-vehicle-select').selectOption('V-102');
-    const assignReq = page.waitForRequest(req => req.url().includes('/assign') && req.method() === 'POST', { timeout: 8000 });
+    if (USE_REAL_API) {
+      await pickFirstDriverAndVehicleForAssign(page);
+    } else {
+      await page.getByTestId('assign-driver-select').selectOption('D-002');
+      await page.getByTestId('assign-vehicle-select').selectOption('V-102');
+    }
+    const assignReq = page.waitForRequest(req => req.url().includes('/assign') && req.method() === 'POST', { timeout: 15000 });
     await page.getByTestId('assign-confirm-btn').click();
     await assignReq;
   });
@@ -267,8 +324,14 @@ test.describe('3. 运单管理', () => {
   test('3.6 运单编辑入口 - 从列表打开编辑/查看', async ({ page }) => {
     await page.getByTestId('waybill-row-menu-btn').first().click();
     await page.getByText(/Edit Waybill|编辑运单/i).first().click();
-    await expect(page).toHaveURL(/\/waybills\/edit\/WB-1/);
-    await expect(page.getByTestId('ship-from-address')).toBeVisible();
+    if (USE_REAL_API) {
+      await expect(page).toHaveURL(/\/waybills\/edit\/.+/, { timeout: 10000 });
+      // 2026-03-23T03:24:00 — Default/Amazon 均有 price-input；避免 .or() 多元素触发 strict mode
+      await expect(page.getByTestId('price-input')).toBeVisible({ timeout: 10000 });
+    } else {
+      await expect(page).toHaveURL(/\/waybills\/edit\/WB-1/);
+      await expect(page.getByTestId('ship-from-address')).toBeVisible();
+    }
   });
 });
 
@@ -283,14 +346,19 @@ test.describe('4. 行程跟踪', () => {
     await page.getByRole('link', { name: /Tracking Loop|追踪/i }).first().click();
     await expect(page).toHaveURL(/\/tracking/);
     await page.waitForTimeout(1500);
-    await expect(page.locator('body')).toContainText(/Robert|McAllister|T-1|Y2603/i);
+    if (USE_REAL_API) {
+      // 2026-03-23T03:18:00 — 真实数据无固定司机名，放宽为追踪页共性文案
+      await expect(page.locator('body')).toContainText(/Tracking|追踪|Trip|行程|运单|Waybill|Select|选择/i);
+    } else {
+      await expect(page.locator('body')).toContainText(/Robert|McAllister|T-1|Y2603/i);
+    }
   });
 
   test('4.2 发送行程消息 - 输入框与发送按钮可操作', async ({ page }) => {
     test.skip(true, '依赖 /trips/:id/tracking 与 /trips/:id/messages 需后端或更完整 mock');
     await page.goto(`${BASE_URL}/tracking/T-1`);
     await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 15000 });
-    await page.getByTestId('chat-input').fill('ETA 30 min');
+    await humanFill(page.getByTestId('chat-input'), 'ETA 30 min');
     await page.getByTestId('send-message-btn').click();
   });
 });
@@ -357,8 +425,8 @@ test.describe('7. 司机端', () => {
       route.fulfill({ status: 200, body: JSON.stringify({ token: 'jwt', user: { id: 'D-002', name: 'Jerry', email: 'jerry@tms.com', roleId: 'R-DRIVER' }, role: 'R-DRIVER', permissions: [] }) })
     );
     await page.goto(`${BASE_URL}/login`);
-    await page.getByPlaceholder(/Email|Username/i).fill('jerry@tms.com');
-    await page.getByPlaceholder(/password/i).fill('driver123');
+    await humanFill(page.getByPlaceholder(/Email|Username/i), 'jerry@tms.com');
+    await humanFill(page.getByPlaceholder(/password/i), 'driver123');
     await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
     await expect(page).toHaveURL(/\/driver/);
     await expect(page.locator('body')).toContainText(/Waybill|运单|Mission|任务|Search|搜索/i);
@@ -376,8 +444,8 @@ test.describe('7. 司机端', () => {
       route.fulfill({ status: 200, body: JSON.stringify({ token: 'jwt', user: { id: 'D-002', name: 'Jerry', roleId: 'R-DRIVER' }, role: 'R-DRIVER', permissions: [] }) })
     );
     await page.goto(`${BASE_URL}/login`);
-    await page.getByPlaceholder(/Email|Username/i).fill('jerry@tms.com');
-    await page.getByPlaceholder(/password/i).fill('driver123');
+    await humanFill(page.getByPlaceholder(/Email|Username/i), 'jerry@tms.com');
+    await humanFill(page.getByPlaceholder(/password/i), 'driver123');
     await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
     await expect(page).toHaveURL(/\/driver/);
     await page.goto(`${BASE_URL}/driver/waybill/WB-2`);
@@ -392,20 +460,32 @@ test.describe('8. P0 全流程串联', () => {
     installCommonMocks(page);
     await loginAsAdmin(page);
     await expect(page).toHaveURL(/\//);
-    await page.getByRole('link', { name: /Waybills|运单/i }).first().click();
+    await page.locator('aside a[href="/waybills"]').click();
     await expect(page).toHaveURL(/\/waybills/);
-    await expect(page.getByTestId('waybill-row')).toHaveCount(MOCK_WAYBILLS.length);
+    if (USE_REAL_API) {
+      await expect(page.getByTestId('waybill-row').first()).toBeVisible({ timeout: 15000 });
+      expect(await page.getByTestId('waybill-row').count()).toBeGreaterThan(0);
+    } else {
+      await expect(page.getByTestId('waybill-row')).toHaveCount(MOCK_WAYBILLS.length);
+    }
     await page.getByTestId('create-waybill-btn').click();
     await expect(page).toHaveURL(/\/waybills\/create/);
-    await page.getByTestId('ship-from-address').fill('Toronto');
-    await page.getByTestId('ship-to-address').fill('Mississauga');
-    await page.getByTestId('price-input').fill('600');
+    await humanFill(page.getByTestId('ship-from-address'), 'Toronto');
+    await humanFill(page.getByTestId('ship-to-address'), 'Mississauga');
+    await humanFill(page.getByTestId('price-input'), '600');
     await page.getByTestId('submit-waybill-btn').click();
     await expect(page).toHaveURL(/\/waybills$/);
+    await page.getByTestId('filter-NEW').click();
+    await page.waitForTimeout(400);
     await page.getByTestId('waybill-row-menu-btn').first().click();
     await page.getByTestId('assign-waybill-btn').click();
-    await page.getByTestId('assign-driver-select').selectOption('D-002');
-    await page.getByTestId('assign-vehicle-select').selectOption('V-102');
+    await page.waitForTimeout(600);
+    if (USE_REAL_API) {
+      await pickFirstDriverAndVehicleForAssign(page);
+    } else {
+      await page.getByTestId('assign-driver-select').selectOption('D-002');
+      await page.getByTestId('assign-vehicle-select').selectOption('V-102');
+    }
     await page.getByTestId('assign-confirm-btn').click();
     await page.waitForTimeout(500);
     await page.getByRole('link', { name: /Tracking Loop|追踪/i }).first().click();

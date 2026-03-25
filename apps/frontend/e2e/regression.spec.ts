@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { humanFill } from './support/humanInteraction';
 
 // =============================================================================
 // TMS 5.0 E2E Regression Suite
@@ -48,11 +49,11 @@ test.describe('P0: Waybill Lifecycle (Create & List)', () => {
         await expect(page.getByTestId('delivery-date-input')).toBeVisible();
 
         // 2. Fill Form (Mock)
-        await page.getByTestId('fc-alias-input').fill('YYZ9');
-        await page.getByTestId('delivery-date-input').fill('2026-01-08');
+        await humanFill(page.getByTestId('fc-alias-input'), 'YYZ9');
+        await humanFill(page.getByTestId('delivery-date-input'), '2026-01-08');
 
         // 3. Pricing (Simplified)
-        await page.getByTestId('price-input').fill('150.50');
+        await humanFill(page.getByTestId('price-input'), '150.50');
 
         // 4. Verify Submit Button is visible
         await expect(page.getByTestId('submit-waybill-btn')).toBeVisible();
@@ -69,12 +70,12 @@ test.describe('P0: Waybill Lifecycle (Create & List)', () => {
         await expect(page.getByText('SHIP TO / DELIVER TO')).toBeVisible();
 
         // 2. Fill Form
-        await page.getByTestId('ship-from-address').fill('123 Origin St');
-        await page.getByTestId('ship-to-address').fill('456 Dest Rd');
-        await page.getByTestId('delivery-date-input').fill('2026-02-02'); // Shared
+        await humanFill(page.getByTestId('ship-from-address'), '123 Origin St');
+        await humanFill(page.getByTestId('ship-to-address'), '456 Dest Rd');
+        await humanFill(page.getByTestId('delivery-date-input'), '2026-02-02'); // Shared
 
         // 3. Verify Pricing (Shared)
-        await page.getByTestId('price-input').fill('500.00');
+        await humanFill(page.getByTestId('price-input'), '500.00');
 
 
         // 4. Submit
@@ -106,8 +107,7 @@ test.describe('P0: Tracking Loop (Single Page)', () => {
 
         // 1. Type Message
         const input = page.getByPlaceholder(/Type a message/i);
-        await input.click();
-        await input.fill(testMsg);
+        await humanFill(input, testMsg);
 
         // 2. Send
         await page.getByRole('button').filter({ has: page.locator('svg') }).last().click();

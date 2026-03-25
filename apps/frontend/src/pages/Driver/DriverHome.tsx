@@ -32,17 +32,16 @@ export const DriverHome: React.FC = () => {
                 const headers: HeadersInit = { 'Content-Type': 'application/json' };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
                 const res = await fetch(`${API_BASE_URL}/waybills?driver_id=${user.id}`, { headers });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
 
-                // If backend isn't ready with driver_id param, we show mock data for eriche
-                if (data.data && data.data.length > 0) {
+                // 空列表不再注入 mock：否则会掩盖指派/driver_id 不一致，且 E2E 会点到假单号 — 2026-03-23T12:22:00
+                if (!res.ok) {
+                    console.error('Driver waybills fetch failed', res.status);
+                    setWaybills([]);
+                } else if (Array.isArray(data.data)) {
                     setWaybills(data.data);
                 } else {
-                    // Mock data fallback
-                    setWaybills([
-                        { id: 'WB-001', waybill_no: 'WB-20260114-001', origin: 'Omaha, NE', destination: 'Chicago, IL', status: 'IN_TRANSIT', scheduled_time: '2026-01-14 10:00 AM' },
-                        { id: 'WB-002', waybill_no: 'WB-20260114-002', origin: 'Kansas City, MO', destination: 'Dallas, TX', status: 'ASSIGNED', scheduled_time: '2026-01-15 08:00 AM' },
-                    ]);
+                    setWaybills([]);
                 }
             } catch (err) {
                 console.error("Fetch waybills failed", err);
@@ -95,6 +94,7 @@ export const DriverHome: React.FC = () => {
                     <div
                         key={wb.id}
                         onClick={() => navigate(`/driver/waybill/${wb.id}`)}
+                        data-testid={`driver-waybill-card-${wb.waybill_no}`}
                         className="glass card-hover"
                         style={{
                             padding: '20px',

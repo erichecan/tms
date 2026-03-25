@@ -106,8 +106,10 @@ export const PricingCalculator: React.FC = () => {
                             </label>
                             <div style={{ position: 'relative' }}>
                                 <MapPin size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-start)' }} />
+                                {/* E2E：data-testid 供 Playwright humanFill — 2026-03-23T16:05:00 */}
                                 <input
                                     ref={pickupInputRef}
+                                    data-testid="pricing-pickup-input"
                                     className="glass"
                                     placeholder={t('pricing.pickupPlaceholder')}
                                     style={{ width: '100%', padding: '14px 14px 14px 40px', borderRadius: '14px', border: '1px solid var(--glass-border)', fontWeight: 600, fontSize: '14px' }}
@@ -123,6 +125,7 @@ export const PricingCalculator: React.FC = () => {
                                 <ArrowRight size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#10b981' }} />
                                 <input
                                     ref={deliveryInputRef}
+                                    data-testid="pricing-delivery-input"
                                     className="glass"
                                     placeholder={t('pricing.deliveryPlaceholder')}
                                     style={{ width: '100%', padding: '14px 14px 14px 40px', borderRadius: '14px', border: '1px solid var(--glass-border)', fontWeight: 600, fontSize: '14px' }}
@@ -154,6 +157,7 @@ export const PricingCalculator: React.FC = () => {
                                     <Clock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
                                     <input
                                         type="number"
+                                        data-testid="pricing-waiting-input"
                                         value={waitingTime}
                                         onChange={(e) => setWaitingTime(e.target.value)}
                                         className="glass"

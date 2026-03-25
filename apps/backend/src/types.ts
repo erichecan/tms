@@ -155,6 +155,7 @@ export interface Customer {
     creditLimit: number;
     status: 'ACTIVE' | 'INACTIVE';
     created_at: string;
+    details?: any;
 }
 
 

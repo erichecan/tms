@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
 // 2026-03-13: 报价管理权限 — user.permissions 来自 /api/auth/login 或 /me；R-ADMIN 视为拥有所有权限
 
@@ -23,28 +23,31 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-    useEffect(() => {
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser) {
-            try {
-                // Verify if token is expired? Ideally call /api/auth/me here
-                setUser(JSON.parse(storedUser));
-                setToken(storedToken);
-                setIsAuthenticated(true);
-            } catch (e) {
-                console.error("Failed to parse stored user", e);
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
-            }
+/** 首帧同步从 localStorage 恢复会话，避免 ProtectedRoute 在 useEffect 前误判未登录而跳 /login（刷新子路由、E2E 直链 /pricing 等）— 2026-03-23T18:22:00 */
+function readSessionFromStorage(): { user: User | null; token: string | null; isAuthenticated: boolean } {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (storedToken && storedUser) {
+        try {
+            return {
+                token: storedToken,
+                user: JSON.parse(storedUser) as User,
+                isAuthenticated: true,
+            };
+        } catch (e) {
+            console.error('Failed to parse stored user', e);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
         }
-    }, []);
+    }
+    return { user: null, token: storedToken, isAuthenticated: false };
+}
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const initial = readSessionFromStorage();
+    const [user, setUser] = useState<User | null>(initial.user);
+    const [token, setToken] = useState<string | null>(initial.token);
+    const [isAuthenticated, setIsAuthenticated] = useState(initial.isAuthenticated);
 
     const login = (newToken: string, newUser: User) => {
         localStorage.setItem('token', newToken);

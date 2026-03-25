@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { humanFill } from './support/humanInteraction';
 
 // Mock Data
 const MOCK_WAYBILLS = [
@@ -22,7 +23,7 @@ test.describe('Waybill List', () => {
 
     test('Filter by Search', async ({ page }) => {
         const searchInput = page.getByTestId('waybill-search-input');
-        await searchInput.fill('Y002');
+        await humanFill(searchInput, 'Y002');
 
         await expect(page.getByTestId('waybill-row')).toHaveCount(1);
         await expect(page.getByText('Y002')).toBeVisible();

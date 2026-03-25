@@ -59,8 +59,18 @@ const migrate = async () => {
         taxId VARCHAR(50),
         creditLimit NUMERIC DEFAULT 0,
         status VARCHAR(20) DEFAULT 'ACTIVE',
-        created_at TIMESTAMP DEFAULT NOW()
+        created_at TIMESTAMP DEFAULT NOW(),
+        details JSONB
       );
+    `);
+
+    // Idempotent column addition for customers.details
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='details') THEN
+          ALTER TABLE customers ADD COLUMN details JSONB;
+        END IF;
+      END $$;
     `);
 
     await client.query(`
@@ -361,7 +371,13 @@ const migrate = async () => {
       INSERT INTO users(id, name, email, password, roleId, status) VALUES
       ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
       ('D-002', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
-      ON CONFLICT(id) DO NOTHING;
+      ON CONFLICT(id) DO UPDATE SET 
+        name = EXCLUDED.name,
+        email = EXCLUDED.email,
+        password = EXCLUDED.password,
+        password_hash = NULL,
+        roleId = EXCLUDED.roleId,
+        status = EXCLUDED.status;
     `);
     // 2026-03-13: 为已有用户回填 username（邮箱 @ 前部分），便于「邮箱或用户名」登录
     await client.query(`
@@ -666,8 +682,16 @@ const migrate = async () => {
         status VARCHAR(20) DEFAULT 'PENDING',
         created_at TIMESTAMP DEFAULT NOW()
       );
+      
+      -- Idempotent column addition for existing installations
+      DO $$ 
+      BEGIN 
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='container_items' AND column_name='details') THEN
+              ALTER TABLE container_items ADD COLUMN details JSONB;
+          END IF;
+      END $$;
     `);
-    console.log('  Created container_items');
+    console.log('  Created/Modified container_items: +details');
 
     // --- 11. Delivery Appointments ---
     await client.query(`

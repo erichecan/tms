@@ -40,6 +40,7 @@ export const customerService = {
                 c.businessType as "businessType",
                 c.taxId as "taxId",
                 c.creditLimit as "creditLimit",
+                COALESCE(c.details, '{}'::jsonb) as details,
                 COALESCE(c.status, u.status, 'ACTIVE') as status,
                 COALESCE(c.created_at, u.created_at) as created_at
             FROM customers c

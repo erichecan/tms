@@ -236,7 +236,7 @@ export const DriverWaybillDetail: React.FC = () => {
             }}>
                 <div>
                     <div style={{ fontSize: '12px', color: 'var(--slate-400)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Current Status</div>
-                    <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-start)' }}>{waybill.status}</div>
+                    <div data-testid="waybill-status-text" style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-start)' }}>{waybill.status}</div>
                 </div>
                 <div style={{
                     width: '48px', height: '48px', borderRadius: '16px',
@@ -304,6 +304,7 @@ export const DriverWaybillDetail: React.FC = () => {
                     <button
                         onClick={() => handleUpdateStatus('IN_TRANSIT')}
                         disabled={isUpdating}
+                        data-testid="start-mission-btn"
                         className="btn-primary"
                         style={{ padding: '18px', borderRadius: '20px', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
                     >
@@ -315,6 +316,7 @@ export const DriverWaybillDetail: React.FC = () => {
                     <>
                         <button
                             onClick={() => setShowSignature(true)}
+                            data-testid="delivered-sign-btn"
                             className="btn-primary"
                             style={{ padding: '18px', borderRadius: '20px', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', background: 'var(--secondary)' }}
                         >

@@ -296,6 +296,7 @@ export const FleetManagement = () => {
                     <p style={{ margin: '4px 0 0', color: 'var(--slate-500)', fontSize: '14px' }}>{t('fleet.subtitle')}</p>
                 </div>
                 <button
+                    data-testid="fleet-add-entry-btn"
                     className="btn-primary"
                     onClick={handleAddClick}
                     style={{ padding: '12px 24px' }}

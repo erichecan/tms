@@ -17,6 +17,7 @@ interface ContainerItem {
   piece_count: number; cbm?: number; dest_warehouse?: string; dest_warehouse_name?: string;
   pallet_count?: string; pallet_count_num?: number; notes?: string;
   waybill_id?: string; status: string; appointments?: any[];
+  details?: { image?: string };
 }
 // Appointment type
 interface Appointment {
@@ -45,6 +46,7 @@ export const ContainerManagement = () => {
   // Detail panel
   const [selected, setSelected] = useState<Container | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Create modal
   const [showCreate, setShowCreate] = useState(false);
@@ -162,6 +164,7 @@ export const ContainerManagement = () => {
               }}>{s === 'ALL' ? '全部' : s}</button>
           ))}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索柜号..."
+            data-testid="container-search-input"
             className="glass" style={{ padding: '6px 12px', border: 'none', outline: 'none', fontSize: '12px', flex: 1, minWidth: '120px' }} />
         </div>
 
@@ -171,6 +174,7 @@ export const ContainerManagement = () => {
             containers.length === 0 ? <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-400)' }}>暂无数据</div> :
             containers.map(c => (
               <div key={c.id} onClick={() => fetchDetail(c.id)}
+                data-testid={`container-row-${c.container_no}`}
                 className="glass table-row-hover"
                 style={{
                   padding: '16px', cursor: 'pointer', borderRadius: '12px',
@@ -219,7 +223,9 @@ export const ContainerManagement = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={handleGenerateWaybills} className="glass" style={{
+              <button onClick={handleGenerateWaybills} 
+                data-testid="batch-generate-waybills-btn"
+                className="glass" style={{
                 padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px',
                 background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px'
               }}><FileText size={14} /> 批量生成运单</button>
@@ -258,14 +264,35 @@ export const ContainerManagement = () => {
           {detailLoading ? <div style={{ textAlign: 'center', padding: '20px', color: 'var(--slate-400)' }}>加载中...</div> :
             (selected.items || []).map(item => (
               <div key={item.id} className="glass" style={{ padding: '14px', borderRadius: '10px', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, fontSize: '13px' }}>{item.fba_shipment_id || item.sku || 'N/A'}</span>
-                    <StatusBadge status={item.status} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '13px' }}>{item.fba_shipment_id || item.sku || 'N/A'}</span>
+                        <StatusBadge status={item.status} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--slate-500)' }}>
+                        <span><MapPin size={11} /> {item.dest_warehouse_name || item.dest_warehouse || '-'}</span>
+                        <span><Box size={11} /> {item.piece_count}件</span>
+                        <span>📐 {item.cbm || '-'}m³</span>
+                        <span>🎨 {item.pallet_count || '-'}板</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {item.details?.image && (
+                      <div 
+                        onClick={() => setPreviewImage(item.details!.image!)}
+                        style={{ 
+                          width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', 
+                          cursor: 'pointer', border: '1px solid var(--glass-border)', background: '#f8fafc' 
+                        }}
+                      >
+                        <img src={item.details.image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
                     {item.waybill_id ? (
-                      <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>✅ 已生成运单</span>
+                      <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>✅</span>
                     ) : null}
                   </div>
                 </div>
@@ -363,6 +390,26 @@ export const ContainerManagement = () => {
       )}
 
       {/* 2026-03-13 20:50:00: 移除独立排预约弹窗，预约信息后续由司机/车辆指派流程自动生成 */}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}
+          onClick={() => setPreviewImage(null)}
+        >
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+            <img src={previewImage} alt="Large preview" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }} />
+            <button 
+              onClick={() => setPreviewImage(null)}
+              style={{ 
+                position: 'absolute', top: '-15px', right: '-15px', width: '30px', height: '30px', 
+                borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+              }}
+            >✕</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

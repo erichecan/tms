@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/** 类人 E2E：操作间隔 ms，可用 TMS_E2E_SLOW_MS 覆盖 — 2026-03-23T14:35:00 */
+const humanSlowMoMs = Number(process.env.TMS_E2E_SLOW_MS ?? '60');
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30 * 1000,
@@ -25,6 +28,16 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'chromium-human',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          slowMo: humanSlowMoMs,
+        },
+        headless: process.env.TMS_E2E_HEADED === '1' ? false : true,
+      },
     },
   ],
 });

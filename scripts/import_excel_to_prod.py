@@ -7,8 +7,11 @@
 import os
 import re
 import uuid
+import json
+import base64
 from datetime import datetime
 from decimal import Decimal
+from io import BytesIO
 
 import openpyxl
 import psycopg2
@@ -199,12 +202,17 @@ def parse_transfer_sheet(ws):
     return containers, container_items
 
 
-def ensure_customer(conn, customer_id, name):
+def ensure_customer(conn, customer_id, name, details=None):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO customers (id, name, email, phone, businessType, status) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING",
-                (customer_id, name or customer_id, "", "", "STANDARD", "ACTIVE")
+                """INSERT INTO customers (id, name, email, phone, businessType, status, details) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s) 
+                   ON CONFLICT (id) DO UPDATE SET 
+                     name = EXCLUDED.name,
+                     details = COALESCE(customers.details, '{}'::jsonb) || EXCLUDED.details
+                """,
+                (customer_id, name or customer_id, "", "", "STANDARD", "ACTIVE", json.dumps(details) if details else '{}')
             )
         conn.commit()
     except Exception as e:
@@ -385,28 +393,44 @@ def import_quote(conn, filepath):
     if not os.path.isfile(filepath):
         print("文件不存在:", filepath)
         return 0
-    wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+    wb = openpyxl.load_workbook(filepath, data_only=True)
     sheet_customer = {}
+    sheet_images = {}
     all_pricing = []
     for sn in wb.sheetnames:
         if not sn or sn in ("无忧达卡派", "Michael", "LZ", "Bayou"):
             continue
         ws = wb[sn]
+        cid = "C-Q-" + re.sub(r"[^\w\u4e00-\u9fff]", "", sn)[:10] or "Q"
+        sheet_customer[cid] = sn
+        
+        # 提取图片
+        base64_images = []
+        if hasattr(ws, '_images'):
+            for img in ws._images:
+                try:
+                    img_data = img._data()
+                    fmt = getattr(img, 'format', 'png')
+                    b64 = base64.b64encode(img_data).decode('utf-8')
+                    base64_images.append(f"data:image/{fmt};base64,{b64}")
+                except Exception as e:
+                    pass
+        sheet_images[cid] = base64_images
+
         try:
             rows = parse_quote_sheet(ws)
         except Exception as e:
             continue
         if not rows:
             continue
-        cid = "C-Q-" + re.sub(r"[^\w\u4e00-\u9fff]", "", sn)[:10] or "Q"
-        sheet_customer[cid] = sn
         for r in rows:
             r["customer_id"] = cid
             all_pricing.append(r)
     wb.close()
 
     for cid, cname in sheet_customer.items():
-        ensure_customer(conn, cid, cname)
+        details = {"images": sheet_images.get(cid, [])}
+        ensure_customer(conn, cid, cname, details=details)
 
     inserted = 0
     with conn.cursor() as cur:

@@ -64,6 +64,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ initialData = {}, onSu
                         <input
                             required
                             disabled={loading}
+                            data-testid="fleet-vehicle-plate-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.plate || ''}
                             onChange={e => handleInputChange('plate', e.target.value)}
@@ -74,6 +75,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ initialData = {}, onSu
                         <input
                             required
                             disabled={loading}
+                            data-testid="fleet-vehicle-model-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.model || ''}
                             onChange={e => handleInputChange('model', e.target.value)}
@@ -103,6 +105,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ initialData = {}, onSu
                             required
                             disabled={loading}
                             type="number"
+                            data-testid="fleet-vehicle-max-pallets-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.max_pallets || ''}
                             onChange={e => handleInputChange('max_pallets', parseInt(e.target.value, 10))}
@@ -118,6 +121,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ initialData = {}, onSu
                             disabled={loading}
                             type="number"
                             step="0.1"
+                            data-testid="fleet-vehicle-capacity-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.capacity || ''}
                             onChange={e => handleInputChange('capacity', parseFloat(e.target.value))}

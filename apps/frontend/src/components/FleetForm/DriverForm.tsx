@@ -81,6 +81,7 @@ export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, vehicl
                     <input
                         required
                         disabled={loading}
+                        data-testid="fleet-driver-name-input"
                         style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                         value={formData.name || ''}
                         onChange={e => handleInputChange('name', e.target.value)}
@@ -92,6 +93,7 @@ export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, vehicl
                         <input
                             required
                             disabled={loading}
+                            data-testid="fleet-driver-phone-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.phone || ''}
                             onChange={e => handleInputChange('phone', e.target.value)}
@@ -102,6 +104,7 @@ export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, vehicl
                         <input
                             required
                             disabled={loading}
+                            data-testid="fleet-driver-code-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.code || ''}
                             onChange={e => handleInputChange('code', e.target.value)}
@@ -117,6 +120,7 @@ export const DriverForm: React.FC<DriverFormProps> = ({ initialData = {}, vehicl
                             type="number"
                             step="0.01"
                             disabled={loading}
+                            data-testid="fleet-driver-hourly-rate-input"
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--slate-50)', fontWeight: 700 }}
                             value={formData.hourly_rate || ''}
                             onChange={e => handleInputChange('hourly_rate', parseFloat(e.target.value))}

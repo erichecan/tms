@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:tms": "playwright test e2e/tms-full-suite.spec.ts",
-    "test:e2e:full": "playwright test e2e/full-flow-ui.spec.ts"
+    "test:e2e:full": "playwright test e2e/full-flow-ui.spec.ts",
+    "test:e2e:human:multi": "TMS_HUMAN_TYPING=1 playwright test e2e/multi-role-flow.spec.ts --project=chromium-human --workers=1 --timeout=120000",
+    "test:e2e:human:full": "TMS_HUMAN_TYPING=1 TMS_E2E_REAL_API=1 playwright test e2e/full-flow-ui.spec.ts --project=chromium-human --workers=1 --timeout=120000"
   },
   "dependencies": {
     "i18next": "^25.7.4",

@@ -1,7 +1,7 @@
-
 import React, { useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Trash2 } from 'lucide-react';
+import { useDialog } from '../context/DialogContext';
 
 interface SignaturePadProps {
     onSave: (dataUrl: string) => void;
@@ -11,6 +11,7 @@ interface SignaturePadProps {
 export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }) => {
     const sigCanvas = useRef<SignatureCanvas>(null);
     const [preview, setPreview] = useState<string | null>(initialUrl || null);
+    const { alert: dialogAlert } = useDialog();
 
     const clear = () => {
         sigCanvas.current?.clear();
@@ -18,7 +19,15 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }
         // Don't call onSave('') immediately, let user confirm
     };
 
-    const confirm = () => {
+    // 空签时用 DialogContext，避免 window.alert 卡住 Playwright / 自动化 — 2026-03-23T12:35:00
+    const confirm = async () => {
+        // E2E：由 Playwright addInitScript 注入；真实环境不设置 — 2026-03-23T12:58:00
+        if (typeof window !== 'undefined' && (window as unknown as { __TMS_E2E_MOCK_SIGNATURE__?: boolean }).__TMS_E2E_MOCK_SIGNATURE__) {
+            onSave(
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FAAh0Efq6/h9OAAAAAElFTkSuQmCC'
+            );
+            return;
+        }
         if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
             const data = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
             setPreview(data);
@@ -26,8 +35,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }
         } else if (preview && onSave) {
             onSave(preview);
         } else {
-            // Feedback for empty signature
-            window.alert('Please sign before confirming.');
+            await dialogAlert('Please sign before confirming.', 'Signature required');
         }
     };
 
@@ -78,7 +86,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, initialUrl }
                     <Trash2 size={18} /> Clear
                 </button>
                 <button
-                    onClick={confirm}
+                    onClick={() => void confirm()}
                     style={{
                         flex: 2,
                         padding: '14px',

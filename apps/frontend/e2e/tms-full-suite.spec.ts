@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { humanFill } from './support/humanInteraction';
 
 const BASE_URL = 'http://localhost:5173';
 
@@ -22,8 +23,8 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
         });
     });
     await page.goto(BASE_URL + '/login');
-    await page.getByPlaceholder('Email or Username').fill('admin@tms.test');
-    await page.getByPlaceholder('Enter password').fill('pass');
+    await humanFill(page.getByPlaceholder('Email or Username'), 'admin@tms.test');
+    await humanFill(page.getByPlaceholder('Enter password'), 'pass');
     await page.getByRole('button', { name: /Sign In|Authenticating/ }).click();
     await expect(page).toHaveURL(/\/(?!login)/, { timeout: 15000 });
 }
@@ -47,10 +48,10 @@ test.describe('1. 创建运单 (Waybill Creation)', () => {
         await page.getByTestId('create-waybill-btn').click();
         await expect(page).toHaveURL(/waybills\/create/, { timeout: 10000 });
         await expect(page.getByTestId('template-default')).toBeVisible({ timeout: 10000 });
-        await page.getByTestId('ship-from-address').fill('123 Origin St');
-        await page.getByTestId('ship-to-address').fill('456 Dest Rd');
+        await humanFill(page.getByTestId('ship-from-address'), '123 Origin St');
+        await humanFill(page.getByTestId('ship-to-address'), '456 Dest Rd');
         // Default 模板无 delivery-date 字段，仅 Amazon 有
-        await page.getByTestId('price-input').fill('500.00');
+        await humanFill(page.getByTestId('price-input'), '500.00');
         await expect(page.getByTestId('submit-waybill-btn')).toBeVisible();
         await page.getByTestId('submit-waybill-btn').click();
         await expect(page).toHaveURL(/\/waybills$/);
@@ -74,10 +75,10 @@ test.describe('1. 创建运单 (Waybill Creation)', () => {
         await expect(page).toHaveURL(/waybills\/create/);
         await page.getByTestId('template-amazon').click();
         await expect(page.getByTestId('fc-alias-input')).toBeVisible();
-        await page.getByTestId('fc-alias-input').fill('YYZ9');
-        await page.getByTestId('delivery-date-input').fill('2026-03-08');
-        await page.getByTestId('fc-address-input').fill('123 Warehouse Blvd');
-        await page.getByTestId('price-input').fill('150.50');
+        await humanFill(page.getByTestId('fc-alias-input'), 'YYZ9');
+        await humanFill(page.getByTestId('delivery-date-input'), '2026-03-08');
+        await humanFill(page.getByTestId('fc-address-input'), '123 Warehouse Blvd');
+        await humanFill(page.getByTestId('price-input'), '150.50');
         await page.getByTestId('submit-waybill-btn').click();
         await expect(page).toHaveURL(/\/waybills$/);
     });
@@ -100,9 +101,9 @@ test.describe('1. 创建运单 (Waybill Creation)', () => {
         await expect(page).toHaveURL(/\/waybills/);
         await page.getByTestId('create-waybill-btn').click();
         await expect(page).toHaveURL(/waybills\/create/);
-        await page.getByTestId('ship-from-address').fill('A');
-        await page.getByTestId('ship-to-address').fill('B');
-        await page.getByTestId('price-input').fill('100');
+        await humanFill(page.getByTestId('ship-from-address'), 'A');
+        await humanFill(page.getByTestId('ship-to-address'), 'B');
+        await humanFill(page.getByTestId('price-input'), '100');
         await page.getByTestId('submit-waybill-btn').click();
         await expect(page).toHaveURL(/\/waybills$/);
         expect(postBody).not.toBeNull();
@@ -199,7 +200,7 @@ test.describe('5. 运单管理与更新 (Waybill Management)', () => {
     });
 
     test('5.2 搜索过滤', async ({ page }) => {
-        await page.getByTestId('waybill-search-input').fill('Y002');
+        await humanFill(page.getByTestId('waybill-search-input'), 'Y002');
         await page.waitForTimeout(600);
         await expect(page.getByTestId('waybill-row')).toHaveCount(1);
         await expect(page.getByText('Y002')).toBeVisible();
@@ -247,7 +248,7 @@ test.describe('6. 行程管理 (Trip Management)', () => {
     });
 
     test('6.2 发送消息', async ({ page }) => {
-        await page.getByTestId('chat-input').fill('Stay Safe');
+        await humanFill(page.getByTestId('chat-input'), 'Stay Safe');
         const postReq = page.waitForRequest((req) => req.url().includes('/messages') && req.method() === 'POST');
         await page.getByTestId('send-message-btn').click();
         const req = await postReq;
@@ -286,8 +287,8 @@ test.describe('7–8. 司机端基础与运单可见范围', () => {
             });
         });
         await page.goto(BASE_URL + '/login');
-        await page.getByPlaceholder('Email or Username').fill('driver@t.com');
-        await page.getByPlaceholder('Enter password').fill('pass123');
+        await humanFill(page.getByPlaceholder('Email or Username'), 'driver@t.com');
+        await humanFill(page.getByPlaceholder('Enter password'), 'pass123');
         await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
         await expect(page).toHaveURL(/\/driver/, { timeout: 10000 });
     });
@@ -348,8 +349,8 @@ test.describe('14. 用户与权限管理 (RBAC)', () => {
             });
         });
         await page.goto(`${BASE_URL}/login`);
-        await page.getByPlaceholder('Email or Username').fill('driver@t.com');
-        await page.getByPlaceholder('Enter password').fill('pass123');
+        await humanFill(page.getByPlaceholder('Email or Username'), 'driver@t.com');
+        await humanFill(page.getByPlaceholder('Enter password'), 'pass123');
         await page.getByRole('button', { name: /Sign In|Authenticating/i }).click();
         // 登录成功：离开登录页；可能跳转到 /driver 或 /（与产品当前重定向逻辑一致）
         await expect(page).not.toHaveURL(/\/login/);

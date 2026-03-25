@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { humanFill } from './support/humanInteraction';
 
 // Mock Data
 const MOCK_TRIP = {
@@ -36,7 +37,7 @@ test.describe('Tracking Page', () => {
 
     test('Can Send Message', async ({ page }) => {
         // Simulate sending
-        await page.getByTestId('chat-input').fill('Stay Safe');
+        await humanFill(page.getByTestId('chat-input'), 'Stay Safe');
 
         // Updates local state optimistically or via refetch? 
         // Code does: await post -> fetchMessages. 
