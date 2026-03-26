@@ -11,9 +11,13 @@ export class AuthService {
 
     static async login(identifier: string, password: string) {
         // 2026-03-13: 支持邮箱或用户名登录，与前端「Email or Username」一致，避免 401
+        // 2026-03-26 13:32:50: 登录标识改为大小写不敏感匹配，避免生产环境因大小写差异误报 User not found
+        const normalizedIdentifier = identifier.trim().toLowerCase();
         const result = await query(
-            `SELECT * FROM users WHERE email = $1 OR username = $1 LIMIT 1`,
-            [identifier.trim()]
+            `SELECT * FROM users
+             WHERE LOWER(email) = $1 OR LOWER(username) = $1
+             LIMIT 1`,
+            [normalizedIdentifier]
         );
 
         if (result.rows.length === 0) {

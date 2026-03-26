@@ -309,6 +309,84 @@ async function scenario_14_2_ProtectedRoute(api: ApiClient): Promise<{ ok: boole
 // ---------------------------------------------------------------------------
 // P0：完整运输闭环（单条）+ 财务校验
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// P1：转运单 → generate-waybills → assign → DELIVERED → 应收+应付（2026-03-25T12:25:00）
+// ---------------------------------------------------------------------------
+async function runTransferOrderLifecycle(api: ApiClient): Promise<{ ok: boolean; detail?: string }> {
+  try {
+    const createTo = await api.post('/api/transfer-orders', {
+      customer_id: 'C-01',
+      partner: 'E2E-INT-Partner',
+      container_no: `INT-CTR-${Date.now()}`,
+      warehouse: '7仓',
+      entry_method: '整柜',
+      arrival_date: new Date().toISOString().slice(0, 10),
+      main_dest_warehouse: 'YYZ9',
+      currency: 'CAD',
+    });
+    if (createTo.status !== 200) return { ok: false, detail: `create transfer ${createTo.status}` };
+    const toId = (createTo.data as { id: string }).id;
+
+    const linesRes = await api.post(`/api/transfer-orders/${toId}/lines`, {
+      lines: [
+        {
+          sku: 'SKU-INT-1',
+          pallet_count: 3,
+          cbm: 2,
+          dest_warehouse: 'YYZ9',
+          hold_status: 'NORMAL',
+        },
+      ],
+    });
+    if (linesRes.status !== 200) return { ok: false, detail: `lines ${linesRes.status}` };
+    const lineId = (linesRes.data as { lines: { id: string }[] }).lines[0]?.id;
+    if (!lineId) return { ok: false, detail: 'no line id' };
+
+    const gen = await api.post(`/api/transfer-orders/${toId}/generate-waybills`, {
+      line_ids: [lineId],
+    });
+    if (gen.status !== 200) return { ok: false, detail: `generate ${gen.status}` };
+    const wbIds = (gen.data as { waybill_ids?: string[] }).waybill_ids;
+    const waybillId = wbIds?.[0];
+    if (!waybillId) return { ok: false, detail: 'no waybill id' };
+
+    const wbGet = await api.get(`/api/waybills/${waybillId}`);
+    if (wbGet.status !== 200) return { ok: false, detail: 'get waybill' };
+    const wbRow = wbGet.data as Record<string, unknown>;
+
+    const assign = await api.post(`/api/waybills/${waybillId}/assign`, { driver_id: 'D-003', vehicle_id: 'V-103' });
+    if (assign.status !== 200) return { ok: false, detail: `assign ${assign.status}` };
+
+    const start = await api.put(`/api/waybills/${waybillId}`, { ...wbRow, status: 'IN_TRANSIT' });
+    if (start.status !== 200) return { ok: false, detail: `in_transit ${start.status}` };
+
+    const wbAfter = await api.get(`/api/waybills/${waybillId}`);
+    const wb2 = (wbAfter.data || wbRow) as Record<string, unknown>;
+    const distDeliver = await api.put(`/api/waybills/${waybillId}`, {
+      ...wb2,
+      status: 'DELIVERED',
+      billing_type: 'DISTANCE',
+      distance: wb2.distance ?? 120,
+      time_in: '08:00',
+      time_out: '10:00',
+    });
+    if (distDeliver.status !== 200) return { ok: false, detail: `deliver DISTANCE ${distDeliver.status}` };
+
+    const rec = await api.get('/api/finance/records', { params: { type: 'receivable' } });
+    const pay = await api.get('/api/finance/records', { params: { type: 'payable' } });
+    const receivables = (Array.isArray(rec.data) ? rec.data : []) as Array<{ shipment_id?: string; amount?: number }>;
+    const payables = (Array.isArray(pay.data) ? pay.data : []) as Array<{ shipment_id?: string; amount?: number }>;
+    const hasRec = receivables.some((r) => r.shipment_id === waybillId && (r.amount ?? 0) >= 0);
+    const hasPay = payables.some((p) => p.shipment_id === waybillId);
+    if (!hasRec) return { ok: false, detail: 'no receivable for transfer waybill' };
+    if (!hasPay) return { ok: false, detail: 'no payable for transfer waybill' };
+
+    return { ok: true, detail: `(Transfer TO→WB ${waybillId}, DISTANCE receivable+payable ok; TIME 规则见 scenario_2_2 / RULE-PAY-TIME-001)` };
+  } catch (e: any) {
+    return { ok: false, detail: e.response?.data?.error ?? e.message };
+  }
+}
+
 async function runFullLifecycleFlow(api: ApiClient, flowId: number): Promise<boolean> {
   log.flow(flowId, true);
   const payload = waybillPayload(flowId);
@@ -526,6 +604,10 @@ async function main() {
     flowResults.push(await runFullLifecycleFlow(api, id));
   }
   results.push(...flowResults);
+
+  // P1：转运单闭环
+  log.section('P1：转运单 → 运单 → 指派 → 签收 → 财务');
+  results.push(await runScenario('P1 转运单生命周期', api, () => runTransferOrderLifecycle(api)));
 
   const passed = results.filter(Boolean).length;
   const total = results.length;
