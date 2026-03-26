@@ -27,9 +27,9 @@ steps:
       - '-c'
       - |
         BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)
+        # 2026-03-26T13:59:10Z Fixed by Assistant: 避免写死旧项目 backend；改为同项目下的 Cloud Run backend URL
         docker build \
           -t gcr.io/$PROJECT_ID/tms-frontend:tmsv2-latest \
-          # 2026-03-26T13:59:10Z Fixed by Assistant: 避免写死旧项目 backend；改为同项目下的 Cloud Run backend URL
           --build-arg VITE_API_BASE_URL=https://tms-v2-backend-${PROJECT_ID}.us-central1.run.app/api \
           --build-arg VITE_API_URL=https://tms-v2-backend-${PROJECT_ID}.us-central1.run.app \
           --build-arg VITE_GOOGLE_MAPS_API_KEY=$$GOOGLE_MAPS_API_KEY \
