@@ -283,7 +283,8 @@ const migrate = async () => {
       INSERT INTO roles(id, name, description) VALUES
       ('R-ADMIN', 'Administrator', 'Full system access'),
       ('R-DISPATCHER', 'Dispatcher', 'Manage trips and waybills'),
-      ('R-DRIVER', 'Driver', 'Mobile portal access')
+      ('R-DRIVER', 'Driver', 'Mobile portal access'),
+      ('R-FINANCE', 'Finance', 'View and manage receivables/payables')
       ON CONFLICT(id) DO NOTHING;
     `);
 
@@ -306,7 +307,10 @@ const migrate = async () => {
       -- 2026-03-13 PRD Pricing: 报价查看/管理/快速报价权限
       ('P-PRICING-VIEW', 'View Pricing', 'Pricing', 'View pricing matrices, allins, addons, FC, driver costs'),
       ('P-PRICING-MANAGE', 'Manage Pricing', 'Pricing', 'Create, edit, delete/archive all pricing data'),
-      ('P-QUOTE-CALC', 'Use Quote Calculator', 'Pricing', 'Use quick quote API')
+      ('P-QUOTE-CALC', 'Use Quote Calculator', 'Pricing', 'Use quick quote API'),
+      ('P-TRANSFER-VIEW', 'View Transfer Orders', 'Transfer', 'View transfer orders and lines'),
+      ('P-TRANSFER-MANAGE', 'Manage Transfer Orders', 'Transfer', 'Create, edit lines, generate waybills'),
+      ('P-TRANSFER-DELETE', 'Delete Transfer Orders', 'Transfer', 'Delete draft transfer orders or cancel')
       ON CONFLICT(id) DO NOTHING;
     `);
 
@@ -330,6 +334,11 @@ const migrate = async () => {
       ('R-ADMIN', 'P-PRICING-VIEW'),
       ('R-ADMIN', 'P-PRICING-MANAGE'),
       ('R-ADMIN', 'P-QUOTE-CALC'),
+      ('R-ADMIN', 'P-TRANSFER-VIEW'),
+      ('R-ADMIN', 'P-TRANSFER-MANAGE'),
+      ('R-ADMIN', 'P-TRANSFER-DELETE'),
+      ('R-DISPATCHER', 'P-TRANSFER-VIEW'),
+      ('R-DISPATCHER', 'P-TRANSFER-MANAGE'),
       ('R-DISPATCHER', 'P-WAYBILL-VIEW'),
       ('R-DISPATCHER', 'P-WAYBILL-CREATE'),
       ('R-DISPATCHER', 'P-WAYBILL-EDIT'),
@@ -340,7 +349,9 @@ const migrate = async () => {
       ('R-DISPATCHER', 'P-QUOTE-CALC'),
       -- 2026-03-13 PRD Pricing: 应业务要求，调度员也可管理报价（编辑/归档/新增）
       ('R-DISPATCHER', 'P-PRICING-MANAGE'),
-      ('R-DRIVER', 'P-WAYBILL-VIEW')
+      ('R-DRIVER', 'P-WAYBILL-VIEW'),
+      ('R-FINANCE', 'P-FINANCE-VIEW'),
+      ('R-FINANCE', 'P-FINANCE-MANAGE')
       ON CONFLICT(roleid, permissionid) DO NOTHING;
     `);
 
@@ -370,7 +381,8 @@ const migrate = async () => {
     await client.query(`
       INSERT INTO users(id, name, email, password, roleId, status) VALUES
       ('U-01', 'Tom Dispatcher', 'tom@tms.com', 'dispatcher123', 'R-ADMIN', 'ACTIVE'),
-      ('D-002', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE')
+      ('D-002', 'Jerry Driver', 'jerry@tms.com', 'driver123', 'R-DRIVER', 'ACTIVE'),
+      ('U-FIN-01', 'Finance User', 'finance@tms.com', 'finance123', 'R-FINANCE', 'ACTIVE')
       ON CONFLICT(id) DO UPDATE SET 
         name = EXCLUDED.name,
         email = EXCLUDED.email,
@@ -421,7 +433,10 @@ const migrate = async () => {
         '[{"type": "calculateByTime", "params": {"ratePerHour": 80}}]', 'ACTIVE'),
       ('RULE-PAY-TIME-001', 'Driver Hourly Pay ($30/hr)', 'Standard hourly pay for drivers', 'payroll', 10,
         '[{"fact": "billingType", "operator": "equal", "value": "TIME"}]',
-        '[{"type": "calculateByTime", "params": {"ratePerHour": 30}}]', 'ACTIVE')
+        '[{"type": "calculateByTime", "params": {"ratePerHour": 30}}]', 'ACTIVE'),
+      ('RULE-PAY-DIST-001', 'Driver Distance Pay (km)', 'Payroll when billing type is DISTANCE', 'payroll', 9,
+        '[{"fact": "billingType", "operator": "equal", "value": "DISTANCE"}]',
+        '[{"type": "calculateBasePay", "params": {"ratePerKm": 1.25, "fixedPay": 40}}]', 'ACTIVE')
       ON CONFLICT(id) DO NOTHING;
     `);
 
@@ -708,6 +723,57 @@ const migrate = async () => {
       );
     `);
     console.log('  Created delivery_appointments');
+
+    // --- Transfer Orders (转运单 PRD v0.1) — 2026-03-25T12:05:00
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transfer_orders (
+        id VARCHAR(50) PRIMARY KEY,
+        order_no VARCHAR(50) NOT NULL UNIQUE,
+        customer_id VARCHAR(50),
+        partner VARCHAR(200) NOT NULL,
+        container_no VARCHAR(100) NOT NULL,
+        warehouse VARCHAR(200) NOT NULL,
+        entry_method VARCHAR(20) NOT NULL,
+        arrival_date DATE NOT NULL,
+        main_dest_warehouse VARCHAR(50),
+        currency VARCHAR(10) DEFAULT 'CAD',
+        notes TEXT,
+        status VARCHAR(30) DEFAULT 'DRAFT',
+        created_by VARCHAR(50),
+        updated_by VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transfer_order_lines (
+        id VARCHAR(50) PRIMARY KEY,
+        transfer_order_id VARCHAR(50) NOT NULL REFERENCES transfer_orders(id) ON DELETE CASCADE,
+        line_no INTEGER NOT NULL,
+        sku VARCHAR(200),
+        fba VARCHAR(100),
+        po_list VARCHAR(200),
+        container_no VARCHAR(100),
+        warehouse VARCHAR(200),
+        piece_count INTEGER,
+        pallet_count NUMERIC(12,4) DEFAULT 0,
+        cbm NUMERIC(12,4),
+        weight_kg NUMERIC(12,4),
+        dest_warehouse VARCHAR(50),
+        delivery_type VARCHAR(20),
+        partner VARCHAR(200),
+        planned_depart_date DATE,
+        hold_status VARCHAR(30) DEFAULT 'NORMAL',
+        hold_warehouse VARCHAR(200),
+        hold_reason TEXT,
+        hold_release_date DATE,
+        waybilled_pallets NUMERIC(12,4) DEFAULT 0,
+        waybilled_cbm NUMERIC(12,4) DEFAULT 0,
+        waybill_ids JSONB DEFAULT '[]'::jsonb
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_transfer_order_lines_order ON transfer_order_lines(transfer_order_id);`);
+    console.log('  Created transfer_orders / transfer_order_lines');
 
     // --- Existing Table Modifications ---
 

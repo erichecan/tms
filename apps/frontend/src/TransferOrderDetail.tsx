@@ -312,8 +312,8 @@ export const TransferOrderDetail = () => {
     try {
       await generateWaybills(id, { line_ids: Array.from(selectedLineIds) });
       setSelectedLineIds(new Set());
+      // 2026-03-25T12:18:00 fetchDetail 已 setLines；勿再用闭包中的 detail 覆盖，否则明细不刷新
       await fetchDetail();
-      setLines((detail?.lines || []).map((l) => ({ ...l })));
       alert('生成运单请求已提交');
     } catch (e) {
       console.error(e);
@@ -352,7 +352,9 @@ export const TransferOrderDetail = () => {
           <ArrowLeft size={18} /> 返回列表
         </button>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {/* 2026-03-25T12:15:00 E2E: data-testid */}
           <button
+            data-testid="transfer-save-draft"
             onClick={handleSaveDraft}
             disabled={saving}
             style={{
@@ -421,6 +423,7 @@ export const TransferOrderDetail = () => {
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)', marginBottom: '4px' }}>合作单位 *</label>
             <input
+              data-testid="transfer-input-partner"
               value={header.partner}
               onChange={(e) => setHeader({ ...header, partner: e.target.value })}
               placeholder="如 JW、ESC"
@@ -431,6 +434,7 @@ export const TransferOrderDetail = () => {
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)', marginBottom: '4px' }}>柜号/提单号 *</label>
             <input
+              data-testid="transfer-input-container"
               value={header.container_no}
               onChange={(e) => setHeader({ ...header, container_no: e.target.value })}
               className="glass"
@@ -440,6 +444,7 @@ export const TransferOrderDetail = () => {
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)', marginBottom: '4px' }}>所在仓库 *</label>
             <input
+              data-testid="transfer-input-warehouse"
               value={header.warehouse}
               onChange={(e) => setHeader({ ...header, warehouse: e.target.value })}
               placeholder="如 7仓、25仓"
@@ -463,6 +468,7 @@ export const TransferOrderDetail = () => {
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)', marginBottom: '4px' }}>到仓日期 *</label>
             <input
+              data-testid="transfer-input-arrival-date"
               type="date"
               value={header.arrival_date}
               onChange={(e) => setHeader({ ...header, arrival_date: e.target.value })}
@@ -514,6 +520,7 @@ export const TransferOrderDetail = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>明细</h3>
           <button
+            data-testid="transfer-btn-add-line"
             onClick={addLine}
             className="glass"
             style={{
@@ -546,9 +553,10 @@ export const TransferOrderDetail = () => {
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => (
+              {lines.map((line, lineIdx) => (
                 <tr
                   key={line.id}
+                  data-testid={lineIdx === 0 ? 'transfer-line-row-first' : undefined}
                   style={{
                     borderBottom: '1px solid var(--glass-border)',
                     background: line.hold_status !== 'NORMAL' && line.hold_status !== 'RELEASED' ? 'rgba(254, 226, 226, 0.3)' : undefined,
@@ -557,6 +565,7 @@ export const TransferOrderDetail = () => {
                   <td style={{ padding: '6px' }}>
                     {canSelectForWaybill(line) && (
                       <input
+                        data-testid={lineIdx === 0 ? 'transfer-line-checkbox-first' : `transfer-line-checkbox-${lineIdx}`}
                         type="checkbox"
                         checked={selectedLineIds.has(line.id)}
                         onChange={() => toggleSelectLine(line.id)}
@@ -590,6 +599,7 @@ export const TransferOrderDetail = () => {
                   </td>
                   <td style={{ padding: '6px' }}>
                     <input
+                      data-testid={lineIdx === 0 ? 'transfer-line-pallet-first' : undefined}
                       type="number"
                       step="0.01"
                       value={line.pallet_count ?? ''}
@@ -610,6 +620,7 @@ export const TransferOrderDetail = () => {
                   </td>
                   <td style={{ padding: '6px' }}>
                     <select
+                      data-testid={lineIdx === 0 ? 'transfer-line-dest-first' : undefined}
                       value={line.dest_warehouse ?? ''}
                       onChange={(e) => updateLine(line.id, { dest_warehouse: e.target.value || undefined })}
                       className="glass"
@@ -631,6 +642,7 @@ export const TransferOrderDetail = () => {
                   </td>
                   <td style={{ padding: '6px' }}>
                     <select
+                      data-testid={lineIdx === 0 ? 'transfer-line-hold-first' : `transfer-line-hold-${lineIdx}`}
                       value={line.hold_status}
                       onChange={(e) => updateLine(line.id, { hold_status: e.target.value as LineHoldStatus })}
                       className="glass"
@@ -698,6 +710,7 @@ export const TransferOrderDetail = () => {
             已勾选 <strong>{selectedLineIds.size}</strong> 行（仅非 HOLD 且剩余托数&gt;0 可选）
           </span>
           <button
+            data-testid="transfer-generate-waybills"
             onClick={handleGenerateWaybills}
             disabled={selectedLineIds.size === 0 || generateWaybillsLoading}
             style={{

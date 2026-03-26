@@ -15,6 +15,7 @@ import ruleRoutes from './routes/ruleRoutes';
 import searchRoutes from './routes/searchRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import containerRoutes from './routes/containerRoutes';
+import transferOrderRoutes from './routes/transferOrderRoutes';
 import { verifyToken } from './middleware/AuthMiddleware';
 import { FinanceController } from './controllers/FinanceController';
 import { mapsApiService } from './services/MapsApiService';
@@ -409,11 +410,20 @@ app.put('/api/waybills/:id', async (req, res) => {
 
           try {
             const payResult = await ruleEngineService.calculateDriverPay(payContext);
+            // 2026-03-25T12:10:00 若规则未命中导致 0，但指派时已写入 trip.driver_pay_total（基线/时薪），应付沿用 Trip 结果
+            let payAmount = payResult.totalPay;
+            if (payAmount <= 0 && updatedWaybill.trip_id) {
+              const tripPayRes = await query(`SELECT driver_pay_total FROM trips WHERE id = $1`, [updatedWaybill.trip_id]);
+              const tpt = tripPayRes.rows[0]?.driver_pay_total;
+              if (tpt != null && parseFloat(String(tpt)) > 0) {
+                payAmount = parseFloat(String(tpt));
+              }
+            }
             const payrollId = `FP-${Date.now()}`;
             await query(
               `INSERT INTO financial_records (id, tenant_id, shipment_id, type, reference_id, amount, currency, status)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-              [payrollId, 'DEFAULT_TENANT', updatedWaybill.id, 'payable', driverId, payResult.totalPay, 'CAD', 'PENDING']
+              [payrollId, 'DEFAULT_TENANT', updatedWaybill.id, 'payable', driverId, payAmount, 'CAD', 'PENDING']
             );
             console.log(`Driver payroll record ${payrollId} created for waybill ${updatedWaybill.id}`);
           } catch (payError) {
@@ -798,7 +808,7 @@ app.use('/api', verifyToken, userRoutes);
 app.use('/api/search', verifyToken, searchRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
 app.use('/api/containers', verifyToken, containerRoutes);
-
+app.use('/api/transfer-orders', verifyToken, transferOrderRoutes);
 
 // Cloud Run 要求监听 0.0.0.0 且使用 PORT 环境变量 (默认 8080) — 2026-03-04
 // 2026-03-13: 生产环境(PORT=8080)仅监听主端口，避免 Cloud Run 启动超时

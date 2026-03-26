@@ -19,7 +19,9 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run dev',
+    // 直连后端 API，避免 /api 相对路径落到无代理的 Vite 实例上（Cannot POST /api/transfer-orders）— 2026-03-25T23:48:00
+    command:
+      'VITE_API_BASE_URL=http://127.0.0.1:3001/api VITE_API_URL=http://127.0.0.1:3001 npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 60 * 1000,
