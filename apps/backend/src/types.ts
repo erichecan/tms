@@ -507,6 +507,8 @@ export interface QuoteRequest {
     vehicle_type: string;
     pallet_count: number;
     addons?: { code: string; qty: number }[];
+    partner_id?: number;       // 用于毛利闭环：查 partner 成本
+    transport_mode?: string;   // partner 报价维度
 }
 
 export interface QuoteResult {
@@ -516,7 +518,10 @@ export interface QuoteResult {
     addon_breakdown: AddonServiceLineItem[];
     grand_total: number;
     driver_cost: number;
-    gross_margin: number;
+    partner_cost?: number;        // partner 实际成本（来自 partner_pricing_rules）
+    partner_cost_rule_id?: number;
+    partner_cost_source?: string; // structured/ocr/manual
+    gross_margin: number;         // grand_total - partner_cost（若有）或 - driver_cost
     margin_rate: string;
     pricing_matrix_id?: string;
 }

@@ -7,7 +7,7 @@
     "start": "node dist/main.js",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/main.ts",
     "build": "tsc",
-    "migrate": "ts-node src/migrate.ts",
+    "migrate": "ts-node src/migrationRunner.ts",
     "check:seed": "ts-node scripts/seed-consistency-check.ts",
     "test:integration": "ts-node scripts/tms-lifecycle-integration.ts"
   },

@@ -2,12 +2,12 @@
 // 2026-03-13: CR-2/CR-3 根据 URL customerId 预选客户并切到费率矩阵（PRD_Pricing_Management_Full.md）
 import { useState, useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { DollarSign, Plus, Calculator, MapPin, Truck, Settings, Package, Edit2, Archive } from 'lucide-react';
+import { DollarSign, Plus, Calculator, MapPin, Truck, Settings, Package, Edit2, Archive, Users } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-type Tab = 'RATES' | 'ADDONS' | 'DRIVER_COSTS' | 'ALLINS' | 'QUOTE' | 'FC';
+type Tab = 'RATES' | 'ADDONS' | 'DRIVER_COSTS' | 'ALLINS' | 'QUOTE' | 'FC' | 'PARTNER_PRICING';
 
 export const PricingManagement = () => {
   const { token, hasPermission } = useAuth();
@@ -40,6 +40,7 @@ export const PricingManagement = () => {
     { key: 'ALLINS', label: '全包价', icon: Package },
     { key: 'QUOTE', label: '快速报价', icon: Calculator },
     { key: 'FC', label: 'FC目的地', icon: MapPin },
+    { key: 'PARTNER_PRICING', label: '合作单位报价', icon: Users },
   ];
 
   return (
@@ -69,6 +70,7 @@ export const PricingManagement = () => {
       {tab === 'FC' && <FcTab headers={headers} fcs={fcs} canManagePricing={canManagePricing} onRefresh={() => {
         fetch(`${API}/api/pricing/fc-destinations`, { headers }).then(r => r.json()).then(d => setFcs(d || [])).catch(() => {});
       }} />}
+      {tab === 'PARTNER_PRICING' && <PartnerPricingTab headers={headers} canManage={canManagePricing} />}
     </div>
   );
 };
@@ -1828,6 +1830,222 @@ const FcTab = ({ headers, fcs, canManagePricing, onRefresh }: { headers: any; fc
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===== Partner Pricing Tab =====
+const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: boolean }) => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const [partners, setPartners] = useState<any[]>([]);
+  const [selectedPartner, setSelectedPartner] = useState<string>('');
+  const [rules, setRules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'browse' | 'compare'>('browse');
+  const [comparePartners, setComparePartners] = useState<string[]>([]);
+  const [compareDest, setCompareDest] = useState('');
+  const [compareTransportMode, setCompareTransportMode] = useState('');
+  const [comparePallets, setComparePallets] = useState('1');
+  const [compareResults, setCompareResults] = useState<any[]>([]);
+  const [comparing, setComparing] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/partners`, { headers })
+      .then(r => r.json())
+      .then(d => setPartners(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPartner) { setRules([]); return; }
+    setLoading(true);
+    fetch(`${API_URL}/api/partner-pricing/${selectedPartner}`, { headers })
+      .then(r => r.json())
+      .then(d => { setRules(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [selectedPartner]);
+
+  const handleArchive = async (id: number) => {
+    if (!confirm('确认归档此定价规则？')) return;
+    await fetch(`${API_URL}/api/partner-pricing/${id}`, { method: 'DELETE', headers });
+    setRules(rules.filter(r => r.id !== id));
+  };
+
+  const handleCompare = async () => {
+    if (!comparePartners.length || !compareDest) return;
+    setComparing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/partner-pricing/compare`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          partner_ids: comparePartners.map(Number),
+          destination: compareDest,
+          transport_mode: compareTransportMode || undefined,
+          pallet_count: parseInt(comparePallets) || 1,
+        }),
+      });
+      const data = await res.json();
+      setCompareResults(data.comparisons || []);
+    } catch { /* ignore */ }
+    setComparing(false);
+  };
+
+  const sourceTag = (s: string) => {
+    const colors: Record<string, string> = { structured: '#3B82F6', ocr: '#8B5CF6', manual: '#10B981' };
+    return (
+      <span style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '8px', background: colors[s] || '#6B7280', color: 'white' }}>
+        {s}
+      </span>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button onClick={() => setMode('browse')}
+          style={{ padding: '7px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700,
+            background: mode === 'browse' ? 'var(--primary-grad)' : 'var(--glass-bg)', color: mode === 'browse' ? 'white' : 'var(--slate-500)' }}>
+          浏览规则
+        </button>
+        <button onClick={() => setMode('compare')}
+          style={{ padding: '7px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700,
+            background: mode === 'compare' ? 'var(--primary-grad)' : 'var(--glass-bg)', color: mode === 'compare' ? 'white' : 'var(--slate-500)' }}>
+          多方比价
+        </button>
+      </div>
+
+      {mode === 'browse' && (
+        <div>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
+            <select value={selectedPartner} onChange={e => setSelectedPartner(e.target.value)}
+              className="glass"
+              style={{ padding: '8px 12px', borderRadius: '10px', border: 'none', fontSize: '13px', minWidth: '220px' }}>
+              <option value=''>— 选择合作单位 —</option>
+              {partners.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}{p.short_code ? ` (${p.short_code})` : ''}</option>
+              ))}
+            </select>
+            {selectedPartner && <span style={{ fontSize: '13px', color: 'var(--slate-500)' }}>{rules.length} 条规则</span>}
+          </div>
+          {loading && <div style={{ color: 'var(--slate-400)', fontSize: '14px' }}>加载中...</div>}
+          {!loading && selectedPartner && rules.length === 0 && (
+            <div style={{ color: 'var(--slate-400)', fontSize: '14px' }}>该合作单位暂无定价规则</div>
+          )}
+          {rules.length > 0 && (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--glass-bg)' }}>
+                    {['目的仓', '运输方式', '板数范围', '单位类型', '基础价', '单位价', '附加费', '来源', ...(canManage ? ['操作'] : [])].map(h => (
+                      <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: '12px', color: 'var(--slate-500)', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rules.map((r: any) => (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '9px 12px', fontWeight: 600 }}>{r.destination_warehouse || '—'}</td>
+                      <td style={{ padding: '9px 12px' }}>{r.transport_mode || '—'}</td>
+                      <td style={{ padding: '9px 12px' }}>
+                        {r.pallet_tier_min != null || r.pallet_tier_max != null
+                          ? `${r.pallet_tier_min ?? '?'} – ${r.pallet_tier_max ?? '∞'} 板`
+                          : '—'}
+                      </td>
+                      <td style={{ padding: '9px 12px' }}>{r.unit_type || '—'}</td>
+                      <td style={{ padding: '9px 12px' }}>{r.base_price != null ? `$${parseFloat(r.base_price).toFixed(2)}` : '—'}</td>
+                      <td style={{ padding: '9px 12px' }}>{r.unit_price != null && parseFloat(r.unit_price) > 0 ? `$${parseFloat(r.unit_price).toFixed(2)}` : '—'}</td>
+                      <td style={{ padding: '9px 12px', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.surcharges && Object.keys(r.surcharges).length > 0
+                          ? Object.entries(r.surcharges).map(([k, v]) => `${k}:${v}`).join(', ')
+                          : '—'}
+                      </td>
+                      <td style={{ padding: '9px 12px' }}>{sourceTag(r.source_type || 'manual')}</td>
+                      {canManage && (
+                        <td style={{ padding: '9px 12px' }}>
+                          <button onClick={() => handleArchive(r.id)}
+                            style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', background: 'var(--glass-bg)', color: 'var(--slate-500)' }}>
+                            <Archive size={12} style={{ display: 'inline', marginRight: '3px' }} />归档
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === 'compare' && (
+        <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)' }}>目的仓</label>
+              <input value={compareDest} onChange={e => setCompareDest(e.target.value)}
+                placeholder="如 YVR7" className="glass"
+                style={{ padding: '8px 12px', borderRadius: '10px', border: 'none', fontSize: '13px', width: '140px' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)' }}>运输方式</label>
+              <input value={compareTransportMode} onChange={e => setCompareTransportMode(e.target.value)}
+                placeholder="可选" className="glass"
+                style={{ padding: '8px 12px', borderRadius: '10px', border: 'none', fontSize: '13px', width: '120px' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)' }}>板数</label>
+              <input type="number" min="1" value={comparePallets} onChange={e => setComparePallets(e.target.value)}
+                className="glass"
+                style={{ padding: '8px 12px', borderRadius: '10px', border: 'none', fontSize: '13px', width: '80px' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--slate-500)' }}>对比合作单位（多选）</label>
+              <select multiple value={comparePartners} onChange={e => setComparePartners(Array.from(e.target.selectedOptions, o => o.value))}
+                className="glass"
+                style={{ padding: '6px 12px', borderRadius: '10px', border: 'none', fontSize: '13px', minHeight: '80px' }}>
+                {partners.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name}{p.short_code ? ` (${p.short_code})` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <button onClick={handleCompare} disabled={comparing || !comparePartners.length || !compareDest}
+              style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700,
+                background: 'var(--primary-grad)', color: 'white', opacity: comparing || !comparePartners.length || !compareDest ? 0.5 : 1 }}>
+              {comparing ? '计算中...' : '开始比价'}
+            </button>
+          </div>
+          {compareResults.length > 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: 'var(--glass-bg)' }}>
+                  {['排名', '合作单位', '基础成本', '板数附加', '燃油附加', '总成本', '数据来源'].map(h => (
+                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: '12px', color: 'var(--slate-500)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {compareResults.map((r: any, i: number) => (
+                  <tr key={r.partner_id} style={{ borderBottom: '1px solid var(--border)', background: i === 0 ? 'rgba(16,185,129,0.05)' : undefined }}>
+                    <td style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#10B981' : undefined }}>#{i + 1}</td>
+                    <td style={{ padding: '9px 12px', fontWeight: 600 }}>{r.partner_name}</td>
+                    <td style={{ padding: '9px 12px' }}>${(r.baseCost || 0).toFixed(2)}</td>
+                    <td style={{ padding: '9px 12px' }}>${(r.palletSurcharge || 0).toFixed(2)}</td>
+                    <td style={{ padding: '9px 12px' }}>${(r.fuelSurcharge || 0).toFixed(2)}</td>
+                    <td style={{ padding: '9px 12px', fontWeight: 700, fontSize: '14px', color: i === 0 ? '#10B981' : undefined }}>
+                      ${(r.totalCost || 0).toFixed(2)}
+                    </td>
+                    <td style={{ padding: '9px 12px' }}>{sourceTag(r.ruleSource || 'none')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {compareResults.length === 0 && !comparing && (
+            <div style={{ color: 'var(--slate-400)', fontSize: '14px' }}>请选择合作单位并输入路线条件后比价</div>
+          )}
         </div>
       )}
     </div>

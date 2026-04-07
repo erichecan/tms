@@ -1,5 +1,6 @@
 import { query } from '../db-postgres';
 import { QuoteRequest, QuoteResult, AddonServiceLineItem } from '../types';
+import { calculatePartnerCost } from './PartnerCostEngine';
 
 /**
  * QuoteEngine - Core pricing calculation engine
@@ -12,7 +13,7 @@ export class QuoteEngine {
    * Calculate a quote based on customer, destination, vehicle type, pallet count, and addons.
    */
   static async calculateQuote(req: QuoteRequest): Promise<QuoteResult> {
-    const { customer_id, destination_code, vehicle_type, pallet_count, addons } = req;
+    const { customer_id, destination_code, vehicle_type, pallet_count, addons, partner_id, transport_mode } = req;
 
     // 1. Determine pallet tier
     const palletTier = this.getPalletTier(pallet_count);
@@ -81,9 +82,29 @@ export class QuoteEngine {
       driverCost = parseFloat(costRes.rows[0].driver_pay) || 0;
     }
 
-    // 5. Calculate totals
+    // 5. Partner cost (毛利闭环)
+    let partnerCost: number | undefined;
+    let partnerCostRuleId: number | undefined;
+    let partnerCostSource: string | undefined;
+
+    if (partner_id) {
+      const pc = await calculatePartnerCost({
+        partnerId: partner_id,
+        destination: destination_code,
+        transportMode: transport_mode,
+        palletCount: pallet_count,
+      });
+      if (pc.ruleId !== null) {
+        partnerCost = pc.totalCost;
+        partnerCostRuleId = pc.ruleId ?? undefined;
+        partnerCostSource = pc.ruleSource;
+      }
+    }
+
+    // 6. Calculate totals — 优先用 partner_cost 计算毛利，否则用 driver_cost
     const grandTotal = basePrice + palletSurcharge + addonTotal;
-    const grossMargin = grandTotal - driverCost;
+    const costForMargin = partnerCost !== undefined ? partnerCost : driverCost;
+    const grossMargin = grandTotal - costForMargin;
     const marginRate = grandTotal > 0 ? ((grossMargin / grandTotal) * 100).toFixed(1) : '0.0';
 
     return {
@@ -93,6 +114,9 @@ export class QuoteEngine {
       addon_breakdown: addonBreakdown,
       grand_total: grandTotal,
       driver_cost: driverCost,
+      partner_cost: partnerCost,
+      partner_cost_rule_id: partnerCostRuleId,
+      partner_cost_source: partnerCostSource,
       gross_margin: grossMargin,
       margin_rate: `${marginRate}%`,
       pricing_matrix_id: pricingMatrixId

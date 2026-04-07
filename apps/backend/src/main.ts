@@ -15,6 +15,9 @@ import ruleRoutes from './routes/ruleRoutes';
 import searchRoutes from './routes/searchRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import containerRoutes from './routes/containerRoutes';
+import transferOrderRoutes from './routes/transferOrderRoutes';
+import partnerPricingRoutes from './routes/partnerPricingRoutes';
+import { previewTransferPricing } from './controllers/PartnerPricingController';
 import { verifyToken } from './middleware/AuthMiddleware';
 import { FinanceController } from './controllers/FinanceController';
 import { mapsApiService } from './services/MapsApiService';
@@ -798,6 +801,22 @@ app.use('/api', verifyToken, userRoutes);
 app.use('/api/search', verifyToken, searchRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
 app.use('/api/containers', verifyToken, containerRoutes);
+app.use('/api/transfer-orders', verifyToken, transferOrderRoutes);
+app.use('/api/partner-pricing', verifyToken, partnerPricingRoutes);
+app.post('/api/pricing/transfer/preview', verifyToken, previewTransferPricing);
+
+app.get('/api/partners', verifyToken, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, name, short_code, type, status FROM partners WHERE status = 'ACTIVE' ORDER BY name`,
+      []
+    );
+    res.json(result.rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to list partners' });
+  }
+});
 
 
 // Cloud Run 要求监听 0.0.0.0 且使用 PORT 环境变量 (默认 8080) — 2026-03-04
