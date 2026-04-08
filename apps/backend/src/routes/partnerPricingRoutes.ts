@@ -5,6 +5,7 @@ const router = Router();
 
 // Pricing rules CRUD
 router.get('/', PartnerPricingController.getPartnerPricingRules);
+router.get('/for-customer/:customerId', PartnerPricingController.getPartnerRulesForCustomer);
 router.get('/:partnerId', PartnerPricingController.getPartnerPricingByPartner);
 router.post('/', PartnerPricingController.createPricingRule);
 router.post('/batch', PartnerPricingController.batchCreatePricingRules);

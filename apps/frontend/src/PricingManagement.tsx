@@ -86,13 +86,20 @@ const RatesTab = ({ headers, customers, fcs, canManage, initialCustomerId }: { h
   const [customerSummary, setCustomerSummary] = useState<any[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [partnerRules, setPartnerRules] = useState<any[]>([]);
+  const [partnerInfo, setPartnerInfo] = useState<any>(null);
+  const [partnerImages, setPartnerImages] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/pricing/matrices`, { headers }).then(r => r.json()).then(d => setCustomerSummary(d || [])).catch(() => {});
+    fetch(`${API_URL}/api/pricing/matrices`, { headers }).then(r => r.json()).then(d => setCustomerSummary(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   const loadRates = async (custId: string, includeArchived: boolean = showArchived) => {
     setSelectedCustomer(custId);
+    setPartnerRules([]);
+    setPartnerInfo(null);
+    setPartnerImages([]);
     if (!custId) { setMatrices([]); return; }
     setLoading(true);
     try {
@@ -100,6 +107,27 @@ const RatesTab = ({ headers, customers, fcs, canManage, initialCustomerId }: { h
       const res = await fetch(url, { headers });
       setMatrices(await res.json());
     } catch (e) { console.error(e); }
+
+    // Also load partner pricing rules matched by customer name
+    try {
+      const pRes = await fetch(`${API_URL}/api/partner-pricing/for-customer/${encodeURIComponent(custId)}`, { headers });
+      const pData = await pRes.json();
+      if (pData.partner && Array.isArray(pData.rules)) {
+        setPartnerInfo(pData.partner);
+        setPartnerRules(pData.rules);
+        // Load OCR images for matching source sheets
+        const sheets = [...new Set(pData.rules.filter((r: any) => r.source_type === 'ocr' && r.source_sheet).map((r: any) => r.source_sheet as string))];
+        const allImgs: string[] = [];
+        for (const sheet of sheets) {
+          try {
+            const imgs = await fetch(`${API_URL}/api/pricing-images/${encodeURIComponent(sheet)}`).then(r => r.json());
+            if (Array.isArray(imgs)) allImgs.push(...imgs.map((u: string) => `${API_URL}${u}`));
+          } catch { /* ignore */ }
+        }
+        setPartnerImages(allImgs);
+      }
+    } catch { /* ignore */ }
+
     setLoading(false);
   };
 
@@ -253,7 +281,7 @@ const RatesTab = ({ headers, customers, fcs, canManage, initialCustomerId }: { h
                         alt={`Quote ${idx + 1}`} 
                         className="glass"
                         style={{ height: '140px', borderRadius: '10px', cursor: 'pointer', objectFit: 'cover' }}
-                        onClick={() => window.open(img)}
+                        onClick={() => setLightboxImg(img)}
                       />
                     </div>
                   ))}
@@ -343,7 +371,84 @@ const RatesTab = ({ headers, customers, fcs, canManage, initialCustomerId }: { h
               </table>
             </div>
           ))}
-          {matrices.length === 0 && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-400)' }}>该客户暂无费率数据</div>}
+          {matrices.length === 0 && partnerRules.length === 0 && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--slate-400)' }}>该客户暂无费率数据</div>}
+
+          {/* Partner Pricing Rules Section */}
+          {partnerRules.length > 0 && (
+            <div style={{ marginTop: matrices.length > 0 ? '24px' : '0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--slate-700)' }}>
+                  合作单位报价规则
+                </div>
+                <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', color: 'white', fontWeight: 700 }}>
+                  {partnerInfo?.name}{partnerInfo?.short_code ? ` (${partnerInfo.short_code})` : ''} · {partnerRules.length} 条
+                </span>
+              </div>
+
+              {/* OCR source images from partner — only show if customer has no images already */}
+              {(() => {
+                const customerObj = customers.find(c => c.id === selectedCustomer);
+                const hasCustomerImages = (customerObj?.details?.images?.length || 0) > 0;
+                if (hasCustomerImages || partnerImages.length === 0) return null;
+                return (
+                  <div className="glass" style={{ padding: '14px', borderRadius: '14px', marginBottom: '14px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '10px', color: 'var(--slate-600)' }}>📷 原始报价单图片 ({partnerImages.length})</div>
+                    <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '6px' }}>
+                      {partnerImages.map((url, idx) => (
+                        <img key={idx} src={url} alt={`报价图${idx + 1}`}
+                          style={{ height: '120px', borderRadius: '8px', cursor: 'pointer', objectFit: 'cover', border: '2px solid var(--glass-border)', flexShrink: 0 }}
+                          onClick={() => setLightboxImg(url)} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+              <div style={{ fontSize: '12px', color: 'var(--slate-400)', marginBottom: '8px' }}>
+                以下报价规则由上方原始报价单图片人工识别后导入，点击图片可放大查看
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--glass-bg)' }}>
+                      {['目的仓', '运输方式', '板数范围', '计费方式', '基础价', '加板价', '燃油附加率', 'OCR置信度', '备注'].map(h => (
+                        <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--slate-500)', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partnerRules.map((r: any) => (
+                      <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>{r.destination_warehouse || '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>{r.transport_mode || '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>
+                          {r.pallet_tier_min != null || r.pallet_tier_max != null
+                            ? `${r.pallet_tier_min ?? '?'} – ${r.pallet_tier_max ?? '∞'} 板`
+                            : '—'}
+                        </td>
+                        <td style={{ padding: '8px 12px' }}>{r.unit_type === 'per_trip' ? '按趟' : r.unit_type === 'per_pallet' ? '按板' : r.unit_type || '—'}</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>{r.base_price != null ? `$${parseFloat(r.base_price).toFixed(2)}` : '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>{r.unit_price != null && parseFloat(r.unit_price) > 0 ? `$${parseFloat(r.unit_price).toFixed(2)}/板` : '—'}</td>
+                        <td style={{ padding: '8px 12px' }}>{r.fuel_surcharge_rate != null ? `${(parseFloat(r.fuel_surcharge_rate) * 100).toFixed(1)}%` : '—'}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                          {r.ocr_confidence != null
+                            ? <span style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '8px',
+                                background: r.ocr_confidence >= 0.9 ? '#D1FAE5' : r.ocr_confidence >= 0.7 ? '#FEF3C7' : '#FEE2E2',
+                                color: r.ocr_confidence >= 0.9 ? '#065F46' : r.ocr_confidence >= 0.7 ? '#92400E' : '#991B1B' }}>
+                                {(r.ocr_confidence * 100).toFixed(0)}%
+                              </span>
+                            : '—'}
+                        </td>
+                        <td style={{ padding: '8px 12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--slate-500)', fontSize: '12px' }}>
+                          {r.notes || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -433,6 +538,20 @@ const RatesTab = ({ headers, customers, fcs, canManage, initialCustomerId }: { h
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div onClick={() => setLightboxImg(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+          <img src={lightboxImg} alt="大图预览"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()} />
+          <button onClick={() => setLightboxImg(null)}
+            style={{ position: 'fixed', top: '20px', right: '24px', background: 'rgba(255,255,255,0.15)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            ✕
+          </button>
         </div>
       )}
     </div>
@@ -1850,6 +1969,8 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
   const [comparePallets, setComparePallets] = useState('1');
   const [compareResults, setCompareResults] = useState<any[]>([]);
   const [comparing, setComparing] = useState(false);
+  const [partnerImages, setPartnerImages] = useState<string[]>([]);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_URL}/api/partners`, { headers })
@@ -1859,11 +1980,26 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
   }, []);
 
   useEffect(() => {
-    if (!selectedPartner) { setRules([]); return; }
+    if (!selectedPartner) { setRules([]); setPartnerImages([]); return; }
     setLoading(true);
+    setPartnerImages([]);
     fetch(`${API_URL}/api/partner-pricing/${selectedPartner}`, { headers })
       .then(r => r.json())
-      .then(d => { setRules(Array.isArray(d) ? d : []); setLoading(false); })
+      .then(async (d: any[]) => {
+        const arr = Array.isArray(d) ? d : [];
+        setRules(arr);
+        setLoading(false);
+        // Fetch images for OCR rules
+        const ocrSheets = [...new Set(arr.filter(r => r.source_type === 'ocr' && r.source_sheet).map(r => r.source_sheet as string))];
+        const allImages: string[] = [];
+        for (const sheet of ocrSheets) {
+          try {
+            const imgs = await fetch(`${API_URL}/api/pricing-images/${encodeURIComponent(sheet)}`).then(r => r.json());
+            if (Array.isArray(imgs)) allImages.push(...imgs.map((u: string) => `${API_URL}${u}`));
+          } catch { /* ignore */ }
+        }
+        setPartnerImages(allImages);
+      })
       .catch(() => setLoading(false));
   }, [selectedPartner]);
 
@@ -1934,12 +2070,31 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
           {!loading && selectedPartner && rules.length === 0 && (
             <div style={{ color: 'var(--slate-400)', fontSize: '14px' }}>该合作单位暂无定价规则</div>
           )}
+
+          {/* OCR Source Images */}
+          {partnerImages.length > 0 && (
+            <div className="glass" style={{ padding: '16px', borderRadius: '16px', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px', color: 'var(--slate-700)' }}>
+                📷 原始报价单图片 ({partnerImages.length})
+              </div>
+              <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'thin' }}>
+                {partnerImages.map((url, idx) => (
+                  <div key={idx} style={{ flexShrink: 0 }}>
+                    <img src={url} alt={`报价图 ${idx + 1}`}
+                      style={{ height: '140px', borderRadius: '10px', cursor: 'pointer', objectFit: 'cover', border: '2px solid var(--glass-border)' }}
+                      onClick={() => setLightboxImg(url)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {rules.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: 'var(--glass-bg)' }}>
-                    {['目的仓', '运输方式', '板数范围', '单位类型', '基础价', '单位价', '附加费', '来源', ...(canManage ? ['操作'] : [])].map(h => (
+                    {['目的仓', '运输方式', '板数范围', '单位类型', '基础价', '单位价', '附加费', '来源', 'OCR置信度', '备注', ...(canManage ? ['操作'] : [])].map(h => (
                       <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: '12px', color: 'var(--slate-500)', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -1963,6 +2118,18 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
                           : '—'}
                       </td>
                       <td style={{ padding: '9px 12px' }}>{sourceTag(r.source_type || 'manual')}</td>
+                      <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                        {r.ocr_confidence != null
+                          ? <span style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '8px',
+                              background: r.ocr_confidence >= 0.9 ? '#D1FAE5' : r.ocr_confidence >= 0.7 ? '#FEF3C7' : '#FEE2E2',
+                              color: r.ocr_confidence >= 0.9 ? '#065F46' : r.ocr_confidence >= 0.7 ? '#92400E' : '#991B1B' }}>
+                              {(r.ocr_confidence * 100).toFixed(0)}%
+                            </span>
+                          : '—'}
+                      </td>
+                      <td style={{ padding: '9px 12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--slate-500)', fontSize: '12px' }}>
+                        {r.notes || '—'}
+                      </td>
                       {canManage && (
                         <td style={{ padding: '9px 12px' }}>
                           <button onClick={() => handleArchive(r.id)}
@@ -2021,7 +2188,7 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: 'var(--glass-bg)' }}>
-                  {['排名', '合作单位', '基础成本', '板数附加', '燃油附加', '总成本', '数据来源'].map(h => (
+                  {['排名', '合作单位', '基础报价', '板数附加', '燃油附加', '应收总价', '数据来源'].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: '12px', color: 'var(--slate-500)' }}>{h}</th>
                   ))}
                 </tr>
@@ -2037,6 +2204,7 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
                     <td style={{ padding: '9px 12px', fontWeight: 700, fontSize: '14px', color: i === 0 ? '#10B981' : undefined }}>
                       ${(r.totalCost || 0).toFixed(2)}
                     </td>
+
                     <td style={{ padding: '9px 12px' }}>{sourceTag(r.ruleSource || 'none')}</td>
                   </tr>
                 ))}
@@ -2046,6 +2214,20 @@ const PartnerPricingTab = ({ headers, canManage }: { headers: any; canManage: bo
           {compareResults.length === 0 && !comparing && (
             <div style={{ color: 'var(--slate-400)', fontSize: '14px' }}>请选择合作单位并输入路线条件后比价</div>
           )}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div onClick={() => setLightboxImg(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+          <img src={lightboxImg} alt="大图预览"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()} />
+          <button onClick={() => setLightboxImg(null)}
+            style={{ position: 'fixed', top: '20px', right: '24px', background: 'rgba(255,255,255,0.15)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            ✕
+          </button>
         </div>
       )}
     </div>

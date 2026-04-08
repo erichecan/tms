@@ -334,9 +334,35 @@ export const generateWaybills = async (req: Request, res: Response) => {
       if (pallets > 13) vehicleType = 'TRAILER_53';
 
       // Look up customer pricing
+      // Priority: partner_pricing_rules (合作单位报价 = 向客户收费) → pricing_matrices (矩阵报价)
       let priceEstimated = 0;
       let pricingMatrixId: string | null = null;
-      if (order.customer_id && line.dest_warehouse) {
+      const partnerId = line.partner_id || order.partner_id;
+
+      // 1. Try partner pricing rules first (合作单位报价即客户应付价格)
+      if (partnerId && line.dest_warehouse) {
+        const pcRes = await client.query(
+          `SELECT base_price, unit_price, unit_type, fuel_surcharge_rate FROM partner_pricing_rules
+           WHERE partner_id = $1 AND destination_warehouse = $2 AND status = 'ACTIVE'
+             AND ($3 BETWEEN COALESCE(pallet_tier_min,0) AND COALESCE(pallet_tier_max,9999))
+           ORDER BY created_at DESC LIMIT 1`,
+          [partnerId, line.dest_warehouse, pallets]
+        );
+        if (pcRes.rows.length > 0) {
+          const pr = pcRes.rows[0];
+          if (pr.unit_type === 'per_trip') {
+            priceEstimated = parseFloat(pr.base_price) || 0;
+          } else {
+            priceEstimated = (parseFloat(pr.base_price) || 0) + pallets * (parseFloat(pr.unit_price) || 0);
+          }
+          if (pr.fuel_surcharge_rate) {
+            priceEstimated *= (1 + parseFloat(pr.fuel_surcharge_rate));
+          }
+        }
+      }
+
+      // 2. Fallback to pricing_matrices if no partner pricing found
+      if (priceEstimated === 0 && order.customer_id && line.dest_warehouse) {
         let tier = '1-4';
         if (pallets >= 14) tier = '14-28';
         else if (pallets >= 5) tier = '5-13';
@@ -355,31 +381,7 @@ export const generateWaybills = async (req: Request, res: Response) => {
         }
       }
 
-      // Look up partner cost
-      let partnerCost = 0;
-      const partnerId = line.partner_id || order.partner_id;
-      if (partnerId && line.dest_warehouse) {
-        const pcRes = await client.query(
-          `SELECT base_price, unit_price, unit_type, fuel_surcharge_rate FROM partner_pricing_rules
-           WHERE partner_id = $1 AND destination_warehouse = $2 AND status = 'ACTIVE'
-             AND ($3 BETWEEN COALESCE(pallet_tier_min,0) AND COALESCE(pallet_tier_max,9999))
-           ORDER BY created_at DESC LIMIT 1`,
-          [partnerId, line.dest_warehouse, pallets]
-        );
-        if (pcRes.rows.length > 0) {
-          const pr = pcRes.rows[0];
-          if (pr.unit_type === 'per_trip') {
-            partnerCost = parseFloat(pr.base_price) || 0;
-          } else {
-            partnerCost = (parseFloat(pr.base_price) || 0) + pallets * (parseFloat(pr.unit_price) || 0);
-          }
-          if (pr.fuel_surcharge_rate) {
-            partnerCost *= (1 + parseFloat(pr.fuel_surcharge_rate));
-          }
-        }
-      }
-
-      const grossMargin = priceEstimated - partnerCost;
+      const grossMargin = priceEstimated;
 
       // Create waybill
       const wbId = `WB-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -399,7 +401,7 @@ export const generateWaybills = async (req: Request, res: Response) => {
          VALUES ($1,$2,$3,$4,$5,$6,'NEW',$7,$8,$9,$10,$11,$12,$13,NOW())`,
         [wbId, waybillNo, order.customer_id, order.warehouse || 'JWA', line.dest_warehouse || '',
          `${line.sku || '转运'} - ${pallets}板`, priceEstimated, line.dest_warehouse,
-         pallets, null, pricingMatrixId, partnerCost, grossMargin]
+         pallets, null, pricingMatrixId, 0, grossMargin]
       );
 
       // Update line

@@ -228,7 +228,7 @@ export const previewTransferPricing = async (req: Request, res: Response) => {
       }
     }
 
-    // Partner cost lookup
+    // Partner pricing lookup — 合作单位报价即向客户收取的价格
     if (partner && dest_warehouse) {
       const pRes = await query('SELECT id FROM partners WHERE name = $1', [partner]);
       if (pRes.rows.length > 0) {
@@ -237,8 +237,11 @@ export const previewTransferPricing = async (req: Request, res: Response) => {
           destination: dest_warehouse,
           palletCount: pallet_count || 0
         });
-        costPrice = cost.totalCost;
-        ruleId = cost.ruleId ? String(cost.ruleId) : undefined;
+        // 合作单位报价 = 客户应付价格（收入），覆盖 pricing_matrices 查出来的值
+        if (cost.totalCost > 0) {
+          customerPrice = cost.totalCost;
+          ruleId = cost.ruleId ? String(cost.ruleId) : undefined;
+        }
       }
     }
 
@@ -246,5 +249,32 @@ export const previewTransferPricing = async (req: Request, res: Response) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to preview pricing' });
+  }
+};
+
+// ─── Get Partner Rules by Customer ID (name-based match) ─────────────────────
+export const getPartnerRulesForCustomer = async (req: Request, res: Response) => {
+  try {
+    const custRes = await query('SELECT name FROM customers WHERE id = $1', [req.params.customerId]);
+    if (custRes.rows.length === 0) return res.json({ partner: null, rules: [] });
+
+    const customerName = custRes.rows[0].name;
+    const partnerRes = await query(
+      `SELECT id, name, short_code FROM partners WHERE name ILIKE $1 LIMIT 1`,
+      [customerName]
+    );
+    if (partnerRes.rows.length === 0) return res.json({ partner: null, rules: [] });
+
+    const partner = partnerRes.rows[0];
+    const rulesRes = await query(
+      `SELECT * FROM partner_pricing_rules
+       WHERE partner_id = $1 AND status = 'ACTIVE'
+       ORDER BY destination_warehouse, pallet_tier_min`,
+      [partner.id]
+    );
+    res.json({ partner, rules: rulesRes.rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to get partner rules for customer' });
   }
 };
