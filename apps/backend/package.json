@@ -9,7 +9,9 @@
     "build": "tsc",
     "migrate": "ts-node src/migrationRunner.ts",
     "check:seed": "ts-node scripts/seed-consistency-check.ts",
-    "test:integration": "ts-node scripts/tms-lifecycle-integration.ts"
+    "test:integration": "ts-node scripts/tms-lifecycle-integration.ts",
+    "seed:main": "npx ts-node scripts/seed-main-workflow.ts",
+    "verify:main": "npx ts-node scripts/verify-main-workflow.ts"
   },
   "keywords": [],
   "author": "",
