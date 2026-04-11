@@ -1,6 +1,8 @@
 
 import * as express from 'express';
 import * as cors from 'cors';
+import * as path from 'path';
+import * as fs from 'fs';
 import { pool, query } from './db-postgres';
 import { TripStatus, WaybillStatus } from './types';
 import { generateWaybillPDF, generateBOL } from './services/pdfService';
@@ -16,6 +18,8 @@ import searchRoutes from './routes/searchRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import containerRoutes from './routes/containerRoutes';
 import transferOrderRoutes from './routes/transferOrderRoutes';
+import partnerPricingRoutes from './routes/partnerPricingRoutes';
+import { previewTransferPricing } from './controllers/PartnerPricingController';
 import { verifyToken } from './middleware/AuthMiddleware';
 import { FinanceController } from './controllers/FinanceController';
 import { mapsApiService } from './services/MapsApiService';
@@ -63,6 +67,24 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// 静态服务：OCR 报价单原图
+const PRICING_IMAGES_DIR = path.resolve(__dirname, '../../../scripts/pricing-images');
+app.use('/pricing-images', express.static(PRICING_IMAGES_DIR));
+
+// 列出某 source_sheet 对应的图片列表
+app.get('/api/pricing-images/:sourceSheet', (req, res) => {
+  try {
+    const sheet = req.params.sourceSheet;
+    if (!fs.existsSync(PRICING_IMAGES_DIR)) return res.json([]);
+    const files = fs.readdirSync(PRICING_IMAGES_DIR)
+      .filter(f => f.startsWith(sheet + '_') && /\.(png|jpg|jpeg|webp)$/i.test(f))
+      .map(f => `/pricing-images/${encodeURIComponent(f)}`);
+    res.json(files);
+  } catch {
+    res.json([]);
+  }
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -809,6 +831,21 @@ app.use('/api/search', verifyToken, searchRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
 app.use('/api/containers', verifyToken, containerRoutes);
 app.use('/api/transfer-orders', verifyToken, transferOrderRoutes);
+app.use('/api/partner-pricing', verifyToken, partnerPricingRoutes);
+app.post('/api/pricing/transfer/preview', verifyToken, previewTransferPricing);
+
+app.get('/api/partners', verifyToken, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, name, short_code, type, status FROM partners WHERE status = 'ACTIVE' ORDER BY name`,
+      []
+    );
+    res.json(result.rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to list partners' });
+  }
+});
 
 // Cloud Run 要求监听 0.0.0.0 且使用 PORT 环境变量 (默认 8080) — 2026-03-04
 // 2026-03-13: 生产环境(PORT=8080)仅监听主端口，避免 Cloud Run 启动超时

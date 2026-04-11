@@ -30,6 +30,18 @@ export const TransferOrdersList = () => {
   const [filterContainer, setFilterContainer] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterPartner, setFilterPartner] = useState('');
+  const [partners, setPartners] = useState<{ id: number; name: string; short_code: string }[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const apiBase = (window as any).__VITE_API_URL__ || import.meta.env?.VITE_API_URL || 'http://localhost:3001';
+    fetch(`${apiBase}/api/partners`, { headers })
+      .then(r => r.json())
+      .then(d => setPartners(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
 
   const fetchList = async () => {
     setLoading(true);
@@ -113,13 +125,17 @@ export const TransferOrdersList = () => {
           className="glass"
           style={{ padding: '8px 14px', border: 'none', borderRadius: '10px', fontSize: '13px', width: '120px' }}
         />
-        <input
+        <select
           value={filterPartner}
           onChange={(e) => setFilterPartner(e.target.value)}
-          placeholder="合作单位"
           className="glass"
-          style={{ padding: '8px 14px', border: 'none', borderRadius: '10px', fontSize: '13px', width: '120px' }}
-        />
+          style={{ padding: '8px 14px', border: 'none', borderRadius: '10px', fontSize: '13px', minWidth: '150px' }}
+        >
+          <option value=''>全部合作单位</option>
+          {partners.map(p => (
+            <option key={p.id} value={p.name}>{p.name}{p.short_code ? ` (${p.short_code})` : ''}</option>
+          ))}
+        </select>
         <button
           onClick={onApplyFilters}
           className="glass"
