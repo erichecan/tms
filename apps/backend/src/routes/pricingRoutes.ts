@@ -42,4 +42,18 @@ router.post('/container-allins', requirePermission('P-PRICING-MANAGE'), PMC.upse
 // Quote Engine: P-QUOTE-CALC 或 P-PRICING-VIEW
 router.post('/quote', requireAnyPermission(['P-QUOTE-CALC', 'P-PRICING-VIEW']), PMC.calculateQuote);
 
+// 转运明细报价预览（PRD 6.2 最小钩子；无完整规则时返回可解释占位）— 2026-03-25T12:11:00
+router.post(
+  '/transfer/preview',
+  requireAnyPermission(['P-QUOTE-CALC', 'P-PRICING-VIEW', 'P-TRANSFER-VIEW']),
+  (_req, res) => {
+    res.json({
+      customer_price: undefined,
+      cost_price: undefined,
+      rule_id: undefined,
+      hint: 'v0.1 stub: match pricing matrix on save or enter manual price on waybill',
+    });
+  }
+);
+
 export default router;
