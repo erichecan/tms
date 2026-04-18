@@ -31,6 +31,8 @@ import { DriverLayout } from './components/DriverLayout';
 import { DriverHome } from './pages/Driver/DriverHome';
 import { DriverWaybillDetail } from './pages/Driver/DriverWaybillDetail';
 import { DriverSettings } from './pages/Driver/DriverSettings';
+import { DemoGuide } from './pages/DemoGuide';
+import { NotFound } from './pages/NotFound';
 import type { ReactNode } from 'react';
 
 /** 仅 P-PRICING-VIEW 可访问报价相关页；无权限重定向至首页 */
@@ -42,8 +44,16 @@ function PricingViewGuard({ children }: { children: ReactNode }) {
 
 const router = createBrowserRouter([
   {
+    path: '/demo',
+    element: <DemoGuide />
+  },
+  {
     path: '/login',
     element: <Login />
+  },
+  {
+    path: '*',
+    element: <NotFound />
   },
   {
     path: '/',

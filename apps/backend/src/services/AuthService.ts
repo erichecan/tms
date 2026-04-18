@@ -4,7 +4,8 @@ import { query } from '../db-postgres';
 import { User } from '../types';
 
 const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-prod';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable is not set');
 const TOKEN_EXPIRY = '24h';
 
 export class AuthService {
@@ -26,38 +27,15 @@ export class AuthService {
 
         const user = result.rows[0];
 
-        // Check password
-        console.log(`[Login] Checking pass for user: ${user.email} (ID: ${user.id})`);
-
-        // MAPPING: DB 'password' column contains the hash in this schema version
-        const dbPasswordHash = user.password_hash || user.password; // Check both in case of schema drift
+        const dbPasswordHash = user.password;
 
         if (!dbPasswordHash) {
-            console.error('[Login] No hash found on user record.');
-            throw new Error('Invalid credentials (no password set)');
+            throw new Error('Invalid credentials');
         }
 
-        let match = false;
-
-        // 1. Try Simple String Equality (Legacy/Plain Text)
-        if (password === dbPasswordHash) {
-            match = true;
-            console.log(`[Login] Plain text match: YES`);
-        } else {
-            // 2. Try Bcrypt
-            try {
-                match = await bcrypt.compare(password, dbPasswordHash);
-            } catch (err: any) {
-                // Ignore bcrypt errors (e.g. invalid salt) if we want to fail safe, 
-                // but here it likely means it wasn't a hash.
-                console.log(`[Login] Bcrypt compare error (likely not a hash): ${err.message}`);
-            }
-        }
-
-        console.log(`[Login] Match result: ${match}`);
+        const match = await bcrypt.compare(password, dbPasswordHash);
 
         if (!match) {
-            console.error('[Login] Password mismatch.');
             throw new Error('Invalid credentials');
         }
 
@@ -134,16 +112,10 @@ export class AuthService {
 
         const user = result.rows[0];
 
-        // MAPPING: DB 'password' column 
-        const dbPasswordHash = user.password_hash || user.password;
-
-        if (dbPasswordHash) {
-            const match = await bcrypt.compare(oldPass, dbPasswordHash);
-            if (!match) throw new Error('Invalid old password');
-        } else {
-            // Should not happen if data is clean
-            throw new Error('Invalid old password');
-        }
+        const dbPasswordHash = user.password;
+        if (!dbPasswordHash) throw new Error('Invalid old password');
+        const match = await bcrypt.compare(oldPass, dbPasswordHash);
+        if (!match) throw new Error('Invalid old password');
 
         const newHash = await bcrypt.hash(newPass, SALT_ROUNDS);
         // Use 'password' column as per schema check

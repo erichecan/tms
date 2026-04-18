@@ -90,21 +90,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 集成测试用：将司机/车辆重置为 IDLE（仅非 production 环境） 2026-03-04
-app.post('/api/test/reset-fleet-idle', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ error: 'Not available' });
-  }
-  try {
-    await query('UPDATE drivers SET status = $1', ['IDLE']);
-    await query('UPDATE vehicles SET status = $1', ['IDLE']);
-    res.json({ ok: true, message: 'drivers and vehicles set to IDLE' });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Reset failed' });
-  }
-});
-
 // --- Dashboard APIs ---
 
 app.get('/api/dashboard/metrics', async (req, res) => {
@@ -215,7 +200,7 @@ app.get('/api/waybills', async (req, res) => {
   }
 });
 
-app.post('/api/waybills', async (req, res) => {
+app.post('/api/waybills', verifyToken, async (req, res) => {
   const {
     waybill_no: providedWaybillNo, customer_id, origin, destination,
     cargo_desc, price_estimated, delivery_date, reference_code,
@@ -327,7 +312,7 @@ app.post('/api/waybills', async (req, res) => {
   }
 });
 
-app.put('/api/waybills/:id', async (req, res) => {
+app.put('/api/waybills/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   const {
     waybill_no, customer_id, origin, destination,
@@ -356,7 +341,6 @@ app.put('/api/waybills/:id', async (req, res) => {
             'INSERT INTO customers (id, name, email, status) VALUES ($1, $2, $3, $4)',
             [u.id, u.name, u.email, 'ACTIVE']
           );
-          console.log(`Auto-created customer entry for user ${u.name} (${u.id}) during waybill update.`);
         }
       }
     }
@@ -408,7 +392,6 @@ app.put('/api/waybills/:id', async (req, res) => {
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [recordId, 'DEFAULT_TENANT', updatedWaybill.id, 'receivable', updatedWaybill.customer_id, amount, 'CAD', 'PENDING']
       );
-      console.log(`Financial record ${recordId} created for delivered waybill ${updatedWaybill.id}`);
 
       // New: Driver Payroll Creation
       if (updatedWaybill.trip_id) {
@@ -447,7 +430,6 @@ app.put('/api/waybills/:id', async (req, res) => {
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
               [payrollId, 'DEFAULT_TENANT', updatedWaybill.id, 'payable', driverId, payAmount, 'CAD', 'PENDING']
             );
-            console.log(`Driver payroll record ${payrollId} created for waybill ${updatedWaybill.id}`);
           } catch (payError) {
             console.error('Failed to calculate/create driver payroll record', payError);
           }
@@ -497,7 +479,7 @@ app.get('/api/waybills/:id/bol', async (req, res) => {
   }
 });
 
-app.post('/api/waybills/:id/assign', async (req, res) => {
+app.post('/api/waybills/:id/assign', verifyToken, async (req, res) => {
   const { id } = req.params;
   const { driver_id, vehicle_id, bonus } = req.body;
   const client = await pool.connect();
@@ -741,7 +723,7 @@ app.get('/api/trips/:id/messages', async (req, res) => {
   } catch (e) { res.status(500).json([]); }
 });
 
-app.post('/api/waybills/:id/photos', async (req, res) => {
+app.post('/api/waybills/:id/photos', verifyToken, async (req, res) => {
   const { id } = req.params;
   const { photo, type } = req.body; // base64 string and type (e.g., 'POD', 'DAMAGE')
 
@@ -775,7 +757,7 @@ app.post('/api/waybills/:id/photos', async (req, res) => {
   }
 });
 
-app.post('/api/trips/:id/messages', async (req, res) => {
+app.post('/api/trips/:id/messages', verifyToken, async (req, res) => {
   const { id } = req.params;
   const { text } = req.body;
   const msgId = `M-${Date.now()}`;
@@ -793,7 +775,7 @@ app.post('/api/trips/:id/messages', async (req, res) => {
   }
 });
 
-app.post('/api/trips/:id/events', async (req, res) => {
+app.post('/api/trips/:id/events', verifyToken, async (req, res) => {
   const { id } = req.params;
   const { status, description } = req.body;
   const time = new Date().toISOString();
@@ -861,7 +843,7 @@ if (!isCloudRun && Number(port) !== 8000) {
   });
   secondaryServer.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
-      console.log('⚠️ Port 8000 is busy (likely workspace proxy). Primary engine is safe on 3001.');
+      console.warn('[Server] Port 8000 is busy, primary engine running on 3001.');
     } else {
       console.error('Secondary server error:', err);
     }
