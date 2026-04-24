@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Truck, Package, MessageSquare, Settings, FileText, DollarSign, Users, Bell, Search, UserCircle, ShieldCheck, LogOut, X, CheckCircle, AlertTriangle, Info, Container, Calculator, ClipboardList } from 'lucide-react';
 import { searchService } from './services/searchService';
@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from './context/AuthContext';
 import logo from './assets/logo.png';
 import './index.css';
+import GuidedTour from './components/onboarding/GuidedTour';
+import HelpDrawer from './components/onboarding/HelpDrawer';
 
 const SidebarItem = ({ to, icon: Icon, label, indent = 0 }: { to: string; icon: any; label: string; indent?: number }) => (
     <NavLink
@@ -51,6 +53,13 @@ export const Layout = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    // --- Help / Tour State ---
+    const [helpOpen, setHelpOpen] = useState(false);
+    const [startTour, setStartTour] = useState<(() => void) | undefined>();
+    const handleReplay = useCallback((fn: () => void) => {
+        setStartTour(() => fn);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -308,6 +317,26 @@ export const Layout = () => {
                                 </div>
                             )}
                         </div>
+                        {/* Help button */}
+                        <button
+                            onClick={() => setHelpOpen(true)}
+                            title="帮助"
+                            style={{
+                                width: 40, height: 40, borderRadius: '12px',
+                                background: 'rgba(0,128,255,0.06)',
+                                border: '1px solid rgba(0,128,255,0.18)',
+                                fontSize: 17, fontWeight: 800, color: '#0080FF',
+                                cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,128,255,0.12)';
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,128,255,0.06)';
+                            }}
+                        >?</button>
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
                         <div
                             style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
@@ -328,6 +357,18 @@ export const Layout = () => {
                     <Outlet />
                 </div>
             </main>
+
+            {/* Onboarding overlays */}
+            <HelpDrawer
+                roleId={user?.roleId}
+                open={helpOpen}
+                onClose={() => setHelpOpen(false)}
+                startTour={startTour}
+            />
+            <GuidedTour
+                roleId={user?.roleId}
+                onReplay={handleReplay}
+            />
         </div>
     );
 };
